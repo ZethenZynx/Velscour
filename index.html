@@ -41,7 +41,6 @@
       </div>
       <div id="target-box" class="hidden"><canvas id="tb-pic" width="320" height="320"></canvas><div id="tb-info"><div id="tb-name"></div><div id="tb-track"><div id="tb-fill"></div></div><div id="tb-sub"></div></div></div>
       <div id="buff-row"></div>
-      <div id="auto-status" class="hidden"></div>
     </div>
     <div id="hud-top-right">
       <div id="minimap-row">
@@ -58,12 +57,10 @@
           <button class="hbtn" data-act="talents" title="Passive Talents (T)"><img src="assets/ui/btn_talent.webp" alt="Talents" draggable="false"><b id="talent-badge" class="badge hidden"></b></button>
           <button class="hbtn" data-act="book" title="Skill Book (B)"><img src="assets/ui/btn_book.webp" alt="Book" draggable="false"></button>
           <button class="hbtn" data-act="quest" title="Quest Log (Q)"><img src="assets/ui/btn_quest.webp" alt="Quest" draggable="false"></button>
-          <button class="hbtn" data-act="auto" id="auto-btn" title="Auto-play (P): the hero plays on autopilot"><img src="assets/ui/btn_auto.webp" alt="Auto" draggable="false"></button>
           <button class="hbtn" data-act="menu" title="Menu (Esc)"><img src="assets/ui/btn_menu.webp" alt="Menu" draggable="false"></button>
         </div>
-        <!-- the spectator's dials: auto-play's stance, the Greed lever, sealed treasures waiting in the bag -->
+        <!-- The Greed lever and sealed treasures waiting in the bag -->
         <div id="hud-dials">
-          <div id="stance" class="hidden" title="Auto-play's stance: how hard the hero presses in, when it drinks and when it runs"><button type="button" data-st="cautious">Cautious</button><button type="button" data-st="balanced">Balanced</button><button type="button" data-st="reckless">Reckless</button></div>
           <div id="greed"><button type="button" class="gr-btn" data-d="-1" aria-label="Lower the Greed lever">&minus;</button><span class="gr-lever"><span class="gr-label">Greed</span><span id="greed-pips"></span></span><button type="button" class="gr-btn" data-d="1" aria-label="Raise the Greed lever">+</button><span id="hoard"></span></div>
           <button id="sealed-btn" class="hidden" type="button" title="Break the seal on a sealed treasure"><i></i><span id="sealed-text"></span></button>
         </div>

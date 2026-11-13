@@ -1,13 +1,12 @@
 // Macros: up to five per hero (G.char.macros), each an ordered list of skills on a key of its own (a button on touch).
 // A press casts them one after another as each cast ends; a skill on cooldown, short of mana or not learned is skipped.
 // "Keep up" recasts the list's buffs as they wear off and its cooldown skills (3 s or more) as they come back, while a
-// foe is in sight and auto-play is off (it keeps its own buffs). Asked for on Discord: "when manually playing I need to
+// foe is in sight. Asked for on Discord: "when manually playing I need to
 // play like a pianist to use all my buffs, 4567890- every 30 seconds or so". The panel is ui/macros.js.
 import { G } from '../state.js';
 import { input } from '../core/input.js';
 import { SKILLS, cooldown } from '../data/skills.js';
 import { BeamCh } from './hazards.js';
-import { Auto } from './autoplay.js';
 import { MACRO_KEYS } from '../data/macros.js';
 
 export { MACRO_N, MACRO_LEN, MACRO_KEYS, keyLabel } from '../data/macros.js';
@@ -18,7 +17,7 @@ export function setMacroKey(i, key) {
   if (key) for (const m of ms) if (m.key === key) m.key = null;
   ms[i].key = MACRO_KEYS.includes(key) ? key : null;
 }
-/** The keys macros are on now (auto-play's noteInput: a press takes the controls back for a moment). */
+/** The keys assigned to the character's macros. */
 export const macroKeys = () => (G.char && G.char.macros ? G.char.macros.map((m) => m.skills.length && m.key).filter(Boolean) : []);
 
 export const Macros = {
@@ -57,7 +56,7 @@ export const Macros = {
     if ((this.keepT -= dt) <= 0) {
       this.keepT = 0.25;
       const keep = c.macros.filter((m) => m.keep && m.skills.length);
-      if (keep.length && !Auto.on && w.nearestHostile('player', p.x, p.y, 12, true)) {
+      if (keep.length && w.nearestHostile('player', p.x, p.y, 12, true)) {
         for (const m of keep) for (const id of m.skills) {
           if (!this.queue.some((q) => (typeof q === 'string' ? q : q.id) === id) && this.due(id)) {
             this.queue.push({ id, fromKeep: true });

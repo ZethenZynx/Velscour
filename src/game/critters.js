@@ -1,5 +1,5 @@
 // Gilded critters: little treasures that cross the screen now and then (a gilded wisp drifting through the air, a
-// starmoth, a golden scarab scuttling over the floor, now and then a prismatic wisp). Auto-play never chases them:
+// starmoth, a golden scarab scuttling over the floor, now and then a prismatic wisp).
 // they are the player's to tap (or click) before they get away. They aren't creatures, so nothing fights them.
 // Each pays one thing: a big sum of experience, a share of the hero's next level (pay.xp), or, the Golden Scarab, a
 // heap of gold (pay.gold: that many gold piles of the hero's level, gold find counted). A red arrow bobs over
@@ -197,7 +197,7 @@ export function spawnCritter(world, key = null) {
     sparkle(x, y, c.z, c.K.color, 10, 0.4);
     sfx('pickup', 0.5);
     const ch = G.char;
-    if (ch && !ch.tips.critter) { ch.tips.critter = true; UI.log(`A <b style="color:${c.K.color}">${c.K.name}</b>! ${G.touch ? 'Tap' : 'Click'} it before it gets away: each gilded critter is worth a big sum of experience (a Golden Scarab, a pile of gold), and auto-play leaves them to you.`, '#ffe2a0'); }
+    if (ch && !ch.tips.critter) { ch.tips.critter = true; UI.log(`A <b style="color:${c.K.color}">${c.K.name}</b>! ${G.touch ? 'Tap' : 'Click'} it before it gets away: each gilded critter is worth a big sum of experience (a Golden Scarab, a pile of gold).`, '#ffe2a0'); }
     return c;
   }
   return null;

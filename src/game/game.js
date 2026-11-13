@@ -77,7 +77,6 @@ import { dropChest, GroundItem } from './loot.js';
 import { fpWanted, fpRelease } from '../gfx/firstperson.js';
 import { renderWorld, renderFirstPerson, drawMinimap, preloadTownSheets, releaseTownSheets, propReach } from './render.js';
 import { controls } from './controls.js';
-import { Auto } from './autoplay.js';
 import { writeSave, newCharData, migrate } from './save.js';
 import { grantDeathGift, DEATH_PHRASE } from './deathgift.js';
 import { clearVfx, floatText, sparkle, addEffect, Ring } from '../gfx/vfx.js';
@@ -113,7 +112,6 @@ import { REGIONS, regionOf, parseRegionWord, regionNeeds, rollRegionVariant } fr
 import './regions/index.js';
 import { Macros } from './macros.js';
 
-const PICK_WAIT = 8; // seconds auto-play gives the player to choose a portal down (portalChoice)
 
 const STEP_SURFACE = { sunken: 'water', plague: 'water', sewers: 'water', serpent: 'water', library: 'wood', gilded: 'wood', sea_of_sand:'sand', dark_forest:'wood', skyship:'wood', pirate_seas:'wood' };   // footstep sounds; default stone
 
@@ -245,7 +243,6 @@ export const game = {
   startChar(c, fresh) {
     Macros.reset();
     hideScreen();
-    if (Auto.on) Auto.toggle(false);
     G.char = c;
     preloadSkillSheets(c.classId);
     setRingContext(c.classId, c.skills);
@@ -282,7 +279,6 @@ export const game = {
   },
 
   quitToTitle() {
-    if (Auto.on) Auto.toggle(false);
     this.autosave();
     UI.closeAll();
     G.world = null; G.player = null; G.char = null;
@@ -884,7 +880,6 @@ export const game = {
             this.openVelscourTeleport();
           } else if (message === DEATH_PHRASE) { // exact, case sensitive
             close();
-            if (Auto.on) Auto.toggle(false);
             grantDeathGift();
             if (G.world?.kind !== 'town') this.enterTown(); // the town portal now opens on Depth 500
             else this.autosave();
@@ -983,7 +978,6 @@ export const game = {
       UI.dialog({ title: 'VELSCOUR SAYS NO', cls: 'velscour-contact-dialog', html: `<p class="velscour-taunt">LEVEL ${c.level}? ADORABLE. Come back at level ${need}. ${escapeHtml(biome.name)} does not hunt snacks.</p>`, buttons: [{ label: 'Close' }] });
       return;
     }
-    if (Auto.on) Auto.toggle(false);
     const depth = Math.max(1, G.world?.kind === 'dungeon' ? G.world.depth : c.depth || 1);
     c.depth = depth;
     c.nextBiome = biome.id;
@@ -1025,7 +1019,7 @@ export const game = {
 
   /**
    * Straight on into a follow-on region at the same depth (the Mountainside's summit into the Snowy Summit): the loot
-   * lying round the hero comes along, auto-play stays on, and a trip to town comes back to it (c.nextBiome).
+   * lying round the hero comes along, the selected biome persists when you return from town (c.nextBiome).
    */
   async continueTo(id) {
     const c = G.char, old = G.world, biome = BIOME_BY_ID[id];
@@ -1474,12 +1468,9 @@ export const game = {
 
   /**
    * A cleared exit: up to three portals down, each a biome and (where one can stir) the omen waiting there. Pick one,
-   * then descend or go to town first (the town portal leads to it). With auto-play on the player has PICK_WAIT seconds
-   * to choose (or to tap a portal for it) before auto-play takes its own pick; opts.auto/opts.town come from
-   * auto-play's leaveLevel (town: it means to shop first).
+   * then descend or go to town first (the town portal leads to it).
    */
-  portalChoice(world, opts = {}) {
-    if (this.pick) return;
+  portalChoice(world) {
     const c = G.char, next = world.depth + 1;
     if (c) {
       c.cleared[world.depth] = true;
@@ -1497,22 +1488,20 @@ export const game = {
       const comm = commState(c).open.find((e) => { const ch = LINE_BY_ID[e.id] && LINE_BY_ID[e.id].chapters[e.ch]; return ch && ch.biome === biome.id; });
       return { id: biome.id, biome, omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
-    let sel = 0, chosen = false;
+    let sel = 0;
     const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
     const omenLine = (cd) => (cd.omen === undefined ? '' : cd.omen ? `<span class="pc-omen" style="color:${OMENS[cd.omen].color}"><b>${OMENS[cd.omen].name}</b>${OMENS[cd.omen].text}</span>` : '<span class="pc-omen dim"><b>No omen</b>A quiet depth.</span>');
     const html = `<p class="dim">${cards.length > 1 ? `Depth ${next} lies beyond ${['', 'one', 'two', 'three'][cards.length]} portals. Choose your way down.` : `The way down opens onto Depth ${next}.`}</p>
       <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-omen" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${omenLine(cd)}</button>`).join('')}</div>
-      <p class="pc-auto"></p>`;
+      `;
     const go = (town) => {
-      this.pick = null;
       const cd = cards[sel];
       c.cleared[world.depth] = true;
       c.deepest = Math.max(c.deepest || 0, world.depth);
       c.depth = next; c.nextBiome = cd.id; takeBiome(c, cd.id);
       this.autosave();
       if (cd.omen !== undefined) c.nextOmen = cd.omen || 'none'; else delete c.nextOmen;
-      if (Auto.on) Auto.transitT = 3;
-      if (town) { if (opts.auto) UI.log('Auto-play heads back to town to trade.', '#8fe0ff'); sfx('portal'); this.enterTown(); }
+      if (town) { sfx('portal'); this.enterTown(); }
       else this.enterDungeon();
     };
     const d = UI.dialog({
@@ -1521,40 +1510,9 @@ export const game = {
     });
     const btns = [...d.box.querySelectorAll('.pc-card')];
     btns.forEach((b) => b.addEventListener('click', () => {
-      sel = +b.dataset.i; chosen = true; sfx('ui');
+      sel = +b.dataset.i; sfx('ui');
       btns.forEach((x) => x.classList.toggle('sel', x === b));
-      if (this.pick) this.pick.t = Math.min(this.pick.t, 3); // auto-play goes where it was told, after a moment
     }));
-    // auto-play's own pick: a portal with an omen (more to see, and most of them pay), else any
-    const autoPick = () => { const k = cards.findIndex((cd) => cd.comm); if (k >= 0) return k; const o = cards.map((cd, i) => (cd.omen ? i : -1)).filter((i) => i >= 0); return o.length ? o[Math.floor(Math.random() * o.length)] : Math.floor(Math.random() * cards.length); };
-    this.pick = {
-      t: opts.auto ? 2.0 : PICK_WAIT, el: d.box.querySelector('.pc-auto'), last: '',
-      choose: () => { d.close(); if (!chosen) sel = autoPick(); go(opts.auto ? opts.town : Auto.needTown()); },
-      name: () => (chosen ? cards[sel].biome.name : null),
-    };
-  },
-
-  /** The portal choice's auto-play countdown (runs while the dialog pauses the world). */
-  tickPick(dt) {
-    const pk = this.pick;
-    if (!pk) return;
-    if (!pk.el || !pk.el.isConnected) {
-      if (Auto.on) {
-        pk.choose();
-      } else {
-        this.pick = null;
-      }
-      return;
-    }
-    let txt = '';
-    if (Auto.on && G.char) {
-      pk.t -= dt;
-      if (pk.t <= 0) { pk.choose(); return; }
-      const nm = pk.name();
-      txt = nm ? `Auto-play takes the portal to ${escapeHtml(nm)} in ${Math.ceil(pk.t)}…` : `Auto-play picks a portal in ${Math.ceil(pk.t)}… tap one to choose for it.`;
-    }
-    if (txt !== pk.last) { pk.last = txt; pk.el.innerHTML = txt; }
-  },
 
   awardFloorClear(depth, customContext = '') {
     const c = G.char;
@@ -1719,15 +1677,9 @@ export const game = {
     this.autosave();
   },
 
-  /** The exit on a beaten floor: on to the next floor, or home. opts.auto: auto-play's call (opts.town: it wants to shop). */
-  breachExit(world, opts = {}) {
+  /** The exit on a beaten floor: on to the next floor, or home. */
+  breachExit(world) {
     const next = world.breach.floor + 1;
-    if (Auto.on) Auto.transitT = 3;
-    if (opts.auto) {
-      if (opts.town || !Auto.breachReady(next)) { UI.log(opts.town ? 'Auto-play heads back to town to trade.' : `Auto-play judges Floor ${next} too deadly for now and heads home.`, '#8fe0ff'); sfx('portal'); this.enterTown(); }
-      else this.enterBreach(next);
-      return;
-    }
     UI.dialog({
       title: `Breach Floor ${world.breach.floor} Sealed`,
       html: `<p>The Heart is still. Deeper in the Breach lies <b style="color:#c080ff">Floor ${next}</b>, as deadly as Depth ${breachDepth(next)} (monster level ${breachLevel(next)}).</p>`,
@@ -1743,7 +1695,6 @@ export const game = {
     G.smiteArmed = false;
     const killer = src ? (src.owner ? src.owner.name : src.name) : null;
     stopMusic();
-    if (Auto.on) Auto.breachDied();
     this.autosave();
     setTimeout(() => {
       deathScreen(breachDepth(floor), killer, () => {
@@ -1857,16 +1808,9 @@ export const game = {
     UI.log(`<b style="color:#20e0ff">Abyssal Rift Tier ${tier}</b> (${biome.name}, as deadly as Depth ${depth}): slay ${Math.round(100 * RIFT_QUOTA)}% of the rift's monsters to wake the Guardian in the arena, and slay it before the clock runs out. Faster wins open more tiers.`, '#a0f0ff');
     this.autosave();
   },
-  /** The exit of a closed rift: on to the next tier, or home. opts.auto: auto-play's call (opts.town: it wants to shop). */
-  riftExit(world, opts = {}) {
+  /** The exit of a closed rift: on to the next tier, or home. */
+  riftExit(world) {
     const R = world.rift, next = Math.min(riftOpen(), R.result ? R.result.next : R.tier + 1);
-    if (Auto.on) Auto.transitT = 3;
-    if (opts.auto) { // on to the next tier, or the highest open one it is ready for when that is still a climb; else home
-      const go = Auto.riftReady(next) ? next : Auto.riftTier();
-      if (opts.town || go <= R.tier) { UI.log(opts.town ? 'Auto-play heads back to town to trade.' : `Auto-play judges Tier ${next} too deadly for now and heads home.`, '#8fe0ff'); sfx('portal'); this.enterTown(); }
-      else this.enterRift(go);
-      return;
-    }
     Rifts.results(R, { onNext: () => this.enterRift(next), onTown: () => { sfx('portal'); this.enterTown(); }, next });
   },
   /** Death in a rift: back to town with no Defiance, the descent untouched. */
@@ -2093,7 +2037,6 @@ export const game = {
       case 'book': toggleBook(); break;
       case 'quest': toggleQuest(); break;
       case 'menu': pauseMenu(); break;
-      case 'auto': Auto.toggle(); break;
     }
   },
 
@@ -2111,7 +2054,6 @@ export const game = {
       if (input.consume('KeyQ')) toggleQuest();
       if (input.consume('KeyH')) useHearth();
       if (input.consume('F1')) helpDialog();
-      if (input.consume('KeyP')) Auto.toggle();
       if (input.consume('KeyG')) unleashMadness();
       if (input.consume('KeyF')) toggleSmite();
       if (input.consume('Tab') || input.consume('KeyM')) G.showAutomap = !G.showAutomap;
@@ -2125,22 +2067,18 @@ export const game = {
       const top = UI.screensEl.lastElementChild;
       if (top && top.querySelector('.dialog-box')) top.dispatchEvent(new PointerEvent('pointerdown'));
     }
-    this.tickPick(dt);
-    Auto.tickDest(dt); // auto-play's Standard/Breach menu in town
     const pauseMenus = G.settings.pauseMenus !== false && w.kind === 'dungeon' && ui.anyOpen();
     G.paused = ui.modal || pauseMenus;
     Cine.update(G.paused ? 0 : dt);
-    if (G.cine && !G.paused) {   // a cut scene (game/cinema.js): no input, no auto-play, no monster thinks; the scene's actors move
+    if (G.cine && !G.paused) {   // a cut scene (game/cinema.js): no input, no monster thinks; the scene's actors move
       input.endFrame();
       cineTick(w, dt);
       // a scene this hero has seen plays at 20x (Cine.fast; Settings > "Don't skip cutscenes" keeps it at 1x)
       for (let i = 1; i < CINE_FAST && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
     } else if (G.hitStop > 0) { G.hitStop -= dt; controls.update(0); }
     else if (!G.paused) {
-      Auto.noteInput();
       controls.update(dt);
-      Auto.update(dt);
-      // auto-play (or a click) may have taken the hero through a portal: the world he left stops here, or its rules run on
+      // A click may have taken the hero through a portal: the world he left stops here, or its rules run on
       // him in the new one (the Breach's wards put him back at his last Breach spot, off the edge of town: a black town)
       if (G.world !== w) return;
       w.update(dt);

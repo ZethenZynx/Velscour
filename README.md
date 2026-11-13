@@ -39,7 +39,6 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 | I / K / B / Q | Inventory & character · Skill tree · Skill book · Quest log |
 | Tab / M | Map overlay |
 | Esc | Close windows / pause menu |
-| P / Auto button | Auto-play on or off |
 | Mouse wheel | Zoom |
 
 
@@ -64,7 +63,6 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 - **Skill mastery**: every skill has its own XP and levels from 1 to 1000. Skills train when cast and, more, when they kill; each level adds damage (about x2.4 at 100 and x29 at 1000), and at 25, 100, 250, 500, 750 and 1000 the skill's effects grow bigger and more over the top.
 - **Barbarian combat**: Bash fans five short lightning bolts and is the primary Rage builder; Rage starts at zero, builds from attacks instead of idle regeneration, then fuels moving Whirlwind with isometric cyclone particles and spiralling battlefield gibs.
 - **Dragoon Spearstorm:** a fourth 20-skill tree preserves the original 60 skills. **Thousandfold Impalement** (level 1, instant, 8s cooldown) strikes in a **2.5-tile point-blank radius** with plunging copies of the class's distinct energy lances; **Triune Spearfall** (level 2, instant, 14s cooldown) covers three tightly clustered circles around the Dragoon for 50% more damage per enemy. The bot leaps into close range, chains 3–8 jumps, pauses 1.35–1.65 seconds for the visual spell display, then resumes leaping and mixing in other attacks. See [Dragoon Spearstorm](docs/DRAGOON_SPEARSTORM.md).
-- **Auto-play**: the Auto button (or P) hands the hero to an AI that plays for you. It spends skill and attribute points, keeps the skill bar sorted, fights with every skill on the bar (dodging telegraphed attacks, kiting with ranged builds, drinking potions, using cooldowns, buffs, curses and minions), picks up and equips upgrades, sockets gems, then goes to town to sell, restock potions, buy gear and gems, add sockets, upgrade, enchant and gamble, and keeps delving toward Velscour. It also gets back up after a death. Pet classes (Necromancer, Totem Master, Carrion Witch, Slime Lord, Ranger, Gunner) build for as many minions as they can keep; the Paladin builds around his hammers (Blessed Hammer, Hammerstorm, Wheel of Hammers). Move or click to take over for a moment; it resumes when you let go.
 - Sampled sound effects, music and drifting ambient beds (procedural fallbacks for the rest), settings, a help screen and six hero save slots.
 - An arcade level-up: freeze frame, hellfire pillar, burning sigil, chiptune fanfare, and a speech-chip voice: "YOU
   HAVE BECOME MORE POWERFUL, BUT VELSCOUR STILL LIVES" (`assets/audio/voice/levelup.wav`, made by
