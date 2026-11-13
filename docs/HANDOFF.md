@@ -14,11 +14,9 @@ Contents
 
 ---
 
-## November 13, 2026 - clip desktop cooldown shading to skill icons
+## November 13, 2026 - remove standalone Velscour Defense
 
-The desktop HUD skill slots now clip their contents to the same 2 px rounded boundary as their icons (`css/style.css`),
-so cooldown shading cannot spill past an icon's edge. The touch buttons already clipped their contents. Verified in Edge
-with all 19 HUD slots: the cooldown overlay remained within each slot, and the page reported no browser errors.
+Removed the separate `defense/` app, its source assets/docs/tests, the title-screen link, and the town Riftgate. The main-game dungeon portal remains. Main-game character saves and the separate browser save data were not modified. Also removed the Riftgate renderer and asset-manager entry; `tools/tests/no_defense.js` covers the remaining main-game experience and missing route.
 
 ## November 3, 2026 — Mountainside out of beta, and THE SNOWY SUMMIT (branch `claude/mountainside-beta-release-p53gw6`)
 
@@ -354,8 +352,7 @@ Player request: look the way you want without giving up stats.
 - **How it was measured:** no GPU in this container (SwiftShader), so draw times say little about a phone; the script
   cost does. New `tools/tests/mode_cpu.js [modes] [secs] [throttle]`: a hero auto-plays each kind of map on the 844x390
   touch layout at 4x CPU throttle and it prints ms per frame in `game.update` (and render's own script), the worst
-  frame and what inside costs most (inclusive/self). New `defense/tests/perf.js` does the same for a Defense battle on an
-  iPhone-sized screen, `defense/tests/maps.mjs` checks every Defense stage's routes and posts (no browser).
+  frame and what inside costs most (inclusive/self).
 - **Found and fixed (CPU; every change checked to give identical results where it says so):**
   - Auto-play's distance field (`buildNav`): the plain BFS (dunes, caverns, forest: 36k-60k tiles every 0.35 s) went
     through `walkableTile`/`stepsOk` calls; now straight off the typed arrays and `map.stepMask()` (identical fields,
@@ -395,13 +392,13 @@ Player request: look the way you want without giving up stats.
   arrives), `pets.js`, `legion.js`, `autoloops.js`, `castle_autoplay.js`, `castle_variants.js` (in 25 / 48 s),
   `scenarios.js` (all finish; the two rampart fights' 28 s waits are the known ones).
 - **Mobile / all platforms:**
-  - **three.js is vendored** (`vendor/three/`, 0.170.0, MIT, 690 KB): the import maps (`index.html`,
-    `defense/index.html`) pointed at cdn.jsdelivr.net, which this container (and any network that blocks or loses it)
-    can't reach; the Tower and the Caverns then fell back to the Wilds, the pyramids to the flat maze, Defense's packs
-    failed. Same origin also saves a phone a DNS + TLS handshake. The tools' bake pages still use the CDN.
+  - **three.js is vendored** (`vendor/three/`, 0.170.0, MIT, 690 KB): the main game's import map (`index.html`)
+    pointed at cdn.jsdelivr.net, which this container (and any network that blocks or loses it) can't reach; the Tower
+    and the Caverns then fell back to the Wilds, and the pyramids to the flat maze. Same origin also saves a phone a
+    DNS + TLS handshake. The tools' bake pages still use the CDN.
   - **Canvas filters everywhere:** WebKit has long lacked `ctx.filter` or drawn offscreen canvases unfiltered, so
-    baked tints (wall hangings, frozen/charmed monsters, slime colours, pet tints, the target window, Defense's elite /
-    ghost monsters and region recolours) came out plain on iPhones. `util.drawFiltered` / `filterPixels` (both games)
+    baked tints (wall hangings, frozen/charmed monsters, slime colours, pet tints and the target window) came out plain
+    on iPhones. `util.drawFiltered` / `filterPixels`
     test once and otherwise put the colour filters through the pixels by the CSS matrices (within 4/255 of Chromium's
     own; `globalThis.VELSCOUR_NO_CANVAS_FILTER = true` forces the fallback for tests). Defense's corpses and stunned
     heroes used a `ctx.filter` every frame; now baked looks.
@@ -418,9 +415,7 @@ Player request: look the way you want without giving up stats.
 - **Verified:** the above, plus `flow.js`, `mobile.js`, `hud.js`, `seethrough.js` (3 of 3; one failure under full
   load, flaky as noted before), `town.js`, `rooms.js`, `overworld.js`, `autoplay.js wizard 5 mobile`, `castle_walls.js`,
   `tower.js 0 0,1 noauto`, `dunes.js golden`, `dark_forest.js noshots noauto`, `mountain.js noshots noauto`,
-  `breach.js`, `rifts.js` (+ `phone`), `sea_of_sand.js`, `spectate.js mobile`, `defense/tests/iphone.js`,
-  `modes_smoke.mjs 30`. `defense/tests/defense.js mobile` fails "mode bossrush/vault" on `main` too, and its 3D pack
-  step needs 3-6 more taps than it gives under SwiftShader, on `main` too.
+  `breach.js`, `rifts.js` (+ `phone`), `sea_of_sand.js`, `spectate.js mobile`.
 - **Not verified:** real phones and Safari/WebKit (still only Chromium emulating them); GPU frame times.
 - **Second pass, the rest of the main game** (the user: "do this on normal VELSCOUR too"):
   - Pathing everywhere: `rooms.js` on all 33 dungeon biomes x 4 levels (every floor tile, exit and chest reachable),
@@ -443,73 +438,9 @@ Player request: look the way you want without giving up stats.
     No overlaps in the Dunes, Dark Forest, Breach, rifts, BOSS ROOMs, Velscour and the castles at 844x390, 667x375 and
     390x844. `mobile.js`, `hud.js`, `rifts.js phone`, `spectate.js mobile`, `breach.js town,rules`, `options.js` pass.
 
-## October 29, 2026 — Riftgate at portal size, VELSCOUR DEFENSE on the title screen (branch `feat/riftgate-title`)
-- **Request:** make the blue portal to the Defense game the same size as the other portals, and add a blue button
-  to the title screen that goes to VELSCOUR DEFENSE as well.
-- **Done:** `drawRiftgate` (`src/gfx/riftgate.js`) draws its whole effect at `SCALE` 0.65 round its foot, so the vortex
-  matches the dungeon and Breach portals (drawn 1.3x in `drawPortal`); its `reach` is 1.7 like theirs. The title
-  menu has a `btn blue` VELSCOUR DEFENSE button under Heroes (`.btn.blue` in `css/style.css`) that opens
-  `defense/index.html`.
-- **Verified:** `tools/tests/riftgate.js` (12 seeds, now also clicks the title button), `flow.js`, `titlefx.js`;
-  title shots at 1280x720, 844x390 and 390x844.
+## October 29, 2026 — standalone Velscour Defense (removed November 13, 2026)
 
-## October 29, 2026 — VELSCOUR DEFENSE: Acts II-V (300 stages), side modes, balance for months, iPhone (branch `feat/defense-act2`)
-- **Request:** balance the Defense game thoroughly so it can't be beaten in a day and takes weeks upon weeks of
-  stronger cards to reach the end; use tons of different VELSCOUR monsters; add 120 levels (Acts II and III) and more
-  cards; then go to level 300 with two more acts, letting players get quite a way before it gets hard and stalls,
-  with other modes (different endless and challenge modes) for currency and pulls on the side; pinch-to-zoom and
-  mouse-wheel zoom; remove auto-campaign; make the UI fit an iPhone in portrait and landscape, especially the cards.
-  Then commit, PR and merge.
-- **Done:** see [`defense/docs/DEFENSE.md`](../defense/docs/DEFENSE.md): five acts and 30 regions (300 stages, 5,000
-  waves, 40 maps, all 690 painted monsters fielded, captains/warlords and three new monster roles), 584 dialogs
-  (`part5-12.js`, the arc in `defense/docs/STORY.md`), 3,106 cards (96 heroes, 64 relics, 690 monster trophies),
-  Rift Seals, essence, Awakening to 10 stars, ten side modes (`meta/modes.js`, the Modes tab), pinch/wheel zoom and
-  drag-pan, auto-campaign removed, auto-battle that holds every road, the iPhone layout pass (safe areas, a portrait
-  battle HUD, cards and 3D packs fitted to narrow screens).
-- **Design calls made without asking** (worth confirming): the time gate is Rift Seals (40, one every 30 minutes;
-  a battle without one pays a seventh of its gold) rather than stamina, so play is never blocked; essence is the
-  scarce currency (ascension, Awakening, refining) and Awakening to 10 stars is the long sink; the calendar the curve
-  is fitted to (day 1 about 40 stages, day 7 about 100, day 28 about 165, the Demon Lord after three to four months);
-  the challenges sit at 50-80% of the frontier's strength so a player keeping pace wins them; the Works' Forge of Valor
-  goes to level 120 as the late gold sink; Bastion's Resolve builds to +60%; armour grows slowly after Act I (it made physical heroes useless late); Act IV/V region names and bosses; the final
-  boss is "Velscour's Shadow" (the Demon Lord himself stays the main game's).
-- **Verified:** `defense/tests/balance.mjs` with real battles: a casual Commander wins on day 104, a dedicated one
-  is at 267 of 300 on day 84 (calendar 268), a grinder at 259 on day 42; nobody passes stage 29 on day 1 or 134 in a
-  week (table in DEFENSE.md); `calibrate.mjs` (two seeds a stage, per-map terrain factors),
-  `defense/tests/iphone.js` (every view fits at 390x844 and 844x390, no errors), `defense/tests/defense.js` (menus,
-  stages from all five acts, three modes, wheel zoom, 3D packs, inspector), `defense/tests/modes_smoke.mjs`,
-  `defense/tools/check_dialogs.mjs` (584 dialogs, 0 problems).
-- **Not verified:** real iPhones and Safari (Chromium with an iPhone viewport and touch only); human play balance
-  (the curve is fitted to auto-play).
-
-## October 29, 2026 — VELSCOUR DEFENSE: a separate tower-defense card game behind the Riftgate (branch `feat/velscour-defense`)
-- **Request:** a bigger, crazier blue/black portal in town leading to a completely different game in the VELSCOUR
-  universe, VELSCOUR DEFENSE: a gacha game with no microtransactions (heroes, gear and more to roll for), named
-  characters of each class built from all of VELSCOUR's art (the newest held weapons too), everything as packs of
-  cards that look like Magic: The Gathering cards, 3D foil pack opening, Fantasica as the model (5 videos, articles,
-  screenshots researched) but free, a character tower defense on predetermined paths with VELSCOUR's monsters and
-  class projectiles/slashes, isometric with height mapping, an auto-play mode, at least 80 levels, 20 dialogs from each
-  of the 16 characters at the beginning and end of levels, and kept in its own area of the codebase. Then: 1,000 waves
-  that get incrementally harder; in-match upgrades that reset and permanent ones outside; 30 maps that unlock as you
-  clear them; tests and iteration so it is not too easy but not too steep; daily login and hourly rewards; red dots;
-  an auto-play that plays well and upgrades heroes (but never spends currency or opens packs); all sorts of powers;
-  the Bard's music only on an occasional charge-up attack. Then commit, PR and merge.
-- **Done:** see [`defense/docs/DEFENSE.md`](../defense/docs/DEFENSE.md) (the design, the Fantasica findings, the systems,
-  the difficulty fitting) and [`defense/docs/STORY.md`](../defense/docs/STORY.md) (the cast and the arc). All in
-  `defense/` (own page, modules, save, tests, tools); the main game only gained `src/gfx/riftgate.js`, the Riftgate
-  in `enterTown` (`world.portals`, after the dungeon portal, the Breach and before the Abyssal Rift gate) with
-  `confirmRiftgate`, and one line in `drawPortal`.
-- **Design calls made without asking** (worth confirming): Fantasica's heroes-as-towers (no blocking, no hero life) over
-  classic blockers; 80 stages share the 1,000 waves (6 to 20 per stage) rather than an endless mode; stages 31-80 replay
-  the 30 battlefields turned, in their region's tiles; Bastion's Resolve (+6% attack per defeat in a row at a stage, up
-  to +36%) so no stage walls; gold levels every hero to 100 and duplicates only add stars; the Bastion Works research
-  is the Commander's, not auto-play's; Defense's eighth region is "Beyond the Riftgate" (the main game has an Abyssal
-  Rift gate); the Bard plays one of the main game's two-bar melodies on the harpsichord in Crescendo.
-- **Verified:** `defense/tests/defense.js` and `defense.js mobile` (boot, every menu, briefing, a stage played on auto
-  through its scenes to a win, five later regions, an Armory pack and a hero x10 summon in 3D, the inspector),
-  `defense/tests/balance.mjs` (the whole campaign in about 200 auto battles, 57 of 80 first-try wins, worst stage a
-  dozen tries), `defense/tools/check_dialogs.mjs` (320 dialogs), `tools/tests/riftgate.js` (12 town seeds), `flow.js`.
-- **Not verified:** real phones and Safari/iOS; human play balance (the curve is fitted to auto-play).
+This fork previously included a separate tower-defense game, which was removed at the user's request. Its app, docs, tests, and Riftgate entry points are no longer part of the fork.
 
 ## October 28, 2026 — auto-play loops and the waits left (branch `fix/autoplay-loops`)
 - **Request:** a gifted level-350 Lancer stood in a won Abyssal Rift (Tier 1, Obsidian Vault, Warlord Brannoc slain)

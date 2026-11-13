@@ -8,11 +8,8 @@ straight from `main` at https://agilancer.github.io/velscour/.
 requirements, current status, open issues, the next steps, and a subsystem reference.
 This file only covers the essentials.
 
-**VELSCOUR DEFENSE** (`defense/`) is a second, separate game: a Fantasica-style tower defense with Rift Card packs,
-reached through the Riftgate in town (`src/gfx/riftgate.js`). It has its own page, modules, save
-(`velscour_defense_v1`), tests and docs (**[`defense/docs/DEFENSE.md`](defense/docs/DEFENSE.md)**); it reads `assets/`
-but never imports `src/`. Keep the two apart: main-game work should not touch `defense/`, and Defense work should not
-touch `src/` beyond the Riftgate hook.
+The standalone Velscour Defense game and its Riftgate entry points were removed from this fork at the user's request.
+The main game is served from the repository root; the separate `defense/` page no longer exists.
 
 ## Run it
 ```bash
@@ -40,13 +37,7 @@ node tools/tests/homunculus.js                      # the blacksmith live: bubbl
 node tools/tests/encounters.js [kinds]             # dungeon encounters with people (captive, knight's last stand, peddler, wizard, witch, Greener) + rats
 node tools/tests/rings.js                          # ring augments in a live dungeon, skill mastery, ring/forge UI shots
 node tools/tests/flow.js                           # town -> portal -> boss -> exit -> depth 2 -> death -> reload
-node tools/tests/riftgate.js [seeds]               # the Riftgate to VELSCOUR DEFENSE: placed in every town, through it and back
-node defense/tests/defense.js [mobile]             # VELSCOUR DEFENSE (its own game, defense/docs/DEFENSE.md): menus, stages of all 5 acts on auto, modes, zoom, 3D packs
-node defense/tests/iphone.js [portrait|landscape]  # Defense on an iPhone-sized touch screen: every view fits (cards, packs, inspector, battle HUD)
-node defense/tests/balance.mjs [profiles] [days]   # Defense's calendar: casual/dedicated/grinder Commanders play real days of battles, no browser
-node defense/tests/modes_smoke.mjs [days]          # Defense's endless and challenge modes, played headless after N days
-node defense/tests/maps.mjs                        # Defense's 300 stage maps: every rift's route to the Heart, spare hero posts by the road, no browser
-node defense/tests/perf.js [stages] [orient]       # Defense battle frame cost on a slowed iPhone-sized screen + CPU profile hot spots
+node tools/tests/no_defense.js                    # no standalone-mode links, town portal or /defense page remain
 node tools/tests/deathgift.js [classes]            # "DEATH IS THE ONLY WAY OUT, MY KIND SIR." to Velscour: level 350, Mythic +10 gear, depth 500; the hero is barred from the Honour Board
 node tools/tests/stash.js                          # town storage chest: 300 slots, store/take, auto-play stashing
 node tools/tests/bagrows.js [mobile]               # bag rows bought with gold (src/data/bag.js): rows 7-12 at 5k..160k, confirm, saves, auto-play buys one

@@ -1,6 +1,5 @@
 // Game flow: characters, town, dungeon depths, death, victory.
 import { G } from '../state.js';
-import { riftgateSpot } from '../gfx/riftgate.js';
 import { input } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { sfx, playMusic, stopMusic, setAmbience, stopAmbience, footsteps } from '../core/audio.js';
@@ -390,9 +389,6 @@ export const game = {
     // THE ETERNAL BREACH's purple portal (game.confirmBreach, docs/ETERNAL_BREACH.md)
     if (t.breach) world.portals.push({ x: t.breach.x, y: t.breach.y, active: true, breach: true, color: '#a040ff', reach: 1.7, label: 'THE ETERNAL BREACH', use: () => this.confirmBreach() });
     // the Abyssal Rift gate (game.confirmRift): lit once the Endgame is open
-    // the Riftgate to VELSCOUR DEFENSE (defense/: its own page and save), across the square from the dungeon portal
-    const rg = t.riftgate || (t.riftgate = riftgateSpot(t));
-    if (rg) world.portals.push({ x: rg.x, y: rg.y, active: true, color: '#3a6cff', reach: 1.7, riftgate: true, label: 'The Riftgate: VELSCOUR DEFENSE', use: () => this.confirmRiftgate() });
     if (t.rift) world.portals.push({ x: t.rift.x, y: t.rift.y, rift: true, color: '#20e0ff', reach: 1.7, get active() { return endgameUnlocked(); }, set active(v) {}, get label() { return endgameUnlocked() ? `Abyssal Rift — Tier ${riftOpen()}` : 'Abyssal Rift (sealed)'; }, use: () => this.confirmRift() });
     // Waypoint Portal to Sunscorch Oasis (Act II Town) once visited or reached Act 2
     if (c?.visitedAct2Town || c?.depth >= 101) {
@@ -576,14 +572,6 @@ export const game = {
     p.mana = p.maxMana;
     this.autosave();
     UI.log('You step into <b style="color:#f3c778">Sunscorch Oasis</b>, haven of the Scorched Wastes!', '#ffe080');
-  },
-
-  confirmRiftgate() {
-    UI.dialog({
-      title: 'The Riftgate',
-      html: `<p>A blue-black wound in the air, far older and stranger than the dungeon portal. Beyond it Velscour's horde marches on the Bastion, and sixteen heroes wait for a Commander.</p><p class="dim">VELSCOUR DEFENSE is a separate game with its own cards and save; your hero here is not touched. A way back waits on the other side.</p>`,
-      buttons: [{ label: 'Not yet' }, { label: 'Step through', cls: 'red', fn: () => { this.autosave(); location.href = 'defense/index.html'; } }],
-    });
   },
 
   /** The one-line "what to do here" blurb for a biome (the town portal's floor picker). */

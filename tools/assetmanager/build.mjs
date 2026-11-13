@@ -423,7 +423,6 @@ async function effects() {
     ['cosmos', 'Astronomer star charts and heavenly bodies', 'src/gfx/cosmos.js', [], 'cosmos.js.'],
     ['classfx', 'Class effects (auras, halos, signatures)', 'src/gfx/classfx.js', [], 'classfx.js.'],
     ['portals', 'Town portal and exit gates', 'src/game/render.js', [], 'drawPortal() in render.js.'],
-    ['riftgate', 'The Riftgate', 'src/gfx/riftgate.js', [], 'riftgate.js (the way into VELSCOUR DEFENSE).'],
     ['torchflame', 'Torch flames and embers', 'src/gfx/walltorches.js', [], 'The holders are painted; the flame is drawn in code.'],
   ];
   for (const [id, n, code, names, w, c] of FX) add(g, { id: 'fx_' + id, n, k: 'code', names, c: names.length > 1 ? names.length : undefined, fr: cap('fx_' + id), w: `${w} (${code})` });
