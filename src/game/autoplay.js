@@ -203,7 +203,7 @@ function skillDps(p, sk, L, crowd = CROWD) {
 
 /**
  * The hero's damage output with the current skills and gear: the best spammable skill (topped up by the free skill
- * when mana runs dry), plus every cooldown skill, minion, buff and curse that fits on the 15-slot bar.
+ * when mana runs dry), plus every cooldown skill, minion, buff and curse that fits on the 14-slot bar.
  * Returns { total, parts:[{sk, v, role}] } with parts sorted by value. `only` (a Set of skill ids) limits it to those.
  */
 export function buildPower(p, crowd = CROWD, only = null, focus = false) {
@@ -750,7 +750,7 @@ export const Auto = {
     return spent;
   },
 
-  /** LMB = main attack, RMB = the second attack (or the free one), ` 1-9 0 - = = cooldowns, minions, buffs, curses, heals. */
+  /** LMB = main attack, RMB = the second attack (or the free one), 1-9 0 - = = cooldowns, minions, buffs, curses, heals. */
   arrangeBar() {
     const p = G.player, c = G.char;
     const { parts } = buildPower(p, CROWD, null, true);

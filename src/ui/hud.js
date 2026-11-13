@@ -27,8 +27,8 @@ import { defianceText } from '../game/defiance.js';
 import { capXp } from '../game/marks.js';
 
 const POTIONS = ['hp', 'mp', 'rejuv', 'fury'];
-// hud slot index -> bar index (skills) or potion kind: LMB, ` 1-9 0 - =, the potions, RMB
-const SLOT_MAP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 'hp', 'mp', 'rejuv', 'fury', 14];
+// HUD art index -> bar index (skills) or potion kind; skip the removed backquote slot.
+const SLOT_MAP = [0, null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 'hp', 'mp', 'rejuv', 'fury', 13];
 
 /** [x, y, w, h] of a sprite's non-transparent pixels (monster sheets carry lots of padding), memoised per image. */
 const boxes = new WeakMap();
@@ -111,10 +111,11 @@ export const HUD = {
     $('#target-box').addEventListener('click', (e) => { e.stopPropagation(); this.tbBig = !this.tbBig; this.last.tbCls = null; this.updateTarget(); });
     const wrap = $('#hud-slots');
     geo.slots.forEach((s, i) => {
+      const map = SLOT_MAP[i];
+      if (map === null) return;
       const d = el('div', 'slot');
       d.style.left = pct(s.x, geo.w); d.style.top = pct(s.y, geo.h);
       d.style.width = pct(s.w, geo.w); d.style.height = pct(s.h, geo.h);
-      const map = SLOT_MAP[i];
       if (typeof map === 'string') { d.classList.add('potion-slot'); d.dataset.potion = map; }
       const icon = new Image(); icon.className = 'icon'; icon.draggable = false; icon.style.display = 'none';
       d.appendChild(icon);

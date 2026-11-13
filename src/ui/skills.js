@@ -325,7 +325,7 @@ export function renderTree(body) {
 export function renderBook(body) {
   const c = G.char, p = G.player;
   body.innerHTML = '';
-  body.appendChild(el('div', 'dim', 'Your learned abilities. Drag one onto a skill bar slot (LMB, `, 1–9, 0, -, =, RMB) or hover/tap it to assign a slot.'));
+  body.appendChild(el('div', 'dim', 'Your learned abilities. Drag one onto a skill bar slot (LMB, 1–9, 0, -, =, RMB) or hover/tap it to assign a slot.'));
   const list = el('div', 'book-list');
   list.style.minWidth = 'min(420px, 90vw)';
   list.style.marginTop = '8px';

@@ -407,7 +407,7 @@ export function migrate(c) {
   if (!('overworldLastVisit' in c)) c.overworldLastVisit = c.lastBiome ? String(c.depth) + ':' + c.lastBiome : null;
   // heroes made before the shuffle bag always started in the catacombs: give an unexplored hero a random start
   if (c.nextBiome === 'catacombs' && !c.deepest && !c.lastBiome) c.nextBiome = drawBiome(c, c.depth || 1);
-  c.bar = migrateBar(c.bar); // 10 slots (LMB, 1-8, RMB) -> 15 (LMB, ` 1-9 0 - =, RMB)
+  c.bar = migrateBar(c.bar); // old 10- and 15-slot bars -> 14 (LMB, 1-9, 0, -, =, RMB)
   c.bar = c.bar.map((id) => (id && SKILLS[id] && SKILLS[id].classId === c.classId && c.skills[id] > 0 ? id : null));
   if (!c.bar[0]) {
     const clsSkills = CLASS_SKILLS[c.classId] || [];

@@ -4,7 +4,7 @@ import { el } from '../core/util.js';
 import { $ } from './ui.js';
 import { skillIcon } from './icons.js';
 import { SKILLS, cooldown, manaCost, rageCost, effLevel } from '../data/skills.js';
-import { SLOT_LABELS, RMB } from '../data/bar.js';
+import { BAR_SIZE, SLOT_LABELS, RMB } from '../data/bar.js';
 import { chooser } from './hud.js';
 import { Macros, MACRO_N } from '../game/macros.js';
 
@@ -16,7 +16,7 @@ import { Macros, MACRO_N } from '../game/macros.js';
 // Outer arc (r 160, every 18°): 3-8 over the same quarter circle.
 const R1 = 104, R2 = 160;
 const POS = [[R1, 210], [R1, 240], [R1, 270], [R2, 180], [R2, 198], [R2, 216], [R2, 234], [R2, 252], [R2, 270]];
-const PAGES = [[RMB, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 1]]; // RMB 1-8 | 9 0 - = `
+const PAGES = [[RMB, 1, 2, 3, 4, 5, 6, 7, 8], [9, 10, 11, 12]]; // RMB 1-8 | 9 0 - =
 const FLIP = [R1, 180]; // straight left of ATK, first stop on the inner arc
 
 export const TouchUI = {
@@ -27,7 +27,7 @@ export const TouchUI = {
     const root = $('#touch-buttons');
     root.innerHTML = '';
     this.btns = [];
-    for (let bar = 0; bar < 15; bar++) {
+    for (let bar = 0; bar < BAR_SIZE; bar++) {
       const pos = POS[bar - 1] || [0, 0];
       const [ring, ang] = bar === 0 ? [0, 0] : pos;
       const b = el('div', 'tbtn' + (bar === 0 ? ' main' : ' skill'));
