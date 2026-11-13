@@ -2,21 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0706">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>VELSCOUR</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>Velscour PC</title>
 <link rel="icon" href="assets/ui/icon.png">
-<link rel="apple-touch-icon" href="assets/ui/icon.png">
+<script>
+  // This edition requires a desktop pointer; stop touch-only devices before game modules boot.
+  if (matchMedia('(pointer: coarse)').matches) document.documentElement.classList.add('pc-only-blocked');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya+Sans:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<main id="pc-only-notice" role="status" aria-live="polite">
+  <div>
+    <h1>Velscour PC</h1>
+    <p>This version is made for a computer with a mouse and keyboard. Please open Velscour PC on a desktop or laptop.</p>
+  </div>
+</main>
 <div id="app">
   <canvas id="game"></canvas>
 
@@ -166,7 +171,7 @@
           <canvas id="loading-eye" class="loading-eye loading-sigil-core" width="36" height="24"></canvas>
         </div>
         <div class="loading-header">
-          <h2 id="loading-title">VELSCOUR</h2>
+          <h2 id="loading-title">VELSCOUR PC</h2>
           <div id="loading-sub">The Abyss Awaits</div>
         </div>
         <div class="loading-bar-container">
@@ -186,11 +191,13 @@
     </div>
   </div>
 </div>
-<!-- three.js 0.170.0 (vendor/three/, same origin: no CDN to miss on a phone network), fetched only when a level draws in 3D (the Serpentine Tower, the Caverns, the pyramids) -->
+<!-- three.js 0.170.0 (vendor/three/, served from this site), fetched only when a level draws in 3D (the Serpentine Tower, the Caverns, the pyramids) -->
 <script type="importmap">{ "imports": {
   "three": "./vendor/three/three.module.min.js",
   "three/addons/": "./vendor/three/addons/"
 } }</script>
-<script type="module" src="src/main.js"></script>
+<script type="module">
+  if (!document.documentElement.classList.contains('pc-only-blocked')) await import('./src/main.js');
+</script>
 </body>
 </html>

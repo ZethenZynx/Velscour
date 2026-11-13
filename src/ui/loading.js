@@ -286,7 +286,7 @@ export const LoadingScreen = {
     if (!this.el) return;
 
     if (this.titleEl) {
-      this.titleEl.textContent = opts.title || 'VELSCOUR';
+      this.titleEl.textContent = opts.title || 'VELSCOUR PC';
     }
     if (this.subEl) {
       this.subEl.textContent = opts.subtitle || 'The Abyss Awaits';
