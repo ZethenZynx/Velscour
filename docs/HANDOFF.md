@@ -14,6 +14,12 @@ Contents
 
 ---
 
+## November 13, 2026 - clip desktop cooldown shading to skill icons
+
+The desktop HUD skill slots now clip their contents to the same 2 px rounded boundary as their icons (`css/style.css`),
+so cooldown shading cannot spill past an icon's edge. The touch buttons already clipped their contents. Verified in Edge
+with all 19 HUD slots: the cooldown overlay remained within each slot, and the page reported no browser errors.
+
 ## November 3, 2026 — Mountainside out of beta, and THE SNOWY SUMMIT (branch `claude/mountainside-beta-release-p53gw6`)
 
 The user asked to take the Mountainside out of beta with sloped surfaces and hops, three times larger, a switchback

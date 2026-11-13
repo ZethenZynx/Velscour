@@ -78,7 +78,7 @@ button { font-family: var(--font-head); }
 .orb-text { position: absolute; z-index: 10; font: 700 clamp(9px, 1.3vw, 14px) var(--font-head); color: #fff; text-shadow: 0 0 3px #000, 0 0 4px #000, 0 0 2px #000; text-align: center; pointer-events: none; white-space: nowrap; }
 #hud-slots { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
 #hud-slots .slot { pointer-events: auto; }
-.slot { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.slot { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 2px; }
 .slot canvas, .slot img.icon { width: 100%; height: 100%; border-radius: 2px; image-rendering: auto; }
 .slot .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.72); pointer-events: none; }
 .slot .cdtext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 clamp(9px, 1.2vw, 14px) var(--font-head); color: #fff; text-shadow: 0 0 3px #000; pointer-events: none; }
