@@ -417,7 +417,6 @@ export function settingsDialog() {
     <button type="button" class="settings-tab-btn" data-tab="audio">Audio</button>
     <button type="button" class="settings-tab-btn" data-tab="graphics">Graphics</button>
     <button type="button" class="settings-tab-btn" data-tab="hud">HUD &amp; UI</button>
-    <button type="button" class="settings-tab-btn" data-tab="autoplay">Auto-Play</button>
   </div>
   <div class="settings-tab-pane" data-pane="general">
     <div class="settings-grid">
@@ -425,7 +424,9 @@ export function settingsDialog() {
       <label>Hero backups</label><button class="btn small" data-backups>View</button>
       <label>Pause while menus open</label><input type="checkbox" data-k="pauseMenus" ${st.pauseMenus !== false ? 'checked' : ''}>
       <label title="Off: a Sky Battle cut scene you have already watched once plays at 20x">Don't skip cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
-      <label title="Summons, totems and turrets on your skill bar are cast again the moment one is missing (timed ones only with an enemy near). Auto-play does its own summoning">Auto-cast summons</label><input type="checkbox" data-k="autoSummon" ${st.autoSummon !== false ? 'checked' : ''}>
+      <label title="Summons, totems and turrets on your skill bar are cast again the moment one is missing (timed ones only with an enemy near)">Auto-cast summons</label><input type="checkbox" data-k="autoSummon" ${st.autoSummon !== false ? 'checked' : ''}>
+      <label>Auto-pickup items</label><input type="checkbox" data-k="autoLoot" ${st.autoLoot ? 'checked' : ''}>
+      <label>Loot filter</label><button class="btn small" data-loot-filter>${lootFilter().on ? 'On' : 'Off'} · Set up</button>
     </div>
   </div>
   <div class="settings-tab-pane" data-pane="audio">
@@ -464,16 +465,7 @@ export function settingsDialog() {
       <label>Standard skill bar on mobile (landscape)</label><input type="checkbox" data-k="mobileSkillBar" ${st.mobileSkillBar !== false ? 'checked' : ''}>
     </div>
   </div>
-  <div class="settings-tab-pane" data-pane="autoplay">
-    <div class="settings-grid">
-      <label>Auto-pickup items</label><input type="checkbox" data-k="autoLoot" ${st.autoLoot ? 'checked' : ''}>
-      <label>Loot filter (what auto-pickup and auto-play pick up)</label><button class="btn small" data-loot-filter>${lootFilter().on ? 'On' : 'Off'} · Set up</button>
-      <label>Lock skill bar (auto-play only fills empty slots)</label><input type="checkbox" data-k="lockSkillBar" ${st.lockSkillBar ? 'checked' : ''}>
-      <label>Auto skill point assignment (auto-play)</label><input type="checkbox" data-k="autoSkillPoints" ${st.autoSkillPoints !== false ? 'checked' : ''}>
-      <label title="Off: auto-play leaves your attribute points (Strength, Dexterity, Vitality, Energy) for you to spend">Auto attribute point assignment (auto-play)</label><input type="checkbox" data-k="autoStatPoints" ${st.autoStatPoints !== false ? 'checked' : ''}>
-      <label title="Off: auto-play never equips, sells, buys, stashes, sockets, upgrades or enchants gear; in town it only buys potions. A full bag doesn't stop it: it keeps playing and leaves new gear on the ground. Locked items (the lock in the item's panel) are never touched either way">Auto-play manages gear (equip, sell, buy, upgrade)</label><input type="checkbox" data-k="autoGear" ${st.autoGear !== false ? 'checked' : ''}>
-    </div>
-  </div>`;
+`;
   const d = UI.dialog({ title: 'Settings', html, cls: 'settings-dialog', buttons: [{ label: 'Done', fn: () => { camera.computeZoom(); if (UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings(); saveSettings(); } }] });
   const tabBtns = d.box.querySelectorAll('.settings-tab-btn');
   const tabPanes = d.box.querySelectorAll('.settings-tab-pane');
@@ -488,7 +480,7 @@ export function settingsDialog() {
       setTab(btn.dataset.tab);
     };
   });
-  if (!['general', 'audio', 'graphics', 'hud', 'autoplay'].includes(activeSettingsTab)) activeSettingsTab = 'general';
+  if (!['general', 'audio', 'graphics', 'hud'].includes(activeSettingsTab)) activeSettingsTab = 'general';
   setTab(activeSettingsTab);
   d.box.querySelector('[data-k=gore]').value = String(st.gore);
   d.box.querySelector('[data-k=fpsCap]').value = String(st.fpsCap || 0);
@@ -539,9 +531,7 @@ export function lootFilterDialog(onDone) {
     <label><b>Use the loot filter</b></label><input type="checkbox" data-f="on" ${f.on ? 'checked' : ''}>
     ${(FILTER_ROWS || []).map((r) => `<label>${r.name}</label><select data-f="${r.k}">${opts}</select>`).join('')}
     <label>Gems & Runes</label><select data-f="gems">${gemOpts}</select>
-    <label>Auto-play also picks up upgrades it will wear</label><input type="checkbox" data-f="upgrades" ${f.upgrades ? 'checked' : ''}>
-    <label>Auto-play keeps what passes (stores it in the chest instead of selling it)</label><input type="checkbox" data-f="keep" ${f.keep ? 'checked' : ''}>
-  </div><p class="dim" style="font-size:12px;max-width:520px">With the filter on, auto-play and walk-over pickup take only what passes. Clicking or tapping an item still picks it up, and sealed treasures always pass.</p>`;
+  </div><p class="dim" style="font-size:12px;max-width:520px">With the filter on, auto-pickup and walk-over pickup take only what passes. Clicking or tapping an item still picks it up, and sealed treasures always pass.</p>`;
   const d = UI.dialog({ title: 'Loot Filter', html, buttons: [{ label: 'Done', fn: () => { saveSettings(); onDone && onDone(); } }] });
   d.box.querySelectorAll('[data-f]').forEach((inp) => {
     if (inp.tagName === 'SELECT') inp.value = String(f[inp.dataset.f] ?? 0);
@@ -562,20 +552,12 @@ export function helpDialog() {
     <div><kbd>R</kbd> <kbd>E</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> macros: several skills on one key, set up from the skill tree's <b>Macros</b> button (or the menu)</div>
     <div><kbd>C</kbd> character · <kbd>I</kbd> bag · <kbd>K</kbd> skill tree · <kbd>T</kbd> passive talent tree · <kbd>Q</kbd> quest log</div>
     <div><kbd>Tab</kbd>/<kbd>M</kbd> map · <kbd>Esc</kbd> menu · wheel zoom</div>
-    <div><kbd>Alt</kbd>+<kbd>P</kbd> or the <b>Auto</b> button: auto-play (the hero fights, loots, shops and delves on autopilot)</div>
     <div><kbd>G</kbd> MADNESS · <kbd>F</kbd> CLASS ULTIMATE (Smite, Cataclysm, Supernova, etc.), then click where it should strike (both fill as you fight) · <kbd>H</kbd> HEARTHSTONE (two-way town portal) · <kbd>F1</kbd> How to Play</div>
     <div><b style="color:#ffe2a0">While the hero plays</b></div>
-    <div>Click or tap <b style="color:#ffd040">gilded critters</b> before they get away (follow the red arrows): each is worth a big sum of experience (a Golden Scarab, a pile of gold). Auto-play leaves them to you.</div>
-    <div>Now and then an Epic or better drops <b style="color:#ffdf8a">sealed</b>: break the seals from the SEALED button or the inventory. Auto-play waits in town when the bag is full of what it can't sell, until a slot is free.</div>
-    <div><b>Loot filter</b> (Settings): pick which weapons, off-hands, armor and rings (by rarity) and whether gems get picked up, by auto-play and by walking over them.</div>
-    <div>Pick one of three portals down at each cleared exit (auto-play picks after 8 seconds). Set auto-play's stance, and pull the <b style="color:#ffc040">Greed</b> lever for tougher depths and richer drops; a death loses the Hoard.</div>
-    <div><b style="color:#ffe2a0">Mobile</b></div>
-    <div>Left thumb: virtual joystick</div>
-    <div>Tap the world: move / attack / talk</div>
-    <div>Right cluster: skills (hold to repeat, long-press to change; the &#8644; button flips to the second page of skills)</div>
-    <div>Tap potions on the bar to drink</div>
-    <div>Pinch with two fingers: zoom in and out</div>
-    <div>Macros you set up (skill tree, <b>Macros</b>) get a purple button each by the skills</div>
+    <div>Click or tap <b style="color:#ffd040">gilded critters</b> before they get away (follow the red arrows): each is worth a big sum of experience (a Golden Scarab, a pile of gold). </div>
+    <div>Now and then an Epic or better drops <b style="color:#ffdf8a">sealed</b>: break the seals from the SEALED button or the inventory. The inventory panel shows the available space.</div>
+    <div><b>Loot filter</b> (Settings): pick which weapons, off-hands, armor and rings (by rarity) and whether gems get picked up, by auto-pickup and by walking over them.</div>
+    <div>Pick one of three portals at each cleared exit, and pull the <b style="color:#ffc040">Greed</b> lever for tougher depths and richer drops; a death loses the Hoard.</div>
     <div><b style="color:#ffe2a0">Goal</b></div>
     <div>Enter the portal in town. Find the exit of each depth — it is sealed until its guardian falls.</div>
     <div>Die and you restart a few depths back (the start of the previous five), keeping everything else.</div>

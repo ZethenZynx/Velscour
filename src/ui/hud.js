@@ -16,12 +16,11 @@ import { pickTaunt } from '../data/taunts.js';
 
 const TAUNT_KEY = 'velscour_taunts_v1'; // Velscour's level-up deck: the last mood and the lines already shown
 import { Meter } from '../game/dpsmeter.js';
-import { heroDamage } from '../game/autoplay.js';
+import { heroDamage } from '../game/heroDamage.js';
 import { madnessReady, madnessOn, unleashMadness } from '../game/mayhem.js';
 import { smiteReady, smiteArmed, toggleSmite, getUltimate } from '../game/smite.js';
 import { hearthReady, hearthChanneling, hearthOf, hearthSecondsLeft, useHearth } from '../game/hearth.js';
 import { greedOf, hoardOf, hoardCap, greedMods, setGreed, GREED_MAX } from '../game/greed.js';
-import { STANCES, Auto } from '../game/autoplay.js';
 import { sealedCount, openNextSeal } from './sealed.js';
 import { defianceText } from '../game/defiance.js';
 import { capXp } from '../game/marks.js';
@@ -92,21 +91,9 @@ export const HUD = {
     const toggleXpDetails = (e) => { e.stopPropagation(); $('#xp-text')?.classList.toggle('show-full'); };
     $('#xp-track')?.addEventListener('pointerdown', toggleXpDetails);
     $('#xp-text')?.addEventListener('pointerdown', toggleXpDetails);
-    // the spectator's dials: auto-play's stance and the Greed lever (game/autoplay.js STANCES, game/greed.js)
-    for (const b of document.querySelectorAll('#stance button')) b.addEventListener('click', (e) => { e.stopPropagation(); if (!G.char) return; G.char.stance = b.dataset.st; sfx('ui'); UI.log(`Auto-play stance: <b>${STANCES[b.dataset.st].name}</b>.`, '#8fe0ff'); });
     for (const b of document.querySelectorAll('#greed .gr-btn')) b.addEventListener('click', (e) => { e.stopPropagation(); sfx('ui'); setGreed(greedOf() + +b.dataset.d); });
     const pips = $('#greed-pips');
     for (let i = 0; i < GREED_MAX; i++) pips.appendChild(el('i'));
-    UI.tip($('#stance'), () => `<b style="color:#8fe0ff">Auto-play stance</b>
-      <div><b>Cautious</b>: kites anything that closes in, fights from the edge of its reach, drinks early, runs for town sooner, out-levels each depth before its guardian.</div>
-      <div><b>Balanced</b>: the default: kites crowds and when hurt.</div>
-      <div><b>Reckless</b>: stands in the thick of it, barely kites, drinks late, dives for the guardian under-levelled.</div>`);
-    UI.tip($('#greed'), () => {
-      const g = greedOf(), M = greedMods(g, hoardOf()); return `<b style="color:#ffc040">The Greed lever: ${g} / ${GREED_MAX}</b>
-      <div>Each notch: +7% champion packs, +12% pack size, +8% monster traits, monsters +10% life and +6% damage. Pays +25% drops, +30% gold, +20% magic find.</div>
-      <div>Every depth cleared with the lever up adds its level to the <b>Hoard</b>: +2% drops and gold a stack while greedy (drops up to 50 stacks). Its cap grows with your deepest depth (now ${hoardCap()}); stacks over 50 add gold only. A death loses the Hoard and drops the lever.</div>
-      <div class="dim">Takes hold from the next depth. Now: ×${M.loot.toFixed(2)} drops, ×${M.gold.toFixed(2)} gold, +${M.mf}% magic find.</div>`;
-    });
     // tap / click the target window to blow it up (about 2.25x, capped to the screen); again to shrink it back
     $('#target-box').addEventListener('click', (e) => { e.stopPropagation(); this.tbBig = !this.tbBig; this.last.tbCls = null; this.updateTarget(); });
     const wrap = $('#hud-slots');
@@ -192,8 +179,8 @@ export const HUD = {
   layoutMobile() {
     if (!A.hudGeo) return;
     const portrait = G.touch && innerHeight > innerWidth;
-    // upright, the rift bar and the scenario objective join the left column's flow under the auto-play line (the
-    // column's height changes with the area name, the target window and the stats, so a fixed place gets run into);
+    // upright, the rift bar and the scenario objective join the left column's flow (the
+    // column's height changes with the area name, target window and stats, so a fixed place gets run into);
     // otherwise they stand after the boss bar, in the centre column (css: #boss-bar ~)
     const rift = $('#rift-bar'), obj = $('#sand-objective');
     if (portrait && rift.parentElement !== $('#hud-top-left')) $('#hud-top-left').append(rift, obj);
@@ -605,12 +592,6 @@ export const HUD = {
     // sealed treasures waiting in the bag (ui/sealed.js)
     const nSeal = sealedCount(c);
     set('sealed', nSeal, (v) => { $('#sealed-btn').classList.toggle('hidden', !v); $('#sealed-text').textContent = `${v} SEALED`; });
-    set('sealwait', !!(nSeal && Auto.on && Auto.sealWaiting && w && w.kind === 'town'), (v) => { $('#sealed-btn').classList.toggle('urgent', v); });
-    // stance (shown while auto-play is on) and the Greed lever
-    set('stance', G.autoplayOn ? (c.stance || 'balanced') : '', (v) => {
-      $('#stance').classList.toggle('hidden', !v);
-      for (const b of document.querySelectorAll('#stance button')) b.classList.toggle('on', b.dataset.st === v);
-    });
     const g = greedOf(c), hd = hoardOf(c);
     set('greed', `${g}|${hd}|${w ? w.greed || 0 : 0}`, () => {
       document.querySelectorAll('#greed-pips i').forEach((p, i) => p.classList.toggle('on', i < g));
@@ -736,8 +717,8 @@ export const HUD = {
       }
       // the message log grows up from the skill bar: keep it below the buff row (phones in landscape are short);
       // measured only when the row's size or the layout changed, since reading rects forces a layout mid frame
-      // (below the whole left column: the target window and the auto-play line stand under the buff row)
-      const lg = $('#log'), lk = row.children.length + '|' + innerWidth + 'x' + innerHeight + '|' + document.body.className + '|' + $('#target-box').className + '|' + $('#auto-status').className;
+      // (below the whole left column, which includes the target window and buff row)
+      const lg = $('#log'), lk = row.children.length + '|' + innerWidth + 'x' + innerHeight + '|' + document.body.className + '|' + $('#target-box').className;
       const lr = lg && this.last.logFit !== lk && !document.body.classList.contains('portrait') && lg.getBoundingClientRect();
       if (lr && lr.width) {   // (not while the HUD is hidden: nothing has a size then)
         this.last.logFit = lk;

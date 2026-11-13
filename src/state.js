@@ -26,12 +26,8 @@ export const G = {
     reduceFlashing: false, // reduce full-screen flashes, flashbangs, and rapid hit strobing
     zoom: 1,
     mobileSkillBar: false, // landscape phones: full 14-slot bar art (off: orbs + potions only, the touch buttons hold the skills)
-    lockSkillBar: false, // auto-play only fills empty bar slots
     hideItemNames: false, // no item name labels on the ground (hover still shows one)
     allItemNames: false, // every drop nearby named, with no budget (game/loot.js drawLootLabels)
-    autoSkillPoints: true, // auto-play spends skill points
-    autoStatPoints: true, // auto-play spends attribute points
-    autoGear: true, // auto-play equips, sells, buys, stashes and upgrades gear (off: hands off, potions only)
     outlines: true, // see-through rims round the hero, monsters and pets, over spells, walls and darkness
     minionCounts: true, // tiles in the buff row: how many of each summon are out
     lifeBars: true, // a life bar over every enemy, bosses too (off: only over a monster just hit)
@@ -55,6 +51,7 @@ export function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     Object.assign(G.settings, s);
+    for (const key of ['lockSkillBar', 'autoSkillPoints', 'autoStatPoints', 'autoGear']) delete G.settings[key];
     if (!s.mobileHudV2) { G.settings.mobileSkillBar = false; G.settings.mobileHudV2 = true; }
   } catch (e) { /* ignore */ }
 }

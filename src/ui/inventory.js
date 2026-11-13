@@ -602,7 +602,7 @@ function getBagActions(idx, where = 'bag') {
       keepOpen: true,
       fn: () => {
         if (it.locked) delete it.locked; else it.locked = true;
-        UI.log(it.locked ? `<b>${escapeHtml(itemName(it))}</b> locked: auto-play won't touch it.` : `<b>${escapeHtml(itemName(it))}</b> unlocked.`, '#ffd860');
+        UI.log(it.locked ? `<b>${escapeHtml(itemName(it))}</b> locked.` : `<b>${escapeHtml(itemName(it))}</b> unlocked.`, '#ffd860');
         changed();
       },
     });
@@ -646,7 +646,7 @@ function getEquipActions(slot) {
     keepOpen: true,
     fn: () => {
       if (it.locked) delete it.locked; else it.locked = true;
-      UI.log(it.locked ? `<b>${escapeHtml(itemName(it))}</b> locked: auto-play won't touch it or swap it out.` : `<b>${escapeHtml(itemName(it))}</b> unlocked.`, '#ffd860');
+      UI.log(it.locked ? `<b>${escapeHtml(itemName(it))}</b> locked.` : `<b>${escapeHtml(itemName(it))}</b> unlocked.`, '#ffd860');
       changed();
     },
   });
@@ -697,7 +697,7 @@ function statsBlock() {
   const spent = attrsSpent();
   if (spent > 0) {
     const rb = el('button', 'btn small', `Respec attributes (${fmtInt(attrRespecCost(c.level))} gold)`);
-    rb.title = 'Refund every attribute point you (or auto-play) spent: 25 gold x level squared';
+    rb.title = 'Refund every attribute point you spent: 25 gold x level squared';
     if (c.gold < attrRespecCost(c.level)) rb.style.opacity = '.45';
     rb.onclick = () => { sfx('ui'); attrRespecDialog(); };
     box.appendChild(rb);
@@ -762,12 +762,11 @@ export function attrRespec() {
 function attrRespecDialog() {
   const c = G.char, cost = attrRespecCost(c.level), n = attrsSpent();
   if (c.gold < cost) { UI.log(`Respeccing attributes costs ${fmtInt(cost)} gold.`, '#ff8080'); sfx('error'); return; }
-  const auto = G.settings.autoStatPoints !== false;
-  UI.confirm('Respec Attributes', `Refund all <b>${n}</b> spent attribute points for <b class="gold-text">${fmtInt(cost)} gold</b> (25 x level&sup2;)?${auto ? '<br><span class="dim">Auto-play spends attribute points on its own: turn off "Auto attribute point assignment" in Settings to place them yourself.</span>' : ''}`, attrRespec, 'Respec');
+  UI.confirm('Respec Attributes', `Refund all <b>${n}</b> spent attribute points for <b class="gold-text">${fmtInt(cost)} gold</b> (25 x level&sup2;)?`, attrRespec, 'Respec');
 }
 
 export function autoAllocate() {
-  allocateAttrs(G.char); // the class's plan, as auto-play spends them (game/attrs.js)
+  allocateAttrs(G.char); // the class's recommended allocation (game/attrs.js)
   changed();
 }
 

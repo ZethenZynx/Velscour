@@ -261,21 +261,15 @@ body.touch .rv-btns { margin-top: 6px; }
 .pc-tag { font: 700 10px var(--font-head); color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
 .pc-omen { display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1.25; color: var(--text-dim); }
 .pc-omen b { font: 700 11px var(--font-head); letter-spacing: 1px; }
-.pc-auto { min-height: 18px; margin: 8px 0 0 !important; color: #8fe0ff; font-size: 13px; }
 body.touch .pc-card { flex-basis: 110px; min-height: 0; padding: 6px; gap: 3px; }
 body.touch .pc-swirl { width: 28px; height: 34px; }
 body.touch .portal-choice { padding: 10px 12px !important; }
 body.touch .portal-choice h2 { font-size: 18px; margin-bottom: 2px; }
 body.touch .portal-choice p { margin: 2px 0 6px; }
 
-/* the spectator's dials: auto-play's stance and the Greed lever */
+/* HUD dials: the Greed lever and sealed treasures. */
 #hud-btncol { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
 #hud-dials { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-shadow: 0 0 4px #000; pointer-events: none; }
-#stance { display: inline-flex; pointer-events: auto; border: 1px solid #2a6a8a; border-radius: 4px; overflow: hidden; background: rgba(4,20,30,.75); }
-#stance button { padding: 2px 7px; border: 0; border-right: 1px solid #1a4a60; background: none; color: #6aa8c0; font: 700 10px var(--font-head); letter-spacing: .5px; cursor: pointer; }
-#stance button:last-child { border-right: 0; }
-#stance button.on { background: #1a6a8a; color: #e8fbff; text-shadow: 0 0 4px #2ab0ff; }
-#stance button[data-st="reckless"].on { background: #8a2a1a; text-shadow: 0 0 4px #ff6030; }
 #stance button[data-st="cautious"].on { background: #2a6a3a; text-shadow: 0 0 4px #40ff80; }
 #greed { display: inline-flex; align-items: center; gap: 4px; pointer-events: auto; padding: 1px 3px; border: 1px solid #5a4418; border-radius: 4px; background: rgba(24,16,2,.75); }
 #greed.on { border-color: #ffb030; box-shadow: 0 0 8px rgba(255,170,40,.4); }
@@ -288,21 +282,16 @@ body.touch .portal-choice p { margin: 2px 0 6px; }
 #greed-pips i.on { background: linear-gradient(#ffe070, #ff9020); border-color: #ffd060; box-shadow: 0 0 4px #ffb030; }
 #hoard { font: 700 10px var(--font-head); color: #ffc040; letter-spacing: .5px; }
 #hoard:empty { display: none; }
-body.touch #stance button { padding: 2px 5px; font-size: 9px; }
 body.touch #hud-btncol { gap: 3px; }
 body.touch #hud-dials { flex-direction: row; flex-wrap: wrap-reverse; justify-content: flex-end; align-items: center; gap: 4px; max-width: 46vw; }
 body.touch #sealed-btn { padding: 2px 8px 2px 3px; font-size: 10px; }
 body.touch.portrait #hud-btncol { display: contents; }
-body.touch.portrait #stance button { padding: 2px 4px; font-size: 8px; }
 body.touch #sealed-btn i { width: 16px; height: 16px; }
 
 #hud-top-left { position: absolute; left: 12px; top: 10px; pointer-events: none; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 #area-name { font: 700 20px var(--font-head); color: var(--gold-bright); letter-spacing: 1px; }
 #area-sub { font: 400 14px var(--font-body); color: var(--text-dim); }
 #buff-row { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; max-width: 50vw; }
-#auto-status { margin-top: 6px; display: inline-block; padding: 2px 8px; border: 1px solid #2a6a8a; border-radius: 4px; background: rgba(4,20,30,.7); font: 700 12px var(--font-body); color: #8fe0ff; letter-spacing: .5px; text-shadow: 0 0 4px #000; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hbtn.on img { filter: drop-shadow(0 0 4px #2ab0ff) drop-shadow(0 0 2px #8fe0ff) hue-rotate(160deg) saturate(1.6) brightness(1.15); animation: autoglow 1.6s ease-in-out infinite; }
-@keyframes autoglow { 50% { filter: drop-shadow(0 0 9px #4fd0ff) drop-shadow(0 0 3px #bff0ff) hue-rotate(160deg) saturate(1.8) brightness(1.3); } }
 .buff { width: 30px; height: 30px; position: relative; border: 1px solid var(--gold-dim); border-radius: 3px; overflow: hidden; background: #000; }
 .buff canvas { width: 100%; height: 100%; }
 .buff.minion { border-color: #5fbf5a; box-shadow: 0 0 4px rgba(80,200,90,0.45); }
@@ -801,7 +790,7 @@ body.touch #hud-bar { left: calc(50% - 4vw); }
 body.touch #minimap-wrap { width: 84px; margin: 17px 18px 18px; }
 body.touch #hud-top-right { flex-direction: row-reverse; align-items: flex-start; }
 body.touch #hud-buttons { flex-wrap: wrap; justify-content: flex-end; max-width: 46vw; }
-body.touch { --cc-left: max(41%, calc(146px + min(200px, 24vw))); } /* the centre column (landscape): under the stance and Greed row, clear of the stats and the minimap */
+body.touch { --cc-left: max(41%, calc(146px + min(200px, 24vw))); } /* the centre column (landscape), clear of the stats and the minimap */
 body.touch #boss-bar { width: min(400px, 48vw); left: var(--cc-left); top: 80px; }
 body.touch #sand-objective { top:80px; left:var(--cc-left); width:min(400px,48vw); padding:5px 8px; gap:7px; font-size:11px; } /* the centre column */
 body.touch #boss-bar:not(.hidden) ~ #sand-objective { top: 124px; } /* under the boss bar (the dunes' tomb master) */
@@ -810,7 +799,6 @@ body.touch #boss-sub { font-size: 10px; min-height: 11px; }
 body.touch .hbtn { width: 38px; height: 41px; }
 body.touch #area-name { font-size: 15px; }
 body.touch #area-sub { font-size: 12px; }
-body.touch #auto-status { font-size: 10px; margin-top: 3px; max-width: 34vw; }
 body.touch #hero-stats { width: max-content; min-width: 124px; padding: 3px 6px 4px; margin-top: 3px; }
 body.touch #hero-stats span { font-size: 8px; letter-spacing: .6px; }
 body.touch #hero-stats b { font-size: 12px; }
@@ -994,10 +982,10 @@ body.touch #rift-bar { top: 80px; left: var(--cc-left); padding: 2px 8px; gap: 6
 body.touch #rift-bar #rift-track { width: 70px; }
 body.touch #rift-bar b { display: none; }
 body.touch #rift-bar.boss { top: 124px; } /* under the Guardian's bar */
-/* upright, the rift bar and the scenario objective join the left column (hud.js layoutMobile), under the auto-play line */
+/* upright, the rift bar and the scenario objective join the left column (hud.js layoutMobile) */
 body.touch.portrait #hud-top-left > #rift-bar, body.touch.portrait #hud-top-left > #sand-objective { position: relative; left: auto; top: auto; transform: none; margin-top: 4px; }
 body.touch.portrait #hud-top-left > #rift-bar { display: inline-flex; }
-body.touch.portrait #hud-top-left > #sand-objective { width: min(214px, calc(100vw - 176px)); } /* (clear of the stance on the right) */
+body.touch.portrait #hud-top-left > #sand-objective { width: min(214px, calc(100vw - 176px)); }
 .hx-locked { padding: 8px 10px; margin-bottom: 8px; border: 1px solid #7a3020; border-radius: 6px; background: rgba(60,10,5,.5); color: #ffb0a0; }
 .hx-head { margin-bottom: 6px; }
 .hx-rank { font: 700 16px var(--font-head); color: #ff8060; }

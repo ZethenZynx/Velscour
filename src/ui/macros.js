@@ -31,7 +31,7 @@ export const MacrosUI = {
     const a = document.activeElement;
     if (a && body.contains(a) && a.tagName === 'INPUT' && a.type === 'text') return; // don't re-render under a name being typed
     body.innerHTML = '';
-    body.appendChild(el('div', 'dim mc-why', `A macro casts its skills one after another with one key${G.touch ? ' (or its button by the skills)' : ''}: a skill on cooldown or short of mana is skipped. <b>Keep up</b> recasts its buffs as they wear off and its cooldown skills as they come back, while a foe is near (not with auto-play on).`));
+    body.appendChild(el('div', 'dim mc-why', `A macro casts its skills one after another with one key${G.touch ? ' (or its button by the skills)' : ''}: a skill on cooldown or short of mana is skipped. <b>Keep up</b> recasts its buffs as they wear off and its cooldown skills as they come back, while a foe is near.`));
     const all = castable(c);
     c.macros.forEach((m, i) => {
       const row = el('div', 'mc-row');

@@ -148,9 +148,4 @@ export function breakClutter(c) {
     if (cidx !== -1) w.creatures.splice(cidx, 1);
   }
 
-  // 5. Invalidate autoplay pathing so it immediately walks through
-  if (G.autoplay) {
-    G.autoplay.navT = 0;
-    G.autoplay.path = null;
-  }
 }

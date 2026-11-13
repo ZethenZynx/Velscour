@@ -68,7 +68,7 @@ export function itemTooltip(item, opts = {}) {
   const trees = p ? CLASSES[p.classId].trees : null;
   const col = itemColor(item);
   let h = `<div class="tt-name" style="color:${col}">${escapeHtml(item.unid ? 'Unidentified ' + SLOT_NAMES[item.slot] : itemName(item))}</div>`;
-  if (item.locked) h += '<div class="tt-base" style="color:#ffd860">🔒 Locked: auto-play never equips, swaps, sells, stores or changes it, and you can\'t sell or drop it</div>';
+  if (item.locked) h += '<div class="tt-base" style="color:#ffd860">🔒 Locked: you can\'t sell or drop this item</div>';
   if (item.type === 'gem' && GEMS[item.gem].sigil) {
     const r = item.tier, S = SIGILS[r];
     h += `<div class="tt-base">Sigil Stone · Rank ${r + 1} of ${SIGIL_MAX + 1} · drops from Depth ${r * 24 || 1}${item.count > 1 ? ` · Stack of ${item.count}` : ''}</div><div class="tt-sep"></div>`;
