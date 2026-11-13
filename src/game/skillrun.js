@@ -20,6 +20,7 @@ import { noteTier } from '../data/notation.js';
 import { bardCastFx, bardNoteFor } from './bard.js';
 import { ASTRONOMER, astroCast, mirrorShots, cometStrike } from './astronomer.js';
 import { skillMorphFor, applySkillMorph } from '../data/talents.js';
+import { bodyR } from '../world/map.js';
 
 const roll = (d) => rand(d[0], d[1]);
 
@@ -38,11 +39,11 @@ function statusOpts(m) {
 }
 
 /** Clamp a target point to max range from the caster and onto walkable floor. */
-function clampTarget(w, p, tx, ty, range) {
+function clampTarget(w, p, tx, ty, range, canLand = (x, y) => w.map.isFloor(x, y)) {
   const a = angleTo(p.x, p.y, tx, ty);
   let d = Math.min(range, dist(p.x, p.y, tx, ty));
   let x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
-  while (d > 0 && !w.map.isFloor(x, y)) { d -= 0.25; x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
+  while (d > 0 && !canLand(x, y)) { d -= 0.25; x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
   return [x, y];
 }
 
@@ -307,7 +308,12 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
       sfx('swing');
       break;
     case 'blink': {
-      const [x, y] = clampTarget(w, p, tx, ty, 6.5 * (m.range ?? 1));
+      // The Sky Ship map marks its solid hull and fittings as floor for rendering,
+      // so Blink must use its walk map and keep the whole player body on deck.
+      const canLand = w.biome?.id === 'skyship'
+        ? (x, y) => w.map.walkable(x, y) && w.map.circleFree(x, y, bodyR(p))
+        : undefined;
+      const [x, y] = clampTarget(w, p, tx, ty, 6.5 * (m.range ?? 1), canLand);
       smoke(p.x, p.y, 10, fx === 'smoke' || fx === 'shadow' ? '#201820' : E.dark, 6, 8);
       sparkle(p.x, p.y, 20, E.glow, 10, 0.4);
       if (fx === 'lightning') addEffect(new Bolt(p.x, p.y, 20, x, y, 20, E.glow, 0.25, 3));
@@ -623,3 +629,4 @@ function summonCast(p, sk, L, tx, ty, dmg) {
 }
 
 export { pick, randi };
+
