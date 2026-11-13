@@ -25,7 +25,7 @@ export const G = {
     shake: true,
     reduceFlashing: false, // reduce full-screen flashes, flashbangs, and rapid hit strobing
     zoom: 1,
-    mobileSkillBar: false, // landscape phones: full 15-slot bar art (off: orbs + potions only, the touch buttons hold the skills)
+    mobileSkillBar: false, // landscape phones: full 14-slot bar art (off: orbs + potions only, the touch buttons hold the skills)
     lockSkillBar: false, // auto-play only fills empty bar slots
     hideItemNames: false, // no item name labels on the ground (hover still shows one)
     allItemNames: false, // every drop nearby named, with no budget (game/loot.js drawLootLabels)
