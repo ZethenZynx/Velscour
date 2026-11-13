@@ -38,7 +38,7 @@ export function titleScreen() {
   G.mode = 'title';
   const s = el('div', 'screen');
   s.classList.add('title-screen');
-  s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR"><div class="title-tag">A world built upon something that should have stayed dead.</div>`;
+  s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
   const menu = el('div', 'title-menu');
   const add = (label, fn, cls = 'btn big') => { const b = el('button', cls, label); b.onclick = () => { if (!s.classList.contains('title-ready')) return; initAudio(); sfx('ui'); goFullscreen(); fn(); }; menu.appendChild(b); return b; };
   // rebuilt when the cloud brings heroes in while the title is up

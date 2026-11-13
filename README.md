@@ -1,19 +1,19 @@
-# VELSCOUR
+# Velscour PC
 
 *A world built upon something that should have stayed dead.*
 
-An isometric, retro-pixel action RPG in the spirit of Diablo II that runs in the browser on **PC and mobile**. Choose one of sixteen classes, gear up in the town of Herrington Hollow, then descend 500 procedurally generated depths to slay **Demon Lord Velscour**.
+An isometric, retro-pixel action RPG in the spirit of Diablo II for desktop browsers. Velscour PC is designed for mouse and keyboard. Choose one of sixteen classes, gear up in the town of Herrington Hollow, then descend 500 procedurally generated depths to slay **Demon Lord Velscour**.
 
 > **Status: rough draft.** Everything is playable end to end. Live placeholder sprites have painted replacements (see [Art](#art)); full animation and broader effect art remain future work, and balance is a first pass.
 
 ## Play it
 
-### On GitHub Pages (PC and phone)
+### On GitHub Pages (desktop browsers)
 1. In the GitHub repo go to **Settings → Pages**.
 2. Under **Build and deployment** pick **Deploy from a branch**, choose the branch (`main` once this is merged, or `claude/amazing-rubin-kguehz` to try it now) and the **`/ (root)`** folder, then **Save**.
 3. After a minute the game is live at `https://<your-user>.github.io/velscour/`.
 
-On a phone, play in **landscape**. "Add to Home Screen" launches it fullscreen, without the browser bars.
+Touch-only devices show a notice explaining that this edition requires a desktop or laptop.
 
 ### Locally
 The game is plain HTML and JavaScript modules, so there is no build step. It does have to be served over http, because browsers block modules on `file://`:
@@ -34,7 +34,7 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 | Shift + left click | Attack in place |
 | W A S D / arrows | Move directly |
 | Right click | Right-click skill at the cursor |
-| \` 1 – 9 0 - = | Cast that slot's skill at the cursor (hold to repeat): 13 keys plus both mouse buttons, 15 skills in all |
+| 1–9, 0, -, = | Cast that slot's skill at the cursor (hold to repeat) |
 | Z X C V | Healing, mana, rejuvenation and fury potions |
 | I / K / B / Q | Inventory & character · Skill tree · Skill book · Quest log |
 | Tab / M | Map overlay |
@@ -42,13 +42,6 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 | P / Auto button | Auto-play on or off |
 | Mouse wheel | Zoom |
 
-| Mobile | |
-|---|---|
-| Left thumb | Floating virtual joystick |
-| Tap the world | Move / attack / talk / pick up |
-| Right-hand button cluster | ATK (left-click skill), then RMB and 1–8 on page one and 9 0 - = \` on page two (the ⇄ button flips pages). Tap to cast with auto-aim, hold to repeat, long-press to change the skill |
-| Potions on the bar | Tap to drink |
-| Auto button (top right) | Auto-play on or off |
 
 ## What's in this draft
 
@@ -56,7 +49,7 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 - **Lancer spinning shields:** the seven Bulwark orbit abilities now use four distinct, transparent golden 8-angle sprite animations (round, diamond, kite and tower). Shield orbit direction and eight-angle sprite-frame playback are both reversed from the prior build, with wider spacing between the seven abilities. Individual shields correctly pass behind and in front of the Lancer, walls and nearby actors as they orbit. See [Lancer Spinning Shields](docs/LANCER_SPINNING_SHIELDS.md).
 - **1,000 unique skills**, 60 per class plus a fourth 20-skill tree for the Necromancer (**Skeletal Legion**) and Dragoon (**Spearstorm**), laid out as 5 tiers × 4 prerequisite chains (tiers unlock at levels 1/6/12/20/30). Skills cap at level 20 and gain synergy from points in the same tree. Default abilities are granted automatically at levels 1, 2, 4, 8, 12, 16, 22, 28 and 34.
   - 23 behaviours combine with 10 elements and around 40 visual styles: projectiles (pierce, bounce, homing, split, boomerang return, lobbed, frozen-orb spray, gravity pull), novas, meteors, channelled death lasers and breath cones, chain lightning, walls of fire/ice/slime/thorns, ground zones, orbiting blades and spinning hammers, cyclones, whirlwinds, leaps, dashes and omnislash, blinks, summons, totems and turrets, auras and transformations, curses (amplify, weaken, fear, confuse, charm, decay, life tap, iron maiden, living bomb, doom), traps and mines, rains of arrows/meteors/blades, sky strikes, fissures and corpse explosions.
-- **Skill bar**: 15 skills (LMB, \` 1–9 0 - =, RMB) plus 4 potion slots (Z X C V) built on the provided HUD art, with live life/mana orbs, XP bar and cooldowns. Drag skills onto it from the Skill Book or Skill Tree, or click a slot to choose one.
+- **Skill bar**: 14 skills (LMB, 1–9, 0, -, =, RMB) plus 4 potion slots (Z X C V) built on the provided HUD art, with live life/mana orbs, XP bar and cooldowns. Drag skills onto it from the Skill Book or Skill Tree, or click a slot to choose one.
 - **Combat & gore**: crits, resistances, armor, block, leech, thorns, knockback, burn/chill/freeze/shock/poison/bleed/acid shred. Blood sprays, pooling blood decals, bouncing gibs, corpses, overkill explosions and screen shake. Gore can be set to Off, Bloody or Extreme.
 - **Monsters**: 370 painted monsters (skeleton warbands, liches, bone horrors, flesh brutes, demons, tentacle and eye horrors, fiends, dragons and hydras, mages, bandits and knights, goblins, kobolds, slimes, birdfolk, and towering titans) playing 22 archetypes with distinct AI (melee, ranged kiting, casters with telegraphed AoEs, chargers, swarms, nova casters, beam eyes, exploders, summoners, slimes that split). Every level rolls its own bestiary from the biome's roster, palette-swaps it with the biome's colours (29 swaps), and adds a darker "greater" breed. Unique monsters get their own colouring. Champion and unique packs get elite affixes (Fire Enchanted, Cold Aura, Lightning Enchanted, Vampiric, Multishot, Thorns…). Traditional dungeon depths end with a multi-pattern **guardian boss** drawn from 99 boss-worthy monsters (slams, bullet novas, spirals, charges, meteor rains, beams, summons, enrage at 50%).
 - **Indoor dungeons**: built procedurally from the **Catacombs and cathedral/graveyard biome packs**: 60 floors, 5 wall families with every corner and junction, arches and doors (which swing open as you approach) in the corridor mouths, and 40 scatter props. Rooms, caves and corridors are laid out as a maze with loops, and each biome palette-swaps the pack. In indoor levels the exit sits in the room farthest from the entrance and stays sealed until the guardian dies. Dungeons also have chests, torches, props, an automap and a minimap. Depth 500 is a special gauntlet that ends in Velscour's throne arena.
@@ -71,7 +64,7 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 - **Skill mastery**: every skill has its own XP and levels from 1 to 1000. Skills train when cast and, more, when they kill; each level adds damage (about x2.4 at 100 and x29 at 1000), and at 25, 100, 250, 500, 750 and 1000 the skill's effects grow bigger and more over the top.
 - **Barbarian combat**: Bash fans five short lightning bolts and is the primary Rage builder; Rage starts at zero, builds from attacks instead of idle regeneration, then fuels moving Whirlwind with isometric cyclone particles and spiralling battlefield gibs.
 - **Dragoon Spearstorm:** a fourth 20-skill tree preserves the original 60 skills. **Thousandfold Impalement** (level 1, instant, 8s cooldown) strikes in a **2.5-tile point-blank radius** with plunging copies of the class's distinct energy lances; **Triune Spearfall** (level 2, instant, 14s cooldown) covers three tightly clustered circles around the Dragoon for 50% more damage per enemy. The bot leaps into close range, chains 3–8 jumps, pauses 1.35–1.65 seconds for the visual spell display, then resumes leaping and mixing in other attacks. See [Dragoon Spearstorm](docs/DRAGOON_SPEARSTORM.md).
-- **Auto-play**: the Auto button (or P) hands the hero to an AI that plays for you. It spends skill and attribute points, keeps the skill bar sorted, fights with every skill on the bar (dodging telegraphed attacks, kiting with ranged builds, drinking potions, using cooldowns, buffs, curses and minions), picks up and equips upgrades, sockets gems, then goes to town to sell, restock potions, buy gear and gems, add sockets, upgrade, enchant and gamble, and keeps delving toward Velscour. It also gets back up after a death. Pet classes (Necromancer, Totem Master, Carrion Witch, Slime Lord, Ranger, Gunner) build for as many minions as they can keep; the Paladin builds around his hammers (Blessed Hammer, Hammerstorm, Wheel of Hammers). Move, click or tap to take over for a moment; it resumes when you let go.
+- **Auto-play**: the Auto button (or P) hands the hero to an AI that plays for you. It spends skill and attribute points, keeps the skill bar sorted, fights with every skill on the bar (dodging telegraphed attacks, kiting with ranged builds, drinking potions, using cooldowns, buffs, curses and minions), picks up and equips upgrades, sockets gems, then goes to town to sell, restock potions, buy gear and gems, add sockets, upgrade, enchant and gamble, and keeps delving toward Velscour. It also gets back up after a death. Pet classes (Necromancer, Totem Master, Carrion Witch, Slime Lord, Ranger, Gunner) build for as many minions as they can keep; the Paladin builds around his hammers (Blessed Hammer, Hammerstorm, Wheel of Hammers). Move or click to take over for a moment; it resumes when you let go.
 - Sampled sound effects, music and drifting ambient beds (procedural fallbacks for the rest), settings, a help screen and six hero save slots.
 - An arcade level-up: freeze frame, hellfire pillar, burning sigil, chiptune fanfare, and a speech-chip voice: "YOU
   HAVE BECOME MORE POWERFUL, BUT VELSCOUR STILL LIVES" (`assets/audio/voice/levelup.wav`, made by
@@ -82,7 +75,6 @@ Progress saves automatically in the browser (localStorage), and you can keep up 
 
 ```
 index.html, css/style.css      page shell + UI styles
-manifest.webmanifest           installable / fullscreen on mobile
 assets/source/                 your original sprite sheets
 assets/sprites, ui, tiles/     game-ready slices (generated)
 tools/process_assets.py        slices the source sheets into the above (biome packs: tools/biomepack.py)
@@ -99,7 +91,7 @@ src/ui/                        HUD, touch controls, inventory, skill tree/book, 
 
 ## Art
 
-**Asset manager:** [agilancer.github.io/velscour/tools/assetmanager/](https://agilancer.github.io/velscour/tools/assetmanager/) lists every sprite, texture and 3D model in the game (PC and phone), split into custom art / textured 3D models and placeholder art, with previews, the source files, the rebuild command, and flags and notes for tracking new art. Rebuild its list after art changes with `node tools/assetmanager/build.mjs`.
+**Asset manager:** [agilancer.github.io/velscour/tools/assetmanager/](https://agilancer.github.io/velscour/tools/assetmanager/) lists every sprite, texture and 3D model in the game (PC), split into custom art / textured 3D models and placeholder art, with previews, the source files, the rebuild command, and flags and notes for tracking new art. Rebuild its list after art changes with `node tools/assetmanager/build.mjs`.
 
 The five themed dungeons (Desert Temple, Ice Temple, Hell, Astral Plane and Heavenly) now use 40 painted floor diamonds and 40 painted props cut from three approved sprite sheets, with 12 painted celestial monster designs replacing procedural first-rank Heavenly variants. All wall geometry, monster IDs and gameplay systems are preserved; see [Approved Biome Artwork](docs/APPROVED_BIOME_ART.md).
 
