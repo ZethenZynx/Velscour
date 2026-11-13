@@ -541,7 +541,7 @@ async function ui() {
   const U = { dir: 'assets/source', cmd: 'python3 tools/process_assets.py ui', code: 'src/ui/hud.js css/style.css' };
   let g = group('HUD and buttons', { ...U, note: 'Cut from hud_bar.webp and hud_frames.webp.' });
   const hj = json('assets/ui/hud.json');
-  add(g, { id: 'ui_hud', n: 'HUD bar (orbs, 15 skill and 4 potion slots)', k: 'art', src: ['assets/ui/hud.webp'], files: ['assets/ui/hud.json'] });
+  add(g, { id: 'ui_hud', n: 'HUD bar (orbs, 14 skill and 4 potion slots)', k: 'art', src: ['assets/ui/hud.webp'], files: ['assets/ui/hud.json'] });
   for (const f of ['hud-orbs', 'hud-orb-life', 'hud-orb-mana']) add(g, { id: 'ui_' + f, n: titleCase(f.replace('hud-', '')), k: 'art', src: [`assets/ui/${f}.webp`] });
   add(g, { id: 'ui_minimap_ring', n: 'Minimap ring', k: 'art', src: ['assets/ui/minimap_ring.webp'] });
   for (const b of hj.buttons.names) add(g, { id: 'ui_btn_' + b, n: `${titleCase(b)} button`, k: 'art', src: [`assets/ui/btn_${b}.webp`] });

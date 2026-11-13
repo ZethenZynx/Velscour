@@ -27,8 +27,8 @@ import { defianceText } from '../game/defiance.js';
 import { capXp } from '../game/marks.js';
 
 const POTIONS = ['hp', 'mp', 'rejuv', 'fury'];
-// HUD art index -> bar index (skills) or potion kind; skip the removed backquote slot.
-const SLOT_MAP = [0, null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 'hp', 'mp', 'rejuv', 'fury', 13];
+// HUD art index -> bar index (skills) or potion kind: LMB, 1-9 0 - =, potions, RMB.
+const SLOT_MAP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 'hp', 'mp', 'rejuv', 'fury', 13];
 
 /** [x, y, w, h] of a sprite's non-transparent pixels (monster sheets carry lots of padding), memoised per image. */
 const boxes = new WeakMap();
@@ -112,7 +112,6 @@ export const HUD = {
     const wrap = $('#hud-slots');
     geo.slots.forEach((s, i) => {
       const map = SLOT_MAP[i];
-      if (map === null) return;
       const d = el('div', 'slot');
       d.style.left = pct(s.x, geo.w); d.style.top = pct(s.y, geo.h);
       d.style.width = pct(s.w, geo.w); d.style.height = pct(s.h, geo.h);
@@ -368,7 +367,7 @@ export const HUD = {
       const [lifeGeo, manaGeo] = A.hudGeo.orbs;
       const orbPos = [
         { frameX: lifeFrameX, cx: lifeGeo.cx, cy: lifeGeo.cy, r: lifeGeo.r },
-        { frameX: manaFrameX, cx: manaGeo.cx - 1730, cy: manaGeo.cy, r: manaGeo.r },
+        { frameX: manaFrameX, cx: manaGeo.cx - 1653, cy: manaGeo.cy, r: manaGeo.r },
       ];
       const placeOrb = (cover, text, p) => {
         const cx = p.frameX + p.cx * scale;
