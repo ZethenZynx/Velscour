@@ -1513,6 +1513,7 @@ export const game = {
       sel = +b.dataset.i; sfx('ui');
       btns.forEach((x) => x.classList.toggle('sel', x === b));
     }));
+  },
 
   awardFloorClear(depth, customContext = '') {
     const c = G.char;
