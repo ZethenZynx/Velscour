@@ -653,6 +653,27 @@ export const game = {
     const unboundMax = Math.min(MAX_UNBOUND_DEPTH, Math.max(1, c.unboundExploration?.deepest || 1));
     const waypoints = unboundWaypoints(c);
     let unboundValue = Math.min(unboundMax, c.unboundExploration?.currentFloor || unboundMax);
+    let affixPreviewDepth = null;
+    let affixPreviewIds = [];
+    const affixesForCampaignDepth = (depth) => {
+      if (affixPreviewDepth !== depth) {
+        affixPreviewDepth = depth;
+        affixPreviewIds = rollDungeonAffixesForDepth(depth, Math.random, c.affixStartDepth || 1, heresiesOf(c).includes('omens'));
+      }
+      return affixPreviewIds;
+    };
+    const affixPreviewHtml = (depth) => {
+      const affixes = affixesForCampaignDepth(depth).map((id) => DUNGEON_AFFIX_BY_ID[id]).filter(Boolean);
+      if (!affixes.length) return '';
+      return '<div class="floor-pick-affixes" style="margin:7px 0 2px;padding:6px 8px;background:rgba(255,176,112,0.08);border-left:2px solid #ffb070;border-radius:3px;font-size:11px;line-height:1.25;">' +
+        '<b style="color:#ffd880;">Affixes for Depth ' + depth + '</b>' +
+        affixes.map((affix) => {
+          const words = String(affix.description || '').split(/[.!?]/, 1)[0].trim().split(/\s+/).filter(Boolean);
+          const summary = words.length > 7 ? words.slice(0, 7).join(' ') + '…' : words.join(' ');
+          return '<div style="margin-top:2px;"><b>' + escapeHtml(affix.name) + '</b><span style="opacity:.82"> — ' + escapeHtml(summary) + '</span></div>';
+        }).join('') +
+        '</div>';
+    };
 
     const describe = (d) => {
       const act = getActForDepth(d);
@@ -671,9 +692,9 @@ export const game = {
 
       const actHeader = `<div style="color:#ffd880;font-size:12px;font-weight:bold;margin-bottom:4px;letter-spacing:0.5px;">ACT ${act.act}: ${act.name.toUpperCase()}</div>`;
       if (d === current) {
-        return `${actHeader}<p>The portal hums. Beyond lies <b style="color:#ffb070">${escapeHtml(currentBiome.name)}</b>.</p><p class="dim">${this.biomeBlurb(currentBiome)}${tail}</p>`;
+        return `${actHeader}<p>The portal hums. Beyond lies <b style="color:#ffb070">${escapeHtml(currentBiome.name)}</b>.</p><p class="dim">${this.biomeBlurb(currentBiome)}${tail}</p>${affixPreviewHtml(d)}`;
       }
-      return `${actHeader}<p>The portal's glow shifts. A fresh path will be drawn into <b style="color:#ffb070">Depth ${d}</b>.</p><p class="dim">Monsters, loot and the biome are rolled for this depth when you step through.${tail}</p>`;
+      return `${actHeader}<p>The portal's glow shifts. A fresh path will be drawn into <b style="color:#ffb070">Depth ${d}</b>.</p><p class="dim">Monsters, loot and the biome are rolled for this depth when you step through.${tail}</p>${affixPreviewHtml(d)}`;
     };
 
     const describeUnbound = (f) => {
@@ -756,7 +777,7 @@ export const game = {
         { label: 'Cancel' },
         { label: 'Enter', cls: 'red floor-pick-go', fn: () => {
           if (mode === 'unbound') this.enterUnboundExploration(unboundValue);
-          else this.enterDungeonAt(value);
+          else this.enterDungeonAt(value, [...affixesForCampaignDepth(value)]);
         } },
       ],
     });
@@ -895,7 +916,7 @@ export const game = {
   },
 
   /** Step through the town portal onto a chosen floor (1 .. deepest reached). */
-  enterDungeonAt(depth) {
+  enterDungeonAt(depth, affixes) {
     const c = G.char, current = c.depth || 1;
     depth = clamp(depth | 0, 1, this.maxPortalFloor(c));
     const activeH = getActiveHearth();
@@ -907,6 +928,10 @@ export const game = {
       c.depth = depth;
         delete c.nextAffixes;
       c.nextBiome = depth === FINAL_DEPTH ? 'throne' : drawBiome(c, depth);
+    }
+    if (Array.isArray(affixes)) {
+      c.dungeonAffixes = normalizeDungeonAffixIds(affixes);
+      c.nextAffixes = [...c.dungeonAffixes];
     }
     this.enterDungeon();
   },
