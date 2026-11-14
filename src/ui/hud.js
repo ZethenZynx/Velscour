@@ -185,7 +185,7 @@ export const HUD = {
     const rift = $('#rift-bar'), obj = $('#sand-objective');
     if (portrait && rift.parentElement !== $('#hud-top-left')) $('#hud-top-left').append(rift, obj);
     else if (!portrait && rift.parentElement === $('#hud-top-left')) $('#boss-bar').after(rift, obj);
-    const compact = G.touch;
+    const compact = false; // The PC edition always uses the desktop HUD.
     document.body.classList.toggle('compact-mobile-hud', compact);
     const hud = $('#hud'), img = $('#hud-img'), xp = $('#xp-track'), xpText = $('#xp-text'), rail = $('#hud-rail');
     hud.classList.toggle('compact-mobile', compact);
@@ -273,7 +273,7 @@ export const HUD = {
       // Keep gauge-box (Rage meter) floating cleanly above the potions
       // (portrait: the touch layout centres it above the skill tray instead, see TouchUI.placePortraitExtras)
       const gaugeBox = $('#gauge-box');
-      if (gaugeBox && !(portrait && G.touchUI?.portraitAnchors)) {
+      if (gaugeBox) {
         gaugeBox.style.top = 'auto';
         gaugeBox.style.bottom = `${bar.height - potionY + 6}px`;
       }
@@ -300,7 +300,6 @@ export const HUD = {
             zIndex: '6',
           });
         }
-        G.touchUI?.placePortraitExtras?.();
         if (smiteBtn) {
           const sLeft = Math.max(4, lifeFrameX - btnSize - 6);
           Object.assign(smiteBtn.style, {
@@ -454,7 +453,6 @@ export const HUD = {
       tb.classList.toggle('hidden', !talentPts);
     }
     stb.textContent = c.statPoints; stb.classList.toggle('hidden', !c.statPoints);
-    if (G.touchUI) G.touchUI.refresh();
   },
 
   update(dt) {
