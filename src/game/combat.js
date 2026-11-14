@@ -56,6 +56,11 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
 
   const sourceAffixes = src && src.team === 'enemy' ? (src.dungeonAffixIds || []) : [];
+  if (!o.dot && tgt.team !== 'enemy' && sourceAffixes.includes('critical') &&
+      chance(DUNGEON_AFFIX_CONFIG.critical.chance)) {
+    crit = true;
+    dmg *= DUNGEON_AFFIX_CONFIG.critical.damageMultiplier;
+  }
   if (sourceAffixes.includes('empowered') && src.world) {
     const cfg = DUNGEON_AFFIX_CONFIG.empowered;
     const nearbyEnemies = src.world.query(src.x, src.y, cfg.radius,
@@ -64,10 +69,6 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   }
 
   if (tgt.isPlayer) {
-    if (!o.dot && sourceAffixes.includes('critical') && chance(DUNGEON_AFFIX_CONFIG.critical.chance)) {
-      crit = true;
-      dmg *= DUNGEON_AFFIX_CONFIG.critical.damageMultiplier;
-    }
     const st = tgt.st;
     if (!o.dot && st.block > 0 && chance(Math.min(0.6, st.block / 100))) {
       floatText(tgt.x, tgt.y, 40, 'Blocked', '#c0c8d0', 12);
