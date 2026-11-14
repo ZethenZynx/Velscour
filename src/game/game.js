@@ -37,7 +37,7 @@ import { generateDarkForest } from '../world/darkforest.js';
 import { loadDarkForestTrees } from '../gfx/darkforest.js';
 import { generateBreach } from '../world/breach.js';
 import { createBreachRun, chestAt, breachMonster } from './breach.js';
-import { breachDepth, breachLevel, BREACH_ART, BREACH_ARCHS, wyrmVariant, breachCycle, MAX_BREACH_FLOOR } from '../data/breach.js';
+import { breachDepth, breachLevel, BREACH_ART, BREACH_ARCHS, MAX_BREACH_FLOOR, breachInterludeFloor } from '../data/breach.js';
 import { useAlpine } from './alpine.js';
 import { castle3dTick } from './castle3d.js';
 import { useTerrain, terrainOf } from '../gfx/terrain.js';
@@ -427,8 +427,6 @@ export const game = {
       },
       use: () => this.confirmDungeon(),
     }];
-    // THE ETERNAL BREACH's purple portal (game.confirmBreach, docs/ETERNAL_BREACH.md)
-    if (t.breach) world.portals.push({ x: t.breach.x, y: t.breach.y, active: true, breach: true, color: '#a040ff', reach: 1.7, label: 'THE ETERNAL BREACH', use: () => this.confirmBreach() });
     // the Abyssal Rift gate (game.confirmRift): lit once the Endgame is open
     if (t.rift) world.portals.push({ x: t.rift.x, y: t.rift.y, rift: true, color: '#20e0ff', reach: 1.7, get active() { return endgameUnlocked(); }, set active(v) {}, get label() { return endgameUnlocked() ? `Abyssal Rift — Tier ${riftOpen()}` : 'Abyssal Rift (sealed)'; }, use: () => this.confirmRift() });
     // Waypoint Portal to Sunscorch Oasis (Act II Town) once visited or reached Act 2
@@ -569,20 +567,6 @@ export const game = {
           sfx('portal');
           this.enterTown();
         },
-      });
-    }
-
-    // The Eternal Breach Portal
-    if (t.breach) {
-      world.portals.push({
-        x: t.breach.x,
-        y: t.breach.y,
-        active: true,
-        breach: true,
-        color: '#a040ff',
-        reach: 2.2,
-        label: 'THE ETERNAL BREACH',
-        use: () => this.confirmBreach(),
       });
     }
 
@@ -1172,6 +1156,11 @@ export const game = {
       }
       this.autosave();
     }
+    const breachFloor = breachInterludeFloor(depth, c.breach?.best);
+    if (breachFloor) {
+      this.enterBreach(breachFloor);
+      return;
+    }
     const isStarterDepth = depth === 1;
     if (isStarterDepth) c.nextBiome = 'catacombs';
     else if (depth !== FINAL_DEPTH && (!c.nextBiome || c.nextBiome === 'throne' || regionNeeds(BIOME_BY_ID[c.nextBiome], c.level))) c.nextBiome = drawBiome(c, depth);
@@ -1691,33 +1680,6 @@ export const game = {
   /** The highest Breach floor the hero may enter: one past the best floor beaten (capped at MAX_BREACH_FLOOR 50). */
   breachOpen() { const b = G.char?.breach; return Math.min(MAX_BREACH_FLOOR, (b?.best || 0) + 1); },
 
-  /** The purple portal: pick a floor (any up to one past the best beaten, max 50) and step in. */
-  confirmBreach(floor) {
-    const c = G.char, top = this.breachOpen(), pick = Math.min(top, Math.max(1, floor || top));
-    const opt = (n) => {
-      const L = breachLevel(n), won = c.breach?.cleared?.[n] || 0;
-      const v = wyrmVariant(n);
-      const isApex = n >= MAX_BREACH_FLOOR;
-      const cycle = breachCycle(n);
-      const wyrmLabel = isApex ? 'APEX WYRM (The Void Convergence)' : `Cycle ${cycle}: ${v.name} (${v.el.toUpperCase()})`;
-      return `<option value="${n}"${n === pick ? ' selected' : ''}>Floor ${n} · ${wyrmLabel} — Depth ${breachDepth(n)} (Lvl ${L})${won ? ` · beaten ${won}x` : n === top ? ' · new' : ''}</option>`;
-    };
-    const floors = [];
-    for (let n = top; n >= 1; n--) floors.push(opt(n));
-    const d = UI.dialog({
-      title: 'THE ETERNAL BREACH', cls: 'breach-dialog',
-      html: `<p>The purple portal opens on <b style="color:#c080ff">a broken world floating in the void</b>: sixteen islands joined by walkways, held by the Breach's own monsters.</p>
-        <p class="dim">Slay the 7 Elemental Wyrms across 7 Ascensions (Floors 1–49) to face the Apex Ethereal Wyrm at Floor 50. Floor N is as deadly as Depth 10&times;N. Falling here costs no Defiance and leaves your campaign descent untouched.</p>
-        <label class="velscour-message-label" for="breach-floor">Floor</label><select id="breach-floor" class="velscour-biome-select">${floors.join('')}</select>
-        <p class="breach-warn" id="breach-warn"></p>`,
-      buttons: [{ label: 'Not yet' }, { label: 'Enter the Breach', cls: 'red', fn: () => this.enterBreach(+d.box.querySelector('#breach-floor').value) }],
-    });
-    const sel = d.box.querySelector('#breach-floor'), warn = d.box.querySelector('#breach-warn');
-    const upd = () => { const L = breachLevel(+sel.value); warn.innerHTML = L > c.level + 4 ? `<b style="color:#ff6050">Monsters there are level ${L}; you are level ${c.level}. Expect to die.</b>` : ''; };
-    sel.addEventListener('change', upd); upd();
-    return d;
-  },
-
   enterBreach(floor) {
     const c = G.char;
     floor = Math.max(1, Math.min(this.breachOpen(), floor | 0 || 1));
@@ -1795,11 +1757,11 @@ export const game = {
 
   /** The exit on a beaten floor: on to the next floor, or home. */
   breachExit(world) {
-    const next = world.breach.floor + 1;
+    const floor = world.breach.floor, depth = G.char?.depth || breachDepth(floor);
     UI.dialog({
-      title: `Breach Floor ${world.breach.floor} Sealed`,
-      html: `<p>The Heart is still. Deeper in the Breach lies <b style="color:#c080ff">Floor ${next}</b>, as deadly as Depth ${breachDepth(next)} (monster level ${breachLevel(next)}).</p>`,
-      buttons: [{ label: 'Return to Town', fn: () => { sfx('portal'); this.enterTown(); } }, { label: `On to Floor ${next}`, cls: 'red', fn: () => this.enterBreach(next) }],
+      title: `Breach Floor ${floor} Sealed`,
+      html: `<p>The Heart is still. Return to town to continue your campaign at Depth <b>${depth}</b>. Any remaining Breach floors for this milestone come before its Boss Room.</p>`,
+      buttons: [{ label: `Return to Depth ${depth}`, cls: 'red', fn: () => { sfx('portal'); this.enterTown(); } }],
     });
   },
 
@@ -1817,7 +1779,7 @@ export const game = {
         const p = G.player;
         p.dead = false; p.buffs = []; p.recompute(); p.hp = p.maxHp; p.mana = p.maxMana;
         this.enterTown();
-        UI.log(`The Breach casts you out. Floor ${floor} waits beyond the purple portal; your descent still stands at Depth ${c.depth}.`, '#c890ff');
+        UI.log(`The Breach casts you out. Return to the campaign portal at Depth ${c.depth} to retry Floor ${floor}; your descent is unchanged.`, '#c890ff');
       }, { where: `on Floor ${floor} of the Eternal Breach`, note: 'Your gear, levels and skills endure, and the Breach takes no toll on your descent. Grow stronger and try the floor again.' });
     }, 1700);
   },

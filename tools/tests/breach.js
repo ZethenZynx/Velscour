@@ -1,18 +1,17 @@
 // THE ETERNAL BREACH (docs/ETERNAL_BREACH.md), in the browser:
-//   town   the purple portal in Herrington Hollow (reachable over 12 town seeds), its floor dialog, auto-play's
-//          Standard/Breach menu
-//   play   a bot plays every shrine scenario (and the Heart) on a live floor: each must be won, no long idle waits,
+//   town        neither town exposes the standalone Breach portal
+//   progression Breach milestones route before Boss Rooms and preserve campaign depth on return
+//   play        a bot plays every shrine scenario (and the Heart) on a live floor: each must be won, no long idle waits,
 //          never more than 3 s with nothing of the fight alive and nothing else to do (the next wave comes at once),
 //          every foe lands on the walkable ground, and every nest, Heart Shard and marker can be walked up to
 //   arrive every arrival kind brought in on a live floor, mid-flight screenshots
 //   shots  a floor's overview, an island, a ruin, a ward, a fight
-//   auto   auto-play (god mode, geared at the floor's level) plays a whole floor from the town to the exit
 //   rules  the final boss's reward table, a death in the Breach (no Defiance, the descent untouched), save migration,
 //          the lights a frame stay well under the cap
 //   perf   frame cost on a floor (update / render ms over 10 s of a fight), beside the Mountainside's
-//   node tools/tests/breach.js [town,play,arrive,shots,auto,rules] [floor]      (all by default; floor 2)
+//   node tools/tests/breach.js [town,progression,play,arrive,shots,rules,perf] [floor]      (all by default; floor 2)
 const { openGame, report } = require('./harness');
-const PARTS = (process.argv[2] || 'town,play,arrive,shots,auto,rules,perf').split(',');
+const PARTS = (process.argv[2] || 'town,progression,play,arrive,shots,rules,perf').split(',');
 const FLOOR = +(process.argv[3] || 2);
 
 (async () => {
@@ -26,51 +25,50 @@ const FLOOR = +(process.argv[3] || 2);
     await page.evaluate(async () => { await window.VELSCOUR.game.newChar(window.BREACH_CLASS || 'paladin', 'Breacher'); });
     await page.waitForTimeout(300);
 
-    // ------------------------------------------------ town: the purple portal
+    // ------------------------------------------------ town: Breach entry comes from campaign milestones
     if (PARTS.includes('town')) {
       const r = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR, bad = [];
-        const { generateTown } = await import('/src/world/town.js');
-        const { biomeTileSet } = await import('/src/core/assets.js');
-        const { TOWN_BIOME } = await import('/src/data/biomes.js');
-        for (let s = 1; s <= 12; s++) {
-          const t = generateTown(biomeTileSet(TOWN_BIOME), s * 7717);
-          if (!t.breach) { bad.push(`town ${s}: no breach portal`); continue; }
-          const p = t.map.findPath(t.start[0], t.start[1], t.breach.x, t.breach.y, 40000);
-          if (!p) bad.push(`town ${s}: the breach portal can't be reached`);
-          if (Math.hypot(t.breach.x - t.portal.x, t.breach.y - t.portal.y) < 10) bad.push(`town ${s}: the two portals stand together`);
-        }
-        const bp = G.world.portals.find((q) => q.breach);
-        if (!bp) bad.push('no purple portal in the town world');
-        else { bp.use(); if (!document.querySelector('.breach-dialog #breach-floor')) bad.push('no floor dialog'); }
-        const opts = [...document.querySelectorAll('#breach-floor option')].map((o) => o.value);
-        [...document.querySelectorAll('.breach-dialog button')].find((b) => b.textContent.includes('Not yet'))?.click();
-        if (G.ui.modal) bad.push('the floor dialog left the game paused');
-        return { bad, opts, portal: bp && [bp.x, bp.y] };
+        if (G.world.portals.some((p) => p.breach)) bad.push('Herrington Hollow still exposes a purple portal');
+        await game.enterAct2Town();
+        if (G.world.portals.some((p) => p.breach)) bad.push('Sunscorch Oasis still exposes a purple portal');
+        game.enterTown();
+        return { bad };
       });
-      console.log('town', JSON.stringify(r));
+      console.log('town portals', JSON.stringify(r));
       for (const b of r.bad) errors.push('[town] ' + b);
-      // auto-play's menu
-      await page.evaluate(async () => { const { G, game } = window.VELSCOUR; game.enterTown(); const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(true); });
-      await page.waitForTimeout(400);
-      await shot('breach_auto_menu');
-      const m = await page.evaluate(async () => {
-        const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('THE ETERNAL BREACH'));
-        if (!btn) return 'no menu';
-        btn.click();
-        const { Auto } = await import('/src/game/autoplay.js');
+    }
+
+    // ------------------------------------------------ campaign gate progression
+    if (PARTS.includes('progression')) {
+      const r = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR;
-        // auto-play walks to the purple portal and goes through
-        let t = 0;
-        while (t < 120 && !G.world.breach) { G.dt = 1 / 30; G.time += G.dt; G.frame++; game.update(1 / 30); t += 1 / 30; if (t % 1 < 0.04) await new Promise((r) => setTimeout(r, 0)); }
-        const dest = Auto.dest;
-        Auto.toggle(false);
-        return dest + (G.world.breach ? '' : ' (never went in)');
+        const { breachInterludeFloor } = await import('/src/data/breach.js');
+        const c = G.char, originalEnter = game.enterBreach;
+        const old = { depth: c.depth, deepest: c.deepest, cleared: { ...c.cleared }, best: c.breach.best };
+        const calls = [];
+        try {
+          for (const [depth, best] of [[10, 0], [20, 0], [20, 1], [500, 49]]) {
+            c.depth = depth; c.breach.best = best;
+            game.enterBreach = (floor) => calls.push(floor);
+            game.enterDungeon();
+          }
+        } finally {
+          game.enterBreach = originalEnter;
+          c.depth = old.depth; c.deepest = old.deepest; c.cleared = old.cleared; c.breach.best = old.best;
+          game.autosave();
+        }
+        const helper = [
+          breachInterludeFloor(10, 0), breachInterludeFloor(10, 1),
+          breachInterludeFloor(20, 0), breachInterludeFloor(20, 1),
+          breachInterludeFloor(20, 2), breachInterludeFloor(500, 49),
+          breachInterludeFloor(500, 50), breachInterludeFloor(15, 0),
+        ];
+        return { calls, helper };
       });
-      await page.waitForFunction(() => document.querySelector('#loading').classList.contains('hidden'), null, { timeout: 60000 });
-      console.log('auto-play menu ->', m);
-      if (m !== 'breach') errors.push('[town] auto-play menu: ' + m);
-      await page.evaluate(() => window.VELSCOUR.game.enterTown());
+      console.log('campaign breach progression', JSON.stringify(r));
+      if (r.calls.join(',') !== '1,1,2,50') errors.push('[progression] campaign entry did not request the next Breach floor');
+      if (r.helper.join(',') !== '1,0,1,2,0,50,0,0') errors.push('[progression] milestone/clear mapping is incorrect');
     }
 
     // ------------------------------------------------ a bot plays every scenario
@@ -245,76 +243,6 @@ const FLOOR = +(process.argv[3] || 2);
       await page.evaluate(async () => { const { G } = window.VELSCOUR; const { camera } = await import('/src/core/view.js'); G.settings.zoom = 1; camera.computeZoom(); });
     }
 
-    // ------------------------------------------------ auto-play plays a whole floor
-    if (PARTS.includes('auto')) {
-      if (process.env.BREACH_SEED) await page.evaluate((s) => { window.BREACH_SEED = +s; }, process.env.BREACH_SEED); // replay a floor
-      const r = await page.evaluate(async (FLOOR) => {
-        const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
-        const { breachLevel } = await import('/src/data/breach.js');
-        const { rollItem, rollGem } = await import('/src/data/items.js');
-        const { xpToNext } = await import('/src/game/player.js');
-        if (Auto.on) Auto.toggle(false);
-        game.enterTown();
-        const c = G.char, p = G.player, L = breachLevel(FLOOR) + 2;
-        c.level = L; c.xp = Math.round(xpToNext(L) * 0.3); c.statPoints += (L - 1) * 5; c.skillPoints += L - 1; c.depth = L;
-        c.potions = { hp: 10, mp: 6, rejuv: 3, fury: 2 };
-        Auto.spendStats(); Auto.spendSkills(); Auto.arrangeBar();
-        // geared like tools/tests/balance.js: the best of a few rounds of drops, upgrades, gems, mastery
-        for (let round = 0; round < 6; round++) { c.bag = c.bag.map(() => null); for (let i = 0; i < 25; i++) { const it = rollItem(L - Math.floor(Math.random() * 7), { mf: 60, bonus: Math.random() < 0.12 ? 1.2 : 0.15 }); it.unid = false; c.bag[i] = it; } p.recompute(); Auto.optimizeGear(); }
-        c.bag = c.bag.map(() => null);
-        for (const it of Object.values(c.equip)) if (it && it.type === 'gear') {
-          it.upg = Math.min(6, 2 + Math.floor(L / 40)); it.sockets = Math.max(it.sockets, Math.min(it.maxSockets, 2));
-          while (it.gems.length < it.sockets) { const g = rollGem(L); it.gems.push({ gem: g.gem, tier: g.tier }); }
-        }
-        const M = Math.min(1000, Math.round(20 + FLOOR * 10 * 1.6));
-        c.bar.filter(Boolean).forEach((id, i) => { c.mastery[id] = [Math.max(1, Math.round(M * (i < 2 ? 1 : 0.55))), 0]; });
-        Auto.spendSkills(); Auto.arrangeBar(); p.recompute(); p.hp = p.maxHp;
-        c.breach.best = FLOOR - 1;
-        G.godMode = true; G.autoDest = 'breach'; G.autoOpenSeals = true;
-        if (window.BREACH_SEED) G.breachSeed = window.BREACH_SEED;
-        Auto.toggle(true);
-        const log = [];
-        let t = 0, lastSt = '', lastLogT = 0;
-        const t0 = performance.now();
-        while (t < 2700 && performance.now() - t0 < 720000) {
-          for (let i = 0; i < 30; i++) { if (G.mode !== 'game' || !G.world) break; G.dt = 1 / 30; G.time += G.dt; G.frame++; game.update(1 / 30); t += 1 / 30; }
-          await new Promise((r) => setTimeout(r, 0));
-          const W = G.world, run = W?.overworldScenario;
-          if (W?.breach && run) {
-            const st = `${run.won}/${run.scenarios.length - 1}${run.current ? ' in ' + run.current.type : ''}${run.completed ? ' WON' : ''}`;
-            if (!lastSt) log.push('seed ' + W.breach.seed);
-            if (st !== lastSt || t - (lastLogT || 0) > 45) { lastSt = st; lastLogT = t; const P = G.player, own = W.map.breach.own[W.map.tileIdx(P.x, P.y)]; log.push(`${t.toFixed(0)}s ${st} — ${Auto.status} @${P.x.toFixed(0)},${P.y.toFixed(0)} isl ${own} lvl ${G.char.level} tgt ${Auto.target ? Auto.target.name + " " + Math.round(Auto.target.hp / Auto.target.maxHp * 100) + "% d" + Math.hypot(Auto.target.x - P.x, Auto.target.y - P.y).toFixed(1) + " h" + (W.map.hgt[W.map.tileIdx(Auto.target.x, Auto.target.y)] - W.map.hgt[W.map.tileIdx(P.x, P.y)]) + " los" + W.map.los(P.x, P.y, Auto.target.x, Auto.target.y) : "-"} dz ${JSON.stringify(Auto.dangers(W).slice(0, 3).map((d) => [d.x.toFixed(1), d.y.toFixed(1), (d.r || 0).toFixed(1), d.line ? "L" : d.cone ? "C" : d.ring ? "R" : ""]))} hz ${W.hazards.filter((h) => h.team === "enemy").map((h) => h.constructor.name).join(",")} hp ${Math.round(P.hp)}/${P.maxHp} mana ${Math.round(P.mana)} ${run.current ? run.current.progress() : ""}`); }
-          }
-          if (W?.breach && run && !run.current && !run.dumped && run.won < 7 && Auto.status.includes('Breach Heart')) {
-            run.dumped = true; const P = G.player, own = W.map.breach.own, I = run.islands;
-            log.push('DUMP here ' + own[W.map.tileIdx(P.x, P.y)] + ' islands ' + JSON.stringify(I.map((o) => [o.idx, o.kind[0], o.hops, o.start ? 'S' : o.heart ? 'H' : ''])) + ' bridges ' + JSON.stringify(W.breachBridges.map((b) => [b.a, b.b, b.ward, run.wards.find((w) => w.b === b)?.closed ? 'X' : ''])) + ' scen ' + JSON.stringify(run.scenarios.map((S) => [S.o.idx, S.type, S.completed, S.active])) + ' target ' + (run.target && run.target.type) + ' heartShrine ' + JSON.stringify([run.heart.shrine.x, run.heart.shrine.y]) + ' P ' + [P.x, P.y].map((v) => v.toFixed(1)) + ' flowAtHeart ' + W.map.flowAt(run.heart.shrine.x, run.heart.shrine.y));
-          }
-          if (W && W.kind === 'town' && c.breach.best >= FLOOR) break;
-          if (W?.breach && W.breach.floor > FLOOR) break;
-        }
-        Auto.toggle(false); G.godMode = false; G.autoDest = null;
-        return { log, t: Math.round(t), best: c.breach.best, cleared: c.breach.cleared, where: G.world?.breach ? 'breach floor ' + G.world.breach.floor : G.world?.kind };
-      }, FLOOR);
-      console.log('auto:', r.log.join('\n  '));
-      console.log(`auto: ${r.t}s game time, best floor ${r.best}, now in ${r.where}`);
-      if (r.best < FLOOR) errors.push(`[auto] auto-play did not win floor ${FLOOR} in ${r.t}s`);
-      // home again: the town must draw (the black town after a Breach run). The game's own loop, 3 s, then the
-      // share of near-black pixels in the middle of the screen
-      if (r.where === 'town') {
-        await page.waitForTimeout(3000);
-        const dark = await page.evaluate(() => {
-          const c = window.VELSCOUR.G.canvas, g = c.getContext('2d'), w = c.width, h = c.height;
-          const d = g.getImageData(Math.round(w * 0.2), Math.round(h * 0.2), Math.round(w * 0.6), Math.round(h * 0.6)).data;
-          let n = 0; for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] < 30) n++;
-          return n / (d.length / 16);
-        });
-        await shot('breach_home');
-        console.log(`auto: back in town, ${(dark * 100).toFixed(1)}% of the view near black`);
-        if (dark > 0.25) errors.push(`[auto] the town draws ${(dark * 100).toFixed(0)}% black after the Breach`);
-      }
-    }
-
     // ------------------------------------------------ rules
     if (PARTS.includes('rules')) {
       // the lights a frame (48 at most, vfx.js): a floor's lamps and shrines across the map must not fill them, or the
@@ -379,21 +307,6 @@ const FLOOR = +(process.argv[3] || 2);
       });
       console.log('ledge', ledge);
       if (!ledge.startsWith('pulled')) errors.push('[rules] stranded monster: ' + ledge);
-      // auto-play leaves the Breach inside game.update: the Breach's ward check must not run on after him and put him
-      // back at his last Breach spot (off the edge of town: the black town)
-      await enter(1);
-      const home = await page.evaluate(async () => {
-        const { G, game } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js');
-        const step = () => { G.dt = 1 / 30; G.time += G.dt; G.frame++; game.update(1 / 30); };
-        for (let i = 0; i < 30; i++) step();
-        G.player.x = 90.5; G.player.y = 95.5; // far out over the void: what the ward check last saw
-        const orig = Auto.update; Auto.update = () => { Auto.update = orig; game.breachExit(G.world, { auto: true, town: true }); };
-        step(); for (let i = 0; i < 15; i++) step();
-        const P = G.player, m = G.world.map;
-        return { kind: G.world.kind, ok: m.walkable(P.x, P.y), at: [+P.x.toFixed(1), +P.y.toFixed(1)], size: [m.w, m.h] };
-      });
-      console.log('home', JSON.stringify(home));
-      if (home.kind !== 'town' || !home.ok) errors.push('[rules] auto-play came home off the town\'s ground: ' + JSON.stringify(home));
       await enter(1);
       await page.evaluate(() => { const { G } = window.VELSCOUR; G.godMode = false; G.player.hp = 0; G.player.die(null); });
       await page.waitForTimeout(2200);
@@ -405,21 +318,21 @@ const FLOOR = +(process.argv[3] || 2);
     }
     // ------------------------------------------------ frame cost
     if (PARTS.includes('perf')) {
-      // the game's own loop (requestAnimationFrame) with auto-play on, 8 s: the update/render ms a frame
+      // The game's own loop (requestAnimationFrame), 8 s: update/render time for each scene.
       const measure = async () => page.evaluate(() => new Promise((res) => {
         const { G, game } = window.VELSCOUR, u = game.update, rd = game.render, s = { u: 0, r: 0, n: 0 };
         game.update = function (dt) { const t = performance.now(); u.call(this, dt); s.u += performance.now() - t; };
         game.render = function () { const t = performance.now(); rd.call(this); s.r += performance.now() - t; s.n++; };
         setTimeout(() => { game.update = u; game.render = rd; res({ update: +(s.u / s.n).toFixed(2), render: +(s.r / s.n).toFixed(2), creatures: G.world.creatures.length }); }, 8000);
       }));
-      await page.evaluate(async () => { const { G } = window.VELSCOUR; const { Auto } = await import('/src/game/autoplay.js'); G.godMode = true; G.autoDest = 'breach'; if (!Auto.on) Auto.toggle(true); });
+      await page.evaluate(() => { window.VELSCOUR.G.godMode = true; });
       await enter(FLOOR);
       await page.waitForTimeout(1500);
       const b = await measure();
       await page.evaluate(async () => { const { G, game } = window.VELSCOUR; const { BIOME_BY_ID } = await import('/src/data/biomes.js'); await game.loadLevelArt(BIOME_BY_ID.mountainside); game.buildDungeon(G.char.depth, BIOME_BY_ID.mountainside); });
       await page.waitForTimeout(1500);
       const m = await measure();
-      await page.evaluate(async () => { const { G } = window.VELSCOUR; const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(false); G.godMode = false; G.autoDest = null; });
+      await page.evaluate(() => { window.VELSCOUR.G.godMode = false; });
       console.log(`perf (ms a frame, SwiftShader): breach update ${b.update} render ${b.render} (${b.creatures} creatures); mountainside update ${m.update} render ${m.render} (${m.creatures})`);
     }
   } catch (e) { errors.push('[test] ' + (e.stack || e)); }
