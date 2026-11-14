@@ -82,7 +82,6 @@ import { clearVfx, floatText, sparkle, addEffect, Ring } from '../gfx/vfx.js';
 import { Meter } from './dpsmeter.js';
 import { UI } from '../ui/ui.js';
 import { HUD } from '../ui/hud.js';
-import { TouchUI } from '../ui/touch.js';
 import { Vendor } from '../ui/vendor.js';
 import { Stash } from '../ui/stash.js';
 import { JewelBox } from '../ui/jewelbox.js';
@@ -253,7 +252,6 @@ export const game = {
     p.hp = p.maxHp; p.mana = p.maxMana;
     G.mode = 'game';
     HUD.show(true);
-    if (G.touch) TouchUI.show(true);
     UI.refresh();
     Vendor.restock();
     this.enterTown();
@@ -263,8 +261,7 @@ export const game = {
         UI.centerMsg('HERRINGTON HOLLOW', 'The last town above the abyss', 3.5);
         UI.log(`Welcome, ${escapeHtml(c.name)}. Visit the vendors, then step into the <b style="color:#ff8050">portal</b> at the edge of town.`, '#ffe2a0');
         UI.log('You have <b>1 skill point</b> — open the Skill Tree (K) to learn your first ability.', '#ffd860');
-        if (!G.touch) UI.log('Left-click to move/attack, right-click, ` 1–9 0 - = for skills, Z X R V for potions, C for character, I for backpack, Q for the quest log.');
-        else UI.log('Left thumb moves, tap to attack, skill buttons on the right.');
+        UI.log('Left-click to move/attack, right-click, 1–9 0 - = for skills, Z X R V for potions, C for character, I for backpack, Q for the quest log.');
       }, 400);
     }
     this.autosave();
@@ -282,7 +279,7 @@ export const game = {
     UI.closeAll();
     G.world = null; G.player = null; G.char = null;
     setClassItems(null);
-    HUD.show(false); TouchUI.show(false);
+    HUD.show(false);
     G.mode = 'title';
     clearVfx();
     stopMusic(); stopAmbience();
@@ -2100,11 +2097,10 @@ export const game = {
     }
     if (!G.cine) camera.follow(p.x, p.y, dt);
     camera.update(dt);
-    if (!!G.cine !== hudCine) { hudCine = !!G.cine; HUD.show(!hudCine); if (G.touch) TouchUI.show(!hudCine); }
+    if (!!G.cine !== hudCine) { hudCine = !!G.cine; HUD.show(!hudCine); }
     if (G.hurtFlash > 0) G.hurtFlash = Math.max(0, G.hurtFlash - dt * 2.5);
     if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 3.5);
     HUD.update(dt);
-    if (G.touch) TouchUI.update();
     // hovering things -> cursor
     G.canvas.style.cursor = G.hover ? 'pointer' : '';
     saveT += dt;
