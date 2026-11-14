@@ -1172,8 +1172,8 @@ export const game = {
       }
       this.autosave();
     }
-    const firstDepthEntry = depth === 1 && !c.firstDungeonEntryComplete;
-    if (firstDepthEntry) c.nextBiome = 'catacombs';
+    const isStarterDepth = depth === 1;
+    if (isStarterDepth) c.nextBiome = 'catacombs';
     else if (depth !== FINAL_DEPTH && (!c.nextBiome || c.nextBiome === 'throne' || regionNeeds(BIOME_BY_ID[c.nextBiome], c.level))) c.nextBiome = drawBiome(c, depth);
     const biome = BIOME_BY_ID[depth === FINAL_DEPTH ? 'throne' : c.nextBiome] || BIOME_BY_ID.catacombs;
     const mix = mixPartner(biome); // a like-coloured biome whose tiles this level borrows, or null
@@ -1195,7 +1195,7 @@ export const game = {
       } catch (e) { console.warn(e); }
       try {
         LoadingScreen.setProgress(50, 'Forging labyrinth…');
-        this.buildDungeon(depth, biome, mix, firstDepthEntry);
+        this.buildDungeon(depth, biome, mix, isStarterDepth);
         // the level's monster art (set 2 sheets load per level); a failed sheet falls back to pixel sprites
         const w = G.world;
         LoadingScreen.setProgress(75, 'Summoning inhabitants…');
@@ -1208,8 +1208,7 @@ export const game = {
     }, 40);
   },
 
-  buildDungeon(depth, biome, mix = null, firstDepthEntry = false) {
-    const game = this;
+  buildDungeon(depth, biome, mix = null, isStarterDepth = false) {
     const c = G.char;
     if (biome.tower && !tower3dReady()) { UI.log('Clouds hide the Serpentine Tower today (three.js could not be loaded).', '#a0a0a0'); biome = BIOME_BY_ID.overworld; }
     if (regionOf(biome) && regionOf(biome).ready && !regionOf(biome).ready()) { UI.log(`The way to ${biome.name} is closed today (its art could not be loaded).`, '#a0a0a0'); biome = BIOME_BY_ID.overworld; }
@@ -1232,15 +1231,14 @@ export const game = {
       : biome.cave ? generateCaverns(depth, biome, seed, G.caveVariant ?? G.caveNext)
       : biome.id === 'sea_of_sand' && (G.sandVariant ?? G.sandNext) > 0 && dunes3dReady() ? generateDunes(depth, biome, seed, (G.sandVariant ?? G.sandNext) - 1)
       : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed);
-    if (firstDepthEntry || (depth === 1 && !c.starterChestClaimed)) {
+    if (isStarterDepth) {
       const [sx, sy] = gen.start;
       let [cx, cy] = [sx - 1.25, sy];
       if (!gen.map.walkable(cx, cy) || gen.chests.some((ch) => Math.hypot(ch.x - cx, ch.y - cy) < 1.4)) {
         [cx, cy] = gen.map.randomNear(sx - 1, sy, 2);
       }
-      gen.chests.push({ x: cx, y: cy, rare: false, starter: true });
+      gen.chests.push({ x: cx, y: cy, rare: false });
     }
-    if (firstDepthEntry) c.firstDungeonEntryComplete = true;
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
     world.dungeonAffixes = normalizeDungeonAffixIds(c.nextAffixes ?? c.dungeonAffixes);
@@ -1262,10 +1260,6 @@ export const game = {
         this.opened = true;
         sfx('chest'); sfx('gold');
         dropChest(world, this, depth);
-        if (ch.starter) {
-          c.starterChestClaimed = true;
-          game.autosave();
-        }
         sparkle(this.x, this.y, 20, '#ffd060', 20, 0.5);
       },
     }));
