@@ -137,7 +137,7 @@ import { Stash } from '../ui/stash.js';
 import { JewelBox } from '../ui/jewelbox.js';
 import { startTownLife } from './townlife.js';
 import { toggleInventory, toggleCharacter } from '../ui/inventory.js';
-import { toggleTree, toggleBook } from '../ui/skills.js';
+import { toggleTree, toggleBook, showFirstSkillTutorial } from '../ui/skills.js';
 import { toggleTalents } from '../ui/talents.js';
 import { toggleQuest } from '../ui/quest.js';
 import { setupVelscour } from './velscour.js';
@@ -296,8 +296,6 @@ export const game = {
     setRingContext(c.classId, c.skills);
     const p = new Player(c);
     G.player = p;
-    p.applyGrants();
-    if (!c.bar[0]) c.bar[0] = `${c.classId}.0.0`;
     p.recompute();
     p.hp = p.maxHp; p.mana = p.maxMana;
     G.mode = 'game';
@@ -305,15 +303,16 @@ export const game = {
     UI.refresh();
     Vendor.restock();
     this.enterTown();
-    if (fresh) {
-      setTimeout(() => {
-        if (G.world && G.world.kind !== 'town') return;   // (a test or the skull has already taken the hero elsewhere)
+    setTimeout(() => {
+      if (G.char !== c || (G.world && G.world.kind !== 'town')) return;   // (a test or the skull has already taken the hero elsewhere)
+      if (fresh) {
         UI.centerMsg('HERRINGTON HOLLOW', 'The last town above the abyss', 3.5);
         UI.log(`Welcome, ${escapeHtml(c.name)}. Visit the vendors, then step into the <b style="color:#ff8050">portal</b> at the edge of town.`, '#ffe2a0');
         UI.log('You have <b>1 skill point</b> — open the Skill Tree (K) to learn your first ability.', '#ffd860');
         UI.log('Left-click to move/attack, right-click, 1–9 0 - = for skills, Z X R V for potions, C for character, I for backpack, Q for the quest log.');
-      }, 400);
-    }
+      }
+      showFirstSkillTutorial();
+    }, 400);
     this.autosave();
   },
 

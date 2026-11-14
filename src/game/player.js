@@ -7,7 +7,7 @@ import { camera } from '../core/view.js';
 import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, sparkle, burst, spawn, elem, bloodSpray, smoke } from '../gfx/vfx.js';
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
-import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, cooldown, useTime, weaponCoef, grantedSkillsAt, skillRange } from '../data/skills.js';
+import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, cooldown, useTime, weaponCoef, skillRange } from '../data/skills.js';
 import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, shownEquip } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
@@ -327,14 +327,12 @@ export class Player extends Creature {
     if (earnedTalent) {
       c.talentPoints = (c.talentPoints || 0) + 1;
     }
-    const granted = this.applyGrants();
     this.recompute();
     this.hp = this.maxHp; this.mana = this.maxMana;
     this.levelUpFx();
     if (G.ui) {
       if (G.ui.hud) G.ui.hud.levelUp(c.level, levelUpFanfare());
       if (earnedTalent) G.ui.log('You earned a <b>Talent Point</b>! Open the Passive Talent Tree (T) to spend it.', '#ffd860');
-      for (const id of granted) G.ui.log(`New ability learned: <b>${SKILLS[id].name}</b>`, '#ffd860');
       G.ui.refresh();
     }
     if (G.game?.autosave) G.game.autosave();
@@ -365,35 +363,6 @@ export class Player extends Creature {
       m.kbx += ((m.x - x) / d) * k; m.kby += ((m.y - y) / d) * k;
     }
   }
-  /** Grant default class abilities for the current level. Returns newly granted ids. */
-  applyGrants() {
-    const c = this.char;
-    const out = [];
-    for (const id of grantedSkillsAt(this.classId, c.level)) {
-      if (!c.granted[id]) {
-        c.granted[id] = true;
-        if (!c.skills[id]) { c.skills[id] = 1; out.push(id); }
-        // auto-slot into the first free bar slot (0-mana basic attacks prefer LMB)
-        if (!c.bar.includes(id)) {
-          const gSk = SKILLS[id];
-          if (gSk && gSk.m && gSk.m.free) {
-            const prev = c.bar[0];
-            c.bar[0] = id;
-            if (prev && prev !== id) {
-              const free = freeSlot(c.bar);
-              if (free >= 0) c.bar[free] = prev;
-            }
-          } else if (id.endsWith('.0.0') && !c.bar[0]) c.bar[0] = id;
-          else {
-            const free = freeSlot(c.bar);
-            if (free >= 0) c.bar[free] = id;
-          }
-        }
-      }
-    }
-    return out;
-  }
-
   // ------------------------------------------------------------------ items & potions
   pickup(g) {
     const c = this.char;

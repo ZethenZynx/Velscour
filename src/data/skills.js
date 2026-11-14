@@ -10,9 +10,8 @@ export const MAX_SKILL_LEVEL = 20;
 export const SKILLS = {};
 export const CLASS_SKILLS = {};
 
-// Skills granted for free as the hero levels up: [character level, tree, index]
-export const GRANTS = [[1, 0, 0], [1, 2, 0], [3, 1, 0], [12, 0, 3], [16, 1, 3], [20, 2, 3], [30, 0, 6], [34, 1, 6], [38, 2, 6]];
-const DRAGOON_GRANTS = [[1, 3, 0], [2, 3, 1], [4, 3, 2]];
+// No skills are granted automatically; characters spend earned skill points.
+export const GRANTS = []; // Deprecated compatibility export; no automatic skill grants remain.
 
 const KIND_DMG = {
   melee: 1.15, proj: 1.0, nova: 0.95, aoe: 1.35, beam: 1.2, chain: 0.95, wall: 0.32, zone: 0.3, orbit: 0.5, cyclone: 0.38,
@@ -59,10 +58,8 @@ for (const [cls, trees] of Object.entries(SKILLDATA)) {
   });
 }
 
-export function grantedSkillsAt(cls, level) {
-  const grants = cls === 'dragoon' ? [...GRANTS, ...DRAGOON_GRANTS] : GRANTS;
-  return grants.filter((g) => g[0] <= level).map(([, t, i]) => `${cls}.${t}.${i}`);
-}
+// Kept as an empty compatibility helper for callers that may still import it.
+export function grantedSkillsAt() { return []; }
 
 /** Effective level of a skill for a player: invested + item bonuses. */
 export function effLevel(player, sk) {
@@ -88,7 +85,9 @@ export function skillBaseDamage(sk, L) {
 export function rageCost(sk) { return sk.classId === 'barbarian' ? (sk.m.rage || 0) : 0; }
 export function manaCost(sk, L) {
   if (sk.classId === 'barbarian' && (sk.kind === 'whirl' || rageCost(sk))) return 0; // Barbarian Rage abilities do not consume mana
-  if (sk.m.free) return 0;
+  // The former default basic skill is no longer a free cast; it uses the same
+  // mana curve as other skills. Other intentionally free abilities stay free.
+  if (sk.m.free && !(sk.tree === 0 && sk.idx === 0)) return 0;
   const row = sk.tierRow ?? sk.row;
   return Math.round((2.5 + Math.pow(row, 1.4) * 3.2) * (1 + 0.09 * (L - 1)) * (sk.m.mana ?? 1) * (KIND_MANA[sk.kind] ?? 1));
 }

@@ -8,7 +8,7 @@ import { skillIcon, skillIconURL } from './icons.js';
 import { CLASS_SKILLS, SKILLS, MAX_SKILL_LEVEL, describe, manaCost, rageCost, cooldown, ROW_LEVELS, effLevel } from '../data/skills.js';
 import { CLASSES } from '../data/classes.js';
 import { elem } from '../gfx/vfx.js';
-import { SLOT_LABELS, freeSlot } from '../data/bar.js';
+import { LMB, SLOT_LABELS, freeSlot } from '../data/bar.js';
 import { MAX_MASTERY, masteryNeed, masteryMul, masteryTier, TIER_NAMES } from '../game/augments.js';
 import { AUGMENTS } from '../data/rings.js';
 import { skillUp } from './skillup.js';
@@ -33,6 +33,42 @@ function masteryHtml(sk, compact) {
 
 export { SLOT_LABELS };
 let curTree = 0;
+let firstSkillTutorialTarget = null;
+let firstSkillTutorialPointerHandler = null;
+
+function dismissFirstSkillTutorial() {
+  if (!firstSkillTutorialTarget) return;
+  document.removeEventListener('pointerdown', firstSkillTutorialPointerHandler);
+  firstSkillTutorialPointerHandler = null;
+  firstSkillTutorialTarget.classList.remove('first-skill-highlight');
+  firstSkillTutorialTarget = null;
+  UI.tipEl?.classList.remove('first-skill-tutorial-tip');
+  UI.hideTip();
+}
+
+export function showFirstSkillTutorial() {
+  const c = G.char;
+  if (!c || c.skillTutorialSeen || (c.skillPoints | 0) <= 0 || Object.values(c.skills || {}).some((level) => level > 0)) return false;
+  const button = document.querySelector('#hud-buttons .hbtn[data-act="skills"]');
+  if (!button) return false;
+
+  c.skillTutorialSeen = true;
+  firstSkillTutorialTarget = button;
+  button.classList.add('first-skill-highlight');
+  UI.showTip(
+    '<b style="color:#ffd860">Choose your first skill</b><div style="margin-top:4px">Click the glowing Skill Tree button to open the tree, or press <b>K</b>. Spend your skill point on any starting skill.</div>',
+    0, 0, false, button, { interactive: true },
+  );
+  UI.tipEl?.classList.add('first-skill-tutorial-tip');
+  UI.tipEl?.classList.remove('interactive'); // keep the coach mark visible until the player acts
+  firstSkillTutorialPointerHandler = (event) => {
+    if (button.contains(event.target) || UI.tipEl?.contains(event.target)) return;
+    dismissFirstSkillTutorial();
+  };
+  document.addEventListener('pointerdown', firstSkillTutorialPointerHandler);
+  G.game?.autosave?.();
+  return true;
+}
 
 export function canLearn(sk) {
   const c = G.char;
@@ -53,12 +89,13 @@ export function learn(sk, n = 1) {
   if (why) { UI.log(why, '#ff8080'); sfx('error'); return; }
   const c = G.char;
   const first = !c.skills[sk.id];
+  const firstCharacterSkill = first && !Object.values(c.skills).some((level) => level > 0);
   for (let k = 0; k < n && !canLearn(sk); k++) { c.skills[sk.id] = (c.skills[sk.id] || 0) + 1; c.skillPoints--; }
   sfx('buff');
   skillUp(sk, c.skills[sk.id]);
   if (first) {
-    const free = freeSlot(c.bar);
-    if (free >= 0) { c.bar[free] = sk.id; UI.log(`<b>${escapeHtml(sk.name)}</b> assigned to slot ${SLOT_LABELS[free]}.`, '#ffd860'); }
+    const slot = firstCharacterSkill && !c.bar[LMB] ? LMB : freeSlot(c.bar);
+    if (slot >= 0) { c.bar[slot] = sk.id; UI.log(`<b>${escapeHtml(sk.name)}</b> assigned to slot ${SLOT_LABELS[slot]}.`, '#ffd860'); }
   }
   G.player.recompute();
   UI.refresh();
@@ -351,6 +388,7 @@ export function renderBook(body) {
 }
 
 export function toggleTree() {
+  dismissFirstSkillTutorial();
   if (UI.isOpen('tree')) UI.closePanel('tree');
   else UI.openPanel('tree', 'Skill Tree', renderTree);
 }
