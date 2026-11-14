@@ -1,23 +1,17 @@
 # THE ETERNAL BREACH (challenge biome)
 
-A broken world floating in a violet void, behind a **purple portal** in Herrington Hollow. It has its own monsters and
-bosses (none from the standard biomes), its own floors and its own rewards; it never enters a biome bag, the overworld
-guarantee or Velscour's teleport list, and dying there costs no Defiance and leaves the descent (`c.depth`) alone.
+A broken world floating in a violet void, entered through campaign milestones before its matching Boss Rooms. It has
+its own monsters and bosses (none from the standard biomes), floors and rewards; it never enters a biome bag, the
+overworld guarantee or Velscour's teleport list, and dying there costs no Defiance and leaves the descent (`c.depth`) alone.
 
 Tests: `node tools/tests/breach_gen.mjs [seeds] [floor]` (no browser),
-`node tools/tests/breach.js [town,play,arrive,shots,auto,rules] [floor]` and `node tools/tests/breach_dragon.js` (the wyrm).
+`node tools/tests/breach_progression.mjs` (campaign gate schedule),
+`node tools/tests/breach.js [town,progression,play,arrive,shots,rules] [floor]` and `node tools/tests/breach_dragon.js` (the wyrm).
 
 ## Getting in
-- **The purple portal** (`world/town.js`): a second portal yard across the plaza from the dungeon portal, on its own
-  road. It is rolled from a second generator (`seed ^ 0x6b7ea5`), so every town keeps its roads and plaza; a building
-  may shift aside. `game.confirmBreach` opens the floor dialog: any floor from 1 to one past the best beaten
-  (`c.breach.best + 1`), each labelled with its depth and monster level, with a warning when the monsters are more
-  than 4 levels above the hero.
-- **Auto-play**: turning it on in town asks *Standard Adventure Portal* or *THE ETERNAL BREACH* (cards or buttons; with
-  no choice in 8 s it keeps its last pick, `DEST_WAIT`). `Auto.dest` then decides which portal it walks to after
-  shopping. In the Breach it takes the highest open floor whose monsters are at most 2 levels above the hero
-  (`breachFloor`/`breachReady`), goes on to the next floor from the exit when ready, else home; a death in the Breach
-  puts it back on the standard portal until it is turned off and on again in town. Tests set `G.autoDest`.
+- The standalone purple portal is removed from both Herrington Hollow and Sunscorch Oasis. The orange campaign portal sends the hero through the next unbeaten Eternal Breach floor **before** the matching Boss Room at Depths 10, 20, …, 500 (Floor N is before the Boss Room at Depth 10×N).
+- After winning a Breach floor, the hero returns to town at that same campaign depth. The orange portal then continues into its Boss Room. If the hero dies, the campaign depth stays unchanged and the same Breach floor can be retried.
+- Existing Breach progress is preserved. A hero whose saved campaign depth is ahead of their Breach progress catches up one floor at a time before entering the corresponding Boss Room.
 
 ## Difficulty and rewards (`data/breach.js`)
 - Floor *n* is exactly as deadly as standard depth *10n*: `world.depth = breachDepth(n) = 10n`, monsters at
@@ -135,11 +129,6 @@ Tests: `node tools/tests/breach_gen.mjs [seeds] [floor]` (no browser),
   and opens the exit portal on the Heart island: on to the next floor, or home. The generator reserves its spot (a
   clear tile with open neighbours a step from the Heart's shrine, before the braziers and lights go down:
   `heart.exitAt`), and the portal answers within 2 tiles.
-- Auto-play: the run's `target` is the nearest unwon shrine the hero can walk to (through open wards), then the Heart;
-  `objective` points at the fight's task, else its nearest foe, else the shrine. Between fights auto-play loots first.
-  With an objective waiting and foes in its face for 10 s it pushes through to the objective for 4 s (`objPush`).
-  Scenarios with standing goals (anchor, hold) post `autoGoal` hazards, which auto-play's raid-mechanic code follows.
-
 ## The Ethereal Wyrm (`game/breachdragon.js`, `gfx/breachdragon.js`)
 Every floor has one: a long wingless parade dragon of glowing scales, in one of seven colours (`WYRM_VARIANTS` in
 data/breach.js: violet, the Breach's own and four times as common, then red, black, jade, gold, silver and white; floor 1
@@ -156,10 +145,10 @@ to 60), bigger, faster, sharper turns, 2-5 passes a visit, shorter waits, life 3
   the island at body height and every few seconds dives across it, comes in to bite (its head hangs low beside the
   hero first), breathes a cone (pools of its element), rains void orbs or coils tight round him; at 2/3 and 1/3 life it
   calls its brood (`coalesce`) and grows faster. A hidden boss monster (the hitbox) rides the point of its body
-  nearest the hero over the island's walkable ground, so melee, spells and auto-play strike whatever part comes near.
+  nearest the hero over the island's walkable ground, so melee and spells strike whatever part comes near.
   Its fall drops an Epic or better (`breachReward` first-clear odds at item level +2) and gold, unlocks the
   walkways, and it comes apart into light. **The Breach Heart answers only once it is slain.** It is the run's
-  scenario `S` (`S.wyrm`) while it fights, so the HUD, the ward hold and auto-play follow it; `run.won` leaves it out.
+  scenario `S` (`S.wyrm`) while it fights, so the HUD and ward hold follow it; `run.won` leaves it out.
 - **Art**: its body segment and tail are three.js models (`tools/breachdragon3d.html`: a scaled tube with a cream
   belly, swept spines with glowing tips, flame side fins, the tail a flame fan) baked by `node tools/breachdragon3d_bake.js`
   at 24 headings in three layers (scales, accent, glow), which `gfx/breachdragon.js` tints per colour and blurs into an
@@ -193,6 +182,5 @@ to 60), bigger, faster, sharper turns, 2-5 passes a visit, shorter waits, life 3
   8 fps there, before and after). It is GPU-bound under SwiftShader, and switching off its props, walls or wards one at
   a time didn't pin it on any one of them; it wants measuring on a real GPU.
 - The five monster atlases are all loaded per floor (simple, ~1.6 MB); `breachLooks` uses three of them.
-- A floor takes a geared hero about 19-28 game minutes with auto-play (seven shrines and the Heart).
 - Ask the user: whether every shrine should be needed for the Heart (now yes), the floor length, the reward odds
   (`BREACH_ODDS`), and whether death should cost anything in the Breach.

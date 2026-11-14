@@ -30,7 +30,18 @@ export const BREACH_CARRIERS = BREACH_ART.filter((a) => a.fly && a.h >= 54).map(
 export const MAX_BREACH_FLOOR = 50;
 
 /** Floor n of the Breach is as hard as standard depth 10n (capped at Depth 500). */
-export const breachDepth = (floor) => Math.min(500, Math.max(1, floor) * 10);
+export const breachDepth = (floor) => Math.min(MAX_BREACH_FLOOR * 10, Math.max(1, floor) * 10);
+
+/**
+ * Before each campaign boss at depths 10, 20, …, 500, return the next unbeaten Breach floor.
+ * Saves from heroes who already reached a later depth can catch up one floor per town-portal entry.
+ */
+export function breachInterludeFloor(depth, best = 0) {
+  const d = Number(depth);
+  if (!Number.isInteger(d) || d < 10 || d > MAX_BREACH_FLOOR * 10 || d % 10 !== 0) return 0;
+  const target = d / 10, cleared = Math.max(0, Math.floor(Number(best) || 0));
+  return cleared < target ? cleared + 1 : 0;
+}
 export const breachLevel = (floor) => depthLevel(breachDepth(floor));
 
 /**
