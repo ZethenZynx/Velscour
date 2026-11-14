@@ -13,7 +13,7 @@ import { savedGearPreview } from '../core/gearart.js';
 import { attachTitleFx } from './titlefx.js';
 import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
-import { FILTER_ROWS, lootFilter } from '../game/lootfilter.js';
+import { FILTER_ROWS, lootFilter, lootLabelFilter } from '../game/lootfilter.js';
 import { Cloud } from '../game/cloud.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
 
@@ -460,6 +460,7 @@ export function settingsDialog() {
       <label>Target portrait sprite</label><input type="checkbox" data-k="showTargetSprite" ${st.showTargetSprite !== false ? 'checked' : ''}>
       <label title="An icon per summoning skill next to the buffs, with how many of its minions are out">Minion counts with the buffs</label><input type="checkbox" data-k="minionCounts" ${st.minionCounts !== false ? 'checked' : ''}>
       <label>Show gold labels</label><input type="checkbox" data-k="showGoldLabels" ${st.showGoldLabels ? 'checked' : ''}>
+      <label>Ground loot label filter</label><button class="btn small" data-label-filter>${lootLabelFilter().on ? 'On' : 'Off'} · Set up</button>
       <label>Hide dropped item names</label><input type="checkbox" data-k="hideItemNames" ${st.hideItemNames ? 'checked' : ''}>
       <label title="Off: the best drops are named first and lesser ones only close by, so a big fight's loot doesn't bury the screen; hover any item for its name">Show every item name</label><input type="checkbox" data-k="allItemNames" ${st.allItemNames ? 'checked' : ''}>
       <label>Standard skill bar on mobile (landscape)</label><input type="checkbox" data-k="mobileSkillBar" ${st.mobileSkillBar !== false ? 'checked' : ''}>
@@ -508,6 +509,8 @@ export function settingsDialog() {
   };
   const lf = d.box.querySelector('[data-loot-filter]');
   lf.onclick = () => { sfx('ui'); lootFilterDialog(() => { lf.textContent = `${lootFilter().on ? 'On' : 'Off'} · Set up`; }); };
+  const labelFilterButton = d.box.querySelector('[data-label-filter]');
+  labelFilterButton.onclick = () => { sfx('ui'); groundLabelFilterDialog(() => { labelFilterButton.textContent = `${lootLabelFilter().on ? 'On' : 'Off'} · Set up`; }); };
   d.box.querySelectorAll('[data-k]').forEach((inp) => {
     inp.oninput = inp.onchange = () => {
       const k = inp.dataset.k;
@@ -520,24 +523,45 @@ export function settingsDialog() {
   });
 }
 
-/** Settings > Loot filter: the lowest rarity of each item type auto-pickup grabs (game/lootfilter.js). */
-export function lootFilterDialog(onDone) {
-  const f = lootFilter() || {};
+/** Shared item type and rarity controls for pickup and ground-label filters. */
+function itemFilterDialog(title, f, enabledLabel, help, onDone) {
   const hue = ['white', 'green', 'blue', 'purple', 'orange', 'red', 'cyan'];
   const opts = `<option value="-1">None</option>` + RARITY.map((r, i) => `<option value="${i}" style="color:${r.color}">${r.name}${i < RARITY.length - 1 ? ' or better' : ''} (${hue[i]})</option>`).join('');
   const gemGradeNames = ['Chipped', 'Flawed', 'Standard', 'Flawless', 'Perfect', 'Royal', 'Imperial', 'Celestial', 'Abyssal', 'Eternal'];
   const gemOpts = `<option value="-1">None</option>` + gemGradeNames.map((name, i) => `<option value="${i}">${name}${i < gemGradeNames.length - 1 ? ' or better' : ''}</option>`).join('');
   const html = `<div class="settings-grid">
-    <label><b>Use the loot filter</b></label><input type="checkbox" data-f="on" ${f.on ? 'checked' : ''}>
+    <label><b>${enabledLabel}</b></label><input type="checkbox" data-f="on" ${f.on ? 'checked' : ''}>
     ${(FILTER_ROWS || []).map((r) => `<label>${r.name}</label><select data-f="${r.k}">${opts}</select>`).join('')}
-    <label>Gems & Runes</label><select data-f="gems">${gemOpts}</select>
-  </div><p class="dim" style="font-size:12px;max-width:520px">With the filter on, auto-pickup and walk-over pickup take only what passes. Clicking or tapping an item still picks it up, and sealed treasures always pass.</p>`;
-  const d = UI.dialog({ title: 'Loot Filter', html, buttons: [{ label: 'Done', fn: () => { saveSettings(); onDone && onDone(); } }] });
+    <label>Gems &amp; Runes</label><select data-f="gems">${gemOpts}</select>
+  </div><p class="dim" style="font-size:12px;max-width:520px">${help}</p>`;
+  const d = UI.dialog({ title, html, buttons: [{ label: 'Done', fn: () => { saveSettings(); onDone && onDone(); } }] });
   d.box.querySelectorAll('[data-f]').forEach((inp) => {
     if (inp.tagName === 'SELECT') inp.value = String(f[inp.dataset.f] ?? 0);
     inp.onchange = () => { f[inp.dataset.f] = inp.type === 'checkbox' ? inp.checked : Number(inp.value); saveSettings(); onDone && onDone(); };
   });
   return d;
+}
+
+/** Settings > Loot filter: the lowest rarity auto-pickup accepts for each item type. */
+export function lootFilterDialog(onDone) {
+  return itemFilterDialog(
+    'Loot Filter',
+    lootFilter(),
+    'Use the loot filter',
+    'With the filter on, auto-pickup and walk-over pickup take only what passes. Clicking or tapping an item still picks it up, and sealed treasures always pass.',
+    onDone
+  );
+}
+
+/** Settings > HUD & UI > Ground loot label filter; never changes drops or pickup. */
+export function groundLabelFilterDialog(onDone) {
+  return itemFilterDialog(
+    'Ground Label Filter',
+    lootLabelFilter(),
+    'Use the ground label filter',
+    'This only filters unprompted item labels. It does not change drops or pickup; filtered items can still be picked up and named when hovered. Use Show gold labels to control gold piles.',
+    onDone
+  );
 }
 
 export function helpDialog() {
