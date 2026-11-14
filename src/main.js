@@ -7,7 +7,6 @@ import { loadEnemyArt, loadPetArt } from './core/enemyart.js';
 import { rand, TAU } from './core/util.js';
 import { UI, $ } from './ui/ui.js';
 import { HUD } from './ui/hud.js';
-import { TouchUI } from './ui/touch.js';
 import { LoadingScreen } from './ui/loading.js';
 import { titleScreen } from './ui/screens.js';
 import { Cloud } from './game/cloud.js';
@@ -270,8 +269,7 @@ async function boot() {
   loadSettings();
   G.canvas = $('#game');
   G.ctx = G.canvas.getContext('2d', { alpha: false });
-  G.touch = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-  if (G.touch) { document.body.classList.add('touch'); G.settings.autoLoot = true; }
+  G.touch = false; // PC edition: touch controls and mobile HUD are not enabled.
   G.input = input;
   G.controls = controls;
   G.game = game;
@@ -310,14 +308,13 @@ async function boot() {
     return;
   }
   HUD.init();
-  if (G.touch) TouchUI.init();
   applyVolumes();
   titleScreen();
   await LoadingScreen.hide();
   Cloud.start(); // a device signed in to Google picks its session back up and syncs (game/cloud.js)
   // prefetch monster art while the player is on the title screen; then redraw skill icons that show summon art
   const redrawIcons = () => {
-    for (const s of [...HUD.slots, ...(TouchUI.btns || [])]) s.last.icon = s.last.id = undefined;
+    for (const s of HUD.slots) s.last.icon = s.last.id = undefined;
     if (G.char) HUD.refreshStatic();
   };
   loadEnemyArt().then(redrawIcons).then(loadPetArt).then(redrawIcons).catch((e) => console.warn(e));
