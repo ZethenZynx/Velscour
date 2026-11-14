@@ -1,6 +1,5 @@
-// The loot filter (Settings > Loot filter): which item types and rarities auto-pickup grabs. Auto-play picks up only
-// what it passes (plus upgrades it will wear, unless that's switched off); walking over an item picks it up only when
-// it passes. Clicking or tapping an item always picks it up. Sealed treasures always pass. Lives in G.settings.lootFilter.
+// The loot filter (Settings > Loot filter): which item types and rarities auto-pickup grabs. Ground labels have a
+// separately saved filter, initially copied from this one to preserve existing behavior. Clicking an item always picks it up.
 import { G } from '../state.js';
 
 /** Filter rows: what each covers. Rarity rows hold the lowest rarity to keep (-1: none of them). */
@@ -50,7 +49,7 @@ function passesFilter(it, f) {
   if (it.type === 'gem') {
     const minTier = f.gems === true ? 0 : f.gems === false ? -1 : (typeof f.gems === 'number' ? f.gems : 0);
     if (minTier < 0) return false;
-    // Sigil stones always pass if gem pickup is enabled
+    // Sigil stones always pass when gems are enabled.
     if (it.gem === 'sig') return true;
     return (it.tier ?? 0) >= minTier;
   }
