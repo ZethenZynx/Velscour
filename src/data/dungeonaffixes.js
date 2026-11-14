@@ -1267,9 +1267,9 @@ export function chooseDungeonAffix(currentIds = [], random = Math.random) {
   return available[Math.min(available.length - 1, Math.floor(random() * available.length))] || null;
 }
 
-/** Affixes accumulate every five destination depths from the current run's baseline. */
-export function affixesForNextDepth(currentIds, nextDepth, random = Math.random, startDepth = 1) {
-  const ids = normalizeDungeonAffixIds(currentIds);
+/** Roll a fresh set for one destination floor; old-floor affixes are never carried forward. */
+export function rollDungeonAffixesForDepth(nextDepth, random = Math.random, startDepth = 1) {
+  const ids = [];
   const elapsedDepths = Math.max(0, (Number(nextDepth) || 0) - (Number(startDepth) || 1));
   const target = Math.min(MAX_AFFIX_SECTIONS, Math.floor(elapsedDepths / AFFIX_DEPTH_INTERVAL));
   while (ids.length < target) {
