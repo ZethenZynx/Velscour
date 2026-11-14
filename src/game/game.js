@@ -65,11 +65,60 @@ import { loadFleet, sea3dReady } from '../gfx/seabattle3d.js';
 import { SEA_VARIANTS } from '../data/seabattle.js';
 import { TOWNSFOLK } from '../data/townsfolk.js';
 const TOWNSFOLK_KNIGHTS = TOWNSFOLK.filter((q) => q.knight).map((q) => q.spriteId);
+const DUNGEON_ELEMENTAL_HAZARDS = {
+      wildfire: { el: 'fire', radius: 1.6, damage: 0.07, interval: [11, 17], fx: 'fire' },
+      blizzard: { el: 'cold', radius: 2.3, damage: 0.045, interval: [12, 18], fx: 'frost', o: { slow: true } },
+      acid_rain: { el: 'acid', radius: 3.2, damage: 0.04, interval: [9, 14], fx: 'poison', area: true, duration: 3, o: { poison: true } },
+      lava_pools: { el: 'fire', radius: 1.8, damage: 0.055, interval: [10, 16], fx: 'fire', area: true, duration: 4 },
+      frozen_ground: { el: 'cold', radius: 2.1, damage: 0.025, interval: [12, 19], fx: 'frost', area: true, duration: 5, o: { slow: true } },
+      chain_lightning: { el: 'light', radius: 2, damage: 0.06, interval: [8, 13], fx: 'storm', o: { stun: true } },
+      toxic_fog: { el: 'poison', radius: 2.2, damage: 0.035, interval: [11, 16], fx: 'poison', area: true, duration: 5, o: { poison: true } },
+      meteor_shower: { el: 'fire', radius: 1.8, damage: 0.09, interval: [12, 19], fx: 'meteor', warning: 1.25 },
+      arcane_storm: { el: 'arcane', radius: 2.1, damage: 0.06, interval: [10, 16], fx: 'nova' },
+      electrified_ground: { el: 'light', radius: 2.4, damage: 0.04, interval: [12, 18], fx: 'storm', area: true, duration: 3, o: { stun: true } },
+      inferno: { el: 'fire', radius: 2, damage: 0.035, interval: [10, 15], fx: 'explosion' },
+      hailstorm: { el: 'cold', radius: 1.8, damage: 0.05, interval: [9, 15], fx: 'frost', o: { slow: true } },
+      elemental_chaos: { randomElement: true, radius: 2, damage: 0.055, interval: [10, 16], fx: 'nova' },
+      unstable_elements: { randomElement: true, radius: 1.8, damage: 0.05, interval: [8, 14], fx: 'explosion' },
+    };
+const DUNGEON_ENVIRONMENT_HAZARDS = {
+      earthquake: { el: 'phys', radius: 3, damage: 0.055, interval: [12, 18], fx: 'earth', o: { stun: true } },
+      falling_debris: { el: 'phys', radius: 1.7, damage: 0.075, interval: [9, 14], fx: 'meteor', warning: 1.1 },
+      collapsing_ground: { el: 'phys', radius: 2.4, damage: 0.06, interval: [13, 20], fx: 'earth', area: true, duration: 3 },
+      spike_traps: { el: 'phys', radius: 1.3, damage: 0.08, interval: [8, 14], fx: 'spike', warning: 0.8 },
+      cursed_totems: { el: 'shadow', radius: 2.2, damage: 0.04, interval: [14, 20], fx: 'void', area: true, duration: 4 },
+      explosive_barrels: { el: 'fire', radius: 2.1, damage: 0.1, interval: [13, 20], fx: 'explosion', warning: 1.2 },
+      haunted_grounds: { el: 'shadow', radius: 2.2, damage: 0.055, interval: [12, 18], fx: 'void', area: true, duration: 3 },
+      blood_pools: { el: 'blood', radius: 1.9, damage: 0.04, interval: [12, 19], fx: 'blood', area: true, duration: 5, o: { bleed: true } },
+      unstable_rifts: { el: 'arcane', radius: 2.4, damage: 0.07, interval: [14, 20], fx: 'nova' },
+      gravity_wells: { el: 'arcane', radius: 2.5, damage: 0.035, interval: [15, 22], fx: 'void', area: true, duration: 4 },
+      corrupted_shrines: { el: 'shadow', radius: 2.1, damage: 0.05, interval: [16, 23], fx: 'void', area: true, duration: 3 },
+      arcane_mines: { el: 'arcane', radius: 1.6, damage: 0.085, interval: [9, 15], fx: 'nova', warning: 1.25 },
+      living_dungeon: { el: 'shadow', radius: 2.2, damage: 0.06, interval: [15, 22], fx: 'void' },
+    };
+const DUNGEON_CHAOS_HAZARDS = {
+      wild_magic: { randomElement: true, radius: 1.9, damage: 0.06, interval: [10, 16], fx: 'nova' },
+      chaos_orbs: { el: 'arcane', radius: 1.4, damage: 0.04, interval: [8, 13], fx: 'nova', area: true, duration: 4 },
+      unstable_reality: { randomElement: true, radius: 2.2, damage: 0.045, interval: [11, 17], fx: 'void', area: true, duration: 3 },
+      cataclysm: { randomElement: true, radius: 3.4, damage: 0.12, interval: [18, 26], fx: 'meteor', warning: 1.35, spread: 8, log: 'A cataclysmic force gathers nearby.' },
+      velscour_s_wrath: { el: 'shadow', radius: 2.5, damage: 0.09, interval: [16, 24], fx: 'void', warning: 1.1 },
+    };
+const DUNGEON_SPAWN_SCHEDULES = {
+      endless_horde: [18, 28, 2, 'normal'], necromantic_ritual: [22, 32, 1, 'normal'],
+      demonic_portals: [20, 31, 2, 'champion'], broodmother: [18, 26, 1, 'normal'],
+      shadow_clones: [19, 28, 1, 'normal'], swarm_infestation: [14, 21, 3, 'normal'],
+      bone_legion: [22, 34, 2, 'normal'], infernal_invasion: [20, 30, 2, 'champion'],
+      elemental_convergence: [19, 29, 1, 'normal'], reinforced_packs: [24, 34, 3, 'normal'],
+      doppelgangers: [24, 36, 1, 'champion'], swarming: [18, 28, 2, 'normal'],
+      summoning_bosses: [18, 28, 2, 'normal'], double_champions: [22, 34, 2, 'champion'], elite_reinforcements: [20, 32, 1, 'champion'], haunted_grounds: [21, 32, 1, 'normal'], unstable_rifts: [18, 28, 1, 'normal'],
+      ambushing: [20, 30, 1, 'normal'], living_dungeon: [22, 34, 1, 'normal'],
+    };
 import { Cine, CINE_FAST } from './cinema.js';
 import { lights, updateVfx } from '../gfx/vfx.js';
 import { World } from './world.js';
 import { Player } from './player.js';
 import { makeMonster, makeElite, Monster } from './monster.js';
+import { Area, Delayed, Projectile } from './hazards.js';
 import { clearRims } from './creature.js';
 import { applyTrait, rollTrait, ambushTick, madnessTick, unleashMadness, enter } from './mayhem.js';
 import { hit, kill } from './combat.js';
@@ -1162,6 +1211,7 @@ export const game = {
     world.dungeonAffixes = normalizeDungeonAffixIds(c.nextAffixes ?? c.dungeonAffixes);
     delete c.nextAffixes;
     if (world.dungeonAffixes.includes('darkness')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness);
+    if (world.dungeonAffixes.includes('dense_fog')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness + 0.2);
     for (const monster of world.creatures) for (const id of world.dungeonAffixes) applyDungeonAffix(monster, id);
     if (gen.layoutId) { world.layoutId = gen.layoutId; world.layoutName = gen.layoutName; }
     world.rooms = gen.rooms || [];
@@ -1239,6 +1289,16 @@ export const game = {
       }
     }
     world.roster = [...new Set(gen.spawns.filter((s) => s.arch && !['raid', 'boss'].includes(s.rank)).map((s) => s.arch))];
+    if (world.dungeonAffixes.includes('twin_guardians') && world.boss && !world.boss.raid) {
+      const arch = pick(world.roster) || world.boss.arch;
+      const [gx, gy] = world.map.randomNear(world.boss.x, world.boss.y, 3.5);
+      const twin = makeMonster(world, arch, biome, lvl + 2, 'boss', gx, gy);
+      if (twin) {
+        twin.dungeonAffixTwin = true;
+        world.add(twin);
+        floatText(twin.x, twin.y, 72, 'TWIN GUARDIAN', '#ffb060', 11);
+      }
+    }
     if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // omens, shrines, treasure imps, cursed chests (game/happenings.js)
     setupCommissions(world, gen.start); // this depth's Town Commission objectives (game/commissions.js)
     greedWorld(world, c); // the Greed lever and its Hoard multiply the omen's loot dials
@@ -1250,6 +1310,7 @@ export const game = {
     };
     world.onBossKilled = (m) => {
       if (biome.overworld) return;
+      if (world.dungeonAffixes.includes('twin_guardians') && world.creatures.some((enemy) => enemy.team === 'enemy' && enemy.rank === 'boss' && !enemy.dead)) return;
       if (m.raid && m.raid.court) return; // one of Velscour Unbound's court: not the fight's end
       exit.active = true; exit.color = '#40a0ff'; exit.label = world.unbound ? 'Exit — to town' : 'Exit — continue';
       if (world.unbound) { // the rematch: no depth cleared, no victory screen; its hoard is Velscour's (game/velscour.js)
@@ -1489,7 +1550,7 @@ export const game = {
     const cards = ids.map((id) => {
       const biome = BIOME_BY_ID[id] || BIOME_BY_ID.catacombs;
       const comm = commState(c).open.find((e) => { const ch = LINE_BY_ID[e.id] && LINE_BY_ID[e.id].chapters[e.ch]; return ch && ch.biome === biome.id; });
-      return { id: biome.id, biome, affixes: affixesForNextDepth(carriedAffixes, next), omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
+      return { id: biome.id, biome, affixes: affixesForNextDepth(carriedAffixes, next, Math.random, c && c.affixStartDepth || 1), omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
     let sel = 0;
     const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
@@ -1555,6 +1616,8 @@ export const game = {
     if (w && (w.unbound || w.unboundExploration)) return this.unboundDeath(src);
     c.deaths = (c.deaths || 0) + 1;
     const depth = w && w.kind === 'dungeon' ? w.depth : c.depth;
+    c.dungeonAffixes = [];
+    c.affixStartDepth = blockStart(depth);
     const n = addDefiance(c, depth);
     markNemesis(c, src, depth); // the killer comes back as a unique (game/happenings.js)
     greedDeath(c); // the Hoard is lost and the Greed lever drops (game/greed.js)
@@ -1566,8 +1629,11 @@ export const game = {
     this.autosave();
     setTimeout(() => {
       deathScreen(depth, killer, () => {
-        // back to the start of this five-depth block (BOSS ROOMs are checkpoints), a Defiance stack stronger
+        // Each death starts a fresh affix climb from the checkpoint.
         c.depth = blockStart(depth);
+        c.dungeonAffixes = [];
+        delete c.nextAffixes;
+        c.affixStartDepth = c.depth;
         c.nextBiome = drawBiome(c, c.depth);
         delete c.mountainRuns; delete c.summitRuns;   // the mountains' checkpoints don't outlive a death
         const p = G.player;
@@ -2052,9 +2118,255 @@ export const game = {
   },
 
   tickDungeonAffixWorld(w, dt) {
-    if (!Array.isArray(w.dungeonAffixes) || !G.player || G.player.dead) return;
     const p = G.player;
-    if (w.dungeonAffixes.includes('thunderstorm')) {
+    const active = Array.isArray(w.dungeonAffixes) ? new Set(w.dungeonAffixes) : null;
+    if (!active || !active.size || !p || p.dead || w.kind !== 'dungeon') return;
+
+    w.affixElapsed = (w.affixElapsed || 0) + dt;
+    w.affixTimers ||= {};
+    w.affixFields ||= [];
+    w.affixEchoes ||= [];
+    w.affixSpawnQueue ||= [];
+
+    if (active.has('corruption')) {
+      if (w.affixCorruptionX === undefined) {
+        w.affixCorruptionX = p.x;
+        w.affixCorruptionY = p.y;
+        w.affixCorruptionT = 0;
+      }
+      const moved = dist2(p.x, p.y, w.affixCorruptionX, w.affixCorruptionY) > 0.16;
+      if (moved) {
+        w.affixCorruptionT = 0;
+        w.affixCorruptionStacks = 0;
+        w.affixCorruptionX = p.x;
+        w.affixCorruptionY = p.y;
+      } else {
+        w.affixCorruptionT = (w.affixCorruptionT || 0) + dt;
+        if (w.affixCorruptionT >= 2) {
+          w.affixCorruptionT -= 2;
+          w.affixCorruptionStacks = Math.min(8, (w.affixCorruptionStacks || 0) + 1);
+          const damage = p.maxHp * (0.01 + w.affixCorruptionStacks * 0.005);
+          hit(null, p, damage, 'shadow', { dot: true, crit: false });
+          floatText(p.x, p.y, 30, 'CORRUPTION', '#9b65c8', 9);
+        }
+      }
+    }
+
+    const safePoint = (radius = 5) => {
+      for (let i = 0; i < 8; i++) {
+        const [x, y] = w.map.randomNear(p.x, p.y, rand(2, radius));
+        if (w.map.isFloor(x, y)) return [x, y];
+      }
+      return [p.x, p.y];
+    };
+    const pulse = (id, spec) => {
+      if (!active.has(id)) return;
+      w.affixTimers[id] = (w.affixTimers[id] ?? rand(6, 11)) - dt;
+      if (w.affixTimers[id] > 0) return;
+      w.affixTimers[id] = rand(spec.interval[0], spec.interval[1]);
+      const [x, y] = safePoint(spec.spread || 6);
+      const baseDamage = id === 'inferno' ? Math.min(0.12, 0.035 + w.affixElapsed * 0.00025) : spec.damage;
+      const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
+      if (spec.area) {
+        w.addHazard(new Area({ src: null, team: 'enemy', x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
+          dmg: p.maxHp * spec.damage, el, fx: spec.fx || el,
+          mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
+          vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
+          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false } }));
+      } else {
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius, delay: spec.warning || 0.9,
+          dmg: p.maxHp * baseDamage * (w.affixSurgeUntil > w.time && w.affixSurgeId === id ? 1.25 : 1), el, fx: spec.fx || 'explosion',
+          o: { ...(spec.o || {}), team: 'enemy', crit: false } }));
+      }
+      if (spec.log) UI.log(spec.log, spec.color || '#ffc080');
+      if (id === 'corrupted_shrines') p.heal(p.maxHp * 0.03);
+      if (id === 'unstable_elements' && chance(0.35)) {
+        const extra = pick(['fire', 'cold', 'light', 'poison']);
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: 1.5, delay: 0.65,
+          dmg: p.maxHp * 0.04, el: extra, fx: extra, o: { team: 'enemy', crit: false, slow: extra === 'cold', burn: extra === 'fire', poison: extra === 'poison' } }));
+      }
+    };
+
+    // Apply the selected environmental hazards for this dungeon.
+    for (const id in DUNGEON_ELEMENTAL_HAZARDS) pulse(id, DUNGEON_ELEMENTAL_HAZARDS[id]);
+    for (const id in DUNGEON_ENVIRONMENT_HAZARDS) pulse(id, DUNGEON_ENVIRONMENT_HAZARDS[id]);
+    for (const id in DUNGEON_CHAOS_HAZARDS) pulse(id, DUNGEON_CHAOS_HAZARDS[id]);
+
+    if (active.has('arcane_overload')) {
+      w.affixOverloadT = (w.affixOverloadT ?? rand(7, 11)) - dt;
+      if (w.affixOverloadT <= 0) {
+        w.affixOverloadT = rand(7, 11);
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x: p.x, y: p.y, r: 1.8, delay: 0.7, dmg: p.maxHp * 0.045, el: 'arcane', fx: 'nova', o: { team: 'enemy', crit: false } }));
+      }
+    }
+
+    if (active.has('temporal_distortion') && (w.affixTimers.temporal_distortion ?? 0) <= 0) {
+      w.affixTimers.temporal_distortion = rand(11, 18);
+      p.status.slow = { t: 1.8, amt: 0.25 };
+      for (const m of w.creatures) if (m.team === 'enemy' && !m.dead) m.affixTemporalT = 2;
+    }
+    if (active.has('unstable_reality') && chance(dt * 0.015)) p.status.slow = { t: 1.2, amt: 0.2 };
+    if (active.has('doom_clock')) w.affixDoomMul = Math.min(1.5, 1 + w.affixElapsed * 0.0002);
+    if (active.has('coordinated_assault')) {
+      w.affixCoordinatedT = (w.affixCoordinatedT || 0) - dt;
+      if (w.affixCoordinatedT <= 0) w.affixCoordinatedT = rand(7, 12);
+      if (w.affixCoordinatedT < 1.5) w.affixCoordinatedUntil = w.time + 1.5;
+    }
+    if (active.has('chaos_surge')) {
+      w.affixChaosSurgeT = (w.affixChaosSurgeT || 0) - dt;
+      if (w.affixChaosSurgeT <= 0) {
+        w.affixChaosSurgeT = 60;
+        w.affixSurgeId = pick([...active]);
+        w.affixSurgeUntil = w.time + 12;
+        UI.log('Chaos Surge: one affix grows stronger for a short time.', '#d58cff');
+      }
+    }
+    if (active.has('elemental_roulette')) {
+      w.affixRouletteT = (w.affixRouletteT || 0) - dt;
+      if (w.affixRouletteT <= 0) {
+        w.affixRouletteT = 18;
+        const elements = ['fire', 'cold', 'light', 'poison', 'arcane', 'shadow'];
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead) m.el = pick(elements);
+        floatText(p.x, p.y, 48, 'Elements shift!', '#c890ff', 12);
+      }
+    }
+    if (active.has('death_s_pursuit')) pulse('death_s_pursuit', { el: 'shadow', radius: 1.5, damage: 0.045, interval: [4, 6], fx: 'void', area: true, duration: 2, spread: 2 });
+    for (let i = w.affixFields.length - 1; i >= 0; i--) {
+      const field = w.affixFields[i];
+      field.t -= dt;
+      field.tickT = (field.tickT || 0) - dt;
+      if (field.t <= 0) { w.affixFields.splice(i, 1); continue; }
+      if ((field.delayT || 0) > 0) { field.delayT -= dt; continue; }
+      if (field.tickT <= 0) {
+        field.tickT = field.interval || 0.65;
+        if (dist2(p.x, p.y, field.x, field.y) <= field.radius * field.radius) {
+          hit(field.src || null, p, field.damage || p.maxHp * 0.025, field.el || 'shadow', { ...(field.o || {}), team: 'enemy', dot: true, crit: false });
+          if (field.id === 'cursed_totems') p.affixRemainsT = Math.max(p.affixRemainsT || 0, 4);
+          floatText(p.x, p.y, 26, field.label || '!', field.color || '#d080ff', 9, { life: 0.35 });
+        }
+      }
+    }
+    for (let i = w.affixEchoes.length - 1; i >= 0; i--) {
+      const echo = w.affixEchoes[i];
+      echo.t -= dt;
+      if (echo.t <= 0) {
+        w.affixEchoes.splice(i, 1);
+        if (echo.target && !echo.target.dead) hit(echo.src, echo.target, echo.damage, echo.el, { ...(echo.o || {}), dot: true, crit: false });
+      }
+    }
+    for (let i = w.affixSpawnQueue.length - 1; i >= 0; i--) {
+      const event = w.affixSpawnQueue[i];
+      event.t = (event.t ?? 0) - dt;
+      if (event.t > 0) continue;
+      w.affixSpawnQueue.splice(i, 1);
+      const arch = pick(w.roster || []);
+      if (!arch || w.creatures.filter((m) => m.team === 'enemy' && !m.dead).length >= DUNGEON_AFFIX_CONFIG.summons.maxExtraEnemies + 18) continue;
+      const [x, y] = w.map.randomNear(event.x ?? p.x, event.y ?? p.y, 2.5);
+      const spirit = makeMonster(w, arch, w.biome, depthLevel(w.depth || 1), 'normal', x, y);
+      if (spirit) { spirit.awake = true; spirit.affixSpawned = true; if (event.id === 'vengeful_spirits') spirit.el = 'shadow'; w.add(spirit); }
+    }
+    for (let i = w.affixProjectileBursts?.length - 1; i >= 0; i--) {
+      const burst = w.affixProjectileBursts[i];
+      w.affixProjectileBursts.splice(i, 1);
+      for (let n = 0; n < burst.count; n++) {
+        w.addHazard(new Projectile({ src: null, team: 'enemy', x: burst.x, y: burst.y,
+          ang: n / burst.count * Math.PI * 2, speed: burst.speed, range: burst.range, fx: burst.fx,
+          el: burst.el, dmg: burst.damage, o: { team: 'enemy', crit: false } }));
+      }
+    }
+    if (w.affixCorpseMarkers) {
+      for (const marker of w.affixCorpseMarkers) marker.t -= dt;
+      w.affixCorpseMarkers = w.affixCorpseMarkers.filter((marker) => marker.t > 0);
+    }
+
+    // Reinforcement affixes add bounded waves selected from the current dungeon roster.
+    const spawnPulse = {
+      endless_horde: [18, 28, 2, 'normal'], necromantic_ritual: [22, 32, 1, 'normal'],
+      demonic_portals: [20, 31, 2, 'champion'], broodmother: [18, 26, 1, 'normal'],
+      shadow_clones: [19, 28, 1, 'normal'], swarm_infestation: [14, 21, 3, 'normal'],
+      bone_legion: [22, 34, 2, 'normal'], infernal_invasion: [20, 30, 2, 'champion'],
+      elemental_convergence: [19, 29, 1, 'normal'], reinforced_packs: [24, 34, 3, 'normal'],
+      doppelgangers: [24, 36, 1, 'champion'], swarming: [18, 28, 2, 'normal'],
+      summoning_bosses: [18, 28, 2, 'normal'], double_champions: [22, 34, 2, 'champion'], elite_reinforcements: [20, 32, 1, 'champion'], haunted_grounds: [21, 32, 1, 'normal'], unstable_rifts: [18, 28, 1, 'normal'],
+      ambushing: [20, 30, 1, 'normal'], living_dungeon: [22, 34, 1, 'normal'],
+    };
+    let enemies = w.creatures.filter((m) => m.team === 'enemy' && !m.dead).length;
+    for (const [id, [lo, hi, count, rank]] of Object.entries(spawnPulse)) {
+      if (!active.has(id) || enemies >= DUNGEON_AFFIX_CONFIG.summons.maxExtraEnemies + 18) continue;
+      w.affixSpawnTimers ||= {};
+      w.affixSpawnTimers[id] = (w.affixSpawnTimers[id] ?? rand(lo, hi)) - dt;
+      if (w.affixSpawnTimers[id] > 0) continue;
+      w.affixSpawnTimers[id] = rand(lo, hi);
+      for (let n = 0; n < count && enemies < DUNGEON_AFFIX_CONFIG.summons.maxExtraEnemies + 18; n++) {
+        const arch = pick(w.roster || []);
+        if (!arch) break;
+        const [x, y] = safePoint(8);
+        const m = makeMonster(w, arch, w.biome, depthLevel(w.depth || 1), rank, x, y);
+        if (!m) continue;
+        enemies++;
+        m.awake = true;
+        m.affixSpawned = true;
+        if (id === 'shadow_clones') { m.scale *= 0.7; m.maxHp *= 0.45; m.hp = m.maxHp; }
+        w.add(m);
+      }
+      if (id === 'demonic_portals' || id === 'infernal_invasion') floatText(p.x, p.y, 68, 'Portal opens', '#e03030', 12);
+    }
+
+    // Guardian spirits grant short, periodically refreshed shields to nearby enemies.
+    if (active.has('guardian_spirits')) {
+      w.affixTimers.guardian_spirits = (w.affixTimers.guardian_spirits ?? 0) - dt;
+      if (w.affixTimers.guardian_spirits <= 0) {
+        w.affixTimers.guardian_spirits = rand(7, 11);
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead && dist2(m.x, m.y, p.x, p.y) < 12 * 12) {
+          m.affixShieldT = 4;
+          m.affixShield = 0.25;
+        }
+      }
+    }
+    if (active.has('guardian_shield') && w.boss && !w.boss.dead) {
+      w.affixTimers.guardian_shield = (w.affixTimers.guardian_shield ?? 3) - dt;
+      if (w.affixTimers.guardian_shield <= 0) {
+        w.affixTimers.guardian_shield = rand(8, 12);
+        w.boss.affixShieldT = 4;
+        w.boss.affixShield = 0.35;
+        floatText(w.boss.x, w.boss.y, 70, 'GUARDIAN SHIELD', '#8feaff', 11);
+      }
+    }
+
+    // Movement affixes teleport enemies to valid nearby floor tiles.
+    if (active.has('teleporting') || active.has('blink_strike') || active.has('boss_teleportation')) {
+      const movement = DUNGEON_AFFIX_CONFIG.enemyMovement;
+      for (const m of w.creatures) {
+        if (m.team !== 'enemy' || m.dead) continue;
+        m.dungeonTeleportT = (m.dungeonTeleportT ?? rand(...movement.teleportInitial)) - dt;
+        const d2 = dist2(m.x, m.y, p.x, p.y);
+        if (m.dungeonTeleportT > 0 || d2 <= movement.minDistance ** 2 || d2 >= movement.maxDistance ** 2) continue;
+        let [x, y] = safePoint(movement.nearPlayerRadius);
+        if (active.has('blink_strike')) {
+          const bx = p.x - Math.cos(p.facing || 0) * 1.3;
+          const by = p.y - Math.sin(p.facing || 0) * 1.3;
+          if (w.map.isFloor(bx, by)) [x, y] = [bx, by];
+        }
+        if (w.map.isFloor(x, y)) { m.x = x; m.y = y; }
+        m.dungeonTeleportT = rand(...movement.teleportRepeat);
+      }
+    }
+    if (active.has('unstable_bosses') && w.boss && !w.boss.dead) {
+      pulse('unstable_bosses', { randomElement: true, radius: 2.4, damage: 0.08, interval: [9, 14], fx: 'explosion', spread: 5 });
+    }
+    for (const m of w.creatures) if (m.affixShieldT > 0) {
+      m.affixShieldT -= dt;
+      if (m.affixShieldT <= 0) { m.affixShieldT = 0; m.affixShield = 0; }
+    }
+
+    // A guardian shield is a temporary damage reduction, not a permanent change to enemy stats.
+    for (const m of w.creatures) if (m.affixShieldT > 0) {
+      m.affixShieldT -= dt;
+      if (m.affixShieldT <= 0) { m.affixShieldT = 0; m.affixShield = 0; }
+    }
+
+    // Thunderstorm keeps its marked single-target strikes and cooldown behavior.
+    if (active.has('thunderstorm')) {
       if (w.affixStormStrike) {
         w.affixStormStrike.t -= dt;
         if (w.affixStormStrike.t <= 0) {
@@ -2068,24 +2380,26 @@ export const game = {
         const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
         w.affixStormT = (w.affixStormT ?? rand(...storm.initialDelay)) - dt;
         if (w.affixStormT <= 0) {
-          const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
           w.affixStormStrike = { x: p.x + rand(-3, 3), y: p.y + rand(-3, 3), t: storm.warningSeconds };
           floatText(w.affixStormStrike.x, w.affixStormStrike.y, 70, '⚡', '#8feaff', 18, { life: 0.9 });
           UI.log('A storm gathers. Watch for the lightning strike.', '#8feaff');
         }
       }
     }
-    if (w.dungeonAffixes.includes('teleporting')) for (const m of w.creatures) {
-      if (m.team !== 'enemy' || m.dead || !m.dungeonAffixIds?.includes('teleporting')) continue;
-      const teleport = DUNGEON_AFFIX_CONFIG.teleporting;
-      m.dungeonTeleportT = (m.dungeonTeleportT ?? rand(...teleport.initialCooldown)) - dt;
-      const d2 = dist2(m.x, m.y, p.x, p.y);
-      if (m.dungeonTeleportT <= 0 && d2 > teleport.minDistance * teleport.minDistance && d2 < teleport.maxDistance * teleport.maxDistance) {
-        const [x, y] = w.map.randomNear(p.x, p.y, teleport.nearPlayerRadius);
-        [m.x, m.y] = w.map.nudge(x, y, m.r || 0.3);
-        m.dungeonTeleportT = rand(...teleport.repeatCooldown);
+
+    // Global player curses tick independently of the visual hazard loop.
+    if (active.has('cursed_blood')) {
+      w.affixTimers.cursed_blood = (w.affixTimers.cursed_blood ?? 8) - dt;
+      if (w.affixTimers.cursed_blood <= 0) {
+        w.affixTimers.cursed_blood = 8;
+        hit(null, p, p.maxHp * DUNGEON_AFFIX_CONFIG.playerCurses.damageFraction, 'blood', { dot: true, crit: false });
       }
     }
+    if (active.has('resource_drain') && w.nearestHostile('player', p.x, p.y, 9)) {
+      p.mana = Math.max(0, p.mana - Math.max(1, p.maxMana * 0.004 * dt));
+      if (p.rage !== undefined && p.rage > 0) p.rage = Math.max(0, p.rage - 4 * dt);
+    }
+
   },
 
   // ------------------------------------------------------------ frame
