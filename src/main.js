@@ -43,7 +43,7 @@ function resize() {
   const portrait = G.H > G.W || window.innerHeight > window.innerWidth;
   document.body.classList.toggle('portrait', portrait);
   document.body.classList.toggle('landscape', !portrait);
-  document.body.classList.toggle('compact-mobile-hud', G.touch && (portrait || !G.settings.mobileSkillBar));
+  document.body.classList.toggle('compact-mobile-hud', G.touch);
 }
 
 // ---------------------------------------------------------- title backdrop
