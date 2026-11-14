@@ -25,7 +25,6 @@ export const G = {
     shake: true,
     reduceFlashing: false, // reduce full-screen flashes, flashbangs, and rapid hit strobing
     zoom: 1,
-    mobileSkillBar: false, // landscape phones: full 14-slot bar art (off: orbs + potions only, the touch buttons hold the skills)
     hideItemNames: false, // no item name labels on the ground (hover still shows one)
     allItemNames: false, // every drop nearby named, with no budget (game/loot.js drawLootLabels)
     outlines: true, // see-through rims round the hero, monsters and pets, over spells, walls and darkness
@@ -35,7 +34,6 @@ export const G = {
     heldGear: true, // the hero holds his weapon and off-hand (src/gfx/heldart.js)
     heldFx: true, // their glows and particles, gem sparks and rarity sparkles on armor (with held gear on)
     autoSummon: true, // re-raise pets, totems and turrets on the skill bar the moment one is missing (Player.autoSummon)
-    firstPerson: false, // watch the game through the hero's eyes (gfx/firstperson.js)
     dkBlade: 'sprite', // the Death Knight's flying sword: 'sprite' (his sword as a 2D object), 'model' (live three.js), 'runeblade'
     noSkipCine: false, // "Don't skip cutscenes": Sky Battle scenes already seen play at 1x, not 20x
     fpsCap: 0, // frame rate cap: 0 none, 30 (phones run cooler over a long session)
@@ -51,8 +49,7 @@ export function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     Object.assign(G.settings, s);
-    for (const key of ['lockSkillBar', 'autoSkillPoints', 'autoStatPoints', 'autoGear']) delete G.settings[key];
-    if (!s.mobileHudV2) { G.settings.mobileSkillBar = false; G.settings.mobileHudV2 = true; }
+    for (const key of ['lockSkillBar', 'autoSkillPoints', 'autoStatPoints', 'autoGear', 'mobileSkillBar', 'mobileHudV2', 'firstPerson']) delete G.settings[key];
   } catch (e) { /* ignore */ }
 }
 export function saveSettings() {
