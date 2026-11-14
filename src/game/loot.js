@@ -14,7 +14,7 @@ import { heldIcon } from '../gfx/heldart.js';
 import { AUGMENTS } from '../data/rings.js';
 import { depthLevel } from '../data/depth.js';
 import { sheetIcon } from '../gfx/notation.js';
-import { filterPasses } from './lootfilter.js';
+import { filterPasses, labelFilterPasses } from './lootfilter.js';
 import { rollSigil, SIGILS } from '../data/items.js';
 import { maybeRelic } from '../data/relics.js';
 import { heresyAllows } from './heresies.js';
@@ -382,9 +382,9 @@ const labelRank = (l) => {
   if (l.kind !== 'item') return 0; // gold, potions
   const it = l.item;
   if (it.sealed) return 8;
-  if (it.type === 'gem') return filterPasses(it) ? 3 : -1;
+  if (it.type === 'gem') return labelFilterPasses(it) ? 3 : -1;
   if (it.type !== 'gear') return 3; // sheets
-  return filterPasses(it) ? it.rarity || 0 : -1; // the loot filter says no: never named unprompted
+  return labelFilterPasses(it) ? it.rarity || 0 : -1; // the ground-label filter controls unprompted names
 };
 const labelReach = (r) => (r < 0 ? 0 : r < 2 ? 5 : r === 2 ? 9 : 14);
 export const labelBudget = (screenH) => clamp(Math.floor(screenH / 48), 8, 20);
@@ -406,7 +406,7 @@ export function drawLootLabels(ctx, world, mouse) {
     if (d > 14) continue;
     if (l.kind === 'gold' && !S.showGoldLabels) continue;
     const r = labelRank(l);
-    if (S.hideItemNames || (!all && d > labelReach(r))) { l.named = false; silent.push(l); continue; }
+    if (S.hideItemNames || r < 0 || (!all && d > labelReach(r))) { l.named = false; silent.push(l); continue; }
     l.nameScore = r * 100 - d + (l.named ? 2 : 0); // (a name keeps its place until something clearly better comes along)
     cand.push(l);
   }
