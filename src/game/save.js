@@ -150,7 +150,7 @@ export function newCharData(classId, name) {
     jewelBox: Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null), // dedicated town vault for gems & runes
     tabs: Array(TAB_SLOTS).fill(null), tabAt: 0, // the Bard's Tabs: locked Music Sheets he plays (data/tabs.js)
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
-    depth: 1, deepest: 0, nextBiome: 'catacombs', firstDungeonEntryComplete: false, starterChestClaimed: false, biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
+    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
     kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, wdmg: 1,
   };
@@ -294,10 +294,6 @@ export function migrate(c) {
   c.nextAffixes = normalizeDungeonAffixIds(c.nextAffixes);
   c.potions = Object.assign({ hp: 0, mp: 0, rejuv: 0, fury: 0 }, c.potions);
   c.cleared = c.cleared || {};
-  const hasEnteredDungeon = !!(c.lastBiome || c.overworldLastVisit || Number(c.depth) > 1 || Number(c.deepest) > 0 || Object.values(c.cleared).some(Boolean));
-  if (typeof c.firstDungeonEntryComplete !== 'boolean') c.firstDungeonEntryComplete = hasEnteredDungeon;
-  if (typeof c.starterChestClaimed !== 'boolean') c.starterChestClaimed = hasEnteredDungeon;
-  if (!c.firstDungeonEntryComplete && Number(c.depth) === 1) c.nextBiome = 'catacombs';
   c.seaOfSandRuns = c.seaOfSandRuns || {};
   c.darkForestRuns = c.darkForestRuns || {};
   c.breach = Object.assign({ best: 0, cleared: {} }, c.breach); // THE ETERNAL BREACH: best floor beaten, clears per floor
