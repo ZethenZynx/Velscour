@@ -14,6 +14,7 @@ import { regionOf } from '../game/regions.js';
 
 const step = (done, html) => `<div class="q-step${done ? ' done' : ''}"><i>${done ? '&#10004;' : '&#9670;'}</i><span>${html}</span></div>`;
 const nextRaid = (d) => { let n = Math.max(5, Math.ceil(d / 5) * 5); if (n === FINAL_DEPTH) n += 5; return n; };
+const BOSS_ROOM_DEPTHS = Array.from({ length: Math.floor((FINAL_DEPTH - 1) / 5) }, (_, i) => (i + 1) * 5).filter(isRaidDepth);
 
 export function renderQuest(body) {
   const c = G.char, w = G.world;
@@ -144,8 +145,12 @@ export function renderQuest(body) {
     h += step(false, `Infernal Marks: <b>${marksTotal()}</b> (${marksFree()} free)`);
     h += '</div>';
   } else if (deepest >= FINAL_DEPTH - 50) h += `<div class="q-sec"><h3>The Endgame</h3>${step(false, 'Slay Velscour at Depth 500: the Altar of Heresy and the Abyssal Rift gate open for every hero.')}</div>`;
-  const raids = Object.keys(c.cleared || {}).map(Number).filter((d) => isRaidDepth(d)).sort((a, b) => a - b);
-  h += `<div class="q-sec"><h3>Boss Rooms Conquered</h3>${raids.length ? `<div class="q-raids">${raids.map((d) => `<span>${d}</span>`).join('')}</div>` : '<div class="dim">None yet. Every 5th depth ends in one.</div>'}</div>`;
+  h += `<div class="q-sec"><h3>Boss Rooms Conquered</h3><div class="q-raids">${BOSS_ROOM_DEPTHS.map((d) => {
+    const defeated = !!(c.cleared || {})[d];
+    const state = defeated ? 'defeated' : 'upcoming';
+    const label = defeated ? 'Defeated' : 'Undefeated';
+    return `<span class="${state}" title="${label}" aria-label="Depth ${d}, ${label.toLowerCase()}">${d}</span>`;
+  }).join('')}</div></div>`;
   h += `<div class="q-sec dim">Depths cleared: ${Object.keys(c.cleared || {}).length} &middot; Foes slain: ${fmtInt(c.kills || 0)} &middot; Deaths: ${c.deaths || 0}</div>`;
   body.appendChild(el('div', 'quest-log', h));
 }
