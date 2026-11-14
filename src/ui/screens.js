@@ -438,7 +438,6 @@ export function settingsDialog() {
   </div>
   <div class="settings-tab-pane" data-pane="graphics">
     <div class="settings-grid">
-      <label title="Watch the game through the hero's eyes. A/D or the joystick turn, W/S walk; click the floor to walk there">First-person view</label><input type="checkbox" data-k="firstPerson" ${st.firstPerson ? 'checked' : ''}>
       <label>Camera zoom</label><input type="range" min="0.7" max="1.6" step="0.05" value="${st.zoom}" data-k="zoom">
       <label title="30 draws half the frames: smoother than a frame rate that keeps dipping, and a phone stays cooler (a hot phone slows itself down after a long session)">Frame rate cap</label><select data-k="fpsCap"><option value="0">None</option><option value="30">30 fps (cooler phone)</option></select>
       <label>Gore</label><select data-k="gore"><option value="0">Off</option><option value="1">Bloody</option><option value="2">Extreme</option></select>
@@ -463,7 +462,6 @@ export function settingsDialog() {
       <label>Ground loot label filter</label><button class="btn small" data-label-filter>${lootLabelFilter().on ? 'On' : 'Off'} · Set up</button>
       <label>Hide dropped item names</label><input type="checkbox" data-k="hideItemNames" ${st.hideItemNames ? 'checked' : ''}>
       <label title="Off: the best drops are named first and lesser ones only close by, so a big fight's loot doesn't bury the screen; hover any item for its name">Show every item name</label><input type="checkbox" data-k="allItemNames" ${st.allItemNames ? 'checked' : ''}>
-      <label>Standard skill bar on mobile (landscape)</label><input type="checkbox" data-k="mobileSkillBar" ${st.mobileSkillBar !== false ? 'checked' : ''}>
     </div>
   </div>
 `;
@@ -515,7 +513,6 @@ export function settingsDialog() {
     inp.oninput = inp.onchange = () => {
       const k = inp.dataset.k;
       st[k] = inp.type === 'checkbox' ? inp.checked : inp.dataset.str ? inp.value : Number(inp.value);
-      if (k === 'mobileSkillBar' && UI.hud) UI.hud.layoutMobile();
       if ((k === 'showHeroStats' || k === 'showTargetBox' || k === 'showTargetSprite') && UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings();
       applyVolumes();
       saveSettings();
