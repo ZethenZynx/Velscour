@@ -185,7 +185,7 @@ export const HUD = {
     const rift = $('#rift-bar'), obj = $('#sand-objective');
     if (portrait && rift.parentElement !== $('#hud-top-left')) $('#hud-top-left').append(rift, obj);
     else if (!portrait && rift.parentElement === $('#hud-top-left')) $('#boss-bar').after(rift, obj);
-    const compact = G.touch && (portrait || !G.settings.mobileSkillBar);
+    const compact = G.touch;
     document.body.classList.toggle('compact-mobile-hud', compact);
     const hud = $('#hud'), img = $('#hud-img'), xp = $('#xp-track'), xpText = $('#xp-text'), rail = $('#hud-rail');
     hud.classList.toggle('compact-mobile', compact);
