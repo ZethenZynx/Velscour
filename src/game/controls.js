@@ -44,28 +44,21 @@ function lootAt(sx, sy) {
 export const controls = {
   holdLeft: 0,
 
-  /** Use the skill on bar slot i (keyboard / touch buttons). */
+  /** Use the skill on bar slot i. */
   useSlot(i, at) {
     const id = G.char.bar[i];
     if (id && SKILLS[id]) this.castSkill(SKILLS[id], at);
   },
-  /** Cast a skill aimed the way the bar's keys aim (the mouse, or on touch the nearest foe); at: a tile to aim at.
+  /** Cast a skill aimed at the mouse or at an explicit tile.
    *  True if it went off (game/macros.js moves on to the next skill). */
   castSkill(sk, at) {
     const p = G.player;
     if (!p || p.dead || G.ui.modal || !sk) return false;
     let tx, ty, target = null;
     if (at) { [tx, ty] = at; target = G.hover && G.hover.team === 'enemy' ? G.hover : null; }
-    else if (input.lastPointerType === 'mouse' && !G.touch) {
+    else {
       [tx, ty] = camera.screenToTile(input.mouse.x, input.mouse.y);
       target = G.hover && G.hover.team !== 'player' ? G.hover : null;
-    } else {
-      // touch: auto-aim at the nearest visible enemy
-      const range = Math.min(12, skillRange(sk) + 3);
-      target = G.world.nearestHostile('player', p.x, p.y, needsTarget(sk) || sk.kind === 'nova' ? range : 8, true);
-      if (target) { tx = target.x; ty = target.y; }
-      else { tx = p.x + Math.cos(p.facing) * 4; ty = p.y + Math.sin(p.facing) * 4; }
-      if (sk.kind === 'melee' && target && dist(p.x, p.y, target.x, target.y) > 7) target = null;
     }
     if (['blink', 'dash', 'leap'].includes(sk.kind)) {
       Macros.clearKeep();
@@ -88,13 +81,12 @@ export const controls = {
 
     // ---- direct movement (WASD / joystick)
     let mx = 0, my = 0;
-    if (!ui.anyOpen() || G.touch) {
+    if (!ui.anyOpen()) {
       if (input.down('KeyW') || input.down('ArrowUp')) my -= 1;
       if (input.down('KeyS') || input.down('ArrowDown')) my += 1;
       if (input.down('KeyA') || input.down('ArrowLeft')) mx -= 1;
       if (input.down('KeyD') || input.down('ArrowRight')) mx += 1;
     }
-    if (input.joy.active) { mx = input.joy.vx; my = input.joy.vy; }
     let mag = Math.hypot(mx, my);
     if (mag > 0.15) {
       let [tx, ty] = screenDirToTile(mx, my);
@@ -104,15 +96,10 @@ export const controls = {
     } else p.moveVec = [0, 0];
 
     // ---- aim point for channels / whirlwind
-    if (useMouse && mouse.inside) p.aim = camera.screenToTile(mouse.x, mouse.y);
-    else if (input.worldTouch) p.aim = camera.screenToTile(input.worldTouch.x, input.worldTouch.y);
-    else if (G.touch) {
-      const t = w.nearestHostile('player', p.x, p.y, 10, true);
-      p.aim = t ? [t.x, t.y] : [p.x + Math.cos(p.facing) * 4, p.y + Math.sin(p.facing) * 4];
-    }
+    if (mouse.inside) p.aim = camera.screenToTile(mouse.x, mouse.y);
 
     // ---- mouse
-    if (useMouse && !G.touch) {
+    if (useMouse) {
       const [tx, ty] = camera.screenToTile(mouse.x, mouse.y);
       if (mouse.leftPressed) {
         this.holdLeft = 0;
@@ -149,25 +136,6 @@ export const controls = {
     if (input.consume('KeyR')) p.usePotion('rejuv');
     if (input.consume('KeyV')) p.usePotion('fury');
 
-    // ---- touch world taps
-    const wt = input.worldTouch;
-    if (wt) {
-      const [tx, ty] = camera.screenToTile(wt.x, wt.y);
-      if (wt.pressed) {
-        const target = creatureAt(wt.x, wt.y) || w.nearestHostile('player', tx, ty, 1.2);
-        const loot = lootAt(wt.x, wt.y);
-        const it = interactableAt(tx, ty, wt.x, wt.y);
-        if (loot) { p.lootTarget = loot; p.setMoveTarget(loot.x, loot.y); this.tmode = 'move'; }
-        else if (target && target.team === 'enemy') { this.tmode = 'attack'; this.attack(target, tx, ty); }
-        else if (it) { p.interact = it; this.tmode = 'none'; }
-        else { p.attackTarget = null; p.interact = null; p.setMoveTarget(tx, ty); this.tmode = 'move'; }
-      } else if (this.tmode === 'move') {
-        if (!p.moveTarget || dist(p.moveTarget[0], p.moveTarget[1], tx, ty) > 0.8) p.setMoveTarget(tx, ty);
-      } else if (this.tmode === 'attack' && p.castLock <= 0 && !p.attackTarget) {
-        const t = w.nearestHostile('player', tx, ty, 2);
-        if (t) this.attack(t, t.x, t.y);
-      }
-    }
     input.endFrame();
   },
 
