@@ -4,7 +4,7 @@ import { normalizeDungeonAffixIds } from '../data/dungeonaffixes.js';
 import { MAX_LEVEL } from '../data/depth.js';
 import { rollItem, HOLLOW, WEAPONS, OFFHANDS, ARMORS, AFFIX_BY_STAT, affixValue, powerLevel, tierOf, itemReqStat, charEffectiveStat, augTarget, affixScale, flatDmgValue, LINE_MULT, PERK_MULT } from '../data/items.js';
 import { SCOPE_MUL, augPower, augmentable, AUGMENTS } from '../data/rings.js';
-import { SKILLS, CLASS_SKILLS, MAX_SKILL_LEVEL, grantedSkillsAt } from '../data/skills.js';
+import { SKILLS, CLASS_SKILLS, MAX_SKILL_LEVEL } from '../data/skills.js';
 import { TALENTS, isTalentLockedByChoice, isTalentPrereqMet } from '../data/talents.js';
 import { drawBiome } from '../data/biomes.js';
 import { migrateBar, BAR_SIZE } from '../data/bar.js';
@@ -139,7 +139,7 @@ export function newCharData(classId, name) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     version: 1, rebalancedV1: true, name, classId, level: 1, xp: 0,
     attrs: { ...C.base }, statPoints: 0, skillPoints: 1, talentPoints: 0,
-    skills: {}, talents: {}, granted: {}, bar: Array(BAR_SIZE).fill(null),
+    skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, bar: Array(BAR_SIZE).fill(null),
     equip: { weapon: null, offhand: null, head: null, body: null, hands: null, legs: null, feet: null, ring1: null, ring2: null, ring3: null, ring4: null },
     vanity: { head: null, body: null, weapon: null, offhand: null }, hideHelm: false,
     macros: newMacros(), // game/macros.js
@@ -339,11 +339,17 @@ export function migrate(c) {
   for (const gid of Object.keys(c.granted)) {
     if (!SKILLS[gid] || SKILLS[gid].classId !== c.classId) delete c.granted[gid];
   }
-  for (const gid of grantedSkillsAt(c.classId, c.level || 1)) {
-    if (!c.granted[gid] && SKILLS[gid]) {
-      c.granted[gid] = true;
-      c.skills[gid] = Math.min(MAX_SKILL_LEVEL, (c.skills[gid] || 0) + 1);
-    }
+  // One-time refund for existing characters: earned points are based on level and first-cleared boss depths.
+  if (!c.skillRespecV1) {
+    const bossSkillPoints = Object.entries(c.cleared).reduce((total, [depth, cleared]) => {
+      const floor = Number(depth);
+      return total + (cleared && Number.isInteger(floor) && floor > 0 && floor % 5 === 0 ? 1 : 0);
+    }, 0);
+    c.skills = {};
+    c.granted = {};
+    c.skillPoints = Math.max(1, Number(c.level) | 0) + bossSkillPoints;
+    c.bar = Array(BAR_SIZE).fill(null);
+    c.skillRespecV1 = true;
   }
   c.talents = c.talents || {};
   if (!Number.isInteger(c.talentPoints)) {
