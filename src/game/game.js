@@ -20,7 +20,7 @@ import { CLASSES } from '../data/classes.js';
 import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
 import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, ACTS } from '../data/depth.js';
 import { addDefiance, clearDefiance, defianceText, tickBlessing } from './defiance.js';
-import { setupHappenings, announceHappenings, happeningsTick, townHappening, townTick, recordDepth, markNemesis, OMENS, rollOmen, anyOmen, omenable } from './happenings.js';
+import { setupHappenings, announceDungeonAffixes, happeningsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
 import { spectateTick } from './spectate.js';
 import { toggleSmite, getUltimate, executeUltimate } from './smite.js';
@@ -905,8 +905,7 @@ export const game = {
     }
     if (depth !== current) {
       c.depth = depth;
-      delete c.nextOmen;
-      delete c.nextAffixes;
+        delete c.nextAffixes;
       c.nextBiome = depth === FINAL_DEPTH ? 'throne' : drawBiome(c, depth);
     }
     this.enterDungeon();
@@ -1209,6 +1208,11 @@ export const game = {
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
     world.dungeonAffixes = normalizeDungeonAffixIds(c.nextAffixes ?? c.dungeonAffixes);
+    if (world.dungeonAffixes.includes('bloodmoon')) {
+      world.lootMul = (world.lootMul || 1) * DUNGEON_AFFIX_CONFIG.bloodmoon.lootMultiplier;
+      world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.bloodmoon.darkness);
+    }
+    if (world.dungeonAffixes.includes('golden')) world.goldMul = (world.goldMul || 1) * DUNGEON_AFFIX_CONFIG.golden.goldMultiplier;
     delete c.nextAffixes;
     if (world.dungeonAffixes.includes('darkness')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness);
     if (world.dungeonAffixes.includes('dense_fog')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness + 0.2);
@@ -1299,7 +1303,7 @@ export const game = {
         floatText(twin.x, twin.y, 72, 'TWIN GUARDIAN', '#ffb060', 11);
       }
     }
-    if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // omens, shrines, treasure imps, cursed chests (game/happenings.js)
+    if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // shrines, treasure imps, cursed chests (game/happenings.js)
     setupCommissions(world, gen.start); // this depth's Town Commission objectives (game/commissions.js)
     greedWorld(world, c); // the Greed lever and its Hoard multiply the omen's loot dials
     heresyWorld(world, c); // the Heresies' rank pays on top (none in Unbound)
@@ -1438,7 +1442,7 @@ export const game = {
       sfx('gate'); UI.refresh(); this.autosave();
     });
     this.setWorld(world, gen.start, old);
-    announceHappenings(world);
+    announceDungeonAffixes(world);
     if (biome.id === 'castle') { addCastleStory(world, gen); world.ambientFx = gen.variant?.look?.ambient || null; c.lastCastle = gen.variant?.id; }
     if (biome.overworld && !sky && !sea && !biome.cave && !gen.dunes && (!reg || reg.wilds)) {
       // townsfolk on the road: reachable landmarks to walk between (game/wanderers.js)
@@ -1549,11 +1553,10 @@ export const game = {
     const cards = ids.map((id) => {
       const biome = BIOME_BY_ID[id] || BIOME_BY_ID.catacombs;
       const comm = commState(c).open.find((e) => { const ch = LINE_BY_ID[e.id] && LINE_BY_ID[e.id].chapters[e.ch]; return ch && ch.biome === biome.id; });
-      return { id: biome.id, biome, affixes: rollDungeonAffixesForDepth(next, Math.random, c && c.affixStartDepth || 1), omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
+      return { id: biome.id, biome, affixes: rollDungeonAffixesForDepth(next, Math.random, c && c.affixStartDepth || 1, heresiesOf(c).includes('omens')), comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
     let sel = 0;
     const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
-    const omenLine = (cd) => (cd.omen === undefined ? '' : cd.omen ? `<span class="pc-omen" style="color:${OMENS[cd.omen].color}"><b>${OMENS[cd.omen].name}</b>${OMENS[cd.omen].text}</span>` : '<span class="pc-omen dim"><b>No omen</b>A quiet depth.</span>');
     const shortAffixDescription = (description) => {
       const words = String(description || '').split(/[.!?]/, 1)[0].trim().split(/\\s+/).filter(Boolean);
       return words.length > 7 ? `${words.slice(0, 7).join(' ')}…` : words.join(' ');
@@ -1563,7 +1566,7 @@ export const game = {
       return affix ? `<span title="${escapeHtml(affix.description)}">${escapeHtml(affix.name)}<small style="display:block;font-size:.78em;line-height:1.15;margin-top:2px;font-weight:normal;opacity:.85">${escapeHtml(shortAffixDescription(affix.description))}</small></span>` : '';
     }).join('') : '<i>No affixes</i>'}</span>`;
     const html = `<p class="dim">${cards.length > 1 ? `Depth ${next} lies beyond ${['', 'one', 'two', 'three'][cards.length]} portals. Choose your way down.` : `The way down opens onto Depth ${next}.`}</p>
-      <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-omen" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${omenLine(cd)}${affixLine(cd)}</button>`).join('')}</div>
+      <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-commission" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${affixLine(cd)}</button>`).join('')}</div>
       `;
     const go = (town) => {
       const cd = cards[sel];
@@ -1572,7 +1575,6 @@ export const game = {
       c.depth = next; c.nextBiome = cd.id; takeBiome(c, cd.id);
       c.dungeonAffixes = normalizeDungeonAffixIds(cd.affixes);
       c.nextAffixes = [...c.dungeonAffixes];
-      if (cd.omen !== undefined) c.nextOmen = cd.omen || 'none'; else delete c.nextOmen;
       this.autosave();
       if (town) { sfx('portal'); this.enterTown(); }
       else this.enterDungeon();

@@ -10,7 +10,7 @@ export const HERESIES = [
   { id: 'iron', name: 'Iron Hide', rank: 2, color: '#a0a0b0', desc: 'Monsters have 50% more life.' },
   { id: 'cruel', name: 'Cruel Hand', rank: 3, color: '#ff3050', desc: 'Monsters hit 30% harder.' },
   { id: 'ambush', name: 'Ambush Weather', rank: 1, color: '#c0a060', desc: 'Ambushes come three times as often.' },
-  { id: 'omens', name: 'Black Omens', rank: 1, color: '#a060ff', desc: 'Every depth that can carry an omen does, and a Nemesis always returns.' },
+  { id: 'omens', name: 'Affix Cascade', rank: 1, color: '#a060ff', desc: 'Every depth carries at least one random affix, and a Nemesis may return at any depth.' },
   { id: 'glass', name: 'Glass Cannon', rank: 2, color: '#ffd060', desc: 'You have 25% less life and deal 15% more damage.' },
   { id: 'hunger', name: 'Hunger of the Abyss', rank: 2, color: '#60c0a0', desc: 'No life or mana orbs drop, and your life does not regenerate.' },
   { id: 'gaze', name: "Velscour's Gaze", rank: 2, color: '#ff2000', desc: 'Monsters notice you from far away and never lose you.' },

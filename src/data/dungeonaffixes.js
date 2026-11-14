@@ -1,4 +1,4 @@
-// Complete 150-affix catalog. Every listed affix has an active gameplay effect.
+// Complete dungeon affix catalog, including former level-wide Omen effects. Every listed affix has an active gameplay effect.
 export const MAX_AFFIX_SECTIONS = 5;
 export const AFFIX_DEPTH_INTERVAL = 5;
 export const DUNGEON_AFFIXES = Object.freeze(
@@ -1052,7 +1052,64 @@ export const DUNGEON_AFFIXES = Object.freeze(
     "category": "Chaotic & Special Mechanics",
     "description": "Velscour periodically unleashes a random combination of fire, lightning, poison, and shadow attacks.",
     "implemented": true
+  },
+  {
+    "id": "bloodmoon",
+    "name": "Blood Moon",
+    "category": "World Effects",
+    "description": "Enemies hit harder, have more health, grant more experience, and improve loot.",
+    "implemented": true
+  },
+  {
+    "id": "golden",
+    "name": "Golden Hour",
+    "category": "World Effects",
+    "description": "Enemies drop triple gold.",
+    "implemented": true
+  },
+  {
+    "id": "horde",
+    "name": "The Horde",
+    "category": "World Effects",
+    "description": "Extra enemy packs spawn, and enemies grant more experience.",
+    "implemented": true
+  },
+  {
+    "id": "champions",
+    "name": "Gathering of Champions",
+    "category": "World Effects",
+    "description": "More enemy packs receive champion leaders.",
+    "implemented": true
+  },
+  {
+    "id": "starfall",
+    "name": "Starfall",
+    "category": "World Effects",
+    "description": "Arcane stars periodically strike nearby enemies.",
+    "implemented": true
+  },
+  {
+    "id": "surge",
+    "name": "Arcane Surge",
+    "category": "World Effects",
+    "description": "Gain faster attacks and casts, plus shorter skill cooldowns.",
+    "implemented": true
+  },
+  {
+    "id": "vault",
+    "name": "Treasure Vault",
+    "category": "World Effects",
+    "description": "Three extra treasure caches appear.",
+    "implemented": true
+  },
+  {
+    "id": "frenzy",
+    "name": "Feeding Frenzy",
+    "category": "World Effects",
+    "description": "Kills have a chance to drop health or mana orbs.",
+    "implemented": true
   }
+
 ]
 .map((affix) => Object.freeze(affix)));
 
@@ -1228,6 +1285,14 @@ export const DUNGEON_AFFIX_CONFIG = Object.freeze(
     "reflectDamageFraction": 0.2,
     "maxReflectedHealthFraction": 0.05
   },
+  "bloodmoon": { "damageMultiplier": 1.2, "healthMultiplier": 1.25, "experienceMultiplier": 1.6, "lootMultiplier": 1.6, "darkness": 0.3 },
+  "golden": { "goldMultiplier": 3 },
+  "horde": { "experienceMultiplier": 1.25, "packLocations": 8, "packSize": [3, 5] },
+  "champions": { "spawnChance": 0.12 },
+  "starfall": { "initialDelay": [3, 6], "repeatDelay": [2.5, 5] },
+  "surge": { "playerStats": { "cdr": 50, "as": 20 } },
+  "vault": { "extraCaches": 3 },
+  "frenzy": { "orbChance": 0.3, "healthOrbChance": 0.6 },
   "chaos": {
     "initialDelay": [
       10,
@@ -1268,10 +1333,10 @@ export function chooseDungeonAffix(currentIds = [], random = Math.random) {
 }
 
 /** Roll a fresh set for one destination floor; old-floor affixes are never carried forward. */
-export function rollDungeonAffixesForDepth(nextDepth, random = Math.random, startDepth = 1) {
+export function rollDungeonAffixesForDepth(nextDepth, random = Math.random, startDepth = 1, guaranteeOne = false) {
   const ids = [];
   const elapsedDepths = Math.max(0, (Number(nextDepth) || 0) - (Number(startDepth) || 1));
-  const target = Math.min(MAX_AFFIX_SECTIONS, Math.floor(elapsedDepths / AFFIX_DEPTH_INTERVAL));
+  const target = Math.min(MAX_AFFIX_SECTIONS, Math.max(guaranteeOne ? 1 : 0, Math.floor(elapsedDepths / AFFIX_DEPTH_INTERVAL)));
   while (ids.length < target) {
     const next = chooseDungeonAffix(ids, random);
     if (!next) break;
@@ -1295,6 +1360,13 @@ export function applyDungeonAffix(monster, id) {
   monster.affixes ||= [];
   const cfg = DUNGEON_AFFIX_CONFIG;
   switch (id) {
+    case 'bloodmoon':
+      monster.dmg *= cfg.bloodmoon.damageMultiplier;
+      monster.maxHp *= cfg.bloodmoon.healthMultiplier;
+      monster.hp = Math.min(monster.maxHp, monster.hp * cfg.bloodmoon.healthMultiplier);
+      monster.xp *= cfg.bloodmoon.experienceMultiplier;
+      break;
+    case 'horde': monster.xp *= cfg.horde.experienceMultiplier; break;
     case 'fortified':
       monster.maxHp *= cfg.fortified.healthMultiplier;
       monster.hp = Math.min(monster.maxHp, monster.hp * cfg.fortified.healthMultiplier);
