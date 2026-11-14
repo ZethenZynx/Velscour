@@ -1,5 +1,6 @@
 // Monsters and minions: one AI for both teams.
 import { G } from '../state.js';
+import { DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
 import { rand, chance, TAU, clamp, angleTo, angleDiff, dist, pick, randi, shuffle } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { addEffect, Telegraph, Slash, Ring, Bolt, Column, burst, spawn, sparkle, elem, floatText, smoke, addLight } from '../gfx/vfx.js';
@@ -1409,7 +1410,8 @@ export function makeMonster(world, archId, biome, level, rank = 'normal', x = 0,
     // but all existing AI, projectiles, rank affixes and drops keep working.
     if(foreign)m.name='Wayward '+m.name;
   }
-  if (rank !== 'normal') makeElite(m, rank, depth, world);
+  const affixRank = rank === 'normal' && world.dungeonAffixes?.includes('elite_reinforcements') && chance(DUNGEON_AFFIX_CONFIG.elite_reinforcements.championChance) ? 'champion' : rank;
+  if (affixRank !== 'normal') makeElite(m, affixRank, depth, world);
   if (art && art.heavenlyFamily && rank === 'boss') {
     m.name = art.name.toUpperCase();
     m.aura = '#f5d78d';

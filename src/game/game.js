@@ -1,6 +1,6 @@
 // Game flow: characters, town, dungeon depths, death, victory.
 import { G } from '../state.js';
-import { MAX_DUNGEON_AFFIXES, DUNGEON_AFFIX_INTERVAL, dungeonAffixCount, chooseDungeonAffix, applyDungeonAffix } from '../data/dungeonaffixes.js';
+import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG, affixesForNextDepth, normalizeDungeonAffixIds, applyDungeonAffix } from '../data/dungeonaffixes.js';
 import { input } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { sfx, playMusic, stopMusic, setAmbience, stopAmbience, footsteps } from '../core/audio.js';
@@ -857,6 +857,7 @@ export const game = {
     if (depth !== current) {
       c.depth = depth;
       delete c.nextOmen;
+      delete c.nextAffixes;
       c.nextBiome = depth === FINAL_DEPTH ? 'throne' : drawBiome(c, depth);
     }
     this.enterDungeon();
@@ -1158,8 +1159,10 @@ export const game = {
       : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed);
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
-    // Campaign survival affixes travel with the character across dungeon depths and town visits.
-    world.dungeonAffixes = [...(c.dungeonAffixRun?.affixes || [])];
+    world.dungeonAffixes = normalizeDungeonAffixIds(c.nextAffixes ?? c.dungeonAffixes);
+    delete c.nextAffixes;
+    if (world.dungeonAffixes.includes('darkness')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness);
+    for (const monster of world.creatures) for (const id of world.dungeonAffixes) applyDungeonAffix(monster, id);
     if (gen.layoutId) { world.layoutId = gen.layoutId; world.layoutName = gen.layoutName; }
     world.rooms = gen.rooms || [];
     world.chests = gen.chests.map((ch) => ({
@@ -1482,24 +1485,31 @@ export const game = {
     // a Town Commission waiting for a biome: its portal turns up among the three more often (game/commissions.js)
     const want = wantedBiomes(c).filter((id) => BIOME_BY_ID[id] && !ids.includes(id) && id !== c.lastBiome);
     if (want.length && ids.length && next !== FINAL_DEPTH && Math.random() < 0.4) ids[ids.length - 1] = want[Math.floor(Math.random() * want.length)];
+    const carriedAffixes = c ? normalizeDungeonAffixIds(c.dungeonAffixes) : [];
     const cards = ids.map((id) => {
       const biome = BIOME_BY_ID[id] || BIOME_BY_ID.catacombs;
       const comm = commState(c).open.find((e) => { const ch = LINE_BY_ID[e.id] && LINE_BY_ID[e.id].chapters[e.ch]; return ch && ch.biome === biome.id; });
-      return { id: biome.id, biome, omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
+      return { id: biome.id, biome, affixes: affixesForNextDepth(carriedAffixes, next), omen: omenable(next, biome) ? rollOmen(next) || (heresiesOf(c).includes('omens') ? anyOmen() : null) : heresiesOf(c).includes('omens') && next > FINAL_DEPTH && !biome.overworld && !isRaidDepth(next) ? anyOmen() : undefined, comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
     let sel = 0;
     const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
     const omenLine = (cd) => (cd.omen === undefined ? '' : cd.omen ? `<span class="pc-omen" style="color:${OMENS[cd.omen].color}"><b>${OMENS[cd.omen].name}</b>${OMENS[cd.omen].text}</span>` : '<span class="pc-omen dim"><b>No omen</b>A quiet depth.</span>');
+    const affixLine = (cd) => `<span class="pc-affixes"><b>Affixes</b>${cd.affixes.length ? cd.affixes.map((id) => {
+      const affix = DUNGEON_AFFIX_BY_ID[id];
+      return affix ? `<span title="${escapeHtml(affix.description)}">${escapeHtml(affix.name)}</span>` : '';
+    }).join('') : '<i>No affixes</i>'}</span>`;
     const html = `<p class="dim">${cards.length > 1 ? `Depth ${next} lies beyond ${['', 'one', 'two', 'three'][cards.length]} portals. Choose your way down.` : `The way down opens onto Depth ${next}.`}</p>
-      <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-omen" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${omenLine(cd)}</button>`).join('')}</div>
+      <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-omen" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${omenLine(cd)}${affixLine(cd)}</button>`).join('')}</div>
       `;
     const go = (town) => {
       const cd = cards[sel];
       c.cleared[world.depth] = true;
       c.deepest = Math.max(c.deepest || 0, world.depth);
       c.depth = next; c.nextBiome = cd.id; takeBiome(c, cd.id);
-      this.autosave();
+      c.dungeonAffixes = normalizeDungeonAffixIds(cd.affixes);
+      c.nextAffixes = [...c.dungeonAffixes];
       if (cd.omen !== undefined) c.nextOmen = cd.omen || 'none'; else delete c.nextOmen;
+      this.autosave();
       if (town) { sfx('portal'); this.enterTown(); }
       else this.enterDungeon();
     };
@@ -1543,10 +1553,6 @@ export const game = {
     if (w && w.breach) return this.breachDeath(src);
     if (w && w.rift) return this.riftDeath(src);
     if (w && (w.unbound || w.unboundExploration)) return this.unboundDeath(src);
-    if (w && Array.isArray(w.dungeonAffixes)) {
-      c.dungeonAffixRun = { seconds: 0, affixes: [] };
-      w.dungeonAffixes = [];
-    }
     c.deaths = (c.deaths || 0) + 1;
     const depth = w && w.kind === 'dungeon' ? w.depth : c.depth;
     const n = addDefiance(c, depth);
@@ -1554,6 +1560,7 @@ export const game = {
     greedDeath(c); // the Hoard is lost and the Greed lever drops (game/greed.js)
     G.smiteArmed = false;
     delete c.nextOmen;
+    delete c.nextAffixes;
     const killer = src ? (src.owner ? src.owner.name : src.name) : null;
     stopMusic();
     this.autosave();
@@ -2044,21 +2051,40 @@ export const game = {
     }
   },
 
-  // Apply one survival affix every five minutes in campaign dungeons, up to the cap.
-  tickDungeonAffixes(w, dt) {
-    const c = G.char, p = G.player;
-    if (!c || !p || p.dead || w.kind !== 'dungeon' || !Array.isArray(w.dungeonAffixes)) return;
-    const run = c.dungeonAffixRun ||= { seconds: 0, affixes: [] };
-    run.seconds = Math.min(DUNGEON_AFFIX_INTERVAL * MAX_DUNGEON_AFFIXES, run.seconds + Math.max(0, dt));
-    const target = dungeonAffixCount(run.seconds);
-    while (run.affixes.length < target && run.affixes.length < MAX_DUNGEON_AFFIXES) {
-      const affix = chooseDungeonAffix(run.affixes);
-      if (!affix) break;
-      run.affixes.push(affix.id);
-      w.dungeonAffixes.push(affix.id);
-      for (const monster of w.creatures) applyDungeonAffix(monster, affix.id);
-      UI.log(`<b style="color:#ffb070">Dungeon affix gained:</b> ${escapeHtml(affix.name)} — ${escapeHtml(affix.description)}`, '#ffb070');
-      this.autosave();
+  tickDungeonAffixWorld(w, dt) {
+    if (!Array.isArray(w.dungeonAffixes) || !G.player || G.player.dead) return;
+    const p = G.player;
+    if (w.dungeonAffixes.includes('thunderstorm')) {
+      if (w.affixStormStrike) {
+        w.affixStormStrike.t -= dt;
+        if (w.affixStormStrike.t <= 0) {
+          const strike = w.affixStormStrike; w.affixStormStrike = null;
+          const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
+          if (dist2(p.x, p.y, strike.x, strike.y) <= storm.radius * storm.radius) hit(null, p, p.maxHp * storm.damageFraction, 'light', { crit: false });
+          floatText(strike.x, strike.y, 60, '⚡', '#8feaff', 18, { life: 0.8 });
+          w.affixStormT = rand(...storm.repeatDelay);
+        }
+      } else {
+        const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
+        w.affixStormT = (w.affixStormT ?? rand(...storm.initialDelay)) - dt;
+        if (w.affixStormT <= 0) {
+          const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
+          w.affixStormStrike = { x: p.x + rand(-3, 3), y: p.y + rand(-3, 3), t: storm.warningSeconds };
+          floatText(w.affixStormStrike.x, w.affixStormStrike.y, 70, '⚡', '#8feaff', 18, { life: 0.9 });
+          UI.log('A storm gathers. Watch for the lightning strike.', '#8feaff');
+        }
+      }
+    }
+    if (w.dungeonAffixes.includes('teleporting')) for (const m of w.creatures) {
+      if (m.team !== 'enemy' || m.dead || !m.dungeonAffixIds?.includes('teleporting')) continue;
+      const teleport = DUNGEON_AFFIX_CONFIG.teleporting;
+      m.dungeonTeleportT = (m.dungeonTeleportT ?? rand(...teleport.initialCooldown)) - dt;
+      const d2 = dist2(m.x, m.y, p.x, p.y);
+      if (m.dungeonTeleportT <= 0 && d2 > teleport.minDistance * teleport.minDistance && d2 < teleport.maxDistance * teleport.maxDistance) {
+        const [x, y] = w.map.randomNear(p.x, p.y, teleport.nearPlayerRadius);
+        [m.x, m.y] = w.map.nudge(x, y, m.r || 0.3);
+        m.dungeonTeleportT = rand(...teleport.repeatCooldown);
+      }
     }
   },
 
@@ -2099,13 +2125,13 @@ export const game = {
       for (let i = 1; i < CINE_FAST && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
     } else if (G.hitStop > 0) { G.hitStop -= dt; controls.update(0); }
     else if (!G.paused) {
-      this.tickDungeonAffixes(w, dt);
       controls.update(dt);
       // A click may have taken the hero through a portal: the world he left stops here, or its rules run on
       // him in the new one (the Breach's wards put him back at his last Breach spot, off the edge of town: a black town)
       if (G.world !== w) return;
       w.update(dt);
       if (G.world !== w) return;
+      this.tickDungeonAffixWorld(w, dt);
       if (w.overworldScenario) w.overworldScenario.update(dt);
       if (w.map.c3struct && !w.map.sky) castle3dTick(w, dt);
       ambushTick(w, dt);
