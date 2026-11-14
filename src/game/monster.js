@@ -93,7 +93,7 @@ export class Monster extends Creature {
   deal(target, amount, el, o = {}) {
     const d = hit(this, target, amount, el, o);
     if (d > 0) {
-      if (this.affixes && this.affixes.includes('vampiric') && this.rank !== 'boss') {
+      if (this.affixes && this.affixes.includes('vampiric') && this.rank !== 'boss' && !(this.dungeonAffixIds || []).includes('vampiric')) {
         const cap = (monsterBase(this.level || 1).hp || 100) * 0.01;
         const targetMul = target.isPlayer ? 1 : 0.2;
         this.heal(Math.min(d * 0.08 * targetMul, cap));
@@ -165,7 +165,16 @@ export class Monster extends Creature {
       (this.status.bleed && this.status.bleed.t > 0);
     if (hasDot) this.regenSuppress = Math.max(this.regenSuppress || 0, 3.0);
 
-    // Only non-boss monsters with 'regen' affix regenerate, and ONLY when out of combat (regenSuppress <= 0)
+    // Dungeon affixes use explicit max-health percentages and are separate from the
+    // existing elite regeneration affix, which is intentionally suppressed in combat.
+    if ((this.dungeonAffixIds || []).includes('regenerating') && this.hp < this.maxHp) {
+      this.heal(this.maxHp * DUNGEON_AFFIX_CONFIG.regenerating.healthPerSecond * dt);
+    }
+    if ((this.dungeonAffixIds || []).includes('boss_regeneration') &&
+        this.rank === 'boss' && !(this.regenSuppress > 0) && this.hp < this.maxHp) {
+      this.heal(this.maxHp * DUNGEON_AFFIX_CONFIG.boss_regeneration.healthPerSecond * dt);
+    }
+    // Only non-boss monsters with the existing 'regen' affix regenerate out of combat.
     if (this.affixes && this.affixes.includes('regen') && !(this.regenSuppress > 0) && this.hp < this.maxHp && this.rank !== 'boss') {
       const capPerSec = (monsterBase(this.level || 1).hp || 100) * 0.01;
       const healAmt = Math.min(this.maxHp * 0.001, capPerSec) * dt;
@@ -192,7 +201,11 @@ export class Monster extends Creature {
       return;
     }
     if (this.wardTick) return this.wardTick(dt); // raid warding crystals (game/raid.js)
-    this.cd -= dt * (this.partyBuff && this.partyBuff.stats.as ? 1 + this.partyBuff.stats.as / 100 : 1);
+    const partyAttackSpeed = this.partyBuff && this.partyBuff.stats.as ? 1 + this.partyBuff.stats.as / 100 : 1;
+    const berserkAttackSpeed = (this.dungeonAffixIds || []).includes('berserking') &&
+      this.hp / Math.max(1, this.maxHp) < DUNGEON_AFFIX_CONFIG.berserking.healthThreshold
+      ? DUNGEON_AFFIX_CONFIG.berserking.attackSpeedMultiplier : 1;
+    this.cd -= dt * partyAttackSpeed * berserkAttackSpeed;
     if (this.spell && (this.spellCd -= dt) <= 0) this.castSpell();
 
     // fear: run away
