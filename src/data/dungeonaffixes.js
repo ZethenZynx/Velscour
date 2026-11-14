@@ -1,4 +1,4 @@
-// Complete 150-affix catalog from the supplied list. Phase one enables one affix from each section.
+// Complete 150-affix catalog from the supplied list. Only implemented entries can be selected.
 export const MAX_AFFIX_SECTIONS = 10;
 export const AFFIX_DEPTH_INTERVAL = 5;
 export const DUNGEON_AFFIXES = Object.freeze(
@@ -15,98 +15,98 @@ export const DUNGEON_AFFIXES = Object.freeze(
     "name": "Tyrannical",
     "category": "Enemy Stat Modifiers",
     "description": "Bosses have 50% more health and deal 20% more damage.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "brutal",
     "name": "Brutal",
     "category": "Enemy Stat Modifiers",
     "description": "All enemies deal 25% more damage.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "swift",
     "name": "Swift",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies move 30% faster.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "frenzied",
     "name": "Frenzied",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies attack 35% faster.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "armored",
     "name": "Armored",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies take 20% less physical damage.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "resistant",
     "name": "Resistant",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies take 20% less magical damage.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "regenerating",
     "name": "Regenerating",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies regenerate 1% of maximum health every second.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "vampiric",
     "name": "Vampiric",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies heal for 15% of damage dealt.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "colossal",
     "name": "Colossal",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies are 25% larger, with increased health and attack range.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "elusive",
     "name": "Elusive",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies have a 15% chance to dodge attacks.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "critical",
     "name": "Critical",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies have a 20% chance to deal double damage.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "unyielding",
     "name": "Unyielding",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies cannot be stunned, slowed, or knocked back.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "berserking",
     "name": "Berserking",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies gain 50% attack speed below 30% health.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "empowered",
     "name": "Empowered",
     "category": "Enemy Stat Modifiers",
     "description": "Enemies gain 5% damage for each other enemy nearby, up to 50%.",
-    "implemented": false
+    "implemented": true
   },
   {
     "id": "volcanic_death",
@@ -1063,6 +1063,64 @@ export const DUNGEON_AFFIX_CONFIG = Object.freeze(
     "healthMultiplier": 1.3,
     "resistanceBonus": 0.08
   },
+  "tyrannical": {
+    "bossHealthMultiplier": 1.5,
+    "bossDamageMultiplier": 1.2
+  },
+  "brutal": {
+    "damageMultiplier": 1.25
+  },
+  "swift": {
+    "speedMultiplier": 1.3
+  },
+  "frenzied": {
+    "attackSpeedMultiplier": 1.35
+  },
+  "armored": {
+    "physicalResistanceBonus": 0.2
+  },
+  "resistant": {
+    "magicalResistanceBonus": 0.2,
+    "elements": [
+      "fire",
+      "cold",
+      "light",
+      "poison",
+      "arcane",
+      "holy",
+      "shadow",
+      "blood",
+      "acid"
+    ]
+  },
+  "regenerating": {
+    "healthPerSecond": 0.01
+  },
+  "vampiric": {
+    "healFraction": 0.15
+  },
+  "colossal": {
+    "sizeMultiplier": 1.25,
+    "healthMultiplier": 1.25,
+    "attackRangeMultiplier": 1.25,
+    "defaultMeleeReach": 0.55
+  },
+  "elusive": {
+    "dodgeChance": 0.15
+  },
+  "critical": {
+    "chance": 0.2,
+    "damageMultiplier": 2
+  },
+  "berserking": {
+    "healthThreshold": 0.3,
+    "attackSpeedMultiplier": 1.5
+  },
+  "empowered": {
+    "perEnemyDamageBonus": 0.05,
+    "maxDamageBonus": 0.5,
+    "radius": 6
+  },
   "thunderstorm": {
     "initialDelay": [
       4,
@@ -1088,6 +1146,9 @@ export const DUNGEON_AFFIX_CONFIG = Object.freeze(
   },
   "darkness": {
     "darkness": 0.55
+  },
+  "boss_regeneration": {
+    "healthPerSecond": 0.005
   },
   "teleporting": {
     "initialCooldown": [
@@ -1130,7 +1191,7 @@ export function chooseDungeonAffix(currentIds = [], random = Math.random) {
 
 export function affixesForNextDepth(currentIds, nextDepth, random = Math.random) {
   const ids = normalizeDungeonAffixIds(currentIds);
-  const target = Math.min(MAX_AFFIX_SECTIONS, Math.floor(Math.max(0, Number(nextDepth) - 1) / AFFIX_DEPTH_INTERVAL));
+  const target = Math.min(MAX_AFFIX_SECTIONS, Math.floor(Math.max(0, Number(nextDepth) || 0) / AFFIX_DEPTH_INTERVAL));
   while (ids.length < target) {
     const next = chooseDungeonAffix(ids, random);
     if (!next) break;
@@ -1144,28 +1205,47 @@ function addResistance(monster, element, amount) {
   monster.res[element] = (monster.res[element] || 0) + amount;
 }
 
-/** Apply one implemented dungeon affix to an enemy. Existing combat hooks handle its ongoing effects. */
+/** Attach one implemented dungeon affix to an enemy; other behavior uses existing combat hooks. */
 export function applyDungeonAffix(monster, id) {
   const affix = DUNGEON_AFFIX_BY_ID[id];
   if (!monster || monster.team !== 'enemy' || monster.dead || !affix || !affix.implemented) return false;
   if (id === 'multishot' && !['ranged', 'caster'].includes(monster.ai)) return false;
   if (id === 'boss_regeneration' && monster.rank !== 'boss') return false;
+  if (id === 'tyrannical' && monster.rank !== 'boss') return false;
   monster.dungeonAffixIds ||= [];
   if (monster.dungeonAffixIds.includes(id)) return false;
   monster.dungeonAffixIds.push(id);
   monster.affixes ||= [];
+  const cfg = DUNGEON_AFFIX_CONFIG;
   switch (id) {
     case 'fortified':
-      if (!monster.affixes.includes('tough')) {
-        const cfg = DUNGEON_AFFIX_CONFIG.fortified;
-        monster.maxHp *= cfg.healthMultiplier;
-        monster.hp = Math.min(monster.maxHp, monster.hp * cfg.healthMultiplier);
-        for (const e of ['phys', 'fire', 'cold', 'light', 'poison']) addResistance(monster, e, cfg.resistanceBonus);
-      }
+      monster.maxHp *= cfg.fortified.healthMultiplier;
+      monster.hp = Math.min(monster.maxHp, monster.hp * cfg.fortified.healthMultiplier);
+      for (const e of ['phys', 'fire', 'cold', 'light', 'poison']) addResistance(monster, e, cfg.fortified.resistanceBonus);
+      break;
+    case 'tyrannical':
+      monster.maxHp *= cfg.tyrannical.bossHealthMultiplier;
+      monster.hp = Math.min(monster.maxHp, monster.hp * cfg.tyrannical.bossHealthMultiplier);
+      monster.dmg *= cfg.tyrannical.bossDamageMultiplier;
+      break;
+    case 'brutal': monster.dmg *= cfg.brutal.damageMultiplier; break;
+    case 'swift': monster.speed *= cfg.swift.speedMultiplier; break;
+    case 'frenzied': monster.atkCd /= cfg.frenzied.attackSpeedMultiplier; break;
+    case 'armored': addResistance(monster, 'phys', cfg.armored.physicalResistanceBonus); break;
+    case 'resistant': for (const e of cfg.resistant.elements) addResistance(monster, e, cfg.resistant.magicalResistanceBonus); break;
+    case 'regenerating': if (!monster.affixes.includes('regen')) monster.affixes.push('regen'); break;
+    case 'vampiric': if (!monster.affixes.includes('vampiric')) monster.affixes.push('vampiric'); break;
+    case 'colossal':
+      monster.scale = (monster.scale || 1) * cfg.colossal.sizeMultiplier;
+      monster.r = (monster.r || 0.33) * cfg.colossal.sizeMultiplier;
+      monster.maxHp *= cfg.colossal.healthMultiplier;
+      monster.hp = Math.min(monster.maxHp, monster.hp * cfg.colossal.healthMultiplier);
+      monster.range = (monster.range || 0) * cfg.colossal.attackRangeMultiplier;
+      monster.atkReach = (monster.atkReach || cfg.colossal.defaultMeleeReach) * cfg.colossal.attackRangeMultiplier;
       break;
     case 'volcanic_death': if (!monster.affixes.includes('fiery')) monster.affixes.push('fiery'); break;
     case 'multishot': if (!monster.affixes.includes('multishot')) monster.affixes.push('multishot'); break;
-    case 'relentless': monster.aggroRange = (monster.aggroRange || DUNGEON_AFFIX_CONFIG.relentless.defaultAggroRange) * DUNGEON_AFFIX_CONFIG.relentless.aggroMultiplier; break;
+    case 'relentless': monster.aggroRange = (monster.aggroRange || cfg.relentless.defaultAggroRange) * cfg.relentless.aggroMultiplier; break;
     case 'boss_regeneration': if (!monster.affixes.includes('regen')) monster.affixes.push('regen'); break;
     case 'mirror_world': if (!monster.affixes.includes('thorns')) monster.affixes.push('thorns'); break;
   }

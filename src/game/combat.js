@@ -55,6 +55,19 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (fromPlayer && !tgt.isPlayer && G.char && G.char.madT > 0) dmg *= 2; // MADNESS (game/mayhem.js)
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
 
+  const sourceAffixes = src && src.team === 'enemy' ? (src.dungeonAffixIds || []) : [];
+  if (!o.dot && tgt.team !== 'enemy' && sourceAffixes.includes('critical') &&
+      chance(DUNGEON_AFFIX_CONFIG.critical.chance)) {
+    crit = true;
+    dmg *= DUNGEON_AFFIX_CONFIG.critical.damageMultiplier;
+  }
+  if (sourceAffixes.includes('empowered') && src.world) {
+    const cfg = DUNGEON_AFFIX_CONFIG.empowered;
+    const nearbyEnemies = src.world.query(src.x, src.y, cfg.radius,
+      (creature) => creature !== src && creature.team === 'enemy' && !creature.dead).length;
+    dmg *= 1 + Math.min(cfg.maxDamageBonus, nearbyEnemies * cfg.perEnemyDamageBonus);
+  }
+
   if (tgt.isPlayer) {
     const st = tgt.st;
     if (!o.dot && st.block > 0 && chance(Math.min(0.6, st.block / 100))) {
@@ -81,6 +94,11 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
   } else {
     // monster / summon
+    if (!o.dot && !o.force && tgt.team === 'enemy' && (tgt.dungeonAffixIds || []).includes('elusive') &&
+        chance(DUNGEON_AFFIX_CONFIG.elusive.dodgeChance)) {
+      floatText(tgt.x, tgt.y, 38, 'Dodged', '#d9e8f2', 12);
+      return 0;
+    }
     let res = (tgt.res && tgt.res[el === 'astral' ? 'arcane' : el]) || 0;
     if (el === 'arcane' || el === 'astral') res *= 0.5;
     dmg *= 1 - clamp(res, -1, 0.9);
@@ -120,7 +138,11 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (byHero) Meter.add(shownDmg(Math.min(dmg, Math.max(0, tgt.hp)), tLvl));
   if (byHero && src && src.isPlayer && !o.dot) G.lastHit = tgt; // the HUD's target window
   if (byHero && src && src.isPlayer && o.sk && !o.dot && showFx) classHitFx(src, tgt, o.sk, el); // the class's own splash (gfx/classfx.js)
+  const actualDamage = Math.min(dmg, Math.max(0, tgt.hp));
   tgt.hp -= dmg;
+  if (sourceAffixes.includes('vampiric') && actualDamage > 0 && src && src.heal) {
+    src.heal(actualDamage * DUNGEON_AFFIX_CONFIG.vampiric.healFraction);
+  }
   if (tgt.isPlayer && !o.dot && src && src !== tgt && tgt.st.procs && tgt.st.procs.length) relicProc(tgt, 'hurt', src, dmg);
   const shouldFlash = !o.multiHit || o.hitIndex === 0 || o.hitIndex === (o.hitCount - 1);
   if (shouldFlash) tgt.flash = 0.10;
@@ -190,16 +212,17 @@ function applyStatus(src, tgt, dmg, el, o) {
   const s = tgt.status;
   const boss = tgt.rank === 'boss';
   const leg = src && src.isPlayer ? src.st.legendary : {};
+  const unyielding = tgt.team === 'enemy' && (tgt.dungeonAffixIds || []).includes('unyielding');
   if (el === 'fire' && (o.burn || chance(0.25))) s.burn = { t: 3, dps: Math.max(s.burn && s.burn.t > 0 ? s.burn.dps : 0, dmg * (o.burn ? 0.35 : 0.2)), src };
   if (el === 'poison' || o.poison) s.poison = { t: 3.5, dps: Math.max(s.poison && s.poison.t > 0 ? s.poison.dps : 0, dmg * (o.poison ? 0.45 : 0.3)), src };
   if (el === 'blood' || o.bleed) s.bleed = { t: 3, dps: Math.max(s.bleed && s.bleed.t > 0 ? s.bleed.dps : 0, dmg * 0.3), src };
-  if (el === 'cold' || o.slow || leg.frostbite) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
-  if ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss)) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
-  if (o.stun && (!boss || chance(0.15))) s.stun = { t: tgt.isPlayer ? 0.5 : 1.1 };
+  if (!unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
+  if (!unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
+  if (!unyielding && o.stun && (!boss || chance(0.15))) s.stun = { t: tgt.isPlayer ? 0.5 : 1.1 };
   if (o.fear && !boss) s.fear = { t: 2.5 };
   if (el === 'acid') { s.shred = { t: 3, amt: 0.15 }; s.slow = { t: 2, amt: 0.15 }; }
   if (o.curse && !tgt.isPlayer) for (const c of o.curse) tgt.curses[c] = { t: 5, amt: 25, src };
-  if (o.knock && !tgt.static && !boss) {
+  if (o.knock && !unyielding && !tgt.static && !boss) {
     const a = o.ang ?? (src ? angleTo(src.x, src.y, tgt.x, tgt.y) : 0);
     const k = (o.knock === true ? 1 : o.knock) * 7 * (tgt.isPlayer ? 0.4 : 1) / Math.max(0.6, tgt.r / 0.35);
     tgt.kbx += Math.cos(a) * k; tgt.kby += Math.sin(a) * k;
