@@ -43,7 +43,6 @@ export const camera = {
   leadY: 0,
   zoomK: 1, // a level's own zoom factor (the tower's roof pulls back to show the airships)
   follow(tx, ty, dt, snap = false) {
-    if (this.fixed) return; // first person (gfx/firstperson.js) holds the camera still: its warp does the placing
     const wx = isoX(tx, ty) + this.leadX, wy = isoY(tx, ty) - 24 + this.leadY;
     if (snap) { this.x = wx; this.y = wy; return; }
     const k = 1 - Math.pow(0.0005, dt);
