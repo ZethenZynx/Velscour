@@ -1,7 +1,7 @@
 // Damage resolution, status effects, deaths, gore.
 import { G } from '../state.js';
 import { DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
-import { rand, chance, clamp, angleTo, TAU, mixHex } from '../core/util.js';
+import { rand, chance, clamp, angleTo, TAU, mixHex, pick } from '../core/util.js';
 import { camera } from '../core/view.js';
 import { sfx } from '../core/audio.js';
 import { petCorpse } from '../core/petart.js';
@@ -47,6 +47,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     return 1;
   }
   const world = tgt.world || G.world;
+  const worldAffixes = new Set(Array.isArray(world && world.dungeonAffixes) ? world.dungeonAffixes : []);
   let dmg = amount;
   let crit = false;
   if (src && src.summon && src.partyBuff && src.partyBuff.stats.dmg) dmg *= 1 + src.partyBuff.stats.dmg / 100; // banners, party buffs
@@ -56,7 +57,27 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
 
   const sourceAffixes = src && src.team === 'enemy' ? (src.dungeonAffixIds || []) : [];
-  if (!o.dot && tgt.team !== 'enemy' && sourceAffixes.includes('critical') &&
+  const enemyAttack = sourceAffixes.length > 0 && !o.dot;
+  if (enemyAttack) {
+    if (worldAffixes.has('explosive_attacks')) o.explosive = true;
+    if (worldAffixes.has('poisonous_strikes')) o.poison = true;
+    if (worldAffixes.has('burning_strikes')) o.burn = true;
+    if (worldAffixes.has('freezing_strikes') || worldAffixes.has('crippling_blows')) o.slow = true;
+    if (worldAffixes.has('shocking_strikes') && chance(DUNGEON_AFFIX_CONFIG.enemyAttack.chance)) o.stun = true;
+    if (worldAffixes.has('knockback')) o.knock = o.knock || 0.7;
+  }
+  if (sourceAffixes.includes('elemental_bosses') && src.rank === 'boss') {
+    el = src.affixElement || pick(['fire', 'cold', 'light', 'poison', 'shadow']);
+  }
+  if (sourceAffixes.includes('doom_clock')) dmg *= world.affixDoomMul || 1;
+  if (worldAffixes.has('coordinated_assault') && (world.affixCoordinatedUntil || 0) > world.time) dmg *= 1.25;
+  if (src && (src.affixBloodPactT || 0) > 0) dmg *= 1.1;
+  if (src && (src.affixSoulHarvestT || 0) > 0) dmg *= 1.15;
+  if (src && (src.affixSummonerPactT || 0) > 0) dmg *= 1.2;
+  if (src && src.rank === 'boss' && src.affixVengefulStacks) dmg *= 1 + Math.min(0.5, src.affixVengefulStacks * 0.05);
+  if (src && src.rank === 'boss' && sourceAffixes.includes('final_stand') && src.hp < src.maxHp * 0.1) dmg *= 1.5;
+  if (world.affixSurgeUntil > world.time && world.affixSurgeId && sourceAffixes.includes(world.affixSurgeId)) dmg *= 1.25;
+  if (enemyAttack && sourceAffixes.includes('critical') && tgt.team !== 'enemy' &&
       chance(DUNGEON_AFFIX_CONFIG.critical.chance)) {
     crit = true;
     dmg *= DUNGEON_AFFIX_CONFIG.critical.damageMultiplier;
@@ -76,16 +97,23 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       return 0;
     }
     if (el === 'phys') {
-      const lvl = (src && src.level) || G.world.depth || 1;
-      dmg *= 1 - st.armor / (st.armor + armorDiv(lvl));
-    }
+      const lvl = (src && src.level) || (world && world.depth) || 1;
+      let armor = st.armor;
+      if (worldAffixes.has('fragile_armor')) armor *= 0.75;
+      if ((tgt.affixArmorShredT || 0) > 0) armor *= 0.75;
+      dmg *= 1 - armor / (armor + armorDiv(lvl));
+      if (worldAffixes.has('physical_vulnerability')) dmg *= 1.25;
+    } else if (worldAffixes.has('arcane_vulnerability')) dmg *= 1.25;
     const rk = PLAYER_RES[el];
     const res = rk ? st.res[rk] : st.res.magic;
     dmg *= 1 - clamp(res, -100, 75) / 100;
     dmg *= 1 - clamp(st.reduce || 0, 0, 60) / 100;
+    if (worldAffixes.has('mortal_vulnerability') && (tgt.affixCritVulnerableT || 0) > 0) dmg *= 1.1;
+    if (tgt.affixShieldT > 0) dmg *= 1 - (tgt.affixShield || 0.25);
     if (tgt.raidTakenMul) dmg *= tgt.raidTakenMul; // raid mechanics (game/raidsigs.js): sunder stacks
     if (src && src.curses && src.curses.weaken && src.curses.weaken.t > 0) dmg *= 1 - src.curses.weaken.amt / 100;
     if (G.godMode) dmg = 0;
+    if ((tgt.affixRemainsT || 0) > 0) dmg *= 0.8;
     // thorns: the affix's value and the reflected hit are on the shown scale (hero life), so they land as that times
     // the attacker's dmgScale; raw, they grew with levels while monster life grew 1.068 a level (0.00 by depth 600)
     if (src && !src.isPlayer && !o.dot && (st.thorns > 0 || st.legendary.thorns) && !src.dead) {
@@ -124,6 +152,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
         crit = true;
         dmg *= 1 + st.critDmg / 100;
       }
+      if (crit && worldAffixes.has('legendary_resistance') && tgt.rank === 'boss') dmg *= 0.7;
     }
     if (tgt.rank === 'boss' && (o.freeze || o.stun)) { o = { ...o, freeze: false, stun: o.stun && chance(0.15) }; }
   }
@@ -139,7 +168,42 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (byHero && src && src.isPlayer && !o.dot) G.lastHit = tgt; // the HUD's target window
   if (byHero && src && src.isPlayer && o.sk && !o.dot && showFx) classHitFx(src, tgt, o.sk, el); // the class's own splash (gfx/classfx.js)
   const actualDamage = Math.min(dmg, Math.max(0, tgt.hp));
+  if (worldAffixes.has('mirror_world') && tgt.team === 'enemy' && fromPlayer && !o.dot && !o.force &&
+      owner && !owner.dead && chance(DUNGEON_AFFIX_CONFIG.mirror_world.reflectChance)) {
+    const reflected = Math.min(
+      actualDamage * DUNGEON_AFFIX_CONFIG.mirror_world.reflectDamageFraction,
+      owner.maxHp * DUNGEON_AFFIX_CONFIG.mirror_world.maxReflectedHealthFraction,
+    );
+    if (reflected > 0) {
+      hit(tgt, owner, reflected, el, { dot: true, crit: false, noArc: true });
+      floatText(tgt.x, tgt.y, 46, 'REFLECT', '#d8c0ff', 10);
+    }
+  }
   tgt.hp -= dmg;
+  if (tgt.isPlayer && enemyAttack && worldAffixes.has('armor_shred')) tgt.affixArmorShredT = Math.max(tgt.affixArmorShredT || 0, DUNGEON_AFFIX_CONFIG.enemyAttack.statusDuration);
+  if (tgt.isPlayer && enemyAttack && worldAffixes.has('mortal_vulnerability') && crit) tgt.affixCritVulnerableT = 5;
+  if (tgt.isPlayer && enemyAttack && worldAffixes.has('mana_burn')) {
+    tgt.mana = Math.max(0, (tgt.mana || 0) - Math.max(1, tgt.maxMana * 0.08));
+  }
+  if (enemyAttack && worldAffixes.has('echoing_attacks') && !o.affixEcho) {
+    world.affixEchoes ||= [];
+    world.affixEchoes.push({ t: 0.55, target: tgt, src, damage: amount * 0.65, el, o: { affixEcho: true } });
+  }
+  if (enemyAttack && o.explosive && tgt.isPlayer && actualDamage > 0) {
+    aoe(world, src, tgt.x, tgt.y, 1.1, actualDamage * 0.3, 'fire', { team: 'enemy', dot: true, crit: false });
+  }
+  if (enemyAttack && src.rank === 'boss' && sourceAffixes.includes('boss_aftershock') && tgt.isPlayer && actualDamage > 0) {
+    world.affixFields ||= [];
+    world.affixFields.push({ x: tgt.x, y: tgt.y, radius: 1.5, damage: actualDamage * 0.28, el: el || 'phys', t: 0.65,
+      delayT: 0.35, tickT: 0, interval: 1, label: 'Aftershock', color: '#ff8040' });
+  }
+  if (tgt.isPlayer && enemyAttack && worldAffixes.has('lingering_wounds')) {
+    if (!tgt.affixWoundBaseMaxHp) tgt.affixWoundBaseMaxHp = tgt.maxHp;
+    tgt.maxHp = Math.max(1, Math.round(tgt.maxHp * 0.9));
+    tgt.hp = Math.min(tgt.hp, tgt.maxHp);
+    tgt.affixWoundT = Math.max(tgt.affixWoundT || 0, 6);
+  }
+  if (worldAffixes.has('arcane_overload') && fromPlayer && src && src.isPlayer && !o.dot) world.affixOverloadT = 0.45;
   if (sourceAffixes.includes('vampiric') && actualDamage > 0 && src && src.heal) {
     src.heal(actualDamage * DUNGEON_AFFIX_CONFIG.vampiric.healFraction);
   }
@@ -214,7 +278,11 @@ function applyStatus(src, tgt, dmg, el, o) {
   const leg = src && src.isPlayer ? src.st.legendary : {};
   const unyielding = tgt.team === 'enemy' && (tgt.dungeonAffixIds || []).includes('unyielding');
   if (el === 'fire' && (o.burn || chance(0.25))) s.burn = { t: 3, dps: Math.max(s.burn && s.burn.t > 0 ? s.burn.dps : 0, dmg * (o.burn ? 0.35 : 0.2)), src };
-  if (el === 'poison' || o.poison) s.poison = { t: 3.5, dps: Math.max(s.poison && s.poison.t > 0 ? s.poison.dps : 0, dmg * (o.poison ? 0.45 : 0.3)), src };
+  if (el === 'poison' || o.poison) {
+    const prior = s.poison && s.poison.t > 0 ? s.poison.dps : 0;
+    const stack = src && src.team === 'enemy' && src.dungeonAffixIds?.includes('poisonous_strikes') ? prior * 0.15 : 0;
+    s.poison = { t: 3.5, dps: Math.max(prior, dmg * (o.poison ? 0.45 : 0.3)) + stack, src };
+  }
   if (el === 'blood' || o.bleed) s.bleed = { t: 3, dps: Math.max(s.bleed && s.bleed.t > 0 ? s.bleed.dps : 0, dmg * 0.3), src };
   if (!unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
   if (!unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
@@ -269,6 +337,18 @@ export function kill(tgt, src, info = {}) {
   tgt.dead = true;
   tgt.hp = 0;
   const world = tgt.world;
+  const worldAffixes = new Set(Array.isArray(world && world.dungeonAffixes) ? world.dungeonAffixes : []);
+  if (tgt.team === 'enemy' && worldAffixes.has('reanimation') && !tgt.affixReanimated && chance(DUNGEON_AFFIX_CONFIG.onDeath.reanimateChance)) {
+    tgt.affixReanimated = true; tgt.dead = false; tgt.hp = Math.max(1, tgt.maxHp * 0.35); tgt.status = {}; tgt.regenSuppress = 0;
+    floatText(tgt.x, tgt.y, 65, 'REANIMATED', '#8feaff', 11);
+    return;
+  }
+  if (tgt.team === 'enemy' && worldAffixes.has('unholy_resurrection') && ['champion', 'unique', 'elite'].includes(tgt.rank) &&
+      !tgt.affixUnholyRevived && chance(0.12)) {
+    tgt.affixUnholyRevived = true; tgt.dead = false; tgt.hp = Math.max(1, tgt.maxHp * 0.3); tgt.status = {}; tgt.el = 'shadow';
+    floatText(tgt.x, tgt.y, 68, 'UNHOLY RESURRECTION', '#c080ff', 10);
+    return;
+  }
   const owner = src && src.owner ? src.owner : src;
   const byPlayer = owner && (owner.isPlayer || owner.team === 'player');
   if (tgt.clutter) {
@@ -276,6 +356,57 @@ export function kill(tgt, src, info = {}) {
     return;
   }
   if (tgt.onDeath) tgt.onDeath(src);
+
+  if (world && tgt.team === 'enemy' && !tgt.affixNoDeathEffects) {
+    const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}) => {
+      world.affixFields ||= [];
+      world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
+        tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
+        label: id.replaceAll('_', ' '), color: el === 'fire' ? '#ff8030' : el === 'poison' ? '#70d050' : '#b080ff', o });
+    };
+    if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
+    if (worldAffixes.has('static_discharge')) {
+      world.affixProjectileBursts ||= [];
+      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'light', fx: 'spark', count: 8, speed: 7, range: 5, damage: Math.max(1, tgt.dmg * 0.45) });
+    }
+    if (worldAffixes.has('frostburst')) aoe(world, tgt, tgt.x, tgt.y, 2.2, tgt.dmg * 0.8, 'cold', { slow: true, freeze: true, aoe: true });
+    if (worldAffixes.has('corpse_explosion')) pushField('corpse_explosion', 'fire', 2.2, tgt.maxHp * 0.22, 0.8, 0.75);
+    if (worldAffixes.has('necrotic_remains')) pushField('necrotic_remains', 'shadow', 2, tgt.maxHp * 0.035, 4);
+    if (worldAffixes.has('vengeful_spirits')) {
+      world.affixSpawnQueue ||= [];
+      world.affixSpawnQueue.push({ id: 'vengeful_spirits', x: tgt.x, y: tgt.y, t: 0.2 });
+    }
+    if (worldAffixes.has('burning_ground')) pushField('burning_ground', 'fire', 2, tgt.maxHp * 0.04, 4, 0, { burn: true });
+    if (worldAffixes.has('shrapnel')) {
+      world.affixProjectileBursts ||= [];
+      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'phys', fx: 'spike', count: 10, speed: 8, range: 4, damage: Math.max(1, tgt.dmg * 0.4) });
+    }
+    if (worldAffixes.has('healing_burst')) {
+      for (const ally of world.query(tgt.x, tgt.y, 4, (c) => c.team === 'enemy' && !c.dead)) ally.heal(ally.maxHp * 0.2);
+    }
+    if (worldAffixes.has('chain_reaction')) {
+      world.affixCorpseMarkers ||= [];
+      const near = world.affixCorpseMarkers.filter((marker) => Math.hypot(marker.x - tgt.x, marker.y - tgt.y) <= 3);
+      if (near.length) {
+        for (const marker of near) pushField('chain_reaction', 'fire', 2.2, tgt.maxHp * 0.18, 0.7, 0.2);
+        world.affixCorpseMarkers = world.affixCorpseMarkers.filter((marker) => !near.includes(marker));
+      }
+      world.affixCorpseMarkers.push({ x: tgt.x, y: tgt.y, t: 8 });
+      if (world.affixCorpseMarkers.length > 20) world.affixCorpseMarkers.shift();
+    }
+    if (worldAffixes.has('cursed_remains') && world.player) world.player.affixRemainsT = Math.max(world.player.affixRemainsT || 0, 6);
+    if (worldAffixes.has('death_nova')) aoe(world, tgt, tgt.x, tgt.y, 3.2, tgt.maxHp * 0.12, 'shadow', { aoe: true });
+    if (worldAffixes.has('blood_pact')) for (const ally of world.query(tgt.x, tgt.y, 5, (c) => c.team === 'enemy' && !c.dead)) ally.affixBloodPactT = Math.max(ally.affixBloodPactT || 0, 8);
+    if (worldAffixes.has('soul_harvest')) for (const ally of world.query(tgt.x, tgt.y, 6, (c) => c.team === 'enemy' && !c.dead)) {
+      ally.heal(ally.maxHp * 0.08);
+      ally.affixSoulHarvestT = Math.max(ally.affixSoulHarvestT || 0, 8);
+    }
+    if (worldAffixes.has('summoner_s_pact')) {
+      const summoner = world.query(tgt.x, tgt.y, 8, (c) => c.team === 'enemy' && !c.dead && c !== tgt)[0];
+      if (summoner) summoner.affixSummonerPactT = Math.max(summoner.affixSummonerPactT || 0, 10);
+    }
+    if (worldAffixes.has('vengeful_guardians') && world.boss && !world.boss.dead) world.boss.affixVengefulStacks = Math.min(10, (world.boss.affixVengefulStacks || 0) + 1);
+  }
   if (tgt.summon) {
     burst(tgt.x, tgt.y, 20, tgt.el || 'arcane', 10, 2);
     const fell = world && petCorpse(tgt); // its dead pose stays down a moment
