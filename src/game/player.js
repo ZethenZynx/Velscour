@@ -1,5 +1,6 @@
 // The hero.
 import { G } from '../state.js';
+import { emptyEquipSlot } from './autoequip.js';
 import { DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
 import { rand, chance, clamp, angleTo, dist, TAU, fmtInt } from '../core/util.js';
 import { sfx, levelUpFanfare } from '../core/audio.js';
@@ -397,10 +398,18 @@ export class Player extends Creature {
         G.ui && G.ui.refresh();
         return true;
       case 'item': {
-        const ok = addToBag(c, g.item);
-        if (!ok) { if (!g.warned) { g.warned = true; floatText(this.x, this.y, 50, g.item.type === 'gem' ? 'Gem Bag full' : 'Inventory full', '#ff8080', 12); sfx('error'); } return false; }
+        const slot = G.settings.autoEquip !== false ? emptyEquipSlot(c, g.item) : null;
+        if (slot) {
+          noteFind(g.item);
+          c.equip[slot] = g.item;
+          this.recompute();
+          if (G.game) G.game.autosave();
+        } else if (!addToBag(c, g.item)) {
+          if (!g.warned) { g.warned = true; floatText(this.x, this.y, 50, g.item.type === 'gem' ? 'Gem Bag full' : 'Inventory full', '#ff8080', 12); sfx('error'); }
+          return false;
+        }
         sfx('pickup');
-        if (G.ui) { G.ui.log(`Picked up <span style="color:${g.color}">${g.label}</span>`); G.ui.refresh(); }
+        if (G.ui) { G.ui.log(`${slot ? 'Equipped' : 'Picked up'} <span style="color:${g.color}">${g.label}</span>`); G.ui.refresh(); }
         return true;
       }
     }

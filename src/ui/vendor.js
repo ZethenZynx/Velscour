@@ -6,6 +6,8 @@ import { UI, draggable, droppable } from './ui.js';
 import { itemCell, itemTooltip, rarityClass } from './itemui.js';
 import { getItem, changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
+import { emptyEquipSlot } from '../game/autoequip.js';
+import { noteFind } from '../game/reliquary.js';
 import {
   rollItem, rollGem, makeGem, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost,
   rerollAffixes, addAffix, RARITY, rarityAt, POTION_PRICE, POTION_INFO, GEMS, gemName, SLOT_NAMES, WEAPONS, MAX_GEM_TIER, gemFuseCost, gemRefineCost, slotFor, gemMaxTier, sigilFuseCost,
@@ -156,14 +158,17 @@ export const Vendor = {
     if (!it) return false;
     const price = itemValue(it);
     if (c.gold < price) { UI.log('Not enough gold.', '#ff8080'); sfx('error'); return false; }
+    const slot = toIdx === undefined && G.settings.autoEquip !== false ? emptyEquipSlot(c, it) : null;
     let ok;
-    if (toIdx !== undefined && !c.bag[toIdx] && it.type !== 'gem') { c.bag[toIdx] = it; ok = true; } else ok = addToBag(c, { ...it });
+    if (slot) { noteFind(it); c.equip[slot] = it; ok = true; }
+    else if (toIdx !== undefined && !c.bag[toIdx] && it.type !== 'gem') { c.bag[toIdx] = it; ok = true; }
+    else ok = addToBag(c, { ...it });
     if (!ok) { UI.log('Inventory full.', '#ff8080'); sfx('error'); return false; }
     c.gold -= price;
     data.list[data.i] = it.type === 'gem' ? rollGem(Math.max(1, Math.max(c.level, depthLevel(c.depth || 1)) - 4)) : null;
     if (this.shopSel === data.i) this.shopSel = null;
     sfx('gold');
-    UI.log(`Bought <span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span> for ${fmtInt(price)} gold.`);
+    UI.log(`Bought${slot ? ' and equipped' : ''} <span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span> for ${fmtInt(price)} gold.`);
     changed();
     return true;
   },
