@@ -11,6 +11,7 @@ import { heresyRankOf, heresiesOf, heresyText } from '../game/heresies.js';
 import { riftOpen, fmtTime } from '../game/rifts.js';
 import { marksTotal, marksFree } from '../game/marks.js';
 import { regionOf } from '../game/regions.js';
+import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_INTERVAL, MAX_DUNGEON_AFFIXES } from '../data/dungeonaffixes.js';
 
 const step = (done, html) => `<div class="q-step${done ? ' done' : ''}"><i>${done ? '&#10004;' : '&#9670;'}</i><span>${html}</span></div>`;
 const nextRaid = (d) => { let n = Math.max(5, Math.ceil(d / 5) * 5); if (n === FINAL_DEPTH) n += 5; return n; };
@@ -146,6 +147,18 @@ export function renderQuest(body) {
     h += step(false, `Infernal Marks: <b>${marksTotal()}</b> (${marksFree()} free)`);
     h += '</div>';
   } else if (deepest >= FINAL_DEPTH - 50) h += `<div class="q-sec"><h3>The Endgame</h3>${step(false, 'Slay Velscour at Depth 500: the Altar of Heresy and the Abyssal Rift gate open for every hero.')}</div>`;
+  const run = c.dungeonAffixRun || { seconds: 0, affixes: [] };
+  const activeAffixes = (run.affixes || []).map((id) => DUNGEON_AFFIX_BY_ID[id]).filter(Boolean);
+  const remaining = activeAffixes.length >= MAX_DUNGEON_AFFIXES ? 0 : Math.max(0, (activeAffixes.length + 1) * DUNGEON_AFFIX_INTERVAL - run.seconds);
+  const remainingLabel = `${Math.floor(remaining / 60)}:${String(Math.floor(remaining % 60)).padStart(2, '0')}`;
+  h += `<div class="q-sec"><h3>Dungeon Affixes (${activeAffixes.length}/${MAX_DUNGEON_AFFIXES})</h3>`;
+  h += activeAffixes.length
+    ? activeAffixes.map((affix) => `<div class="q-affix"><b>${escapeHtml(affix.name)}</b><span>${escapeHtml(affix.description)}</span></div>`).join('')
+    : '<div class="q-affix-empty">No dungeon affixes yet.</div>';
+  h += activeAffixes.length < MAX_DUNGEON_AFFIXES
+    ? `<div class="q-affix-progress">Next affix in ${remainingLabel} of survival in a campaign dungeon.</div>`
+    : '<div class="q-affix-progress">Maximum affixes reached.</div>';
+  h += '</div>';
   h += `<div class="q-sec"><h3>Boss Rooms Conquered</h3><div class="q-raids">${BOSS_ROOM_DEPTHS.map((d) => {
     const defeated = !!(c.cleared || {})[d];
     const state = defeated ? 'defeated' : 'upcoming';
