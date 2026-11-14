@@ -2,6 +2,7 @@
 import { augHazard } from './augments.js';
 import { Clutter, isTreeProp } from './clutter.js';
 import { G } from '../state.js';
+import { applyDungeonAffix } from '../data/dungeonaffixes.js';
 import { camera, isoX, isoY } from '../core/view.js';
 import { rand, dist2, TAU, chance } from '../core/util.js';
 import { sfx } from '../core/audio.js';
@@ -71,6 +72,7 @@ export class World {
     // never start inside a wall or prop: a body that overlaps one can't take a step
     if (this.map && !c.ghost && !c.isPlayer && !c.clutter) [c.x, c.y] = this.map.nudge(c.x, c.y, bodyR(c));
     this.creatures.push(c);
+    if (Array.isArray(this.dungeonAffixes)) for (const id of this.dungeonAffixes) applyDungeonAffix(c, id);
     return c;
   }
   remove(c) {

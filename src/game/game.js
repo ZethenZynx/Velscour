@@ -1,5 +1,6 @@
 // Game flow: characters, town, dungeon depths, death, victory.
 import { G } from '../state.js';
+import { MAX_DUNGEON_AFFIXES, DUNGEON_AFFIX_INTERVAL, dungeonAffixCount, chooseDungeonAffix, applyDungeonAffix } from '../data/dungeonaffixes.js';
 import { input } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { sfx, playMusic, stopMusic, setAmbience, stopAmbience, footsteps } from '../core/audio.js';
@@ -1157,6 +1158,8 @@ export const game = {
       : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed);
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
+    // Campaign survival affixes travel with the character across dungeon depths and town visits.
+    world.dungeonAffixes = [...(c.dungeonAffixRun?.affixes || [])];
     if (gen.layoutId) { world.layoutId = gen.layoutId; world.layoutName = gen.layoutName; }
     world.rooms = gen.rooms || [];
     world.chests = gen.chests.map((ch) => ({
@@ -1540,6 +1543,10 @@ export const game = {
     if (w && w.breach) return this.breachDeath(src);
     if (w && w.rift) return this.riftDeath(src);
     if (w && (w.unbound || w.unboundExploration)) return this.unboundDeath(src);
+    if (w && Array.isArray(w.dungeonAffixes)) {
+      c.dungeonAffixRun = { seconds: 0, affixes: [] };
+      w.dungeonAffixes = [];
+    }
     c.deaths = (c.deaths || 0) + 1;
     const depth = w && w.kind === 'dungeon' ? w.depth : c.depth;
     const n = addDefiance(c, depth);
@@ -2037,6 +2044,24 @@ export const game = {
     }
   },
 
+  // Apply one survival affix every five minutes in campaign dungeons, up to the cap.
+  tickDungeonAffixes(w, dt) {
+    const c = G.char, p = G.player;
+    if (!c || !p || p.dead || w.kind !== 'dungeon' || !Array.isArray(w.dungeonAffixes)) return;
+    const run = c.dungeonAffixRun ||= { seconds: 0, affixes: [] };
+    run.seconds = Math.min(DUNGEON_AFFIX_INTERVAL * MAX_DUNGEON_AFFIXES, run.seconds + Math.max(0, dt));
+    const target = dungeonAffixCount(run.seconds);
+    while (run.affixes.length < target && run.affixes.length < MAX_DUNGEON_AFFIXES) {
+      const affix = chooseDungeonAffix(run.affixes);
+      if (!affix) break;
+      run.affixes.push(affix.id);
+      w.dungeonAffixes.push(affix.id);
+      for (const monster of w.creatures) applyDungeonAffix(monster, affix.id);
+      UI.log(`<b style="color:#ffb070">Dungeon affix gained:</b> ${escapeHtml(affix.name)} — ${escapeHtml(affix.description)}`, '#ffb070');
+      this.autosave();
+    }
+  },
+
   // ------------------------------------------------------------ frame
   update(dt) {
     const w = G.world, p = G.player;
@@ -2074,6 +2099,7 @@ export const game = {
       for (let i = 1; i < CINE_FAST && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
     } else if (G.hitStop > 0) { G.hitStop -= dt; controls.update(0); }
     else if (!G.paused) {
+      this.tickDungeonAffixes(w, dt);
       controls.update(dt);
       // A click may have taken the hero through a portal: the world he left stops here, or its rules run on
       // him in the new one (the Breach's wards put him back at his last Breach spot, off the edge of town: a black town)
