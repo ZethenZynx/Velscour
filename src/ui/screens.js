@@ -426,6 +426,7 @@ export function settingsDialog() {
       <label title="Off: a Sky Battle cut scene you have already watched once plays at 20x">Don't skip cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
       <label title="Summons, totems and turrets on your skill bar are cast again the moment one is missing (timed ones only with an enemy near)">Auto-cast summons</label><input type="checkbox" data-k="autoSummon" ${st.autoSummon !== false ? 'checked' : ''}>
       <label>Auto-pickup items</label><input type="checkbox" data-k="autoLoot" ${st.autoLoot ? 'checked' : ''}>
+      <label title="Automatically equip eligible gear from drops and vendor purchases when its matching equipment slot is empty">Auto-equip gear in empty slots</label><input type="checkbox" data-k="autoEquip" ${st.autoEquip !== false ? 'checked' : ''}>
       <label>Loot filter</label><button class="btn small" data-loot-filter>${lootFilter().on ? 'On' : 'Off'} · Set up</button>
     </div>
   </div>
