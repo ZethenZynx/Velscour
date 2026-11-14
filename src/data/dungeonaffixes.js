@@ -1,45 +1,1142 @@
-// Campaign dungeon affixes: one is gained for every five minutes survived, up to five.
-export const DUNGEON_AFFIX_INTERVAL = 5 * 60;
-export const MAX_DUNGEON_AFFIXES = 5;
+// Complete 150-affix catalog from the supplied list. Phase one enables one affix from each section.
+export const MAX_AFFIX_SECTIONS = 10;
+export const AFFIX_DEPTH_INTERVAL = 5;
+export const DUNGEON_AFFIXES = Object.freeze(
+[
+  {
+    "id": "fortified",
+    "name": "Fortified",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies have 30% more maximum health.",
+    "implemented": true
+  },
+  {
+    "id": "tyrannical",
+    "name": "Tyrannical",
+    "category": "Enemy Stat Modifiers",
+    "description": "Bosses have 50% more health and deal 20% more damage.",
+    "implemented": false
+  },
+  {
+    "id": "brutal",
+    "name": "Brutal",
+    "category": "Enemy Stat Modifiers",
+    "description": "All enemies deal 25% more damage.",
+    "implemented": false
+  },
+  {
+    "id": "swift",
+    "name": "Swift",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies move 30% faster.",
+    "implemented": false
+  },
+  {
+    "id": "frenzied",
+    "name": "Frenzied",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies attack 35% faster.",
+    "implemented": false
+  },
+  {
+    "id": "armored",
+    "name": "Armored",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies take 20% less physical damage.",
+    "implemented": false
+  },
+  {
+    "id": "resistant",
+    "name": "Resistant",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies take 20% less magical damage.",
+    "implemented": false
+  },
+  {
+    "id": "regenerating",
+    "name": "Regenerating",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies regenerate 1% of maximum health every second.",
+    "implemented": false
+  },
+  {
+    "id": "vampiric",
+    "name": "Vampiric",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies heal for 15% of damage dealt.",
+    "implemented": false
+  },
+  {
+    "id": "colossal",
+    "name": "Colossal",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies are 25% larger, with increased health and attack range.",
+    "implemented": false
+  },
+  {
+    "id": "elusive",
+    "name": "Elusive",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies have a 15% chance to dodge attacks.",
+    "implemented": false
+  },
+  {
+    "id": "critical",
+    "name": "Critical",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies have a 20% chance to deal double damage.",
+    "implemented": false
+  },
+  {
+    "id": "unyielding",
+    "name": "Unyielding",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies cannot be stunned, slowed, or knocked back.",
+    "implemented": false
+  },
+  {
+    "id": "berserking",
+    "name": "Berserking",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies gain 50% attack speed below 30% health.",
+    "implemented": false
+  },
+  {
+    "id": "empowered",
+    "name": "Empowered",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies gain 5% damage for each other enemy nearby, up to 50%.",
+    "implemented": false
+  },
+  {
+    "id": "volcanic_death",
+    "name": "Volcanic Death",
+    "category": "On-Death Effects",
+    "description": "Enemies explode in fire when killed.",
+    "implemented": true
+  },
+  {
+    "id": "toxic_remains",
+    "name": "Toxic Remains",
+    "category": "On-Death Effects",
+    "description": "Dead enemies leave poisonous gas clouds.",
+    "implemented": false
+  },
+  {
+    "id": "static_discharge",
+    "name": "Static Discharge",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release electricity in random directions.",
+    "implemented": false
+  },
+  {
+    "id": "frostburst",
+    "name": "Frostburst",
+    "category": "On-Death Effects",
+    "description": "Enemies release freezing explosions upon death.",
+    "implemented": false
+  },
+  {
+    "id": "corpse_explosion",
+    "name": "Corpse Explosion",
+    "category": "On-Death Effects",
+    "description": "Enemy corpses detonate after a short delay.",
+    "implemented": false
+  },
+  {
+    "id": "necrotic_remains",
+    "name": "Necrotic Remains",
+    "category": "On-Death Effects",
+    "description": "Dead enemies leave damaging pools of dark energy.",
+    "implemented": false
+  },
+  {
+    "id": "splitting",
+    "name": "Splitting",
+    "category": "On-Death Effects",
+    "description": "Killed enemies split into two weaker enemies.",
+    "implemented": false
+  },
+  {
+    "id": "vengeful_spirits",
+    "name": "Vengeful Spirits",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release ghosts that chase the player.",
+    "implemented": false
+  },
+  {
+    "id": "burning_ground",
+    "name": "Burning Ground",
+    "category": "On-Death Effects",
+    "description": "Dead enemies ignite the ground beneath them.",
+    "implemented": false
+  },
+  {
+    "id": "shrapnel",
+    "name": "Shrapnel",
+    "category": "On-Death Effects",
+    "description": "Dead enemies fire sharp projectiles outward.",
+    "implemented": false
+  },
+  {
+    "id": "healing_burst",
+    "name": "Healing Burst",
+    "category": "On-Death Effects",
+    "description": "Dead enemies heal nearby surviving enemies.",
+    "implemented": false
+  },
+  {
+    "id": "chain_reaction",
+    "name": "Chain Reaction",
+    "category": "On-Death Effects",
+    "description": "Enemy deaths cause nearby corpses to explode.",
+    "implemented": false
+  },
+  {
+    "id": "cursed_remains",
+    "name": "Cursed Remains",
+    "category": "On-Death Effects",
+    "description": "Dead enemies temporarily reduce player damage.",
+    "implemented": false
+  },
+  {
+    "id": "death_nova",
+    "name": "Death Nova",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release expanding rings of magical damage.",
+    "implemented": false
+  },
+  {
+    "id": "reanimation",
+    "name": "Reanimation",
+    "category": "On-Death Effects",
+    "description": "Enemies have a 20% chance to resurrect once after death.",
+    "implemented": false
+  },
+  {
+    "id": "wildfire",
+    "name": "Wildfire",
+    "category": "Elemental Hazards",
+    "description": "Random patches of ground ignite periodically.",
+    "implemented": false
+  },
+  {
+    "id": "blizzard",
+    "name": "Blizzard",
+    "category": "Elemental Hazards",
+    "description": "Ice storms periodically damage and slow players.",
+    "implemented": false
+  },
+  {
+    "id": "thunderstorm",
+    "name": "Thunderstorm",
+    "category": "Elemental Hazards",
+    "description": "Lightning strikes random locations around the player.",
+    "implemented": true
+  },
+  {
+    "id": "acid_rain",
+    "name": "Acid Rain",
+    "category": "Elemental Hazards",
+    "description": "Periodic acid rainfall damages players throughout the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "lava_pools",
+    "name": "Lava Pools",
+    "category": "Elemental Hazards",
+    "description": "Temporary lava pools appear beneath players.",
+    "implemented": false
+  },
+  {
+    "id": "frozen_ground",
+    "name": "Frozen Ground",
+    "category": "Elemental Hazards",
+    "description": "Random icy patches reduce movement control.",
+    "implemented": false
+  },
+  {
+    "id": "chain_lightning",
+    "name": "Chain Lightning",
+    "category": "Elemental Hazards",
+    "description": "Lightning periodically jumps between nearby enemies and players.",
+    "implemented": false
+  },
+  {
+    "id": "toxic_fog",
+    "name": "Toxic Fog",
+    "category": "Elemental Hazards",
+    "description": "Poison clouds drift slowly through the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "meteor_shower",
+    "name": "Meteor Shower",
+    "category": "Elemental Hazards",
+    "description": "Meteors periodically strike marked locations.",
+    "implemented": false
+  },
+  {
+    "id": "arcane_storm",
+    "name": "Arcane Storm",
+    "category": "Elemental Hazards",
+    "description": "Magical projectiles sweep across the battlefield.",
+    "implemented": false
+  },
+  {
+    "id": "electrified_ground",
+    "name": "Electrified Ground",
+    "category": "Elemental Hazards",
+    "description": "Sections of the floor periodically become electrified.",
+    "implemented": false
+  },
+  {
+    "id": "inferno",
+    "name": "Inferno",
+    "category": "Elemental Hazards",
+    "description": "Fire damage throughout the dungeon increases over time.",
+    "implemented": false
+  },
+  {
+    "id": "hailstorm",
+    "name": "Hailstorm",
+    "category": "Elemental Hazards",
+    "description": "Falling ice shards randomly strike the battlefield.",
+    "implemented": false
+  },
+  {
+    "id": "elemental_chaos",
+    "name": "Elemental Chaos",
+    "category": "Elemental Hazards",
+    "description": "Fire, frost, and lightning hazards appear in random sequences.",
+    "implemented": false
+  },
+  {
+    "id": "unstable_elements",
+    "name": "Unstable Elements",
+    "category": "Elemental Hazards",
+    "description": "Elemental hazards occasionally trigger additional elemental effects.",
+    "implemented": false
+  },
+  {
+    "id": "explosive_attacks",
+    "name": "Explosive Attacks",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks occasionally cause small explosions.",
+    "implemented": false
+  },
+  {
+    "id": "poisonous_strikes",
+    "name": "Poisonous Strikes",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks apply stacking poison damage.",
+    "implemented": false
+  },
+  {
+    "id": "burning_strikes",
+    "name": "Burning Strikes",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks apply damage over time from burning.",
+    "implemented": false
+  },
+  {
+    "id": "freezing_strikes",
+    "name": "Freezing Strikes",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks temporarily slow movement.",
+    "implemented": false
+  },
+  {
+    "id": "shocking_strikes",
+    "name": "Shocking Strikes",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks have a chance to briefly stun.",
+    "implemented": false
+  },
+  {
+    "id": "piercing_attacks",
+    "name": "Piercing Attacks",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy projectiles pass through multiple targets.",
+    "implemented": false
+  },
+  {
+    "id": "ricocheting_projectiles",
+    "name": "Ricocheting Projectiles",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy projectiles bounce off walls or targets.",
+    "implemented": false
+  },
+  {
+    "id": "multishot",
+    "name": "Multishot",
+    "category": "Enemy Attack Modifiers",
+    "description": "Ranged enemies fire additional projectiles.",
+    "implemented": true
+  },
+  {
+    "id": "homing_projectiles",
+    "name": "Homing Projectiles",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy projectiles gradually turn toward the player.",
+    "implemented": false
+  },
+  {
+    "id": "rapid_fire",
+    "name": "Rapid Fire",
+    "category": "Enemy Attack Modifiers",
+    "description": "Ranged enemies occasionally unleash rapid volleys.",
+    "implemented": false
+  },
+  {
+    "id": "knockback",
+    "name": "Knockback",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks push players backward.",
+    "implemented": false
+  },
+  {
+    "id": "crippling_blows",
+    "name": "Crippling Blows",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks temporarily reduce movement speed.",
+    "implemented": false
+  },
+  {
+    "id": "armor_shred",
+    "name": "Armor Shred",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks temporarily reduce player armor.",
+    "implemented": false
+  },
+  {
+    "id": "mana_burn",
+    "name": "Mana Burn",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks drain a portion of the player's mana.",
+    "implemented": false
+  },
+  {
+    "id": "echoing_attacks",
+    "name": "Echoing Attacks",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks repeat once after a short delay.",
+    "implemented": false
+  },
+  {
+    "id": "teleporting",
+    "name": "Teleporting",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies occasionally teleport near the player.",
+    "implemented": false
+  },
+  {
+    "id": "charging",
+    "name": "Charging",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies periodically rush toward the player.",
+    "implemented": false
+  },
+  {
+    "id": "leaping",
+    "name": "Leaping",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies can leap over obstacles toward players.",
+    "implemented": false
+  },
+  {
+    "id": "burrowing",
+    "name": "Burrowing",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies periodically disappear underground and emerge nearby.",
+    "implemented": false
+  },
+  {
+    "id": "phasing",
+    "name": "Phasing",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies periodically become intangible and immune to damage.",
+    "implemented": false
+  },
+  {
+    "id": "ambushing",
+    "name": "Ambushing",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies periodically spawn near the player.",
+    "implemented": false
+  },
+  {
+    "id": "pack_hunters",
+    "name": "Pack Hunters",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies move faster when grouped together.",
+    "implemented": false
+  },
+  {
+    "id": "cowardly",
+    "name": "Cowardly",
+    "category": "Enemy Movement & Behavior",
+    "description": "Injured enemies retreat and attempt to regroup.",
+    "implemented": false
+  },
+  {
+    "id": "relentless",
+    "name": "Relentless",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies continuously pursue players from greater distances.",
+    "implemented": true
+  },
+  {
+    "id": "flanking",
+    "name": "Flanking",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies attempt to approach from multiple directions.",
+    "implemented": false
+  },
+  {
+    "id": "blink_strike",
+    "name": "Blink Strike",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies occasionally teleport directly behind the player.",
+    "implemented": false
+  },
+  {
+    "id": "evasive",
+    "name": "Evasive",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies periodically dodge sideways when attacked.",
+    "implemented": false
+  },
+  {
+    "id": "swarming",
+    "name": "Swarming",
+    "category": "Enemy Movement & Behavior",
+    "description": "Additional weak enemies periodically join combat.",
+    "implemented": false
+  },
+  {
+    "id": "enraged_pursuit",
+    "name": "Enraged Pursuit",
+    "category": "Enemy Movement & Behavior",
+    "description": "Enemies accelerate the longer they chase a player.",
+    "implemented": false
+  },
+  {
+    "id": "coordinated_assault",
+    "name": "Coordinated Assault",
+    "category": "Enemy Movement & Behavior",
+    "description": "Nearby enemies occasionally attack simultaneously.",
+    "implemented": false
+  },
+  {
+    "id": "frailty",
+    "name": "Frailty",
+    "category": "Player Debuffs & Curses",
+    "description": "Players have 20% less maximum health.",
+    "implemented": false
+  },
+  {
+    "id": "exhaustion",
+    "name": "Exhaustion",
+    "category": "Player Debuffs & Curses",
+    "description": "Players move 15% slower.",
+    "implemented": false
+  },
+  {
+    "id": "weakness",
+    "name": "Weakness",
+    "category": "Player Debuffs & Curses",
+    "description": "Players deal 20% less damage.",
+    "implemented": true
+  },
+  {
+    "id": "mana_drought",
+    "name": "Mana Drought",
+    "category": "Player Debuffs & Curses",
+    "description": "Mana regeneration is reduced by 50%.",
+    "implemented": false
+  },
+  {
+    "id": "healing_suppression",
+    "name": "Healing Suppression",
+    "category": "Player Debuffs & Curses",
+    "description": "All healing received is reduced by 30%.",
+    "implemented": false
+  },
+  {
+    "id": "fragile_armor",
+    "name": "Fragile Armor",
+    "category": "Player Debuffs & Curses",
+    "description": "Player armor is reduced by 25%.",
+    "implemented": false
+  },
+  {
+    "id": "arcane_vulnerability",
+    "name": "Arcane Vulnerability",
+    "category": "Player Debuffs & Curses",
+    "description": "Players take 25% more magical damage.",
+    "implemented": false
+  },
+  {
+    "id": "physical_vulnerability",
+    "name": "Physical Vulnerability",
+    "category": "Player Debuffs & Curses",
+    "description": "Players take 25% more physical damage.",
+    "implemented": false
+  },
+  {
+    "id": "cursed_blood",
+    "name": "Cursed Blood",
+    "category": "Player Debuffs & Curses",
+    "description": "Players periodically lose a small percentage of health.",
+    "implemented": false
+  },
+  {
+    "id": "lingering_wounds",
+    "name": "Lingering Wounds",
+    "category": "Player Debuffs & Curses",
+    "description": "Damage taken temporarily reduces maximum health.",
+    "implemented": false
+  },
+  {
+    "id": "spell_fatigue",
+    "name": "Spell Fatigue",
+    "category": "Player Debuffs & Curses",
+    "description": "Skill cooldowns are increased by 25%.",
+    "implemented": false
+  },
+  {
+    "id": "resource_drain",
+    "name": "Resource Drain",
+    "category": "Player Debuffs & Curses",
+    "description": "Mana or other class resources slowly drain during combat.",
+    "implemented": false
+  },
+  {
+    "id": "unstable_healing",
+    "name": "Unstable Healing",
+    "category": "Player Debuffs & Curses",
+    "description": "Healing occasionally restores only half its normal amount.",
+    "implemented": false
+  },
+  {
+    "id": "curse_of_slowness",
+    "name": "Curse of Slowness",
+    "category": "Player Debuffs & Curses",
+    "description": "Players are briefly slowed after using a skill.",
+    "implemented": false
+  },
+  {
+    "id": "mortal_vulnerability",
+    "name": "Mortal Vulnerability",
+    "category": "Player Debuffs & Curses",
+    "description": "Players take 10% more damage for several seconds after receiving a critical hit.",
+    "implemented": false
+  },
+  {
+    "id": "endless_horde",
+    "name": "Endless Horde",
+    "category": "Summoning & Reinforcements",
+    "description": "Additional enemies periodically spawn throughout the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "necromantic_ritual",
+    "name": "Necromantic Ritual",
+    "category": "Summoning & Reinforcements",
+    "description": "Enemy necromancers periodically resurrect fallen monsters.",
+    "implemented": false
+  },
+  {
+    "id": "demonic_portals",
+    "name": "Demonic Portals",
+    "category": "Summoning & Reinforcements",
+    "description": "Temporary portals summon waves of demons.",
+    "implemented": false
+  },
+  {
+    "id": "broodmother",
+    "name": "Broodmother",
+    "category": "Summoning & Reinforcements",
+    "description": "Certain enemies periodically spawn smaller creatures.",
+    "implemented": false
+  },
+  {
+    "id": "elite_reinforcements",
+    "name": "Elite Reinforcements",
+    "category": "Summoning & Reinforcements",
+    "description": "Champion enemies occasionally appear during combat.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_clones",
+    "name": "Shadow Clones",
+    "category": "Summoning & Reinforcements",
+    "description": "Enemies periodically create weaker copies of themselves.",
+    "implemented": false
+  },
+  {
+    "id": "guardian_spirits",
+    "name": "Guardian Spirits",
+    "category": "Summoning & Reinforcements",
+    "description": "Enemies summon protective spirits that absorb damage.",
+    "implemented": false
+  },
+  {
+    "id": "summoner_s_pact",
+    "name": "Summoner's Pact",
+    "category": "Summoning & Reinforcements",
+    "description": "Killing a summoned creature temporarily empowers its summoner.",
+    "implemented": false
+  },
+  {
+    "id": "swarm_infestation",
+    "name": "Swarm Infestation",
+    "category": "Summoning & Reinforcements",
+    "description": "Insect swarms periodically emerge from the ground.",
+    "implemented": false
+  },
+  {
+    "id": "bone_legion",
+    "name": "Bone Legion",
+    "category": "Summoning & Reinforcements",
+    "description": "Skeleton warriors periodically rise from nearby corpses.",
+    "implemented": false
+  },
+  {
+    "id": "infernal_invasion",
+    "name": "Infernal Invasion",
+    "category": "Summoning & Reinforcements",
+    "description": "Demons periodically teleport into the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "elemental_convergence",
+    "name": "Elemental Convergence",
+    "category": "Summoning & Reinforcements",
+    "description": "Enemies occasionally summon elemental creatures.",
+    "implemented": false
+  },
+  {
+    "id": "reinforced_packs",
+    "name": "Reinforced Packs",
+    "category": "Summoning & Reinforcements",
+    "description": "Enemy groups contain additional monsters.",
+    "implemented": false
+  },
+  {
+    "id": "doppelgangers",
+    "name": "Doppelgangers",
+    "category": "Summoning & Reinforcements",
+    "description": "Elite enemies occasionally create temporary duplicates.",
+    "implemented": false
+  },
+  {
+    "id": "unholy_resurrection",
+    "name": "Unholy Resurrection",
+    "category": "Summoning & Reinforcements",
+    "description": "Dead elite enemies have a small chance to return as undead versions.",
+    "implemented": false
+  },
+  {
+    "id": "darkness",
+    "name": "Darkness",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Visibility is significantly reduced.",
+    "implemented": true
+  },
+  {
+    "id": "dense_fog",
+    "name": "Dense Fog",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Thick fog limits visibility beyond a short distance.",
+    "implemented": false
+  },
+  {
+    "id": "earthquake",
+    "name": "Earthquake",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Periodic tremors damage and briefly stagger players.",
+    "implemented": false
+  },
+  {
+    "id": "falling_debris",
+    "name": "Falling Debris",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Rocks and debris periodically fall from above.",
+    "implemented": false
+  },
+  {
+    "id": "collapsing_ground",
+    "name": "Collapsing Ground",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Sections of the floor temporarily collapse or become hazardous.",
+    "implemented": false
+  },
+  {
+    "id": "spike_traps",
+    "name": "Spike Traps",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Hidden spike traps periodically activate.",
+    "implemented": false
+  },
+  {
+    "id": "cursed_totems",
+    "name": "Cursed Totems",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Destructible totems periodically damage or weaken players.",
+    "implemented": false
+  },
+  {
+    "id": "explosive_barrels",
+    "name": "Explosive Barrels",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Explosive objects appear more frequently throughout the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "haunted_grounds",
+    "name": "Haunted Grounds",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Ghostly enemies occasionally emerge from walls or floors.",
+    "implemented": false
+  },
+  {
+    "id": "blood_pools",
+    "name": "Blood Pools",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Pools of blood slow players and periodically inflict bleeding.",
+    "implemented": false
+  },
+  {
+    "id": "unstable_rifts",
+    "name": "Unstable Rifts",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Magical rifts randomly appear and release damaging energy.",
+    "implemented": false
+  },
+  {
+    "id": "gravity_wells",
+    "name": "Gravity Wells",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Temporary gravitational fields pull players toward their centers.",
+    "implemented": false
+  },
+  {
+    "id": "corrupted_shrines",
+    "name": "Corrupted Shrines",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Shrines provide powerful bonuses but also apply temporary curses.",
+    "implemented": false
+  },
+  {
+    "id": "arcane_mines",
+    "name": "Arcane Mines",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Invisible magical mines reveal themselves shortly before exploding.",
+    "implemented": false
+  },
+  {
+    "id": "living_dungeon",
+    "name": "Living Dungeon",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Dungeon walls periodically release hostile creatures or magical attacks.",
+    "implemented": false
+  },
+  {
+    "id": "double_champions",
+    "name": "Double Champions",
+    "category": "Elite & Boss Modifiers",
+    "description": "Champion enemy packs contain twice as many champions.",
+    "implemented": false
+  },
+  {
+    "id": "elite_empowerment",
+    "name": "Elite Empowerment",
+    "category": "Elite & Boss Modifiers",
+    "description": "Elite enemies gain 30% damage and 30% health.",
+    "implemented": false
+  },
+  {
+    "id": "boss_enrage",
+    "name": "Boss Enrage",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses gain increasing attack speed as their health decreases.",
+    "implemented": false
+  },
+  {
+    "id": "boss_regeneration",
+    "name": "Boss Regeneration",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses slowly regenerate health while not taking damage.",
+    "implemented": true
+  },
+  {
+    "id": "guardian_shield",
+    "name": "Guardian Shield",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses periodically gain temporary damage-absorbing shields.",
+    "implemented": false
+  },
+  {
+    "id": "elemental_bosses",
+    "name": "Elemental Bosses",
+    "category": "Elite & Boss Modifiers",
+    "description": "Boss attacks gain a random elemental damage effect.",
+    "implemented": false
+  },
+  {
+    "id": "summoning_bosses",
+    "name": "Summoning Bosses",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses periodically summon additional enemies.",
+    "implemented": false
+  },
+  {
+    "id": "twin_guardians",
+    "name": "Twin Guardians",
+    "category": "Elite & Boss Modifiers",
+    "description": "Boss encounters feature two bosses instead of one.",
+    "implemented": false
+  },
+  {
+    "id": "unstable_bosses",
+    "name": "Unstable Bosses",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses periodically unleash random elemental explosions.",
+    "implemented": false
+  },
+  {
+    "id": "boss_teleportation",
+    "name": "Boss Teleportation",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses periodically teleport to new locations.",
+    "implemented": false
+  },
+  {
+    "id": "legendary_resistance",
+    "name": "Legendary Resistance",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses take 30% less damage from critical hits.",
+    "implemented": false
+  },
+  {
+    "id": "vengeful_guardians",
+    "name": "Vengeful Guardians",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses gain damage whenever one of their summoned minions dies.",
+    "implemented": false
+  },
+  {
+    "id": "boss_aftershock",
+    "name": "Boss Aftershock",
+    "category": "Elite & Boss Modifiers",
+    "description": "Powerful boss attacks create secondary explosions.",
+    "implemented": false
+  },
+  {
+    "id": "unholy_ascension",
+    "name": "Unholy Ascension",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses enter a more powerful second phase at 50% health.",
+    "implemented": false
+  },
+  {
+    "id": "final_stand",
+    "name": "Final Stand",
+    "category": "Elite & Boss Modifiers",
+    "description": "Bosses become significantly stronger during their final 10% health.",
+    "implemented": false
+  },
+  {
+    "id": "wild_magic",
+    "name": "Wild Magic",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Random magical effects periodically occur during combat.",
+    "implemented": false
+  },
+  {
+    "id": "temporal_distortion",
+    "name": "Temporal Distortion",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemies periodically speed up while players temporarily slow down.",
+    "implemented": false
+  },
+  {
+    "id": "chaos_orbs",
+    "name": "Chaos Orbs",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Floating magical orbs move around the battlefield, damaging anything nearby.",
+    "implemented": false
+  },
+  {
+    "id": "mirror_world",
+    "name": "Mirror World",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemies occasionally reflect a portion of incoming damage.",
+    "implemented": true
+  },
+  {
+    "id": "blood_pact",
+    "name": "Blood Pact",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemies gain damage whenever another enemy dies nearby.",
+    "implemented": false
+  },
+  {
+    "id": "soul_harvest",
+    "name": "Soul Harvest",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemy deaths release souls that empower surviving monsters if collected.",
+    "implemented": false
+  },
+  {
+    "id": "arcane_overload",
+    "name": "Arcane Overload",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Repeated skill usage causes small magical explosions around players.",
+    "implemented": false
+  },
+  {
+    "id": "doom_clock",
+    "name": "Doom Clock",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemy damage gradually increases the longer players remain in the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "unstable_reality",
+    "name": "Unstable Reality",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Random areas temporarily distort movement speed and projectile behavior.",
+    "implemented": false
+  },
+  {
+    "id": "death_s_pursuit",
+    "name": "Death's Pursuit",
+    "category": "Chaotic & Special Mechanics",
+    "description": "An invulnerable spirit slowly follows players, damaging them on contact.",
+    "implemented": false
+  },
+  {
+    "id": "corruption",
+    "name": "Corruption",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Staying in one location too long causes damaging corruption to accumulate.",
+    "implemented": false
+  },
+  {
+    "id": "chaos_surge",
+    "name": "Chaos Surge",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Every 60 seconds, a random active dungeon affix becomes temporarily stronger.",
+    "implemented": false
+  },
+  {
+    "id": "elemental_roulette",
+    "name": "Elemental Roulette",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Enemies periodically change their elemental resistances and attack types.",
+    "implemented": false
+  },
+  {
+    "id": "cataclysm",
+    "name": "Cataclysm",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Large, clearly telegraphed environmental attacks periodically strike the dungeon.",
+    "implemented": false
+  },
+  {
+    "id": "velscour_s_wrath",
+    "name": "Velscour's Wrath",
+    "category": "Chaotic & Special Mechanics",
+    "description": "Velscour periodically unleashes a random combination of fire, lightning, poison, and shadow attacks.",
+    "implemented": false
+  }
+]
+.map((affix) => Object.freeze(affix)));
 
-export const DUNGEON_AFFIXES = Object.freeze([
-  { id: 'strong', name: 'Extra Strong', description: 'Enemies deal 20% more damage.' },
-  { id: 'fast', name: 'Extra Fast', description: 'Enemies move faster and attack more often.' },
-  { id: 'tough', name: 'Stone Skin', description: 'Enemies have more health and resist damage.' },
-  { id: 'fiery', name: 'Fire Enchanted', description: 'Enemies burn you with melee attacks and explode when slain.' },
-  { id: 'frozen', name: 'Cold Aura', description: 'Enemies chill nearby heroes and resist cold damage.' },
-  { id: 'shocking', name: 'Lightning Enchanted', description: 'Enemies discharge lightning when struck.' },
-  { id: 'vampiric', name: 'Vampiric', description: 'Enemies heal when they damage you.' },
-  { id: 'multishot', name: 'Multishot', description: 'Ranged and caster enemies fire additional projectiles.' },
-  { id: 'thorns', name: 'Thorns', description: 'Enemies reflect some damage when hit.' },
-  { id: 'regen', name: 'Regenerating', description: 'Enemies recover health while out of combat.' },
-]);
-const AFFIX_BY_ID = new Map(DUNGEON_AFFIXES.map((affix) => [affix.id, affix]));
-export const DUNGEON_AFFIX_BY_ID = Object.fromEntries(AFFIX_BY_ID);
+export const DUNGEON_AFFIX_BY_ID = Object.fromEntries(DUNGEON_AFFIXES.map((affix) => [affix.id, affix]));
+export const DUNGEON_AFFIX_CONFIG = Object.freeze(
+{
+  "fortified": {
+    "healthMultiplier": 1.3,
+    "resistanceBonus": 0.08
+  },
+  "thunderstorm": {
+    "initialDelay": [
+      4,
+      8
+    ],
+    "repeatDelay": [
+      8,
+      12
+    ],
+    "warningSeconds": 0.9,
+    "damageFraction": 0.06,
+    "radius": 1.5
+  },
+  "relentless": {
+    "aggroMultiplier": 1.35,
+    "defaultAggroRange": 8
+  },
+  "weakness": {
+    "playerDamageMultiplier": 0.8
+  },
+  "elite_reinforcements": {
+    "championChance": 0.08
+  },
+  "darkness": {
+    "darkness": 0.55
+  },
+  "teleporting": {
+    "initialCooldown": [
+      3,
+      8
+    ],
+    "repeatCooldown": [
+      8,
+      14
+    ],
+    "minDistance": 5,
+    "maxDistance": 22,
+    "nearPlayerRadius": 3
+  }
+}
+);
+const IMPLEMENTED = DUNGEON_AFFIXES.filter((affix) => affix.implemented);
 
-export function dungeonAffixCount(seconds) {
-  return Math.min(MAX_DUNGEON_AFFIXES, Math.floor(Math.max(0, Number(seconds) || 0) / DUNGEON_AFFIX_INTERVAL));
+export function normalizeDungeonAffixIds(value) {
+  const ids = Array.isArray(value) ? value : [];
+  const result = [], used = new Set();
+  for (const id of ids) {
+    const affix = DUNGEON_AFFIX_BY_ID[id];
+    if (!affix || !affix.implemented || used.has(affix.category)) continue;
+    used.add(affix.category); result.push(id);
+    if (result.length >= MAX_AFFIX_SECTIONS) break;
+  }
+  return result;
 }
 
 export function chooseDungeonAffix(currentIds = [], random = Math.random) {
-  if (currentIds.length >= MAX_DUNGEON_AFFIXES) return null;
-  const used = new Set(currentIds);
-  const available = DUNGEON_AFFIXES.filter((affix) => !used.has(affix.id));
-  if (!available.length) return null;
-  const index = Math.min(available.length - 1, Math.floor(random() * available.length));
-  return available[index];
+  const ids = normalizeDungeonAffixIds(currentIds);
+  const usedCategories = new Set(ids.map((id) => DUNGEON_AFFIX_BY_ID[id].category));
+  const availableSections = [...new Set(IMPLEMENTED.filter((affix) => !usedCategories.has(affix.category)).map((affix) => affix.category))];
+  if (!availableSections.length) return null;
+  const section = availableSections[Math.min(availableSections.length - 1, Math.floor(random() * availableSections.length))];
+  const available = IMPLEMENTED.filter((affix) => affix.category === section && !ids.includes(affix.id));
+  return available[Math.min(available.length - 1, Math.floor(random() * available.length))] || null;
 }
 
-export function normalizeDungeonAffixRun(value) {
-  const source = value && typeof value === 'object' ? value : {};
-  const affixes = [...new Set(Array.isArray(source.affixes) ? source.affixes.filter((id) => AFFIX_BY_ID.has(id)) : [])]
-    .slice(0, MAX_DUNGEON_AFFIXES);
-  const rawSeconds = Number(source.seconds);
-  const seconds = Number.isFinite(rawSeconds) ? Math.max(0, rawSeconds) : 0;
-  return {
-    seconds: Math.min(DUNGEON_AFFIX_INTERVAL * MAX_DUNGEON_AFFIXES, Math.max(seconds, affixes.length * DUNGEON_AFFIX_INTERVAL)),
-    affixes,
-  };
+export function affixesForNextDepth(currentIds, nextDepth, random = Math.random) {
+  const ids = normalizeDungeonAffixIds(currentIds);
+  const target = Math.min(MAX_AFFIX_SECTIONS, Math.floor(Math.max(0, Number(nextDepth) - 1) / AFFIX_DEPTH_INTERVAL));
+  while (ids.length < target) {
+    const next = chooseDungeonAffix(ids, random);
+    if (!next) break;
+    ids.push(next.id);
+  }
+  return ids;
 }
 
 function addResistance(monster, element, amount) {
@@ -47,30 +1144,30 @@ function addResistance(monster, element, amount) {
   monster.res[element] = (monster.res[element] || 0) + amount;
 }
 
-/** Attach a campaign affix to one enemy, applying its stat changes only once. */
+/** Apply one implemented dungeon affix to an enemy. Existing combat hooks handle its ongoing effects. */
 export function applyDungeonAffix(monster, id) {
-  if (!monster || monster.team !== 'enemy' || monster.dead || !AFFIX_BY_ID.has(id)) return false;
+  const affix = DUNGEON_AFFIX_BY_ID[id];
+  if (!monster || monster.team !== 'enemy' || monster.dead || !affix || !affix.implemented) return false;
   if (id === 'multishot' && !['ranged', 'caster'].includes(monster.ai)) return false;
+  if (id === 'boss_regeneration' && monster.rank !== 'boss') return false;
   monster.dungeonAffixIds ||= [];
   if (monster.dungeonAffixIds.includes(id)) return false;
   monster.dungeonAffixIds.push(id);
   monster.affixes ||= [];
-  // Elite affixes have already applied their stat changes in makeElite().
-  if (monster.affixes.includes(id)) return true;
-  monster.affixes.push(id);
   switch (id) {
-    case 'strong': monster.dmg *= 1.2; break;
-    case 'fast':
-      monster.speed *= 1.15;
-      monster.atkCd *= 0.9;
+    case 'fortified':
+      if (!monster.affixes.includes('tough')) {
+        const cfg = DUNGEON_AFFIX_CONFIG.fortified;
+        monster.maxHp *= cfg.healthMultiplier;
+        monster.hp = Math.min(monster.maxHp, monster.hp * cfg.healthMultiplier);
+        for (const e of ['phys', 'fire', 'cold', 'light', 'poison']) addResistance(monster, e, cfg.resistanceBonus);
+      }
       break;
-    case 'tough':
-      monster.maxHp *= 1.3;
-      monster.hp = Math.min(monster.maxHp, monster.hp * 1.3);
-      for (const element of ['phys', 'fire', 'cold', 'light', 'poison']) addResistance(monster, element, 0.08);
-      break;
-    case 'fiery': addResistance(monster, 'fire', 0.15); break;
-    case 'frozen': addResistance(monster, 'cold', 0.15); break;
+    case 'volcanic_death': if (!monster.affixes.includes('fiery')) monster.affixes.push('fiery'); break;
+    case 'multishot': if (!monster.affixes.includes('multishot')) monster.affixes.push('multishot'); break;
+    case 'relentless': monster.aggroRange = (monster.aggroRange || DUNGEON_AFFIX_CONFIG.relentless.defaultAggroRange) * DUNGEON_AFFIX_CONFIG.relentless.aggroMultiplier; break;
+    case 'boss_regeneration': if (!monster.affixes.includes('regen')) monster.affixes.push('regen'); break;
+    case 'mirror_world': if (!monster.affixes.includes('thorns')) monster.affixes.push('thorns'); break;
   }
   return true;
 }

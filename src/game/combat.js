@@ -1,5 +1,6 @@
 // Damage resolution, status effects, deaths, gore.
 import { G } from '../state.js';
+import { DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
 import { rand, chance, clamp, angleTo, TAU, mixHex } from '../core/util.js';
 import { camera } from '../core/view.js';
 import { sfx } from '../core/audio.js';
@@ -52,6 +53,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   const owner = src && src.owner ? src.owner : src;
   const fromPlayer = owner && owner.isPlayer;
   if (fromPlayer && !tgt.isPlayer && G.char && G.char.madT > 0) dmg *= 2; // MADNESS (game/mayhem.js)
+  if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
 
   if (tgt.isPlayer) {
     const st = tgt.st;

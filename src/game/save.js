@@ -1,6 +1,6 @@
 // LocalStorage persistence for heroes.
 import { CLASSES } from '../data/classes.js';
-import { normalizeDungeonAffixRun } from '../data/dungeonaffixes.js';
+import { normalizeDungeonAffixIds } from '../data/dungeonaffixes.js';
 import { MAX_LEVEL } from '../data/depth.js';
 import { rollItem, HOLLOW, WEAPONS, OFFHANDS, ARMORS, AFFIX_BY_STAT, affixValue, powerLevel, tierOf, itemReqStat, charEffectiveStat, augTarget, affixScale, flatDmgValue, LINE_MULT, PERK_MULT } from '../data/items.js';
 import { SCOPE_MUL, augPower, augmentable, AUGMENTS } from '../data/rings.js';
@@ -150,7 +150,7 @@ export function newCharData(classId, name) {
     jewelBox: Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null), // dedicated town vault for gems & runes
     tabs: Array(TAB_SLOTS).fill(null), tabAt: 0, // the Bard's Tabs: locked Music Sheets he plays (data/tabs.js)
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
-    depth: 1, deepest: 0, nextBiome: null, biomeBag: [], cleared: {}, dungeonAffixRun: { seconds: 0, affixes: [] }, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
+    depth: 1, deepest: 0, nextBiome: null, biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
     kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, wdmg: 1,
   };
@@ -290,7 +290,8 @@ function rescaleFlatDmg(it, a) {
 /** Fill in fields added by later versions. */
 export function migrate(c) {
   migrateToLv100Rebalance(c);
-  c.dungeonAffixRun = normalizeDungeonAffixRun(c.dungeonAffixRun);
+  c.dungeonAffixes = normalizeDungeonAffixIds(c.dungeonAffixes);
+  c.nextAffixes = normalizeDungeonAffixIds(c.nextAffixes);
   c.potions = Object.assign({ hp: 0, mp: 0, rejuv: 0, fury: 0 }, c.potions);
   c.cleared = c.cleared || {};
   c.seaOfSandRuns = c.seaOfSandRuns || {};
