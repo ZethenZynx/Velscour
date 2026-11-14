@@ -14,7 +14,8 @@ import { regionOf } from '../game/regions.js';
 
 const step = (done, html) => `<div class="q-step${done ? ' done' : ''}"><i>${done ? '&#10004;' : '&#9670;'}</i><span>${html}</span></div>`;
 const nextRaid = (d) => { let n = Math.max(5, Math.ceil(d / 5) * 5); if (n === FINAL_DEPTH) n += 5; return n; };
-const BOSS_ROOM_DEPTHS = Array.from({ length: Math.floor((FINAL_DEPTH - 1) / 5) }, (_, i) => (i + 1) * 5).filter(isRaidDepth);
+// Include the campaign's Depth 500 finale, but not post-campaign boss rooms.
+const BOSS_ROOM_DEPTHS = Array.from({ length: Math.floor(FINAL_DEPTH / 5) }, (_, i) => (i + 1) * 5);
 
 export function renderQuest(body) {
   const c = G.char, w = G.world;
