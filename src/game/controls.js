@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { input } from '../core/input.js';
 import { camera, screenDirToTile } from '../core/view.js';
 import { dist, angleTo } from '../core/util.js';
-import { SKILLS, skillRange, needsTarget } from '../data/skills.js';
+import { SKILLS } from '../data/skills.js';
 import { SLOT_KEYS, RMB } from '../data/bar.js';
 import { Macros } from './macros.js';
 
