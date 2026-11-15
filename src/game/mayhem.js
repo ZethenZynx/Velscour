@@ -45,6 +45,8 @@ export function rollTrait(world, depth, force = false) {
 
 // ---------------------------------------------------------------- ambush arrivals
 const ENTRY = ['drop', 'teleport', 'burrow', 'wall'];
+const AMBUSH_AFK_DELAY = 90;
+const AMBUSH_REPEAT_WAIT = [180, 240];
 
 /** Floor spot near (x, y) the hero can reach, `r0..r1` tiles away. */
 function spotNear(w, x, y, r0, r1, rr) {
@@ -140,12 +142,29 @@ export function ambushTick(w, dt) {
   const p = w.player;
   if (w.kind !== 'dungeon' || w.raid || w.breach || !p || p.dead || !w.roster || !w.roster.length) return;
   if (w.boss && w.boss.awake && !w.boss.dead) return;
+  if (w.ambushLastX === undefined) { w.ambushLastX = p.x; w.ambushLastY = p.y; }
+  if (Math.hypot(p.x - w.ambushLastX, p.y - w.ambushLastY) > 0.08) w.ambushIdleT = 0;
+  else w.ambushIdleT = (w.ambushIdleT || 0) + dt;
+  w.ambushLastX = p.x; w.ambushLastY = p.y;
+  const repeat = (w.ambushCount || 0) > 0;
+  // Keep the floor's first ambush on its existing timer. Further ambushes are an AFK deterrent only:
+  // the player must stay still for a while, and later waves wait several minutes between attempts.
+  if (repeat && w.ambushIdleT < AMBUSH_AFK_DELAY) return;
   if (w.ambushT === undefined) w.ambushT = rand(25, 40) / (w.heresyAmbush || 1);
   if ((w.ambushT -= dt) > 0) return;
-  w.ambushT = rand(30, 55) * Math.max(0.6, 1 - w.depth * 0.004) / (w.heresyAmbush || 1); // Ambush Weather (game/heresies.js): three times as often
-  // not on top of a fight that is already big
-  if (w.hostiles('player', p.x, p.y, 9).length > 8) { w.ambushT = 8; return; }
-  ambush(w);
+  w.ambushT = rand(...AMBUSH_REPEAT_WAIT) * Math.max(0.6, 1 - w.depth * 0.004) / (w.heresyAmbush || 1); // Ambush Weather speeds the repeat wait
+  // Never pile a repeat wave onto a room's remaining enemies. The first ambush keeps the old crowd guard.
+  if (w.hostiles('player', p.x, p.y, 9).length > (repeat ? 0 : 8)) {
+    if (repeat) {
+      w.ambushT = rand(...AMBUSH_REPEAT_WAIT) * Math.max(0.6, 1 - w.depth * 0.004) / (w.heresyAmbush || 1);
+      w.ambushIdleT = 0;
+    } else w.ambushT = 8;
+    return;
+  }
+  if (ambush(w)) {
+    w.ambushCount = (w.ambushCount || 0) + 1;
+    w.ambushIdleT = 0;
+  }
 }
 
 export function ambush(w, kind = pick(ENTRY), n = 0) {

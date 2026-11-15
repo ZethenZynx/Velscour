@@ -356,13 +356,18 @@ async function gear521(page) {
       for (const [k, ids] of [['none', []], ['on', ['ambush']]]) {
         const w = X.build(31, ids); for (const m of X.foes(w)) m.dead = true;
         ambushTick(w, 0.01); const first = w.ambushT;
-        const after = []; for (let i = 0; i < 20; i++) { w.ambushT = 0.001; ambushTick(w, 0.01); after.push(w.ambushT); for (const m of X.foes(w)) m.dead = true; }
-        out[k] = { mul: w.heresyAmbush || 1, first: +first.toFixed(1), lo: +Math.min(...after).toFixed(1), hi: +Math.max(...after).toFixed(1) };
+        w.ambushT = 0.001; ambushTick(w, 0.01); // force the first ambush, then inspect its repeat schedule
+        for (const m of X.foes(w)) m.dead = true;
+        const repeat = w.ambushT;
+        ambushTick(w, 89.9); const beforeAfk = w.ambushCount;
+        ambushTick(w, 0.2); const afterAfk = w.ambushCount;
+        out[k] = { mul: w.heresyAmbush || 1, first: +first.toFixed(1), repeat: +repeat.toFixed(1), count: w.ambushCount, beforeAfk, afterAfk };
       }
       return out;
     });
     console.log('ambush', JSON.stringify(am));
-    check(am.on.mul === 3 && am.on.first <= 40 / 3 + 0.01 && am.on.hi <= am.none.lo, `Ambush Weather: the wait a third (first ${am.on.first} s vs ${am.none.first}; then ${am.on.lo}-${am.on.hi} s vs ${am.none.lo}-${am.none.hi})`);
+    check(am.none.count === 1 && am.none.beforeAfk === 1 && am.none.afterAfk === 1, `repeat ambushes wait for 90 seconds of inactivity (count ${am.none.count}, before/after AFK gate ${am.none.beforeAfk}/${am.none.afterAfk})`);
+    check(am.none.repeat >= 180 * 0.876 && am.none.repeat <= 240 * 0.876 && am.on.mul === 3 && am.on.first <= 40 / 3 + 0.01 && am.on.repeat >= 180 * 0.876 / 3 && am.on.repeat <= 240 * 0.876 / 3 && am.on.repeat < am.none.repeat / 2, `repeat ambushes wait several minutes and Ambush Weather still speeds both waits (first ${am.on.first} s; repeat ${am.on.repeat} vs ${am.none.repeat})`);
     // --- Black Omens: every omenable depth, the portal cards, the Nemesis
     const om = await page.evaluate(async () => {
       const { G, game } = window.VELSCOUR, X = window.HX, out = { on: [], none: [] };
