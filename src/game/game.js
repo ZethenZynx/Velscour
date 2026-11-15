@@ -54,7 +54,7 @@ import { DUNE_VARIANTS } from '../data/dunes.js';
 import { loadCastlePack, releaseCastlePack } from '../gfx/castle.js';
 import { loadCastle3D, releaseCastle3D, loadBaked, castle3dState, warmBaked } from '../gfx/castle3dart.js';
 import { CASTLE_VARIANTS } from '../data/castles.js';
-import { addCastleStory } from './castlestory.js';
+
 import { generateSkyship } from '../world/skyship.js';
 import { warmSky } from '../gfx/skyship.js';
 import { createSkyBattle } from './skybattle.js';
@@ -1466,7 +1466,7 @@ export const game = {
     if (biome.overworld && !sky && !sea && !biome.cave && !gen.dunes && (!reg || reg.wilds)) {
       // townsfolk on the road: reachable landmarks to walk between (game/wanderers.js)
       const spots = [], map = gen.map;
-      for (let i = 0; i < 60 && spots.length < 9; i++) {
+      for (let i = 0; i < 60 && spots.length < 9 && !castle; i++) {
         const x = 3 + Math.random() * (map.w - 6), y = 3 + Math.random() * (map.h - 6);
         if (map.walkable(x, y) && map.findPath(gen.start[0], gen.start[1], x, y, 9000)) spots.push([x, y]);
       }
