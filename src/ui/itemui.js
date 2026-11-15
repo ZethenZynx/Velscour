@@ -55,7 +55,7 @@ export function itemCell(item) {
 
 export function rarityClass(item) {
   if (!item) return '';
-  if (item.type === 'gem') return GEMS[item.gem].sigil ? 'rsig' : GEMS[item.gem].special ? 'r4' : 'r2';
+  if (item.type === 'gem') return GEMS[item.gem].sigil ? 'rsig' : ''; // Gems keep their own artwork; gear quality tiers do not tint their slots.
   if (item.type !== 'gear') return 'r0';
   if (item.sealed) return 'rs';
   if (item.relic) return 'r' + item.relic;
