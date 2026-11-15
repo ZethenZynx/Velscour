@@ -19,10 +19,13 @@ const tileset = { pack: 'dark_forest', floors: pack.floors };
 const seeds = process.argv[2] == null ? 100 : +process.argv[2];
 for (let n = 1; n <= seeds; n++) {
   const g = generateDarkForest(7, biome, tileset, n * 7717 + 3), m = g.map;
-  if (m.w !== DF_W || m.h !== DF_H || DF_W !== 48 || DF_H !== 48) throw Error('incorrect map size');
+  if (m.w !== DF_W || m.h !== DF_H || DF_W !== 192 || DF_H !== 192) throw Error('incorrect map size');
   if (m.walls.length || m.doors.length || g.glades || g.labyrinths) throw Error('legacy trials or labyrinth structures remain');
   if (g.spawns.filter((s) => s.rank === 'boss').length !== 1) throw Error('expected exactly one boss');
-  if (g.chests.length !== 2 || g.spawns.filter((s) => s.rank !== 'boss').length > 6) throw Error('enemy or chest density exceeded');
+  const regular = g.spawns.filter((s) => !['boss', 'raid'].includes(s.rank));
+  const enemies = regular.reduce((sum, s) => sum + s.n, 0);
+  if (regular.length < 80 || regular.length > 110 || enemies < 220 || enemies > 340) throw Error('enemy population is outside the original forest scale');
+  if (g.chests.length !== 2) throw Error('expected two chests');
   const seen = new Uint8Array(m.w * m.h), idx = (x, y) => Math.floor(y) * m.w + Math.floor(x);
   const q = [idx(...g.start)]; seen[q[0]] = 1;
   for (let h = 0; h < q.length; h++) {
@@ -34,11 +37,12 @@ for (let n = 1; n <= seeds; n++) {
   }
   for (const p of [g.boss,g.exit,...g.chests.map((c)=>[c.x,c.y]),...g.spawns.map((s)=>[s.x,s.y])]) if (!seen[idx(...p)]) throw Error('unreachable spawn or objective: '+p);
   if (!(g.start[0] < m.w/4 && g.start[1] > m.h*3/4 && g.boss[0] > m.w*3/4 && g.boss[1] < m.h/4)) throw Error('start and boss are not on opposite corners');
+  if (g.trees.length < 14000 || g.trees.length > 15500) throw Error('tree population drifted from the full-size forest');
   if (g.trees.some((t)=>m.walkable(t.x,t.y))) throw Error('blocking tree has no collision');
 }
-const guardian = { rank:'boss', dead:false, x:43.5, y:4.5 }, world = { boss:guardian };
+const guardian = { rank:'boss', dead:false, x:179.5, y:12.5 }, world = { boss:guardian };
 let opened = false;
 const run = createDarkForestRun(world, {}, biome, () => { opened = true; });
 run.bossDefeated(guardian);
 if (!run.completed || run.active || !opened) throw Error('guardian defeat did not complete the Forest run');
-console.log('PASS simplified Dark Forest: '+seeds+' seeds, connected boss route, no trials or mazes, exit callback verified');
+console.log('PASS full-size Dark Forest: '+seeds+' seeds, connected boss route, no trials or mazes, exit callback verified');
