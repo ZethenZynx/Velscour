@@ -1130,7 +1130,7 @@ export const game = {
     if (biome.id === 'castle') { // one of the castles (src/data/castles.js), never the one seen last; the first if its bake won't load
       const last = CASTLE_VARIANTS.findIndex((v) => v.id === G.char?.lastCastle), k = Math.floor(Math.random() * (CASTLE_VARIANTS.length - (last >= 0 ? 1 : 0)));
       G.castleNext = G.castleVariant ?? (last >= 0 && k >= last ? k + 1 : k);
-      return Promise.all([loadCastlePack(), loadCastle3D(G.castleNext).catch((e) => { console.warn(e); G.castleNext = 0; return loadCastle3D(0); }), loadDarkForestTrees()]);
+      return Promise.all([loadCastlePack(), loadCastle3D(G.castleNext).catch((e) => { console.warn(e); G.castleNext = 0; return loadCastle3D(0); })]);
     }
     if (biome.id === 'dark_forest') return Promise.all([loadBiomeArt(biome), loadDarkForestTrees()]);
     if (biome.challenge) return loadBiomeArt(biome); // the Breach's two packs (pack, wallPack, moreFloors/morePacks)
