@@ -7,7 +7,7 @@ import { rand, chance, pick, dist, angleTo } from '../core/util.js';
 import { TOWNSFOLK, folkLabel } from '../data/townsfolk.js';
 import { townFacingFlip } from './townsfolkvisuals.js';
 import { preloadTownSheets } from './render.js';
-import { GroundItem } from './loot.js';
+import { GroundItem, rollGroundItem, rollGroundGem } from './loot.js';
 import { rollItem, rollGem, goldScale } from '../data/items.js';
 import { depthLevel } from '../data/depth.js';
 import { floatText, sparkle, addEffect, Ring } from '../gfx/vfx.js';
@@ -99,8 +99,8 @@ function payBounty(world, n) {
   b.state = 'paid';
   const at = p || n;
   const add = (kind, data) => world.addLoot(new GroundItem(at.x + rand(-0.5, 0.5), at.y + rand(-0.5, 0.5), kind, data));
-  add('item', { item: rollItem(lvl + 2, { mf: p ? p.st.magicFind : 0, bonus: 1 }) });
-  if (chance(0.5)) add('item', { item: rollGem(lvl + 4) });
+  add('item', { item: rollGroundItem(lvl + 2, { mf: p ? p.st.magicFind : 0, bonus: 1 }) });
+  if (chance(0.5)) add('item', { item: rollGroundGem(lvl + 4) });
   add('gold', { amount: Math.round((40 + lvl * 9) * goldScale(lvl) * rand(0.8, 1.3)) });
   if (p && G.char) { p.gainXp && p.gainXp(Math.round(120 * Math.pow(lvl, 1.5))); } // ~30 kills' worth (monsterBase xp); 60 * 1.11^lvl was hundreds of levels deep down
   n.say(pick(LINES.cheer), 4, true);

@@ -20,6 +20,18 @@ import { maybeRelic } from '../data/relics.js';
 import { heresyAllows } from './heresies.js';
 import { keyChance } from './unbound.js';
 
+/** Roll gear drops no higher than the character's current level. Keep vendor rolls on rollItem. */
+export function rollGroundItem(ilvl, opts = {}) {
+  const level = G.char?.level;
+  return rollItem(level == null ? ilvl : Math.min(ilvl, level), opts);
+}
+
+/** Roll ground gems at a tier available to the character's current level. */
+export function rollGroundGem(ilvl) {
+  const level = G.char?.level;
+  return rollGem(level == null ? ilvl : Math.min(ilvl, level));
+}
+
 const sigilCache = new Map();
 /** A Sigil Stone's icon: a dark rune slab with its sigil's mark in the stone's colour, more ornate by rank. */
 export function sigilIcon(rank, size = 48) {
@@ -330,7 +342,7 @@ export function dropLoot(world, m) {
   const boost = (world.raid || m.isRaid || m.isVelscour ? 3 : 1) * (world.relicMul || 1); // BOSS ROOMs triple the Covenant odds (data/relics.js); Heresies raise them
   for (let i = 0; i < items; i++) {
     const ilvl = lvl + (rank === 'boss' ? 2 : rank === 'normal' ? 0 : 1) + randi(-1, 1);
-    const item = maybeRelic(rollItem(ilvl, { mf: st.magicFind + (world.mfAdd || 0), bonus }), boost);
+    const item = maybeRelic(rollGroundItem(ilvl, { mf: st.magicFind + (world.mfAdd || 0), bonus }), boost);
     add('item', { item, fades: fadeOf(item) });
   }
   // Sigil Stones: rare from the rank and file, common from guardians (Heresies: world.sigilMul)
@@ -339,20 +351,20 @@ export function dropLoot(world, m) {
   // an Abyssal Key (docs/ENDGAME.md): BOSS ROOM bosses past depth 600 under Heresy rank 10, rift guardians from tier 10
   if (m.isRaid && chance(keyChance(world, m))) add('key', {}); // (keyChance rolls once a boss: a raid boss pays out three dropLoots)
   // rings: a guardian usually drops one
-  if ((rank === 'boss' && chance(0.6)) || (rank === 'unique' && chance(0.2))) add('item', { item: rollItem(lvl + 2, { slot: 'ring', mf: st.magicFind + (world.mfAdd || 0), bonus }) });
+  if ((rank === 'boss' && chance(0.6)) || (rank === 'unique' && chance(0.2))) add('item', { item: rollGroundItem(lvl + 2, { slot: 'ring', mf: st.magicFind + (world.mfAdd || 0), bonus }) });
   // gems
   const gems = more(rank === 'boss' ? randi(1, 3) : chance(rank === 'normal' ? 0.025 : 0.25) ? 1 : 0);
-  for (let i = 0; i < gems; i++) { const item = rollGem(lvl + (rank === 'boss' ? 6 : 0)); add('item', { item, fades: fadeOf(item) }); }
+  for (let i = 0; i < gems; i++) { const item = rollGroundGem(lvl + (rank === 'boss' ? 6 : 0)); add('item', { item, fades: fadeOf(item) }); }
 }
 
 export function dropChest(world, chest, depth) {
   const st = G.player ? G.player.st : { magicFind: 0, goldFind: 0 };
   const n = chest.rare ? randi(2, 3) : randi(1, 2);
   const add = (kind, data) => world.addLoot(new GroundItem(chest.x, chest.y + 0.3, kind, data));
-  for (let i = 0; i < n; i++) add('item', { item: maybeRelic(rollItem(depthLevel(depth) + 1, { mf: st.magicFind + (world.mfAdd || 0), bonus: chest.rare ? 1.2 : 0.35 })) });
+  for (let i = 0; i < n; i++) add('item', { item: maybeRelic(rollGroundItem(depthLevel(depth) + 1, { mf: st.magicFind + (world.mfAdd || 0), bonus: chest.rare ? 1.2 : 0.35 })) });
   if (chance(chest.rare ? 0.25 : 0.06)) add('item', { item: rollSigil(depth) });
   for (let i = 0; i < randi(2, 4); i++) add('gold', { amount: Math.round((10 + depthLevel(depth) * 4) * goldScale(depthLevel(depth)) * rand(0.6, 1.4) * (1 + st.goldFind / 100)) });
-  if (chance(chest.rare ? 0.8 : 0.3)) add('item', { item: rollGem(depthLevel(depth) + 4) });
+  if (chance(chest.rare ? 0.8 : 0.3)) add('item', { item: rollGroundGem(depthLevel(depth) + 4) });
   if (chance(0.5)) add('potion', { item: potionItem(pick(['hp', 'mp', 'rejuv'])) });
   if (heresyAllows('orb', G.player?.char, world) && chance(0.75)) add('orb_hp', {});
 }

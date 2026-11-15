@@ -169,14 +169,15 @@ function progress(e, k, what) {
   }
   // chapter done
   const depth = (G.world && G.world.depth) || c.depth || 1, lvl = depthLevel(Math.min(depth, FINAL_DEPTH));
+  const gearLvl = Math.min(lvl, c.level || lvl);
   const gold = Math.round(goldPile(lvl) * 25);
   c.gold += gold;
   const gifts = [rollSigil(depth, 1), rollSigil(depth, 1)];
-  if (chance(0.4) || e.ch === L.chapters.length - 1) { const cov = makeCovenant(lvl + 1); if (cov) gifts.push(cov); }
+  if (chance(0.4) || e.ch === L.chapters.length - 1) { const cov = makeCovenant(gearLvl + 1); if (cov) gifts.push(cov); }
   e.ch++; e.n = 0;
   const last = e.ch >= L.chapters.length;
   if (last) {
-    const h = makeHeirloom(lvl + 2) || makeCovenant(lvl + 2);
+    const h = makeHeirloom(gearLvl + 2) || makeCovenant(gearLvl + 2);
     if (h) gifts.push(h);
     const s = commState(c);
     s.open = s.open.filter((x) => x !== e);
