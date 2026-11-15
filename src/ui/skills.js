@@ -23,7 +23,8 @@ function resourceCostLabel(sk, L) {
   if (sk.classId === 'barbarian' && sk.kind === 'whirl') {
     return whirlwindRageCost(L) + ' Rage to start · ' + whirlwindRageRate(L).toFixed(1) + '/s';
   }
-  return manaCost(sk, L) + ' Mana';
+  const mana = manaCost(sk, L);
+  return (Number.isInteger(mana) ? mana : mana.toFixed(1)) + ' Mana';
 }
 
 /** A skill's mastery: level, tier, an XP bar, its damage multiplier, and the ring augments on it. */

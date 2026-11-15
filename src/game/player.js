@@ -506,7 +506,7 @@ export class Player extends Creature {
     }
     if ((this.cooldowns[sk.id] || 0) > 0) return false;
     const aug = this.augFor(sk), quick = aug && aug.haste ? 1 - Math.min(0.6, 0.25 * aug.haste) : 1;
-    const cost = Math.round(manaCost(sk, L) * quick);
+    const cost = Math.round(manaCost(sk, L) * quick * 10) / 10;
     if (this.mana < cost) {
       if ((this.noManaT || 0) <= 0) { floatText(this.x, this.y, 60, 'Not enough mana', '#6a8aff', 12); sfx('error'); this.noManaT = 0.8; }
       return false;
