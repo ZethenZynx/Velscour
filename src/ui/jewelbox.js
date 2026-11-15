@@ -125,6 +125,57 @@ export const JewelBox = {
     changed();
     return true;
   },
+  /** Deposit unlocked gems from both inventory bags into the Jewel Box. */
+  depositAll() {
+    const c = G.char;
+    if (!c) return;
+    if (!Array.isArray(c.jewelBox)) c.jewelBox = Array(JEWEL_BOX_SIZE).fill(null);
+    let moved = 0, full = false;
+    const moveGems = (arr) => {
+      if (!Array.isArray(arr) || full) return;
+      for (let i = 0; i < arr.length; i++) {
+        const it = arr[i];
+        if (!it || it.type !== 'gem' || it.locked) continue;
+        if (!addToJewelBox(c, it)) { full = true; break; }
+        delete it.autoStash;
+        arr[i] = null;
+        moved++;
+      }
+    };
+    moveGems(c.bag);
+    if (!full) moveGems(c.gemBag);
+    if (moved) {
+      this.selected = null; UI.selected = null; sfx('pickup'); changed();
+      UI.log(`Deposited ${moved} gem stack${moved === 1 ? '' : 's'} in the Jewel Box${full ? '; the box is full' : ''}.`, full ? '#ff8080' : '#80ff80');
+    } else if (full) {
+      UI.log('The Jewel Box is full.', '#ff8080'); sfx('error');
+    } else {
+      const hasLocked = [c.bag, c.gemBag].some((arr) => Array.isArray(arr) && arr.some((it) => it && it.type === 'gem' && it.locked));
+      UI.log(hasLocked ? 'All gems in your inventory are locked.' : 'No gems in your inventory to deposit.', hasLocked ? '#ffd860' : undefined);
+      sfx('ui');
+    }
+  },
+  /** Withdraw every gem stack that fits into the Gem Bag. */
+  withdrawAll() {
+    const c = G.char;
+    if (!c || !Array.isArray(c.jewelBox)) return;
+    let moved = 0, full = false;
+    for (let i = 0; i < c.jewelBox.length; i++) {
+      const it = c.jewelBox[i];
+      if (!it || it.type !== 'gem') continue;
+      if (!addToBag(c, it)) { full = true; break; }
+      c.jewelBox[i] = null;
+      moved++;
+    }
+    if (moved) {
+      this.selected = null; UI.selected = null; sfx('pickup'); changed();
+      UI.log(`Withdrew ${moved} gem stack${moved === 1 ? '' : 's'} from the Jewel Box${full ? '; Gem Bag is full' : ''}.`, full ? '#ff8080' : '#80ff80');
+    } else if (full) {
+      UI.log('Gem Bag is full.', '#ff8080'); sfx('error');
+    } else {
+      UI.log('The Jewel Box is empty.'); sfx('ui');
+    }
+  },
 
   render(body) {
     const c = G.char;
@@ -139,6 +190,14 @@ export const JewelBox = {
     const used = (c.jewelBox || []).filter(Boolean).length;
     const rows = jewelBoxRows(c);
     const head = el('div', 'row storage-toolbar jewelbox-toolbar', `<strong>${fmtInt(used)} / ${c.jewelBox.length}</strong><span class="dim">gems stored (${rows} rows)</span>`);
+    const depositAllBtn = el('button', 'btn small', 'Deposit All');
+    depositAllBtn.title = 'Move all unlocked gems and runes from your inventory into the Jewel Box';
+    depositAllBtn.onclick = () => { sfx('ui'); self.depositAll(); };
+    head.appendChild(depositAllBtn);
+    const withdrawAllBtn = el('button', 'btn small', 'Withdraw All');
+    withdrawAllBtn.title = 'Move all gems and runes that fit from the Jewel Box into your Gem Bag';
+    withdrawAllBtn.onclick = () => { sfx('ui'); self.withdrawAll(); };
+    head.appendChild(withdrawAllBtn);
 
     for (const [by, label] of [['kind', 'Sort by kind'], ['grade', 'Sort by grade']]) {
       const b = el('button', 'btn small', label);
