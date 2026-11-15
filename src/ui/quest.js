@@ -32,7 +32,7 @@ export function renderQuest(body) {
     else if (b?.id === 'sea_of_sand') h += step(false, 'A linked Sea of Sand route with one to five timed scenario areas lies beyond.');
     else if (b?.id === 'skyship') h += step(false, "The Sky Lanes lie beyond: the Air Pirates board the heroes' airship in waves, then their flagship comes.");
     else if (b?.sea) h += step(false, "The Pirate Seas lie beyond: the Black Tide's boats come up from astern to board the Lampwardens' Dawnwake, wave on wave.");
-    else if (b?.id === 'dark_forest') h += step(false, 'The Dark Forest lies beyond: trails, labyrinths, five trial glades (win one to reach the Heart) and the Heart of the Forest.');
+    else if (b?.id === 'dark_forest') h += step(false, 'The Dark Forest lies beyond: cross the open woods, defeat the Forest Guardian, and take the portal it leaves behind.');
     else if (b?.tower) h += step(false, 'The Serpentine Tower lies beyond: a spiral stair to a roof where bosses and sky pirates wait.');
     else if (b?.cave) h += step(false, "The Depth's Edge Caverns lie beyond: passages and caverns, a lake under a waterfall, and a long climb to the top of the falls.");
     else if (b?.overworld) h += step(false, 'A Forsaken Wilds scenario shrine guards the way forward.');
@@ -86,12 +86,9 @@ export function renderQuest(body) {
         h += step(sc.completed, `Defeat what waits at the top of the falls${sc.top && sc.top.n ? ` (${Math.min(sc.top.i, sc.top.n)} of ${sc.top.n})` : ''}.`);
         h += step(sc.completed, sc.completed ? 'A portal burns above the falls — descend or return to town.' : 'The portal opens at the top of the falls when the last of them falls.');
       } else if (w.biome?.id === 'dark_forest') {
-        const cur = sc.current;
-        h += step(sc.cleared > 0, `Win any one trial glade to reach the Heart; other glades are optional rewards: <b>${sc.cleared}/${sc.trials.length}</b>.`);
-        for (const t of sc.trials) h += step(t.completed, `${escapeHtml(t.title)} <span class="dim">— ${escapeHtml(t.description)}</span>`);
-        if (cur) h += step(false, `In progress: <b>${escapeHtml(cur.title)}</b> — ${escapeHtml(cur.progress() || cur.description)}`);
-        h += step(sc.heart.completed, 'Reach the Heart of the Forest, deep in the mossy labyrinth to the north-east, and still the <b>Elder Heartwood</b>.');
-        h += step(sc.completed, sc.completed ? 'The exit is open — descend or return to town.' : 'The trial at the Heart opens the way on.');
+        const guardian = sc.guardian || w.boss;
+        h += step(!!guardian?.dead, `Cross the forest and defeat ${guardian?.name ? `<b>${escapeHtml(guardian.name)}</b>` : 'the <b>Forest Guardian</b>}.`);
+        h += step(sc.completed, sc.completed ? 'The exit is open — descend or return to town.' : 'The exit opens when the guardian falls.');
       } else if (sc.type === 'dunes') {
         h += step(sc.campsDone >= sc.camps.length, `Win the waystones across ${escapeHtml(sc.variant.name)}: <b>${sc.campsDone}/${sc.camps.length}</b>.`);
         for (const e of sc.camps) h += step(e.state === 'done', `${escapeHtml(e.name)} <span class="dim">— ${escapeHtml(e.label)}</span>`);

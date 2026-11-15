@@ -215,7 +215,7 @@ export const BIOMES = [
     torch:'#f2ad55', fog:'#24150a',
   },
   {
-    // the largest overworld: thick woods, trail mazes, walled labyrinths and twelve forest trials (docs/DARK_FOREST.md)
+    // the open forest overworld: a route from the southwest entrance to the northeast Forest Guardian (docs/DARK_FOREST.md)
     id: 'dark_forest', name: 'The Dark Forest', pack: 'dark_forest', overworld: true, packArt: true,
     palette: null, dark: 0.64, light: 11.5,
     ambient: { type: 'firefly', color: '#b8f07a' }, mon: { hue: 70, sat: 0.8, light: -0.02 },

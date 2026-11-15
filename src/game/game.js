@@ -1338,9 +1338,10 @@ export const game = {
       sfx('boss');
     };
     world.onBossKilled = (m) => {
-      if (biome.overworld) return;
+      if (biome.overworld && !forest) return;
       if (world.dungeonAffixes.includes('twin_guardians') && world.creatures.some((enemy) => enemy.team === 'enemy' && enemy.rank === 'boss' && !enemy.dead)) return;
       if (m.raid && m.raid.court) return; // one of Velscour Unbound's court: not the fight's end
+      if (forest) world.overworldScenario?.bossDefeated(m);
       exit.active = true; exit.color = '#40a0ff'; exit.label = world.unbound ? 'Exit — to town' : 'Exit — continue';
       if (world.unbound) { // the rematch: no depth cleared, no victory screen; its hoard is Velscour's (game/velscour.js)
         c.unbound.wins = (c.unbound.wins || 0) + 1;
@@ -1426,16 +1427,7 @@ export const game = {
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
-    else if (forest) world.overworldScenario = createDarkForestRun(world, gen, biome, () => {
-      exit.active = true; exit.color = '#40a0ff'; exit.label = 'Exit — continue';
-      const first = !c.cleared[depth];
-      c.cleared[depth] = true;
-      c.deepest = Math.max(c.deepest || 0, depth);
-      greedCleared(world, c);
-      if (first) this.awardFloorClear(depth, 'stilling the Heart of the Forest');
-      addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
-      sfx('gate'); UI.refresh(); this.autosave();
-    });
+    else if (forest) world.overworldScenario = createDarkForestRun(world, gen, biome);
     else if (biome.tower) createTowerRun(world, gen, biome, () => {
       exit.active = true; exit.color = '#40a0ff'; exit.label = 'Exit — continue';
       const first = !c.cleared[depth];
@@ -1505,7 +1497,7 @@ export const game = {
     else if (sea) UI.log(`${world.seaRun.variant.name}: ${world.seaRun.variant.blurb} Hold the Dawnwake's deck against the Black Tide's boarders.`, '#ffe2a0');
     else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the stair; things wait on the floors above, and some will not wait.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
-    else if (forest) UI.log(`The Dark Forest closes in. The Heart lies deep in the north-east labyrinth; ${gen.glades.length} glades hold trials and treasure along the way.`, '#c8f0a0');
+    else if (forest) UI.log('The Dark Forest closes in. Find the Forest Guardian in the clearing across the woods; defeat it to open the exit.', '#c8f0a0');
     else if (biome.overworld) {
       if (biome.id === 'castle' && gen.variant?.story?.intro) UI.log(gen.variant.story.intro, '#e8d0a8');
       UI.log('Activate the glowing shrine and complete its objective to open the exit.', '#ffe2a0');
@@ -1525,7 +1517,7 @@ export const game = {
 
   useExit(world, exit) {
     const c = G.char;
-    if (!exit.active) { floatText(exit.x, exit.y, 70, world.breach ? 'Sealed — the Breach Heart still beats!' : world.rift ? 'Sealed — the Guardian still stands!' : world.overworldScenario ? 'Sealed — complete the shrine trial!' : 'Sealed — slay the guardian!', '#ff6040', 13, { life: 1.6 }); sfx('error'); return; }
+    if (!exit.active) { floatText(exit.x, exit.y, 70, world.breach ? 'Sealed — the Breach Heart still beats!' : world.rift ? 'Sealed — the Guardian still stands!' : world.biome?.id === 'dark_forest' ? 'Sealed — defeat the Forest Guardian!' : world.overworldScenario ? 'Sealed — complete the shrine trial!' : 'Sealed — slay the guardian!', '#ff6040', 13, { life: 1.6 }); sfx('error'); return; }
     if (world.breach) this.breachExit(world);
     else if (world.rift) this.riftExit(world);
     else if (world.unboundExploration && world.unboundExploration.floor < MAX_UNBOUND_DEPTH) this.unboundExit(world);
