@@ -1484,11 +1484,13 @@ export const game = {
     if (!biome.beta) recordBiomeVisit(c, biome, depth); // a beta biome leaves the overworld guarantee alone
     c.lastBiome = biome.id;
     const uFloor = world.unboundExploration?.floor;
+    const activeAffixNames = (world.dungeonAffixes || []).map((id) => DUNGEON_AFFIX_BY_ID[id]?.name).filter(Boolean);
     HUD.setArea(
       world.unbound ? 'Velscour Unbound' :
       uFloor ? `Unbound Floor ${uFloor}` :
       `Depth ${depth}${depth > FINAL_DEPTH ? ' — Endless Torment' : ''}`,
-      (biome.overworld ? `${gen.variant ? gen.variant.name : biome.name} · ${world.overworldScenario.title}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : '')
+      (biome.overworld ? `${gen.variant ? gen.variant.name : biome.name} · ${world.overworldScenario.title}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''),
+      activeAffixNames
     );
     playMusic('wilds', { delay: 4 + Math.random() * 20 }); setAmbience(sky ? world.sky.v.amb : sea ? world.seaRun.variant.amb : reg?.amb || biome.id);
     const kin = tileset.mixed && BIOME_BY_ID[tileset.mixed];
