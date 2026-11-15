@@ -5,15 +5,15 @@
 // - Covenant (COVENANTS): six sets of five pieces. A piece alone is worth about an Epic (~8 levels); wearing 2/3/4/5
 //   pieces of one set adds a line each, then the set's power: a whole set scores about like five Mythics. The bonuses
 //   scale with the lowest-level piece worn.
-// - Glyphword (GLYPHWORDS): Sigil Stones (data/items.js) set in the right order in a plain (Common) item with exactly
+// - Glyphword (GLYPHWORDS): Sigil Stones (data/items.js) set in the right order in a plain (Orange) item with exactly
 //   that many sockets. It keeps the stones' own stats and adds lines and (from three stones) a power. Recognised live
 //   (glyphOf), so prying the stones out makes it plain again.
 // Powers use the legendary flags the engine already runs (game/player.js, game/combat.js) and procs (game/relicprocs.js).
 import { chance, pick, clamp } from '../core/util.js';
-import { rollItem, affixValue, AFFIX_BY_STAT, GEMS, SIGILS, RELIC_HOOK, powerLevel, legendaryScale, LEGENDARY } from './items.js';
+import { rollItem, affixValue, AFFIX_BY_STAT, GEMS, SIGILS, RELIC_HOOK, powerLevel, legendaryScale, LEGENDARY, RARITY_EPIC, RARITY_LEGENDARY, RARITY_MYTHIC } from './items.js';
 
 // ---------------------------------------------------------------- line values
-const MYTHIC = 5;
+const MYTHIC = RARITY_MYTHIC;
 /** Line strength per kind, measured in item levels by tools/tests/relic_balance.js (a Heirloom about a Legendary to a
  *  Mythic, a Covenant piece about an Epic, a full set's bonuses a little under five Mythics' worth). */
 export const TUNE = { heir: 0.45, cov: 0.55, set: 0.9, glyph: 0.55 };
@@ -246,7 +246,7 @@ export function makeHeirloom(ilvl, opts = {}) {
   const pool = HEIRLOOMS.filter((h) => (opts.id ? h.id === opts.id : (!opts.slot || h.slot === opts.slot) && h.minIlvl <= ilvl && !h.crown && !h.unbound === !opts.unbound));
   if (!pool.length) return null;
   const H = pick(pool);
-  const it = rollItem(ilvl, { slot: H.slot, rarity: 4, base: H.base, generic: true });
+  const it = rollItem(ilvl, { slot: H.slot, rarity: RARITY_LEGENDARY, base: H.base, generic: true });
   return shapeRelic(it, 'heir', H.id, H.name, H.lines, H.slot === 'ring' ? 1 : 2);
 }
 /** A Covenant piece (pieceId, or a random piece of setId / of any set). */
@@ -254,7 +254,7 @@ export function makeCovenant(ilvl, opts = {}) {
   const pool = Object.values(PIECE_BY_ID).filter((p) => (opts.pieceId ? p.id === opts.pieceId : !opts.setId || p.set === opts.setId) && (!opts.slot || p.slot === opts.slot));
   if (!pool.length) return null;
   const P = pick(pool);
-  const it = rollItem(ilvl, { slot: P.slot, rarity: 3, base: P.base, generic: true });
+  const it = rollItem(ilvl, { slot: P.slot, rarity: RARITY_EPIC, base: P.base, generic: true });
   it.cset = P.set;
   return shapeRelic(it, 'cov', P.id, P.name, P.lines, P.slot === 'ring' ? 1 : 3);
 }

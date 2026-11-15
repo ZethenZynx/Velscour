@@ -9,8 +9,8 @@ import { addToBag } from '../game/player.js';
 import { emptyEquipSlot } from '../game/autoequip.js';
 import { noteFind } from '../game/reliquary.js';
 import {
-  rollItem, rollGem, makeGem, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost,
-  rerollAffixes, addAffix, RARITY, rarityAt, POTION_PRICE, POTION_INFO, GEMS, gemName, SLOT_NAMES, WEAPONS, MAX_GEM_TIER, gemFuseCost, gemRefineCost, slotFor, gemMaxTier, sigilFuseCost,
+  rollItem, rollGem, rollRarity, makeGem, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost,
+  rerollAffixes, addAffix, RARITY, RARITY_EPIC, RARITY_LEGENDARY, RARITY_MYTHIC, rarityAt, qualityAtDepth, POTION_PRICE, POTION_INFO, GEMS, gemName, SLOT_NAMES, WEAPONS, MAX_GEM_TIER, gemFuseCost, gemRefineCost, slotFor, gemMaxTier, sigilFuseCost,
 } from '../data/items.js';
 import { CLASSES } from '../data/classes.js';
 import { potionIcon } from '../core/assets.js';
@@ -31,10 +31,11 @@ export const Vendor = {
 
   restock() {
     const c = G.char;
-    // stock for the hero's own level (items need their level to wear); rarely better than Rare
+    // stock is level-appropriate and follows the campaign depth's quality unlocks
     const lvl = Math.max(1, c.level);
     const cls = CLASSES[c.classId];
-    const shopRarity = () => (chance(0.012) ? 3 : chance(0.08) ? 2 : chance(0.4) ? 1 : 0);
+    const qualityCap = qualityAtDepth(c.depth || 1);
+    const shopRarity = () => rarityAt(lvl, rollRarity(0, 0, lvl, qualityCap));
     const weapons = [];
     for (let i = 0; i < 16; i++) {
       const slot = i < 12 ? 'weapon' : 'offhand';
@@ -197,7 +198,7 @@ export const Vendor = {
       if (UI.selected && UI.selected.where === ref.where && UI.selected.idx === ref.idx && !curSlot) UI.selected = null;
       changed();
     };
-    if ((it.type === 'gear' && it.rarity >= 3) || (it.type === 'sheet' && it.inked)) UI.confirm('Sell item?', `Sell <span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span> for ${fmtInt(price)} gold?`, sellIt, 'Sell');
+    if ((it.type === 'gear' && it.rarity >= RARITY_EPIC) || (it.type === 'sheet' && it.inked)) UI.confirm('Sell item?', `Sell <span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span> for ${fmtInt(price)} gold?`, sellIt, 'Sell');
     else sellIt();
     return true;
   },
@@ -354,7 +355,7 @@ export const Vendor = {
           it.gems = [];
           sfx('gold');
         });
-        box.appendChild(el('div', 'dim', `Sockets by rarity: ${RARITY.map((r) => `${r.name} ${r.sockets}`).join(', ')}. Plain (Common) items take up to 6 (weapons, body armor), 4 (helms, off-hands, legs) or 3 (hands, feet): bases for Glyphwords.`));
+        box.appendChild(el('div', 'dim', `Sockets by rarity: ${RARITY.map((r) => `${r.name} ${r.sockets}`).join(', ')}. Plain (Orange) items take up to 6 (weapons, body armor), 4 (helms, off-hands, legs) or 3 (hands, feet): bases for Glyphwords.`));
       }
     }
     body.appendChild(box);
@@ -375,7 +376,7 @@ export const Vendor = {
         const it = slot === 'gem' ? rollGem(lvl + 8) : rollItem(c.level, { slot, mf: G.player.st.magicFind + 120, bonus: 0.5 });
         if (!addToBag(c, it)) { UI.log('Inventory full.', '#ff8080'); sfx('error'); return; }
         c.gold -= cost;
-        sfx(it.rarity >= 3 ? 'levelup' : 'gold');
+        sfx(it.rarity >= RARITY_EPIC ? 'levelup' : 'gold');
         UI.log(`The gamble reveals: <span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span>!`);
         changed();
       };
@@ -440,17 +441,19 @@ export const Vendor = {
     banner.style.cssText = 'margin-bottom:12px;font-size:13px;line-height:1.4;';
     body.appendChild(banner);
 
+    const qualityCap = qualityAtDepth(c.depth || 1);
+    const topQuality = () => { const pool = RARITY.filter((q) => q.id >= RARITY_MYTHIC && q.id <= qualityCap); return pool.length ? pool[Math.floor(Math.random() * pool.length)].id : RARITY_MYTHIC; };
     const chestOffers = [
       {
         id: 'mystery',
         name: 'Sealed Mystery Casket',
         cost: 1,
-        desc: 'An iron-bound coffer pulled from the outer depths. Contains an <b>Epic or better</b> item scaled to your level.',
-        rarityText: 'Epic+',
+        desc: `An iron-bound coffer pulled from the outer depths. Contains gear up to your highest unlocked quality, scaled to your level.`,
+        rarityText: `${RARITY[RARITY_EPIC].name}+`,
         rollRarity: () => {
           const mf = G.player?.st?.magicFind || 0;
           const r = Math.random();
-          if (r < Math.min(0.12, 0.03 * (1 + mf / 200))) return 5;
+          if (r < Math.min(0.12, 0.03 * (1 + mf / 200))) return topQuality();
           if (r < Math.min(0.40, 0.20 * (1 + mf / 150))) return 4;
           return 3;
         },
@@ -459,13 +462,13 @@ export const Vendor = {
         id: 'weapon',
         name: 'Sealed Armament Coffer',
         cost: 2,
-        desc: 'A heavy warded coffer containing an <b>Epic or better Weapon or Offhand</b>.',
-        rarityText: 'Epic+ Weapon / Offhand',
+        desc: `A heavy warded coffer containing a weapon or offhand up to your highest unlocked quality.`,
+        rarityText: `${RARITY[RARITY_EPIC].name}+ Weapon / Offhand`,
         slot: () => (Math.random() < 0.75 ? 'weapon' : 'offhand'),
         rollRarity: () => {
           const mf = G.player?.st?.magicFind || 0;
           const r = Math.random();
-          if (r < Math.min(0.15, 0.04 * (1 + mf / 200))) return 5;
+          if (r < Math.min(0.15, 0.04 * (1 + mf / 200))) return topQuality();
           if (r < Math.min(0.45, 0.25 * (1 + mf / 150))) return 4;
           return 3;
         },
@@ -474,13 +477,13 @@ export const Vendor = {
         id: 'armor',
         name: 'Sealed Armor Vault',
         cost: 2,
-        desc: 'A runed lockbox containing <b>Epic or better Armor</b> (Helm, Chest, Legs, Boots, or Gloves).',
-        rarityText: 'Epic+ Armor',
+        desc: `A runed lockbox containing armor up to your highest unlocked quality (helm, chest, legs, boots, or gloves).`,
+        rarityText: `${RARITY[RARITY_EPIC].name}+ Armor`,
         slot: () => pick(['head', 'body', 'legs', 'feet', 'hands']),
         rollRarity: () => {
           const mf = G.player?.st?.magicFind || 0;
           const r = Math.random();
-          if (r < Math.min(0.15, 0.04 * (1 + mf / 200))) return 5;
+          if (r < Math.min(0.15, 0.04 * (1 + mf / 200))) return topQuality();
           if (r < Math.min(0.45, 0.25 * (1 + mf / 150))) return 4;
           return 3;
         },
@@ -489,12 +492,12 @@ export const Vendor = {
         id: 'reliquary',
         name: 'Sealed Abyssal Reliquary',
         cost: 5,
-        desc: 'A forbidden relic chest pulsing with dark brimstone. Guaranteed <b>Legendary or Mythic</b>!',
-        rarityText: 'Guaranteed Legendary / Mythic',
+        desc: `A forbidden relic chest pulsing with dark brimstone. The quality is capped by your campaign progress.`,
+        rarityText: `High quality (depth capped)`,
         rollRarity: () => {
           const mf = G.player?.st?.magicFind || 0;
           const r = Math.random();
-          return r < Math.min(0.35, 0.15 * (1 + mf / 150)) ? 5 : 4;
+          return r < Math.min(0.35, 0.15 * (1 + mf / 150)) ? topQuality() : 4;
         },
       },
     ];
@@ -508,7 +511,7 @@ export const Vendor = {
 
       const ic = el('div', 'bslot r3 sealed');
       Object.assign(ic.style, { width: '42px', height: '42px', flex: 'none' });
-      ic.appendChild(itemCell({ type: 'gear', sealed: true, rarity: offer.id === 'reliquary' ? 4 : 3 }));
+      ic.appendChild(itemCell({ type: 'gear', sealed: true, rarity: offer.id === 'reliquary' ? RARITY_LEGENDARY : RARITY_EPIC }));
       row.appendChild(ic);
 
       const info = el('div', '');
@@ -556,10 +559,11 @@ export const Vendor = {
 
     const lvl = Math.max(c.level, depthLevel(c.depth || 1));
     const slot = offer.slot ? offer.slot() : undefined;
-    const rarity = offer.rollRarity();
+    const rarity = Math.min(offer.rollRarity(), qualityAtDepth(c.depth || 1));
     const it = rollItem(lvl, {
       slot,
       rarity,
+      maxRarity: qualityAtDepth(c.depth || 1),
       mf: (G.player?.st?.magicFind || 0) + 50,
       bonus: 0.5,
     });

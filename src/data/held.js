@@ -1,9 +1,11 @@
 // Held gear (assets/sprites/held/, baked by tools/weapons3d_bake.js): every weapon and off-hand base shows in a set of
-// 50 three.js designs in a class's style, by rarity (HELD_PER: 10 Common .. 6 Mythic). An item's look picks one of its
+// 50 three.js designs in a class's style, in six legacy art bands (10 Common .. 6 Mythic). An item's look picks one of its
 // rarity's designs; the set comes from its base, the slot it sits in and the wearer's class.
 export const HELD_PER = [10, 10, 9, 8, 7, 6];
 export const HELD_START = HELD_PER.map((_, R) => HELD_PER.slice(0, R).reduce((a, b) => a + b, 0));
 export const HELD_COUNT = HELD_PER.reduce((a, b) => a + b, 0);
+/** The sprite/model library has six art bands; qualities above Vermilion reuse its Mythic band. */
+export const heldTierForRarity = (rarity) => Math.min(HELD_PER.length - 1, Math.max(0, rarity | 0));
 
 /** Each class's own off-hand base (none for the Barbarian, who swings a second weapon). */
 export const CLASS_FOCUS = {

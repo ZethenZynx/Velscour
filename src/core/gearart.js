@@ -116,7 +116,7 @@ export const gearSrc = (cls) => (cls && classGearCache.get(cls)?.meta ? classGea
 export const gearMeta = (cls) => (S.cls === cls && S.meta ? S.meta : classGearCache.get(cls)?.meta || null);
 
 // ------------------------------------------------------------------ looks of items
-const rarityName = (r) => RARITY[r].name.toLowerCase();
+const rarityName = (r) => ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'][Math.min(5, Math.max(0, r | 0))];
 function finishFor(rarity, forcePalette = false) {
   if (!forcePalette && chance(0.1)) return 0; // armor may keep its original colours
   const ok = PALETTES.map((p, i) => i).filter((i) => i && PALETTES[i].tier <= rarity && PALETTES[i].tier >= rarity - 2);
@@ -145,14 +145,14 @@ export function itemLook(item, src = S) {
     if (!item.look || item.look[3] !== LOOK_GEN || item.look[0] > designs.length) {
       // a design of the helm's rarity (three sets each). Sets 02/03 have Mythic in Legendary's place, so a Legendary helm
       // also rolls those Mythics: three designs, while Mythic keeps its own two.
-      const top = Math.max(...designs.map((d) => d.rarity)), r = Math.min(item.rarity, top);
+      const artTier = Math.min(5, item.rarity), top = Math.max(...designs.map((d) => d.rarity)), r = Math.min(artTier, top);
       const ok = designs.filter((d) => d.rarity === r || (r === 4 && d.rarity === 5));
       item.look = [pick(ok.length ? ok : designs).id, finishFor(item.rarity, true), -1, LOOK_GEN];
     }
   } else {
     const lib = src.meta.armor;
     if (!item.look || item.look[3] !== LOOK_GEN || item.look[0] > lib.n) {
-      const band = lib.bands[rarityName(item.rarity)] || lib.bands.mythic || lib.bands.common; // Abyssal wears the Mythic designs
+      const band = lib.bands[rarityName(item.rarity)] || lib.bands.common; // new qualities reuse the nearest existing class-art band
       item.look = [pick(band), finishFor(item.rarity), item.look?.[2] ?? fxFor(item.rarity), LOOK_GEN];
     }
   }

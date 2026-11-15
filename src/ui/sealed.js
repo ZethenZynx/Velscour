@@ -5,7 +5,7 @@
 import { G } from '../state.js';
 import { el, escapeHtml } from '../core/util.js';
 import { sfx } from '../core/audio.js';
-import { RARITY, itemName, itemColor, canEquipItem } from '../data/items.js';
+import { RARITY, RARITY_LEGENDARY, RARITY_MYTHIC, itemName, itemColor, canEquipItem } from '../data/items.js';
 import { UI } from './ui.js';
 import { itemTooltip } from './itemui.js';
 import { itemIcon } from '../game/loot.js';
@@ -15,7 +15,7 @@ export const isSealed = (it) => !!(it && it.sealed);
 export const sealedCount = (c = G.char) => (c ? c.bag.reduce((a, b) => a + (b && b.sealed ? 1 : 0), 0) : 0);
 
 const SPIN = 2.8; // seconds of spin
-const REEL = [3, 3, 3, 3, 3, 4, 4, 5]; // what flashes past: mostly Epic, some Legendary, a little Mythic
+const REEL = [3, 3, 3, 3, 4, 4, 5, 7, 9, 11, 13, 15, 17, 19]; // tease the higher quality bands too
 let open = null; // the card on screen
 
 /** Break the seal on the first sealed item in the bag (the HUD chip). */
@@ -76,8 +76,8 @@ function land(card, tile) {
   box.classList.add('landed', 'rv-r' + it.rarity);
   box.querySelector('.rv-title').innerHTML = `<span style="color:${col}">${RARITY[it.rarity].name.toUpperCase()}!</span>`;
   box.querySelector('.rv-result').innerHTML = itemTooltip(it);
-  if (it.rarity >= 5) { sfx('boss', 0.5); sfx('levelup', 0.8); G.flash = Math.max(G.flash || 0, 0.4); }
-  else if (it.rarity >= 4) { sfx('levelup', 0.7); sfx('gold', 0.8); }
+  if (it.rarity >= RARITY_MYTHIC) { sfx('boss', 0.5); sfx('levelup', 0.8); G.flash = Math.max(G.flash || 0, 0.4); }
+  else if (it.rarity >= RARITY_LEGENDARY) { sfx('levelup', 0.7); sfx('gold', 0.8); }
   else { sfx('chest', 0.7); sfx('gold', 0.6); }
   UI.log(`The seal breaks: <span style="color:${col}">${escapeHtml(itemName(it))}</span>!`, col);
   const row = box.querySelector('.rv-btns');

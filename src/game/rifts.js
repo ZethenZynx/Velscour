@@ -7,7 +7,7 @@ import { explosionFx } from '../gfx/shapes.js';
 import { UI } from '../ui/ui.js';
 import { makeRaidBoss, RAID_BOSSES } from './raid.js';
 import { GroundItem, rollGroundItem, rollGroundGem } from './loot.js';
-import { rollItem, rollSigil, rollGem, rarityAt, ABYSSAL, goldPile, RARITY } from '../data/items.js';
+import { rollItem, rollSigil, rollGem, rarityAt, ABYSSAL, RARITY_MYTHIC, goldPile, RARITY } from '../data/items.js';
 import { hit } from './combat.js';
 import { RIFT_TIME, RIFT_QUOTA, RIFT_DENSITY, RIFT_GUARDIAN_HP, PYLONS, riftDepth, riftLevel, riftJump, riftWeight, riftReward, fmtTime, instabilitiesForTier } from '../data/rifts.js';
 import { markBonuses, grantMarks, riftMarks } from './marks.js';
@@ -156,7 +156,7 @@ export function riftWin(world, m) {
   for (let i = 0; i < (RW.items || 4); i++) {
     const isAbyssal = (i === 0 && chance(RW.abyssal)) || (RW.abyssal >= 1 && i < 2);
     const rar = isAbyssal ? ABYSSAL : rarityAt(lvl, 5);
-    drop('item', { item: rollGroundItem(lvl, { rarity: rar, mf: p ? p.st.magicFind : 0 }) });
+    drop('item', { item: rollGroundItem(lvl, { rarity: rar, maxRarity: isAbyssal ? ABYSSAL : RARITY_MYTHIC, mf: p ? p.st.magicFind : 0 }) });
   }
 
   // Abyssal Keys for Unbound Exploration

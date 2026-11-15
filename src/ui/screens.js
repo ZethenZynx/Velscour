@@ -524,8 +524,7 @@ export function settingsDialog() {
 
 /** Shared item type and rarity controls for pickup and ground-label filters. */
 function itemFilterDialog(title, f, enabledLabel, help, onDone) {
-  const hue = ['white', 'green', 'blue', 'purple', 'orange', 'red', 'cyan'];
-  const opts = `<option value="-1">None</option>` + RARITY.map((r, i) => `<option value="${i}" style="color:${r.color}">${r.name}${i < RARITY.length - 1 ? ' or better' : ''} (${hue[i]})</option>`).join('');
+  const opts = `<option value="-1">None</option>` + RARITY.map((r, i) => `<option value="${i}" style="color:${r.color}">${r.name}${i < RARITY.length - 1 ? ' or better' : ''}</option>`).join('');
   const gemGradeNames = ['Chipped', 'Flawed', 'Standard', 'Flawless', 'Perfect', 'Royal', 'Imperial', 'Celestial', 'Abyssal', 'Eternal'];
   const gemOpts = `<option value="-1">None</option>` + gemGradeNames.map((name, i) => `<option value="${i}">${name}${i < gemGradeNames.length - 1 ? ' or better' : ''}</option>`).join('');
   const html = `<div class="settings-grid">
@@ -578,7 +577,7 @@ export function helpDialog() {
     <div><kbd>G</kbd> MADNESS · <kbd>F</kbd> CLASS ULTIMATE (Smite, Cataclysm, Supernova, etc.), then click where it should strike (both fill as you fight) · <kbd>H</kbd> HEARTHSTONE (two-way town portal) · <kbd>F1</kbd> How to Play</div>
     <div><b style="color:#ffe2a0">While the hero plays</b></div>
     <div>Click or tap <b style="color:#ffd040">gilded critters</b> before they get away (follow the red arrows): each is worth a big sum of experience (a Golden Scarab, a pile of gold). </div>
-    <div>Now and then an Epic or better drops <b style="color:#ffdf8a">sealed</b>: break the seals from the SEALED button or the inventory. The inventory panel shows the available space.</div>
+    <div>Now and then a Green or better item drops <b style="color:#ffdf8a">sealed</b>: break the seals from the SEALED button or the inventory. The inventory panel shows the available space.</div>
     <div><b>Loot filter</b> (Settings): pick which weapons, off-hands, armor and rings (by rarity) and whether gems get picked up, by auto-pickup and by walking over them.</div>
     <div>Pick one of three portals at each cleared exit, and pull the <b style="color:#ffc040">Greed</b> lever for tougher depths and richer drops; a death loses the Hoard.</div>
     <div><b style="color:#ffe2a0">Goal</b></div>
