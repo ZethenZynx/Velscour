@@ -42,6 +42,20 @@ const fail = (msg) => { console.log('FAIL', msg); process.exitCode = 1; };
   if (slots.length !== 18) fail('expected 18 HUD slots, got ' + slots.length);
   const geometry = await page.evaluate(async () => { const { A } = await import('/src/core/assets.js'); return { width: A.hudGeo.w, xp: A.hudGeo.xp, imageWidth: document.querySelector('#hud-img').naturalWidth }; });
   if (geometry.width !== 1923 || geometry.xp.w !== 1397 || geometry.imageWidth !== 1923) fail('compact HUD and XP geometry: ' + JSON.stringify(geometry));
+  const xpBar = await page.evaluate(async () => {
+    const { G } = window.VELSCOUR;
+    const { xpToNext } = await import('/src/game/player.js');
+    G.char.xp = Math.floor(xpToNext(G.char.level) / 2);
+    G.ui.hud.last.xp = null;
+    G.ui.hud.update(0);
+    return {
+      width: parseFloat(document.querySelector('#xp-fill').style.width),
+      trackZ: parseInt(getComputedStyle(document.querySelector('#xp-track')).zIndex, 10),
+      artZ: parseInt(getComputedStyle(document.querySelector('#hud-img')).zIndex, 10),
+    };
+  });
+  if (Math.abs(xpBar.width - 50) > 1) fail('XP bar fills to the earned percentage: ' + JSON.stringify(xpBar));
+  if (!(xpBar.trackZ > xpBar.artZ)) fail('XP bar is drawn above the HUD artwork: ' + JSON.stringify(xpBar));
   const skillSlots = slots.filter((s) => /Skill slot/.test(s.title));
   if (skillSlots.length !== 14 || skillSlots.some((s) => !s.icon)) fail('14 skill slots with icons: ' + skillSlots.length);
   console.log('slot titles', slots.map((s) => s.title.replace('Skill slot ', '').replace(/ Potion.*|Elixir.*/, 'P')).join(' '));
