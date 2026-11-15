@@ -578,7 +578,8 @@ export const HOLLOW = { weapon: 6, body: 6, offhand: 4, head: 4, legs: 4, hands:
 export function rollItem(ilvl, opts = {}) {
   ilvl = Math.max(1, Math.round(ilvl));
   const slot = opts.slot || pick(['weapon', 'weapon', 'offhand', 'head', 'head', 'body', 'body', 'body', 'hands', 'legs', 'feet', 'ring', 'ring']);
-  const rarity = opts.rarity ?? rollRarity(opts.mf || 0, opts.bonus || 0, ilvl);
+  const rolledRarity = opts.rarity ?? rollRarity(opts.mf || 0, opts.bonus || 0, ilvl);
+  const rarity = Math.min(rolledRarity, opts.maxRarity ?? RARITY.length - 1);
   const tier = tierOf(ilvl), pl = powerLevel(ilvl, rarity);
   const item = { uid: newUid(), type: 'gear', slot, rarity, ilvl, tier, upg: 0, affixes: [], gems: [], sockets: 0 };
   const art = opts.generic || slot === 'ring' ? null : classItem(slot, rarity, opts.base);

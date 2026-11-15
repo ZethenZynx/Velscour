@@ -20,10 +20,16 @@ import { maybeRelic } from '../data/relics.js';
 import { heresyAllows } from './heresies.js';
 import { keyChance } from './unbound.js';
 
-/** Roll gear drops no higher than the character's current level. Keep vendor rolls on rollItem. */
+/** Highest quality available to ground drops at this campaign depth. Abyssal remains special-only (RARITY weight 0). */
+export function groundDropRarityCap(depth) {
+  return clamp(Math.floor(Math.max(0, depth || 0) / 24), 0, 6);
+}
+
+/** Roll gear drops at the character's level and current depth's quality cap. Keep vendor rolls on rollItem. */
 export function rollGroundItem(ilvl, opts = {}) {
   const level = G.char?.level;
-  return rollItem(level == null ? ilvl : Math.min(ilvl, level), opts);
+  const rarityCap = groundDropRarityCap(G.world?.depth ?? G.char?.depth ?? 1);
+  return rollItem(level == null ? ilvl : Math.min(ilvl, level), { ...opts, maxRarity: rarityCap });
 }
 
 /** Roll ground gems at a tier available to the character's current level. */
