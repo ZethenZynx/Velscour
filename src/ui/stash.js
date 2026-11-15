@@ -75,6 +75,27 @@ export const Stash = {
     sfx('pickup'); changed();
     return true;
   },
+  /** Move every chest item that fits into the backpack or Gem Bag. */
+  withdrawAll() {
+    const c = G.char;
+    if (!c || !Array.isArray(c.stash)) return;
+    let moved = 0, full = false;
+    for (let i = 0; i < c.stash.length; i++) {
+      const it = c.stash[i];
+      if (!it) continue;
+      if (!addToBag(c, it)) { full = true; continue; }
+      c.stash[i] = null;
+      moved++;
+    }
+    if (moved) {
+      this.selected = null; UI.selected = null; sfx('pickup'); changed();
+      UI.log(`Withdrew ${moved} item${moved === 1 ? '' : 's'} from the storage chest${full ? '; inventory is full' : ''}.`, full ? '#ff8080' : '#80ff80');
+    } else if (full) {
+      UI.log('Inventory and Gem Bag are full.', '#ff8080'); sfx('error');
+    } else {
+      UI.log('The storage chest is empty.'); sfx('ui');
+    }
+  },
   /** Move all unlocked items from backpack (and optionally gemBag) into the storage chest. */
   stashAll(where = 'auto') {
     const c = G.char;
@@ -87,10 +108,7 @@ export const Stash = {
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         if (!it || it.locked) continue;
-        if (!addToStash(c, it)) {
-          full = true;
-          break;
-        }
+        if (!addToStash(c, it)) { full = true; continue; }
         delete it.autoStash;
         arr[i] = null;
         moved++;
@@ -101,12 +119,13 @@ export const Stash = {
       moveFrom(c.gemBag);
     } else if (where === 'bag') {
       moveFrom(c.bag);
-    } else {
-      // 'auto' or 'all': stash backpack items; if backpack had none, check gemBag too
+    } else if (where === 'all') {
       moveFrom(c.bag);
-      if (!full && moved === 0 && Array.isArray(c.gemBag)) {
-        moveFrom(c.gemBag);
-      }
+      moveFrom(c.gemBag);
+    } else {
+      // 'auto' keeps the original behavior: check the Gem Bag only when no backpack item moved.
+      moveFrom(c.bag);
+      if (!full && moved === 0 && Array.isArray(c.gemBag)) moveFrom(c.gemBag);
     }
 
     if (moved > 0) {
@@ -123,8 +142,8 @@ export const Stash = {
       UI.log('The storage chest is full.', '#ff8080');
       sfx('error');
     } else {
-      const source = where === 'gemBag' ? c.gemBag : c.bag;
-      const hasLocked = Array.isArray(source) && source.some((it) => it && it.locked);
+      const sources = where === 'gemBag' ? [c.gemBag] : where === 'bag' ? [c.bag] : [c.bag, c.gemBag];
+      const hasLocked = sources.some((source) => Array.isArray(source) && source.some((it) => it && it.locked));
       if (hasLocked) {
         UI.log('All items in inventory are locked.', '#ffd860');
       } else {
@@ -144,10 +163,14 @@ export const Stash = {
     const used = (c.stash || []).filter(Boolean).length;
     const rows = stashRows(c);
     const head = el('div', 'row storage-toolbar', `<strong>${fmtInt(used)} / ${c.stash.length}</strong><span class="dim">stored (${rows} rows)</span>`);
-    const stashAllBtn = el('button', 'btn small', 'Stash All');
+    const stashAllBtn = el('button', 'btn small', 'Deposit All');
     stashAllBtn.title = 'Stash all unlocked items from inventory into the storage chest';
-    stashAllBtn.onclick = () => { sfx('ui'); self.stashAll(); };
+    stashAllBtn.onclick = () => { sfx('ui'); self.stashAll('all'); };
     head.appendChild(stashAllBtn);
+    const withdrawAllBtn = el('button', 'btn small', 'Withdraw All');
+    withdrawAllBtn.title = 'Move all items that fit from the storage chest into your inventory';
+    withdrawAllBtn.onclick = () => { sfx('ui'); self.withdrawAll(); };
+    head.appendChild(withdrawAllBtn);
     for (const [by, label] of [['type', 'Sort by type'], ['rarity', 'Sort by rarity']]) {
       const b = el('button', 'btn small', label);
       b.onclick = () => { sortStash(c, by); self.selected = null; sfx('ui'); UI.selected = null; changed(); };

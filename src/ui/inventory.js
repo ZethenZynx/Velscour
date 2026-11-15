@@ -857,7 +857,7 @@ export function renderInventory(body, panel) {
   actions.appendChild(sortBtn);
 
   if (Stash.active) {
-    const stashAllBtn = el('button', 'btn small', 'Stash All');
+    const stashAllBtn = el('button', 'btn small', 'Deposit All');
     stashAllBtn.title = 'Move all unlocked items from backpack into storage chest';
     stashAllBtn.onclick = () => { sfx('ui'); Stash.stashAll('bag'); };
     actions.appendChild(stashAllBtn);
@@ -907,7 +907,7 @@ export function renderInventory(body, panel) {
   gemActions.appendChild(sortGemsBtn);
 
   if (Stash.active) {
-    const stashGemsBtn = el('button', 'btn small', 'Stash Gems');
+    const stashGemsBtn = el('button', 'btn small', 'Deposit Gems');
     stashGemsBtn.title = 'Move all unlocked gems from Gem Bag into storage chest';
     stashGemsBtn.onclick = () => { sfx('ui'); Stash.stashAll('gemBag'); };
     gemActions.appendChild(stashGemsBtn);
