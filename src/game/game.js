@@ -32,7 +32,7 @@ import { createOverworldScenario } from './overworld.js';
 import { addWanderers } from './wanderers.js';
 import { createSeaOfSandScenario } from './seaofsand.js';
 import { loadSeaOfSandPack, releaseSeaOfSandPack } from '../gfx/seaofsand.js';
-import { createDarkForestRun } from './darkforest.js';
+import { createDarkForestRun, createCastleRun } from './darkforest.js';
 import { generateDarkForest } from '../world/darkforest.js';
 import { loadDarkForestTrees } from '../gfx/darkforest.js';
 import { generateBreach } from '../world/breach.js';
@@ -1207,6 +1207,7 @@ export const game = {
     if (biome.sea && !sea3dReady()) { UI.log('A storm keeps the Dawnwake in harbour today (three.js could not be loaded).', '#a0a0a0'); biome = BIOME_BY_ID.overworld; }
     const old = G.world;
     const forest = biome.id === 'dark_forest';
+    const castle = biome.id === 'castle';
     const tileset = forest ? biomeTileSet(biome) : biome.overworld ? biomeTileSet(TOWN_BIOME) : mix ? mixedTileSet(biome, mix, Math.random() < 0.5) : biomeTileSet(biome);
     keepTileSets(tileset);
     c.seaOfSandRuns ||= {}; c.darkForestRuns ||= {};
@@ -1338,10 +1339,10 @@ export const game = {
       sfx('boss');
     };
     world.onBossKilled = (m) => {
-      if (biome.overworld && !forest) return;
+      if (biome.overworld && !forest && !castle) return;
       if (world.dungeonAffixes.includes('twin_guardians') && world.creatures.some((enemy) => enemy.team === 'enemy' && enemy.rank === 'boss' && !enemy.dead)) return;
       if (m.raid && m.raid.court) return; // one of Velscour Unbound's court: not the fight's end
-      if (forest) world.overworldScenario?.bossDefeated(m);
+      if (forest || castle) world.overworldScenario?.bossDefeated(m);
       exit.active = true; exit.color = '#40a0ff'; exit.label = world.unbound ? 'Exit — to town' : 'Exit — continue';
       if (world.unbound) { // the rematch: no depth cleared, no victory screen; its hoard is Velscour's (game/velscour.js)
         c.unbound.wins = (c.unbound.wins || 0) + 1;
@@ -1428,6 +1429,7 @@ export const game = {
       sfx('gate'); UI.refresh(); this.autosave();
     });
     else if (forest) world.overworldScenario = createDarkForestRun(world, gen, biome);
+    else if (castle) world.overworldScenario = createCastleRun(world, gen, biome);
     else if (biome.tower) createTowerRun(world, gen, biome, () => {
       exit.active = true; exit.color = '#40a0ff'; exit.label = 'Exit — continue';
       const first = !c.cleared[depth];
@@ -1460,7 +1462,7 @@ export const game = {
     });
     this.setWorld(world, gen.start, old);
     announceDungeonAffixes(world);
-    if (biome.id === 'castle') { addCastleStory(world, gen); world.ambientFx = gen.variant?.look?.ambient || null; c.lastCastle = gen.variant?.id; }
+    if (biome.id === 'castle') { world.ambientFx = gen.variant?.look?.ambient || null; c.lastCastle = gen.variant?.id; }
     if (biome.overworld && !sky && !sea && !biome.cave && !gen.dunes && (!reg || reg.wilds)) {
       // townsfolk on the road: reachable landmarks to walk between (game/wanderers.js)
       const spots = [], map = gen.map;
@@ -1468,7 +1470,7 @@ export const game = {
         const x = 3 + Math.random() * (map.w - 6), y = 3 + Math.random() * (map.h - 6);
         if (map.walkable(x, y) && map.findPath(gen.start[0], gen.start[1], x, y, 9000)) spots.push([x, y]);
       }
-      if (spots.length >= 2 && !biome.beta && !biome.tower) addWanderers(world, spots, biome.id === 'castle' ? 6 : forest ? 4 : 5);
+      if (spots.length >= 2 && !biome.beta && !biome.tower && !castle) addWanderers(world, spots, forest ? 4 : 5);
       const look = gen.variant?.look || {};   // a castle variant has its own odds of rain and of night
       world.raining = biome.id !== 'sea_of_sand' && !biome.tower && Math.random() < (look.rain ?? 0.3); // a wet day in the Wilds or on the walls
       if (!biome.tower && Math.random() < (look.night ?? 0.25)) { world.darkK = biome.id === 'sea_of_sand' ? 0.45 : 0.6; world.night = true; } // nightfall: torches, spells and portals glow
@@ -1498,6 +1500,7 @@ export const game = {
     else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the stair; things wait on the floors above, and some will not wait.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
     else if (forest) UI.log('The Dark Forest closes in. Find the Forest Guardian in the clearing across the woods; defeat it to open the exit.', '#c8f0a0');
+    else if (castle) UI.log('The Castle grounds open before you. Cross the courtyard and defeat the Castle Guardian to unlock the exit.', '#e8d0a8');
     else if (biome.overworld) {
       if (biome.id === 'castle' && gen.variant?.story?.intro) UI.log(gen.variant.story.intro, '#e8d0a8');
       UI.log('Activate the glowing shrine and complete its objective to open the exit.', '#ffe2a0');
