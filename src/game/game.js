@@ -660,6 +660,7 @@ export const game = {
         '</div>';
     };
 
+    const breachDestinationForDepth = (d) => breachInterludeFloor(d, c.breach?.best);
     const describe = (d) => {
       const act = getActForDepth(d);
       const isSuper = isSuperbossDepth(d);
@@ -676,6 +677,10 @@ export const game = {
       }
 
       const actHeader = `<div style="color:#ffd880;font-size:12px;font-weight:bold;margin-bottom:4px;letter-spacing:0.5px;">ACT ${act.act}: ${act.name.toUpperCase()}</div>`;
+      const breachFloor = breachDestinationForDepth(d);
+      if (breachFloor) {
+        return `${actHeader}<p>The portal leads to <b style="color:#d8b0ff">The Eternal Breach · Floor ${breachFloor}</b>.</p><p class="dim">This is the Breach interlude for Campaign Depth ${d}. Clear the floor, then return to town to continue toward its boss room.</p>`;
+      }
       if (d === current) {
         return `${actHeader}<p>The portal hums. Beyond lies <b style="color:#ffb070">${escapeHtml(currentBiome.name)}</b>.</p><p class="dim">${this.biomeBlurb(currentBiome)}${tail}</p>${affixPreviewHtml(d)}`;
       }
@@ -722,10 +727,10 @@ export const game = {
           <div class="portal-pane portal-campaign-pane">
             ${actPillsHtml}
             <div class="floor-pick-head">
-              <span class="floor-pick-label">Depth</span>
+              <span class="floor-pick-label">Campaign Depth</span>
               <div class="floor-pick-num">
                 <button type="button" class="btn floor-pick-step" data-step="-1" title="Previous floor">&#8722;</button>
-                <input type="number" class="floor-pick-input" min="1" max="${maxFloor}" step="1" value="${current}" inputmode="numeric" aria-label="Depth to enter">
+                <input type="number" class="floor-pick-input" min="1" max="${maxFloor}" step="1" value="${current}" inputmode="numeric" aria-label="Campaign depth milestone to enter">
                 <button type="button" class="btn floor-pick-step" data-step="1" title="Next floor">+</button>
               </div>
               <span class="floor-pick-max">of ${maxFloor}</span>
@@ -762,7 +767,7 @@ export const game = {
         { label: 'Cancel' },
         { label: 'Enter', cls: 'red floor-pick-go', fn: () => {
           if (mode === 'unbound') this.enterUnboundExploration(unboundValue);
-          else this.enterDungeonAt(value, [...affixesForCampaignDepth(value)]);
+          else this.enterDungeonAt(value, breachDestinationForDepth(value) ? [] : [...affixesForCampaignDepth(value)]);
         } },
       ],
     });
@@ -821,7 +826,8 @@ export const game = {
       if (mode === 'campaign') {
         if (goBtn) {
           goBtn.disabled = false;
-          goBtn.textContent = `Enter Depth ${value}`;
+          const breachFloor = breachDestinationForDepth(value);
+          goBtn.textContent = breachFloor ? `Enter Breach · Floor ${breachFloor}` : `Enter Depth ${value}`;
         }
       }
       const curAct = getActForDepth(value);
