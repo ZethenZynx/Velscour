@@ -128,7 +128,7 @@ import { renderWorld, drawMinimap, preloadTownSheets, releaseTownSheets, propRea
 import { controls } from './controls.js';
 import { writeSave, newCharData, migrate } from './save.js';
 import { grantDeathGift, DEATH_PHRASE } from './deathgift.js';
-import { clearVfx, floatText, sparkle, addEffect, Ring } from '../gfx/vfx.js';
+import { clearVfx, floatText, sparkle, addEffect, Ring, Bolt } from '../gfx/vfx.js';
 import { Meter } from './dpsmeter.js';
 import { UI } from '../ui/ui.js';
 import { HUD } from '../ui/hud.js';
@@ -2266,6 +2266,8 @@ export const game = {
     }
     for (let i = w.affixProjectileBursts?.length - 1; i >= 0; i--) {
       const burst = w.affixProjectileBursts[i];
+      burst.delayT = (burst.delayT || 0) - dt;
+      if (burst.delayT > 0) continue;
       w.affixProjectileBursts.splice(i, 1);
       for (let n = 0; n < burst.count; n++) {
         w.addHazard(new Projectile({ src: null, team: 'enemy', x: burst.x, y: burst.y,
@@ -2364,25 +2366,20 @@ export const game = {
       if (m.affixShieldT <= 0) { m.affixShieldT = 0; m.affixShield = 0; }
     }
 
-    // Thunderstorm keeps its marked single-target strikes and cooldown behavior.
+    // Thunderstorm marks the strike area, then sends a visible lightning bolt into it.
     if (active.has('thunderstorm')) {
-      if (w.affixStormStrike) {
-        w.affixStormStrike.t -= dt;
-        if (w.affixStormStrike.t <= 0) {
-          const strike = w.affixStormStrike; w.affixStormStrike = null;
-          const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
-          if (dist2(p.x, p.y, strike.x, strike.y) <= storm.radius * storm.radius) hit(null, p, p.maxHp * storm.damageFraction, 'light', { crit: false });
-          floatText(strike.x, strike.y, 60, '⚡', '#8feaff', 18, { life: 0.8 });
-          w.affixStormT = rand(...storm.repeatDelay);
-        }
-      } else {
-        const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
-        w.affixStormT = (w.affixStormT ?? rand(...storm.initialDelay)) - dt;
-        if (w.affixStormT <= 0) {
-          w.affixStormStrike = { x: p.x + rand(-3, 3), y: p.y + rand(-3, 3), t: storm.warningSeconds };
-          floatText(w.affixStormStrike.x, w.affixStormStrike.y, 70, '⚡', '#8feaff', 18, { life: 0.9 });
-          UI.log('A storm gathers. Watch for the lightning strike.', '#8feaff');
-        }
+      const storm = DUNGEON_AFFIX_CONFIG.thunderstorm;
+      w.affixStormT = (w.affixStormT ?? rand(...storm.initialDelay)) - dt;
+      if (w.affixStormT <= 0) {
+        const x = p.x + rand(-3, 3), y = p.y + rand(-3, 3);
+        w.addHazard(new Delayed({
+          src: null, team: 'enemy', x, y, r: storm.radius, delay: storm.warningSeconds,
+          dmg: p.maxHp * storm.damageFraction, el: 'light', fx: 'lightning',
+          o: { team: 'enemy', crit: false },
+          onImpact: () => addEffect(new Bolt(x, y, 220, x, y, 0, '#a8ccff', 0.28, 6)),
+        }));
+        w.affixStormT = rand(...storm.repeatDelay) + storm.warningSeconds;
+        UI.log('A storm gathers. Move out of the marked lightning strike.', '#8feaff');
       }
     }
 
