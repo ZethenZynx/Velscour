@@ -295,7 +295,7 @@ export function drawCine(ctx, W, H) {
   if (Cine.fast && !G.settings.skipCutscenes && k > 0.5) {   // fast-forwarding a scene already seen
     const fs = Math.round(clamp(G.H / 52, 10, 14) * dpr);
     ctx.font = `${fs}px "Alegreya Sans", "Segoe UI", sans-serif`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#c8b898'; ctx.fillText(`▶▶ x${CINE_FAST}  ·  seen before  (Settings: Don't skip cutscenes)`, W - pad * dpr, bar / 2);
+    ctx.fillStyle = '#c8b898'; ctx.fillText(`▶▶ x${CINE_FAST}  ·  seen before  (Settings: Don't fast-forward seen cutscenes)`, W - pad * dpr, bar / 2);
   }
   const L = Cine.line;
   if (L && k > 0.5) {

@@ -2436,7 +2436,7 @@ export const game = {
     if (G.cine && !G.paused) {   // a cut scene (game/cinema.js): no input, no monster thinks; the scene's actors move
       input.endFrame();
       cineTick(w, dt);
-      // a scene this hero has seen plays at 20x (Cine.fast; Settings > "Don't skip cutscenes" keeps it at 1x)
+      // a scene this hero has seen plays at 20x (Cine.fast; Settings > "Don't fast-forward seen cutscenes" keeps it at 1x)
       for (let i = 1, passes = G.settings.skipCutscenes ? CINE_SKIP : CINE_FAST; i < passes && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
     } else if (G.hitStop > 0) { G.hitStop -= dt; controls.update(0); }
     else if (!G.paused) {
