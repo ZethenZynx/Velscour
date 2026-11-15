@@ -107,7 +107,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     const { spawnCritter } = await import('/src/game/critters.js');
     for (const c of G.world.critters || []) c.caught = true;
     const next = spawnCritter(G.world, 'wisp');
-    return !!next && !next.showArrow && G.char.critterArrowEncounters === 7;
+    return !!next && !next.showArrow && G.char.critterArrowEncounters === 8;
   });
   check(arrowGone, 'red arrow disappears after the seventh post-tutorial encounter');
 

@@ -384,7 +384,7 @@ export function migrate(c) {
   }
   c.tips = c.tips || {};
   c.critterTutorialSeen = c.critterTutorialSeen ?? !!c.tips.critter;
-  c.critterArrowEncounters = Math.max(0, Math.min(7, c.critterArrowEncounters | 0));
+  c.critterArrowEncounters = Math.max(0, Math.min(8, c.critterArrowEncounters | 0));
   if (c.classId === 'barbarian') c.rage = Math.max(0, Math.min(100, Number(c.rage) || 0));
   if (c.hearth === undefined) c.hearth = 1;
   c.homunculus = c.homunculus || { talks: 0, chapter: 0, told: [], recap: [] }; // the blacksmith's axe story (game/homunculus.js)

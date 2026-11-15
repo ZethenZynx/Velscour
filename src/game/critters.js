@@ -229,7 +229,7 @@ export function spawnCritter(world, key = null) {
       } else {
         // The old tip flag means this hero has encountered critters before this tutorial existed.
         ch.critterTutorialSeen = true;
-        ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS, Math.max(0, ch.critterArrowEncounters | 0) + 1);
+        ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
         c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
       }
     }
