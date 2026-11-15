@@ -17,7 +17,7 @@ CASTLE is the third playable overworld beside the Forsaken Wilds and Sea of Sand
 - `src/data/biomes.js` registers Castle as an overworld with its own monster roster.
 - `src/gfx/castle.js` loads the Castle atlases and exposes the floor, wall, landmark and prop art.
 - `src/world/castleworld.js` generates a 336 x 304 board with an open southwest-to-northeast route, perimeter curtain walls, scattered keep and gatehouse structures, and reachable enemy packs.
-- `src/game/darkforest.js` supplies the linear guardian-run state used by the Castle and the Dark Forest. There is no shrine scenario, required objective, or Castle story encounter.
+- `src/game/darkforest.js` contains separate linear guardian-run states for the Castle and the Dark Forest; the existing Forest run behavior remains unchanged. There is no shrine scenario, required objective, or Castle story encounter.
 - `src/game/game.js` creates the Castle Guardian run and opens the ordinary exit when the guardian dies.
 - Contract checks for dimensions, connectivity, population, assets and the boss gate are in `tools/tests/castle_boss_run.mjs`.
 - The remaining layout and scenario material below records earlier Castle designs and should be read as design history, not current gameplay.
