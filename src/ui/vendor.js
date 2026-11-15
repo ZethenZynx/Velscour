@@ -9,7 +9,7 @@ import { addToBag } from '../game/player.js';
 import { emptyEquipSlot } from '../game/autoequip.js';
 import { noteFind } from '../game/reliquary.js';
 import {
-  rollItem, rollGem, rollRarity, makeGem, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost,
+  rollItem, rollGem, rollRarity, makeGem, itemValue, itemSellValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost,
   rerollAffixes, addAffix, RARITY, RARITY_EPIC, RARITY_LEGENDARY, RARITY_MYTHIC, rarityAt, qualityAtDepth, POTION_PRICE, POTION_INFO, GEMS, gemName, SLOT_NAMES, WEAPONS, MAX_GEM_TIER, gemFuseCost, gemRefineCost, slotFor, gemMaxTier, sigilFuseCost,
 } from '../data/items.js';
 import { CLASSES } from '../data/classes.js';
@@ -182,7 +182,7 @@ export const Vendor = {
     if (it.locked) { UI.log('That item is locked. Unlock it first (its panel in the inventory).', '#ffd860'); sfx('error'); return false; }
     if (it.sealed) { UI.log('Break the seal first: nobody buys a sealed treasure.', '#ffdf8a'); sfx('error'); return false; }
     const n = it.type === 'gem' ? 1 : 1;
-    const price = Math.max(1, Math.floor(itemValue(it) / 4)) * n;
+    const price = itemSellValue(it) * n;
     const sellIt = () => {
       if (it.type === 'gem' && (it.count || 1) > 1) {
         it.count--;
@@ -208,7 +208,7 @@ export const Vendor = {
     const c = G.char;
     const sold = c.bag.map((it, i) => ({ it, i })).filter(({ it }) => it && it.type === 'gear' && !it.sealed && !it.locked);
     if (!sold.length) { UI.log('No gear in your bag to sell.', '#ff8080'); sfx('error'); return false; }
-    const price = (it) => Math.max(1, Math.floor(itemValue(it) / 4));
+    const price = (it) => itemSellValue(it);
     const total = sold.reduce((a, { it }) => a + price(it), 0);
     const gems = sold.reduce((a, { it }) => a + it.gems.length, 0), sealed = c.bag.filter((b) => b && b.sealed).length;
     const kinds = RARITY.map((r) => ({ r, n: sold.filter(({ it }) => it.rarity === r.id).length })).filter((k) => k.n).reverse()
@@ -232,7 +232,7 @@ export const Vendor = {
     if (!c || !Array.isArray(c.gemBag)) return false;
     const sold = c.gemBag.map((it, i) => ({ it, i })).filter(({ it }) => it && it.type === 'gem' && !it.locked);
     if (!sold.length) { UI.log('No gems in your Gem Bag to sell.', '#ff8080'); sfx('error'); return false; }
-    const price = (it) => Math.max(1, Math.floor(itemValue(it) / 4)) * (it.count || 1);
+    const price = (it) => itemSellValue(it) * (it.count || 1);
     const total = sold.reduce((a, { it }) => a + price(it), 0);
     const totalCount = sold.reduce((a, { it }) => a + (it.count || 1), 0);
     UI.confirm('Sell all gems?', `Sell <b>${totalCount}</b> gem${totalCount > 1 ? 's' : ''} (${sold.length} stack${sold.length > 1 ? 's' : ''}) for <span class="gold-text">${fmtInt(total)} gold</span>?<br><span class="dim">Locked gems are not sold.</span>`, () => {
