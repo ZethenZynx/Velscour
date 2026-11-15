@@ -1,5 +1,7 @@
 # CASTLE overworld biome
 
+The current playable Castle is a compact **84 x 76** courtyard map with a simplified keep, two gated walls, Castle floor art, and the existing overworld scenario and variant-story systems. The detailed layouts below describe the retired full-size map and are retained as design history.
+
 > **October 28, 2026:** the Castle is now eleven castles: the concentric one below (Ironcrown) and ten variants with their
 > own layouts, materials, palettes and stories. Everything that used fixed coordinates here now reads the variant's
 > layout and plan (`src/data/castles.js`). See [CASTLE_VARIANTS.md](CASTLE_VARIANTS.md).
@@ -8,22 +10,22 @@
 > map: walk the walls, explore the keep and its throne room, watch the drawbridge come down. See
 > [CASTLE_3D.md](CASTLE_3D.md); the sprite walls, towers and keep art described below are gone.
 
-CASTLE is the third playable overworld beside the Forsaken Wilds and Sea of Sand. Its runtime atlases preserve the 160×80 floor grid, pivots, frame IDs, wall masks, orientation, and topology. The keep has its own six-frame floor atlas and three complete 20-piece interior wall families.
+CASTLE is the third playable overworld beside the Forsaken Wilds and Sea of Sand. Its runtime atlases preserve the 160x80 floor grid, pivots, frame IDs, wall masks, orientation, and topology. The keep has its own six-frame floor atlas and three complete 20-piece interior wall families.
 
 ## Game integration
 
 - `src/data/biomes.js` registers Castle as an overworld with a siege-ready monster roster.
 - `src/gfx/castle.js` loads the atlas set on descent and exposes indexed exterior and keep floors, topology-aware walls, and pivot-aware props.
-- `src/world/castleworld.js` builds a 336×304 Castle board (three times the old 192×176) directly at tile resolution; walls, towers and halls sit on a 2-tile cell grid. The layout is a concentric castle (see the layout section below). Scenario code reads the halls from `map.castleRooms` and the wall-walk muster points from `map.rampartPosts`, never fixed coordinates.
+- `src/world/castleworld.js` builds a 336x304 Castle board (three times the old 192x176) directly at tile resolution; walls, towers and halls sit on a 2-tile cell grid. The layout is a concentric castle (see the layout section below). Scenario code reads the halls from `map.castleRooms` and the wall-walk muster points from `map.rampartPosts`, never fixed coordinates.
 - Floors are dressed by `src/gfx/castleground.js`: every material (`MAT`, stored per tile in `map.castleMat`) blends into its neighbours with dithered edge and corner masks baked into the floor chunks, grass tufts, pebbles, leaves, reeds and wildflowers are baked in at the seams, the far banks of the river and moat drop to the water as earth or masonry faces, and the water flows (light streaks drifting along a flow field from the river's source round the moat to its outflow, foam at the banks, glints, deeper water darker).
 - Every Castle scenario is winnable and verified by `tools/tests/scenarios.js`. Scenario foes hunt the hero across the board; rampart sieges and last stands arrive as waves along the wall walk; keep fights run as two or three back-to-back phases (the Crown Vault ends at a claimable relic, the Royal Procession must keep the royal party alive); the Sconce Ward gives the hero 8 s to reach the wall before torches start to gutter.
 - Castle pathing expands with the board: spawn points, doors, scenario sites, stairs, exits, and rampart objectives are rescaled onto walkable tiles. Ramparts connect through bends, corners, gates, and broad stair landings.
 - **Height map (October 20, 2026).** The Castle is a height-mapped overworld like the Mountainside (`map.hgt`, `src/gfx/terrain.js`; docs/MOUNTAINSIDE.md): the curtain walls, towers, gatehouses, stairs and hall walls are solid masonry columns, the moat and river lie sunk 11 levels (44 px) below the ground, and the bridges cross them at ground level. A walker hops up `map.climb` = 4 levels (one stair step) and drops at most 10, so the walls are reached only by their stairs and can't be jumped from. See *Walls, towers, stairs and bridges* below.
 - The shared shrine-activated system supplies 35 challenges. It retains the twenty general scenarios, adds five rampart encounters, and adds ten room-focused keep scenarios. Other overworlds continue to select from their applicable general scenario set.
-- Sea of Sand caravan paths remain connected to the authored oasis and ruin anchors while their intermediate curves, phases, and widths vary by seed. Dune and stone seams use scattered 3–6px transition flecks in the matching terrain colors.
+- Sea of Sand caravan paths remain connected to the authored oasis and ruin anchors while their intermediate curves, phases, and widths vary by seed. Dune and stone seams use scattered 3-6px transition flecks in the matching terrain colors.
 - `src/game/game.js` loads Castle atlases before map generation. The art remains lazy-loaded, so ordinary dungeons do not fetch the castle sheets.
 - `src/data/townsfolk.js` defines 100 named town visitors backed by 25 distinct generated designs and game-engine palette variants, including ten children, linked families, four persistent regulars, the royal family, court members, and four knights. Each return brings a purposeful handful of visitors who route to shops, the plaza, and event staging spots. `TOWN_SITUATIONS` contains 2,000 distinct event cards across royal arrivals, weddings, births, parties, funerals, fairs, fights, enemy sightings, and other town life; `TOWN_CONVERSATIONS` contains 2,000 distinct two-line exchanges. Double-ruled parchment bubbles avoid nearby characters, while events animate hearts, grief tears, celebration sparks, royal crowns, alarm marks, and clashing swords.
-- `assets/sprites/townsfolk/townsfolk_animation_pack.zip` contains 25 transparent identity sheets and source PNGs. Each non-knight sheet has exactly eleven 128×192 frames: three idle poses, two walk poses, dying, lying dead, scared/screaming, scared/pointing, happy, and celebration. The four distinct knight designs append two individual attack frames after the shared eleven-frame sequence. All designs match the original generated Velscour civilian finish and are not cut from playable-class or helmet sprites. Clothing and hair colors are varied at runtime. `tools/build_townsfolk_pack.py` rebuilds the standardized sheets, manifest, review sheet, and ZIP. Missing sheets use a plain civilian placeholder while loading.
+- `assets/sprites/townsfolk/townsfolk_animation_pack.zip` contains 25 transparent identity sheets and source PNGs. Each non-knight sheet has exactly eleven 128x192 frames: three idle poses, two walk poses, dying, lying dead, scared/screaming, scared/pointing, happy, and celebration. The four distinct knight designs append two individual attack frames after the shared eleven-frame sequence. All designs match the original generated Velscour civilian finish and are not cut from playable-class or helmet sprites. Clothing and hair colors are varied at runtime. `tools/build_townsfolk_pack.py` rebuilds the standardized sheets, manifest, review sheet, and ZIP. Missing sheets use a plain civilian placeholder while loading.
 - Castle wall review sheets are in `art-review/castle-wall-*.png`: each shows all 20 corner, end, straight, junction and panel pieces for one of ten masonry families. `castle-rampart-stairs.png` shows all sixteen stair pieces; `castle-walltops-landmarks.png` shows all nineteen wall-top, tower, stair-access and bridge modules. The throne dais was rescaled to sit more naturally in its open hall.
 - After three non-overworld dungeon visits, the selector chooses among every registered overworld: Forsaken Wilds, Sea of Sand, or Castle. The final throne at Depth 500 still takes precedence.
 
@@ -33,7 +35,7 @@ Modelled on the concentric castles of [Beaumaris and Harlech](https://en.wikiped
 nested inside another, the lower outer curtain covered by the higher inner one, the gatehouses offset so attackers can't
 charge straight through both. The board (south at the bottom of the screen's left, as the hero arrives):
 
-- **Approach** (south): the road from the start runs through a village (eight town-pack houses at 4×4, a green with a
+- **Approach** (south): the road from the start runs through a village (eight town-pack houses at 4x4, a green with a
   well and a market stall, fenced kitchen gardens, haystacks, chimney smoke) to the moat. Fields with furrows, fences and
   a scarecrow, and an orchard, lie to the south-west; the enemy's **siege lines** to the south-east (a palisade of
   wicker, stakes and sandbags facing the walls, four siege engines with their ammunition, eight procedural tents round
@@ -42,7 +44,7 @@ charge straight through both. The board (south at the bottom of the screen's lef
   banks show as faces dropping to the water.
 - **Bridges**: three stone bridges at ground level over the sunken water (main, postern, the east road's over the
   outflow), arched on the side the camera sees; the main one ends in the drawbridge's planks (see below).
-- **Outer curtain** (`CASTLE_OUTER`, cells 48..120 × 34..100, 6 tiles thick): square towers on the corners and
+- **Outer curtain** (`CASTLE_OUTER`, cells 48..120 x 34..100, 6 tiles thick): square towers on the corners and
   between, the twin-towered gatehouse mid-south, a postern between two small towers north-east; a wall-walk on top
   reached by stairs from the outer ward (see below).
 - **Outer ward**: the south bailey (practice yard with targets and dummies, banners, the smithy and armoury), the west
@@ -51,7 +53,7 @@ charge straight through both. The board (south at the bottom of the screen's lef
 - **Inner curtain** (`CASTLE_INNER`, 14 cells inside, 5 tiles thick, its walk 8 levels higher than the outer's):
   square towers on its corners and sides; the inner gate is offset east of the gatehouse, a second inner gate opens
   north-west towards the postern.
-- **Inner ward**: the great keep (`landmark_09` at 1.6×, cut into 32 px columns sorted from its footprint's front edge,
+- **Inner ward**: the great keep (`landmark_09` at 1.6x, cut into 32 px columns sorted from its footprint's front edge,
   so walkers beside it sort right); the **throne hall** (carpeted nave, colonnades, the dais, chandeliers, banners,
   armour), the **cathedral** (carpeted nave between pews, side aisles behind pillars, pulpit, lancet windows) and the
   **great hall** (high table, two long feasting tables on a timber floor, the hearth, the kitchen corner) as enterable
@@ -169,3 +171,4 @@ node tools/tests/sea_of_sand_generation.mjs
 ```
 
 The Castle check covers the documented tile dimensions, the threefold board area, dedicated keep atlas contracts, 100 seeded maps, all 35 scenarios, a closed curtain wall, the gate and postern crossings, the wall-walk lane, interior doors and combat rooms, objective reachability, and three-dungeon rotation among all overworlds. The Sea of Sand check covers 100 seeded maps and all route-anchor reachability. `python tools/build_townsfolk_pack.py` rebuilds the civilian sheets and ZIP from the included original generated art.
+

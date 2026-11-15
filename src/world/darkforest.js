@@ -16,8 +16,8 @@ import { rollLooks } from '../data/bestiary.js';
 import { darkForestTree, darkTreeK, darkForestTreesReady } from '../gfx/darkforest.js';
 import { DF_GLADE_TYPES } from '../data/darkforest.js';
 
-export const DF_W = 192, DF_H = 192;
-const W = DF_W, H = DF_H, C = 8, M = W / C;
+export const DF_W = 48, DF_H = 48;
+const W = DF_W * 4, H = DF_H * 4, C = 8, M = W / C;
 // tile kinds
 const FOREST = 0, MINOR = 1, MAJOR = 2, GLADE = 3, CORRIDOR = 4, HEART = 5, CLEARING = 6, WALL = 7, PIER = 8, ARCH = 9, DOOR = 10;
 const WALLISH = new Set([WALL, PIER, DOOR]);
@@ -44,7 +44,7 @@ function segDist(px, py, ax, ay, bx, by) {
   return Math.hypot(px - ax - dx * t, py - ay - dy * t);
 }
 
-export function generateDarkForest(depth, biome, tileset, seed) {
+function generateFullDarkForest(depth, biome, tileset, seed) {
   if (tileset.pack !== 'dark_forest' || !darkForestTreesReady()) throw new Error('The Dark Forest art must load (game.loadLevelArt) before generating it.');
   // a seed whose layout fails its checks (very rare) moves on to the next one, so a saved forest seed still
   // reproduces the same forest
@@ -53,6 +53,79 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     try { const g = build(depth, biome, tileset, (seed + k * 7919) >>> 0, seed); g.retries = errs; return g; } catch (e) { errs.push(e.message); }
   }
   throw new Error(errs.join('; '));
+}
+
+// Keep the detailed forest layout algorithm, then compress its walkable grid and every attached
+// coordinate into a compact 48x48 play area. Sampling at tile centers retains the main paths,
+// while a light tree decimation keeps the smaller map readable and inexpensive to draw.
+export function generateDarkForest(depth, biome, tileset, seed) {
+  const full = generateFullDarkForest(depth, biome, tileset, seed), scale = 4;
+  const map = new TileMap(DF_W, DF_H), src = full.map;
+  map.darkForest = true; map.losBlocks = true;
+  const pick = (x, y) => src.idx(Math.min(src.w - 1, x * scale + 2), Math.min(src.h - 1, y * scale + 2));
+  map.t.fill(1);
+  map.block.fill(1);
+  map.seen.fill(0);
+  const kind = new Uint8Array(DF_W * DF_H);
+  for (let y = 0; y < DF_H; y++) for (let x = 0; x < DF_W; x++) {
+    const i = y * DF_W + x, si = pick(x, y);
+    map.t[i] = src.t[si]; map.v[i] = src.v[si] || 0; map.block[i] = src.block[si];
+    kind[i] = src.kind?.[si] || 0;
+  }
+  const pt = (p) => Array.isArray(p) ? [p[0] / scale, p[1] / scale] : p;
+  // Preserve a clear, connected route to every required objective after coarse sampling.
+  const clearRoute = (a, b) => {
+    const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 3);
+    for (let n = 0; n <= steps; n++) {
+      const t = n / Math.max(1, steps), x = Math.round(a[0] + (b[0] - a[0]) * t), y = Math.round(a[1] + (b[1] - a[1]) * t);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (map.inb(x + dx, y + dy)) {
+        const i = map.idx(x + dx, y + dy); map.t[i] = 1; map.block[i] = 0;
+      }
+    }
+  };
+  const start = pt(full.start), targets = [
+    ...full.glades.flatMap((g) => [pt(g.center), pt(g.shrine), ...g.sites.map(pt)]),
+    pt(full.heart.center), pt(full.heart.shrine), ...full.heart.sites.map(pt), pt(full.exit),
+    ...full.chests.map((c) => pt([c.x, c.y])),
+  ];
+  for (const target of targets) clearRoute(start, target);
+  const place = (o) => { if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) { o.x /= scale; o.y /= scale; } return o; };
+  const trees = full.trees.filter((_, i) => i % 16 === 0).map((t) => ({ ...t, x: t.x / scale, y: t.y / scale }))
+    .filter((t) => !map.walkable(t.x, t.y));
+  const props = full.props.filter((_, i) => i % 4 === 0).map(place);
+  const doors = src.doors.map((d) => { d.x /= scale; d.y /= scale; return d; });
+  map.doors = doors;
+  const wallGroups = new Map();
+  for (const w of src.walls) {
+    const key = `${w.kind}:${w.x}:${w.y}`;
+    if (!wallGroups.has(key)) wallGroups.set(key, []);
+    wallGroups.get(key).push(w);
+  }
+  const placedWallTiles = new Set();
+  map.walls = [];
+  for (const group of wallGroups.values()) {
+    const w = group[0];
+    if (w.kind === 'wall') {
+      const key = `${Math.floor(w.x / scale)},${Math.floor(w.y / scale)}`;
+      if (placedWallTiles.has(key)) continue;
+      placedWallTiles.add(key);
+    }
+    for (const part of group) { part.x /= scale; part.y /= scale; part.depth /= scale; map.walls.push(part); }
+  }
+  map.kind = kind;
+  map.indexWalls();
+  const B = 8, bw = Math.ceil(DF_W / B), bh = Math.ceil(DF_H / B), cells = Array.from({ length: bw * bh }, () => []);
+  for (const t of trees) cells[Math.min(bh - 1, Math.floor(t.y / B)) * bw + Math.min(bw - 1, Math.floor(t.x / B))].push(t);
+  map.treeCells = { B, bw, bh, cells };
+  const glades = full.glades.map((g) => ({ ...g, center: pt(g.center), shrine: pt(g.shrine), sites: g.sites.map(pt), hideouts: g.hideouts.map(pt), palisade: g.palisade?.map((v) => v / scale) || null }));
+  const heart = { ...full.heart, center: pt(full.heart.center), gate: pt(full.heart.gate), shrine: pt(full.heart.shrine), sites: full.heart.sites.map(pt) };
+  return { ...full, map, props, trees, glades, heart,
+    start, exit: pt(full.exit), shrine: pt(full.shrine), sites: full.sites.map(pt),
+    chests: full.chests.map((c) => ({ ...place(c) })), spawns: full.spawns.map((s) => ({ ...place(s) })),
+    torches: full.torches.map((t) => ({ ...place(t) })),
+    labyrinths: full.labyrinths.map((l) => ({ ...l, center: pt(l.center), rect: l.rect.map((v) => v / scale) })),
+    landmarks: full.landmarks.map((l) => ({ ...l, at: pt(l.at) })),
+  };
 }
 
 function build(depth, biome, tileset, seed, savedSeed) {

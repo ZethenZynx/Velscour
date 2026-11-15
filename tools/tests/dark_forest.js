@@ -1,4 +1,4 @@
-// THE DARK FOREST (docs/DARK_FOREST.md): 40 seeded forests (every glade, gate, chest and the Heart reachable; tree,
+// THE DARK FOREST (docs/DARK_FOREST.md): 40 seeded compact forests (every glade, gate, chest and the Heart reachable; tree,
 // wall and gate counts; no tree on a walkable tile), a bot that plays all twelve glade trials and the Heart to the
 // end, frame cost in the woods, and screenshots: entry, trail, labyrinth gate and corridors, the Heart, every glade
 // trial live, canopy fade over the hero, and the phone layout.
@@ -26,6 +26,7 @@ const SHOTS = process.argv[2] !== 'noshots';
         ms = Math.max(ms, performance.now() - t0);
         if (g.layoutSeed !== seed) retries++;
         const m = g.map, I = (x, y) => y * m.w + x, seen = new Uint8Array(m.w * m.h), q = [I(Math.floor(g.start[0]), Math.floor(g.start[1]))];
+        if (m.w !== 48 || m.h !== 48) bad.push(`seed ${seed}: map is ${m.w}x${m.h}, expected 48x48`);
         seen[q[0]] = 1;
         for (let h = 0; h < q.length; h++) { const i = q[h], x = i % m.w, y = (i / m.w) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = I(x + dx, y + dy); if (m.walkableTile(x + dx, y + dy) && !seen[j]) { seen[j] = 1; q.push(j); } } }
         const must = [g.exit, g.heart.shrine, ...g.glades.map((v) => v.shrine), ...g.glades.flatMap((v) => v.sites), ...g.chests.map((c) => [c.x, c.y]), ...g.heart.sites];
@@ -33,7 +34,7 @@ const SHOTS = process.argv[2] !== 'noshots';
         if (lost.length) bad.push(`seed ${seed}: ${lost.length} objectives unreachable`);
         const trees = g.trees, onPath = trees.filter((p) => !p.elder && m.walkable(p.x, p.y)).length;
         if (onPath) bad.push(`seed ${seed}: ${onPath} trees on walkable tiles`);
-        if (trees.length < 12000) bad.push(`seed ${seed}: only ${trees.length} trees`);
+        if (trees.length < 300) bad.push(`seed ${seed}: only ${trees.length} trees`);
         if (new Set(g.glades.map((v) => v.type)).size !== 5) bad.push(`seed ${seed}: repeated glade trials`);
         const arches = m.walls.filter((w) => w.kind === 'arch').length, doors = m.doors.length;
         if (g.labyrinths.length < 3) bad.push(`seed ${seed}: ${g.labyrinths.length} labyrinths`);
@@ -95,7 +96,7 @@ const SHOTS = process.argv[2] !== 'noshots';
         const st = { idle: 0, maxIdle: 0, repath: 0, path: null, sticky: null }; let t = 0;
         while (t < 420 && !S.completed && !S.failed) { t += dt; W.update(dt); S.update(dt); step(W, P, S, st); }
         st.maxIdle = Math.max(st.maxIdle, st.idle);
-        const line = `${type} — ${S.title}: ${S.completed ? 'done' : S.failed ? 'FAILED' : 'STUCK (' + (S.progress() || '') + ')'} in ${t.toFixed(0)}s, longest wait ${st.maxIdle.toFixed(1)}s`;
+        const line = `${type} - ${S.title}: ${S.completed ? 'done' : S.failed ? 'FAILED' : 'STUCK (' + (S.progress() || '') + ')'} in ${t.toFixed(0)}s, longest wait ${st.maxIdle.toFixed(1)}s`;
         out.push(line);
         // the lost children are a long walk: waiting is the point there
         if (!S.completed || (st.maxIdle > 25 && type !== 'lostchildren')) bad.push(line);
@@ -189,3 +190,4 @@ const SHOTS = process.argv[2] !== 'noshots';
   report(errors);
   await browser.close();
 })().catch((e) => { console.error(e); process.exitCode = 1; });
+

@@ -1,13 +1,11 @@
-# The Dark Forest — the largest overworld
+# The Dark Forest - the largest overworld
 
-The Dark Forest is the fourth overworld biome, beside the Forsaken Wilds, Sea of Sand and the Castle. It is built from
+The Dark Forest is the fourth overworld biome, beside the Forsaken Wilds, Sea of Sand and the Castle. Its playable map is now **48 x 48 tiles**. It is built from
 the user's **THE DARK FOREST Biome Pack**: 60 floors, five wall families with arches and doors on the Catacombs rig,
-40 props, and 15 towering trees with trunk and canopy layers. It is the largest map in the game at **192 x 192 tiles**
-(the Castle is 192 x 176, the Wilds and Sea of Sand 72 x 72).
+40 props, and 15 towering trees with trunk and canopy layers. Its former 192 x 192 layout is compressed into a compact map.
 
-A run: thick woods cut by a maze of branching trails, three walled labyrinths entered through arch gates, five
-optional **trial glades** along the trails, and the **Heart of the Forest** deep in the biggest labyrinth. The trial at
-the Heart opens the exit (in the Heart itself). Glades are optional and each pays Legendary gear.
+A run: thick woods cut by branching trails, three labyrinths, five **trial glades**, and the **Heart of the Forest**.
+Win any one glade to unlock the Heart; the other glades remain optional rewards. The Heart trial opens the exit.
 
 ## Design calls
 
@@ -147,3 +145,4 @@ won a glade, found the Heart and won it in about 4 game minutes. Headless frame 
 On the throttled phone profile (`biome_perf.js`, 4x CPU) it runs slower than the Wilds (~11 vs ~17 fps). Most of that
 is software-raster overdraw from the tall trees, which a real GPU handles far better. It has not been checked on a
 real phone.
+

@@ -20,13 +20,14 @@ import { Area } from './hazards.js';
 
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const at = (o) => [o.x, o.y];
+const REQUIRED_GLADES = 1;
 
 export function createDarkForestRun(world, gen, biome, onSuccess) {
   const c = G.char, key = String(world.depth), runs = c.darkForestRuns || (c.darkForestRuns = {});
   const record = runs[key] || (runs[key] = { seed: gen.seed, cleared: [], rewarded: 0, heart: false });
   record.cleared ||= [];
   const trials = gen.glades.map((g) => makeTrial(world, gen, biome, g, g.type, (S) => sideWon(S, g)));
-  const heart = makeTrial(world, gen, biome, { index: 'heart', center: gen.heart.center, shrine: gen.heart.shrine, sites: gen.heart.sites, hideouts: [] }, 'heart', () => heartWon());
+  const heart = makeTrial(world, gen, biome, { index: 'heart', center: gen.heart.center, shrine: gen.heart.shrine, sites: gen.heart.sites, hideouts: [] }, 'heart', () => heartWon(), () => run.cleared >= REQUIRED_GLADES);
   const all = [...trials, heart];
   for (const S of trials) if (record.cleared.includes(S.glade.index)) S.restoreWon();
   const run = {
@@ -43,6 +44,11 @@ export function createDarkForestRun(world, gen, biome, onSuccess) {
       const p = world.player, cur = run.current;
       if (cur) return cur;
       if (heart.completed) return null;
+      if (run.cleared < REQUIRED_GLADES) {
+        const next = p && trials.filter((S) => !S.completed)
+          .sort((a, b) => dist(at(p), a.glade.center) - dist(at(p), b.glade.center))[0];
+        return (run.aim = next || trials.find((S) => !S.completed) || heart);
+      }
       if (run.aim && run.aim !== heart && !run.aim.completed) return run.aim;
       const near = p && trials.filter((S) => !S.completed && dist(at(p), S.glade.center) < 30)
         .sort((a, b) => dist(at(p), a.glade.center) - dist(at(p), b.glade.center))[0];
@@ -54,11 +60,11 @@ export function createDarkForestRun(world, gen, biome, onSuccess) {
     get route() { return []; }, get stage() { return run.current?.stage || 0; },
     get escort() { return null; }, get routeIndex() { return 0; },
     get objective() { return run.current?.objective ?? undefined; },
-    get description() { return run.current?.description || 'Find the Heart of the Forest.'; },
+    get description() { return run.current?.description || (run.cleared < REQUIRED_GLADES ? 'Win any one trial glade to reach the Heart of the Forest.' : 'Find the Heart of the Forest.'); },
     get hud() {
       const cur = run.current, cl = run.cleared;
       if (!cur) return { title: heart.completed ? 'The Dark Forest' : 'Find the Heart of the Forest', beat: cl, total: trials.length,
-        timer: '', progress: heart.completed ? 'The way on is open' : `Glades won ${cl}/${trials.length} · the Heart lies in the north-east` };
+        timer: '', progress: heart.completed ? 'The way on is open' : cl < REQUIRED_GLADES ? `Win a glade ${cl}/${REQUIRED_GLADES} required · Heart in the north-east` : `Glades won ${cl}/${trials.length} · the Heart lies in the north-east` };
       const left = cur.timer > 0 ? Math.max(0, Math.ceil(cur.timer - cur.seconds)) : 0;
       return { title: cur.title, beat: cl, total: trials.length, timer: left ? left + 's' : '', progress: cur.progress() };
     },
@@ -95,7 +101,7 @@ export function createDarkForestRun(world, gen, biome, onSuccess) {
 
 // ------------------------------------------------------------------ one trial (exported for tools/tests/dark_forest.js)
 export function createDarkForestTrial(world, gen, biome, glade, type, onWin) { return makeTrial(world, gen, biome, glade, type, onWin); }
-function makeTrial(world, gen, biome, glade, type, onWin) {
+function makeTrial(world, gen, biome, glade, type, onWin, canStart = null) {
   const [title, description] = DF_TRIALS[type];
   const rng = new RNG(((gen.layoutSeed || gen.seed) ^ (glade.index === 'heart' ? 0x4ea7 : (glade.index + 1) * 0x9e37)) >>> 0);
   const C = glade.center, sites = glade.sites;
@@ -186,6 +192,7 @@ function makeTrial(world, gen, biome, glade, type, onWin) {
   if (T.dress) T.dress(ctx);
   const start = () => {
     if (S.active || S.completed) return;
+    if (canStart && !canStart()) { report('Win any one trial glade before challenging the Heart of the Forest.', '#ffb070'); return; }
     if (S.busy()) { report('Another trial already holds the forest. Finish it first.', '#ffb070'); return; }
     for (const m of S.foes) if (!m.dead) m.dead = true;
     dropPeople(); clearMarkers();
