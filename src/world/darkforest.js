@@ -15,9 +15,6 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   if (tileset.pack !== 'dark_forest' || !darkForestTreesReady()) throw new Error('The Dark Forest art must load before generating it.');
   const rng = new RNG(seed >>> 0), map = new TileMap(DF_W, DF_H);
   map.darkForest = true; map.losBlocks = true; map.t.fill(1); map.seen.fill(0);
-  const floorCount = Math.max(1, tileset.floors.length);
-  for (let i = 0; i < map.v.length; i++) map.v[i] = rng.int(0, floorCount - 1);
-
   // A broad open forest floor with one clear diagonal trail from the southwest entrance
   // to the northeast guardian clearing. Scattered trees add cover without forming walls.
   const start = [3.5, 43.5], boss = [43.5, 4.5], exit = [45.2, 3.8];
@@ -26,6 +23,14 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     const t = clamp(((x - start[0]) * dx + (y - start[1]) * dy) / (dx * dx + dy * dy), 0, 1);
     return Math.hypot(x - start[0] - t * dx, y - start[1] - t * dy);
   };
+  const floorIds = new Map(tileset.floors.map((f, i) => [f.name, i]));
+  const floor = (name) => floorIds.get(name) ?? 0;
+  const forestFloors = ['pine_needles', 'black_loam', 'dead_leaves', 'damp_moss', 'dark_turf', 'root_soil', 'peat'];
+  const trailFloors = ['gravel_path', 'packed_mud', 'gravel_wash'];
+  for (let y = 0; y < DF_H; y++) for (let x = 0; x < DF_W; x++) {
+    const d = distToRoute(x + 0.5, y + 0.5), i = map.idx(x, y);
+    map.v[i] = d < 3.3 && rng.chance(0.65) ? floor(rng.pick(trailFloors)) : floor(rng.pick(forestFloors));
+  }
 
   const placed = [], props = [];
   const bucketSize = 8, bw = Math.ceil(DF_W / bucketSize), bh = Math.ceil(DF_H / bucketSize);
