@@ -294,7 +294,7 @@ export class Delayed {
     const cold = this.fx === 'frost' || this.fx === 'ice';
     const spike = this.fx === 'spike';
     const storm = this.fx === 'storm' || this.el === 'light';
-    const col = cold ? '#77dcff' : spike ? '#e0d6b8' : storm ? '#a8ccff' : this.team === 'enemy' ? '#ff5a18' : this.E.glow;
+    const col = cold ? '#77dcff' : spike ? '#e0d6b8' : storm ? '#a8ccff' : this.el === 'phys' && this.team === 'enemy' ? '#ff8a42' : this.E.glow;
     ctx.save();
     ctx.globalAlpha = 0.52 + 0.34 * k;
     ctx.strokeStyle = col; ctx.lineWidth = 2;
@@ -443,7 +443,8 @@ export class Area {
     }
     if (this.mode === 'wallseg') return;
     const rx = this.r * HW * 1.41, ry = this.r * HH * 1.41;
-    const poison = ['poison', 'plague', 'spore'].includes(this.fx);
+    const poison = ['poison', 'plague', 'spore'].includes(this.fx) && this.el !== 'acid';
+    const acid = this.fx === 'acid' || this.el === 'acid';
     const cold = ['frost', 'ice'].includes(this.fx);
     const fire = ['fire', 'explosion'].includes(this.fx);
     const blood = this.fx === 'blood';
@@ -479,6 +480,19 @@ export class Area {
         cloud.addColorStop(0, 'rgba(146,230,50,0.58)'); cloud.addColorStop(0.55, 'rgba(67,145,24,0.34)'); cloud.addColorStop(1, 'rgba(30,70,12,0)');
         ctx.globalAlpha = 0.8 * k; ctx.fillStyle = cloud;
         ctx.beginPath(); ctx.ellipse(cx, cy, cr, cr * 0.58, 0, 0, TAU); ctx.fill();
+      }
+    } else if (acid) {
+      // Keep acidic damage visually distinct from the green gas used for poison.
+      ctx.globalAlpha = 0.52 * k; ctx.fillStyle = '#103c72';
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      const acidGlow = ctx.createRadialGradient(px, py, 1, px, py, Math.max(rx, ry));
+      acidGlow.addColorStop(0, 'rgba(170,245,255,0.8)'); acidGlow.addColorStop(0.4, 'rgba(45,155,235,0.62)'); acidGlow.addColorStop(1, 'rgba(10,45,110,0)');
+      ctx.globalAlpha = 0.9 * k; ctx.fillStyle = acidGlow;
+      ctx.beginPath(); ctx.ellipse(px, py, rx * 0.86, ry * 0.72, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.88 * k; ctx.strokeStyle = '#b4f6ff'; ctx.lineWidth = 1.4;
+      for (let i = 0; i < 4; i++) {
+        const a = i * TAU / 4 + this.t * 0.7, bx = px + Math.cos(a) * rx * 0.35, by = py + Math.sin(a) * ry * 0.3;
+        ctx.beginPath(); ctx.arc(bx, by, 2 + (i % 2), 0, TAU); ctx.stroke();
       }
     } else if (cold) {
       ctx.globalAlpha = 0.42 * k; ctx.fillStyle = '#9beaff';
