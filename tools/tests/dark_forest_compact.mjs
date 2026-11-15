@@ -31,6 +31,8 @@ for(let n=1;n<=seeds;n++){
  for(const p of objectives)if(!seen[I(...p)])throw Error('unreachable point in seed '+n+': '+p);
  if(g.trees.some(t=>m.walkable(t.x,t.y)))throw Error('tree on a walkable tile in seed '+n);
  if(g.glades.length!==5||g.labyrinths.length<3)throw Error('missing forest objectives in seed '+n);
+ if(g.spawns.length>8||g.spawns.reduce((sum,s)=>sum+s.n,0)>32)throw Error('too many regular enemy packs in seed '+n);
+ if(g.chests.length>3||g.chests.length<2)throw Error('unexpected compact-map chest count in seed '+n);
 }
 console.log('PASS compact Dark Forest: '+seeds+' seeds, '+DF_W+'x'+DF_H+', all objectives connected');
 

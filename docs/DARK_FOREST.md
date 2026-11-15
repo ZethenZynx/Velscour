@@ -6,6 +6,7 @@ the user's **THE DARK FOREST Biome Pack**: 60 floors, five wall families with ar
 
 A run: thick woods cut by branching trails, three labyrinths, five **trial glades**, and the **Heart of the Forest**.
 Win any one glade to unlock the Heart; the other glades remain optional rewards. The Heart trial opens the exit.
+The compact version has at most eight regular enemy packs (32 enemies total) and three chests: one in each treasure labyrinth and at most one optional forest cache.
 
 ## Design calls
 
