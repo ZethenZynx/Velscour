@@ -9,6 +9,8 @@ export const ROW_LEVELS = [1, 12, 30];
 export const MAX_SKILL_LEVEL = 20;
 export const SKILLS = {};
 export const CLASS_SKILLS = {};
+const MOVEMENT_SKILL_KINDS = new Set(['blink', 'dash', 'leap']);
+export const isMovementSkill = (sk) => !!sk && MOVEMENT_SKILL_KINDS.has(sk.kind);
 
 // No skills are granted automatically; characters spend earned skill points.
 export const GRANTS = []; // Deprecated compatibility export; no automatic skill grants remain.
