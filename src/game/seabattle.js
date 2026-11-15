@@ -20,7 +20,7 @@ import { makeFolk } from './folk.js';
 import { townSprite } from './render.js';
 import { TOWN_FRAME_W, townFrameOf } from './townsfolkvisuals.js';
 import { Cine, drawHeroCutscenePortrait, getHeroCutscenePortrait } from './cinema.js';
-import { GroundItem, dropChest } from './loot.js';
+import { GroundItem, dropChest, rollGroundItem } from './loot.js';
 import { addEffect, addLight, Ring, Telegraph, smoke, burst, sparkle, floatText, spawn, glowSprite } from '../gfx/vfx.js';
 import { enemyImage } from '../core/enemyart.js';
 import { depthLevel } from '../data/depth.js';
@@ -769,8 +769,8 @@ export function createSeaBattle(world, gen, biome, depth, opts, onSuccess) {
         this.opened = true; sfx('chest'); sfx('gold');
         dropChest(world, this, depth);
         const st0 = G.player ? G.player.st : { magicFind: 0 }, il = lvl + 2;
-        world.addLoot(new GroundItem(this.x, this.y + 0.3, 'item', { item: rollItem(il, { mf: st0.magicFind, bonus: 1.6 * run.rewardK }) }));
-        if (run.rewardK > 0.75 && chance(0.35)) world.addLoot(new GroundItem(this.x + 0.3, this.y + 0.2, 'item', { item: rollItem(il, { rarity: rarityAt(il, chance(0.2) ? 4 : 3) }) }));
+        world.addLoot(new GroundItem(this.x, this.y + 0.3, 'item', { item: rollGroundItem(il, { mf: st0.magicFind, bonus: 1.6 * run.rewardK }) }));
+        if (run.rewardK > 0.75 && chance(0.35)) world.addLoot(new GroundItem(this.x + 0.3, this.y + 0.2, 'item', { item: rollGroundItem(il, { rarity: rarityAt(il, chance(0.2) ? 4 : 3) }) }));
         sparkle(this.x, this.y, 20, '#ffd060', 30, 0.6);
       },
     };

@@ -23,7 +23,7 @@ import { UI } from '../ui/ui.js';
 import { KEYS_RANK, worldRank } from './heresies.js';
 import { endgameUnlocked, endgame, saveEndgame } from './endgame.js';
 import { makeRaidBoss, RAID_BOSSES } from './raid.js';
-import { dropLoot } from './loot.js';
+import { dropLoot, rollGroundItem } from './loot.js';
 import { DMG_MUL, PACE, inArena } from './velscour.js';
 import { hearthPortalActive } from './hearth.js';
 
@@ -216,7 +216,7 @@ export function unboundSpoils(V, lvl, drop) {
   const crown = first || chance(UNBOUND.crown);
   if (crown) drop(open(makeHeirloom(lvl, { id: 'crown_demon' })));
   const rar = rarityAt(lvl, ABYSSAL);
-  for (let i = 0; i < UNBOUND.abyssal; i++) drop(open(rollItem(lvl, { rarity: rar, mf: p ? p.st.magicFind : 0 })));
+  for (let i = 0; i < UNBOUND.abyssal; i++) drop(open(rollGroundItem(lvl, { rarity: rar, mf: p ? p.st.magicFind : 0 })));
   grantMarks(UNBOUND.marks, 'for Velscour Unbound');
   UI.log(`<b style="color:#20e0ff">Velscour Unbound's spoils</b>: ${heir ? `<b>${itemName(heir)}</b>, ` : ''}${crown ? '<b>the Crown of the Demon Lord</b>, ' : ''}${UNBOUND.abyssal} <b style="color:${RARITY[rar].color}">${RARITY[rar].name}</b> items, a Heirloom, a Covenant piece, two Sigil Stones and ${UNBOUND.marks} Infernal Marks.`, '#a0f0ff');
   const E = endgame(); E.unboundWins++; saveEndgame();

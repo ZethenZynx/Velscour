@@ -40,7 +40,7 @@ export function createSeaOfSandScenario(world, gen, biome, onSuccess) {
   };
   const reward=(index)=>{
     if(index<record.rewarded)return;
-    const {items,mythicChance}=rollSandScenarioRewards(index,depthLevel(world.depth)+2);
+    const {items,mythicChance}=rollSandScenarioRewards(index,depthLevel(world.depth)+2,Math.random,c?.level??depthLevel(world.depth)+2);
     world.addLoot(new GroundItem(sites[index][0],sites[index][1], 'item',{item:items[0]}));
     if(items[1]){
       world.addLoot(new GroundItem(sites[index][0]+.45,sites[index][1], 'item',{item:items[1]}));

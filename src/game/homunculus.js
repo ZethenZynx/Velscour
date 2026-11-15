@@ -14,7 +14,7 @@ import { CLASSES } from '../data/classes.js';
 import { spawn, sparkle, floatText } from '../gfx/vfx.js';
 import { rollItem } from '../data/items.js';
 import { depthLevel } from '../data/depth.js';
-import { GroundItem } from './loot.js';
+import { GroundItem, rollGroundItem } from './loot.js';
 import { heroHears } from './townlife.js';
 
 export const isHomunculus = (n) => !!(n && n.vendor && n.vendor.id === 'upgrade');
@@ -158,7 +158,7 @@ export function homunculusChat(d, v) {
 function finaleGift(v) {
   const p = G.player, w = G.world, c = G.char;
   if (!p || !w) return;
-  const item = rollItem(depthLevel(c.depth || 1) + 3, { bonus: 2, mf: p.st ? p.st.magicFind : 0 });
+  const item = rollGroundItem(depthLevel(c.depth || 1) + 3, { bonus: 2, mf: p.st ? p.st.magicFind : 0 });
   w.addLoot(new GroundItem(p.x + 0.4, p.y + 0.3, 'item', { item }));
   holyFlare(v, STORY.length, 40);
   sparkle(p.x, p.y, 30, '#ffe080', 24, 0.6);

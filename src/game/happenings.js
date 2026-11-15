@@ -14,7 +14,7 @@ import { explosionFx } from '../gfx/shapes.js';
 import { hit, aoe } from './combat.js';
 import { makeMonster, makeElite, monsterBase } from './monster.js';
 import { ambush } from './mayhem.js';
-import { GroundItem, dropChest } from './loot.js';
+import { GroundItem, dropChest, rollGroundItem, rollGroundGem } from './loot.js';
 import { rollItem, rollGem, potionItem, itemName, itemColor, rarityAt, goldScale } from '../data/items.js';
 import { depthLevel, FINAL_DEPTH } from '../data/depth.js';
 import { addToBag } from './player.js';
@@ -251,7 +251,7 @@ export function addCursed(world, [x, y]) {
           this.done = true;
           dropChest(world, { x, y, rare: true }, depth);
           dropChest(world, { x, y, rare: true }, depth);
-          if (chance(0.5)) world.addLoot(new GroundItem(x, y + 0.3, 'item', { item: rollItem(depthLevel(depth) + 2, { rarity: rarityAt(depthLevel(depth) + 2, chance(0.03) ? 5 : chance(0.3) ? 4 : 3), mf: p.st.magicFind }) }));
+          if (chance(0.5)) world.addLoot(new GroundItem(x, y + 0.3, 'item', { item: rollGroundItem(depthLevel(depth) + 2, { rarity: rarityAt(depthLevel(depth) + 2, chance(0.03) ? 5 : chance(0.3) ? 4 : 3), mf: p.st.magicFind }) }));
           explosionFx(x, y, 2, 'holy', 'eruption');
           sfx('gate'); UI.centerMsg('CURSE BROKEN', 'The hoard is yours', 2.2);
           world.happen.cursed = null;
@@ -286,7 +286,7 @@ export function spawnNemesis(world, [x, y], N) {
     UI.centerMsg('REVENGE!', `${m.name} is slain`, 3);
     UI.log(`<b style="color:#ff4a3a">Revenge!</b> ${m.name} will not gloat again.`, '#ff8070');
     addEffect(new Column(m.x, m.y, '#ff4030', 1, 40, 420)); camera.shake(6); sfx('gate');
-    for (let i = 0; i < 4; i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollItem(lvl + 3, { mf: p.st.magicFind, bonus: 1.5 }) }));
+    for (let i = 0; i < 4; i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundItem(lvl + 3, { mf: p.st.magicFind, bonus: 1.5 }) }));
     for (let i = 0; i < 8; i++) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: Math.round((20 + lvl * 5) * goldScale(lvl) * rand(0.7, 1.4)) }));
   };
   world.add(m);
@@ -319,8 +319,8 @@ export function spawnImp(world) {
     sfx('gold'); sfx('chest'); camera.shake(5);
     explosionFx(m.x, m.y, 1.6, 'holy', 'eruption');
     for (let i = 0; i < 24; i++) world.addLoot(new GroundItem(m.x + rand(-0.6, 0.6), m.y + rand(-0.6, 0.6), 'gold', { amount: impGold(world, lvl, 25 + lvl * 6) }));
-    for (let i = 0; i < randi(3, 5); i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollItem(lvl + 2, { mf: G.player.st.magicFind, bonus: 1.3 }) }));
-    if (chance(0.5)) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGem(lvl + 6) }));
+    for (let i = 0; i < randi(3, 5); i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundItem(lvl + 2, { mf: G.player.st.magicFind, bonus: 1.3 }) }));
+    if (chance(0.5)) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundGem(lvl + 6) }));
     UI.centerMsg('TREASURE IMP SLAIN', 'It burst like a piÃ±ata', 2);
     world.happen.imp = null;
   };
@@ -371,7 +371,7 @@ function challengeTick(world, dt) {
     const lvl = depthLevel(world.depth);
     UI.centerMsg('CHALLENGE MET', 'Velscour grudgingly pays up', 2.2);
     addEffect(new Column(p.x, p.y, '#ffd040', 0.9, 30, 360));
-    for (let i = 0; i < 3; i++) world.addLoot(new GroundItem(p.x, p.y, 'item', { item: rollItem(lvl + 2, { mf: p.st.magicFind, bonus: 1 }) }));
+    for (let i = 0; i < 3; i++) world.addLoot(new GroundItem(p.x, p.y, 'item', { item: rollGroundItem(lvl + 2, { mf: p.st.magicFind, bonus: 1 }) }));
     for (let i = 0; i < 6; i++) world.addLoot(new GroundItem(p.x, p.y, 'gold', { amount: Math.round((20 + lvl * 5) * goldScale(lvl) * rand(0.7, 1.3)) }));
     world.addLoot(new GroundItem(p.x, p.y, 'potion', { item: potionItem(pick(['rejuv', 'fury'])) }));
     sfx('gate');
@@ -466,7 +466,7 @@ export function recordDepth(world, depth) {
   const p = G.player;
   UI.centerMsg(`DEPTH ${depth} CONQUERED`, 'A new record descent', 3);
   for (let i = 0; i < 6; i++) setTimeout(() => { if (G.world === world && p) firework(p.x + rand(-4, 4), p.y + rand(-4, 4)); }, i * 260);
-  world.addLoot(new GroundItem(p.x, p.y, 'item', { item: rollItem(depthLevel(depth) + 2, { rarity: rarityAt(depthLevel(depth) + 2, chance(0.12) ? 4 : 3), mf: p.st.magicFind }) }));
+  world.addLoot(new GroundItem(p.x, p.y, 'item', { item: rollGroundItem(depthLevel(depth) + 2, { rarity: rarityAt(depthLevel(depth) + 2, chance(0.12) ? 4 : 3), mf: p.st.magicFind }) }));
 }
 
 function firework(x, y) {

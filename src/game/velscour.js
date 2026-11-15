@@ -486,7 +486,7 @@ class VelscourFight {
     UI.log(`Velscour falls after ${Math.floor(this.t / 60)}:${String(Math.floor(this.t % 60)).padStart(2, '0')}.`, '#ffd0a0');
     (G.velscourLog || (G.velscourLog = [])).push({ t: this.t, phase: this.phase, practice: this.practice, unbound: !!this.unbound });
     if (this.practice || !w.player) return;
-    const lvl = m.level + 2, drop = (it) => it && w.addLoot(new GroundItem(m.x + rand(-1, 1), m.y + rand(-1, 1), 'item', { item: it }));
+    const lvl = Math.min(m.level + 2, G.char?.level ?? m.level + 2), drop = (it) => it && w.addLoot(new GroundItem(m.x + rand(-1, 1), m.y + rand(-1, 1), 'item', { item: it }));
     drop(makeHeirloom(lvl)); drop(makeCovenant(lvl)); drop(makeGem('sig', Math.min(SIGIL_MAX, 15 + Math.floor(rand(0, 5))))); drop(rollSigil(w.depth, 2));
     if (this.unbound) unboundSpoils(this, lvl, drop); // an Unbound Heirloom, maybe the Crown (game/unbound.js)
   }

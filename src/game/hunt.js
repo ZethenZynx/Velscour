@@ -20,7 +20,7 @@ import { sfx, setAmbience } from '../core/audio.js';
 import { camera } from '../core/view.js';
 import { addDecal, addEffect, Ring, floatText, smoke, spawn } from '../gfx/vfx.js';
 import { Area, Delayed } from './hazards.js';
-import { GroundItem } from './loot.js';
+import { GroundItem, rollGroundItem } from './loot.js';
 import { rollItem, rarityAt, potionItem } from '../data/items.js';
 
 // every quarry of every land (data/huntlands.js): a lone giant, its hunt name and the brood that follows its kills
@@ -288,7 +288,7 @@ export function createHuntRun(world, gen, biome, depth, onWin) {
     for (const a of pools) a.t = a.dur; // the pools go with it
     if (run.storm?.on) endStorm();
     const L = lvl + 2;
-    world.addLoot(new GroundItem(m.x + 0.6, m.y + 0.4, 'item', { item: rollItem(L, { rarity: rarityAt(L, Math.random() < 0.5 ? 4 : 3) }) }));
+    world.addLoot(new GroundItem(m.x + 0.6, m.y + 0.4, 'item', { item: rollGroundItem(L, { rarity: rarityAt(L, Math.random() < 0.5 ? 4 : 3) }) }));
     UI.centerMsg('THE HUNT IS DONE', `${def.name} is slain · the exit is open`, 3.6);
     UI.log(`${def.name} is dead. Take a trophy.`, '#ffd860');
     onWin();
