@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { input } from '../core/input.js';
 import { camera, screenDirToTile } from '../core/view.js';
 import { dist, angleTo } from '../core/util.js';
-import { SKILLS } from '../data/skills.js';
+import { SKILLS, isMovementSkill } from '../data/skills.js';
 import { SLOT_KEYS, RMB } from '../data/bar.js';
 import { Macros } from './macros.js';
 
@@ -116,21 +116,26 @@ export const controls = {
         if (this.mode === 'move' && this.holdLeft > 0.12) {
           if (G.hover && G.hover.team === 'enemy' && this.holdLeft > 0.4) { this.mode = 'attack'; }
           else if (!p.moveTarget || dist(p.moveTarget[0], p.moveTarget[1], tx, ty) > 0.6) p.setMoveTarget(tx, ty);
-        } else if (this.mode === 'attack' && p.castLock <= 0 && !p.attackTarget) {
+        } else if (this.mode === 'attack' && p.castLock <= 0 && !p.attackTarget && !isMovementSkill(SKILLS[G.char.bar[0]])) {
           if (G.hover && G.hover.team === 'enemy') this.attack(G.hover, tx, ty);
           else if (input.down('ShiftLeft') || input.down('ShiftRight')) this.useSlot(0, [tx, ty]);
           else this.useSlot(0, [tx, ty]);
         }
       }
-      if (mouse.rightPressed || (mouse.right && p.castLock <= 0)) {
-        const id = G.char.bar[RMB];
+      const id = G.char.bar[RMB];
+      const sk = id && SKILLS[id];
+      if (mouse.rightPressed || (mouse.right && p.castLock <= 0 && !isMovementSkill(sk))) {
         if (id) { p.moveTarget = null; this.useSlotAt(RMB, tx, ty); }
       }
     }
 
     // ---- macros (their keys, the queue, Keep up), then number keys & potions
     Macros.tick(dt);
-    SLOT_KEYS.forEach((k, i) => { if (k && (input.consume(k) || (input.down(k) && p.castLock <= 0))) this.useSlot(i); });
+    SLOT_KEYS.forEach((k, i) => {
+      const id = G.char.bar[i];
+      const sk = id && SKILLS[id];
+      if (k && (input.consume(k) || (input.down(k) && p.castLock <= 0 && !isMovementSkill(sk)))) this.useSlot(i);
+    });
     if (input.consume('KeyZ')) p.usePotion('hp');
     if (input.consume('KeyX')) p.usePotion('mp');
     if (input.consume('KeyR')) p.usePotion('rejuv');

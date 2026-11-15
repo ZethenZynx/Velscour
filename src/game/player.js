@@ -8,7 +8,7 @@ import { camera } from '../core/view.js';
 import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, sparkle, burst, spawn, elem, bloodSpray, smoke } from '../gfx/vfx.js';
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
-import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange } from '../data/skills.js';
+import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange, isMovementSkill } from '../data/skills.js';
 import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, shownEquip } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
@@ -548,7 +548,7 @@ export class Player extends Creature {
     const dl = depthLevel(this.world.depth || 1);
     this.gainMastery(sk.id, 4 * Math.pow(dl, 1.5) * (augmentable(sk) ? 0.15 : 1.2));
     const echo = (this.st.echoChance || 0) / 100 + (aug && aug.echo ? Math.min(0.6, 0.2 * aug.echo) : 0);
-    if (echo && chance(echo) && sk.kind !== 'summon' && sk.kind !== 'buff') {
+    if (echo && !isMovementSkill(sk) && chance(echo) && sk.kind !== 'summon' && sk.kind !== 'buff') {
       this.world.addHazard(new Timer(0.2, () => { if (!this.dead) { castSkill(this, sk, L, this.aim ? this.aim[0] : tx, this.aim ? this.aim[1] : ty, { echo: true }); floatText(this.x, this.y, 64, 'Echo!', '#ff80ff', 11); } }));
     }
     this.moving = false;
