@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { el, escapeHtml, fmtInt, fmtDmg } from '../core/util.js';
 import { shownWeapon, shownDmg, heroDmgLevel } from '../data/depth.js';
 import { SKILLS, effLevel } from '../data/skills.js';
-import { itemName, itemBaseLine, itemColor, itemStats, itemDmg, itemArmor, statLabel, RARITY, GEMS, gemStats, gemName, LEGENDARY, legendaryDesc, powerLevel, SLOT_NAMES, POTION_INFO, MAX_GEM_TIER, augTarget, itemReqStat, charEffectiveStat, STAT_NAMES } from '../data/items.js';
+import { itemName, itemBaseLine, itemColor, itemStats, itemDmg, itemArmor, statLabel, RARITY, GEMS, gemStats, gemName, LEGENDARY, legendaryDesc, powerLevel, itemSellValue, SLOT_NAMES, POTION_INFO, MAX_GEM_TIER, augTarget, itemReqStat, charEffectiveStat, STAT_NAMES } from '../data/items.js';
 import { AUGMENTS } from '../data/rings.js';
 import { elem } from '../gfx/vfx.js';
 import { CLASSES } from '../data/classes.js';
@@ -142,6 +142,10 @@ export function itemTooltip(item, opts = {}) {
         }
       }
     }
+  }
+  if (opts.price == null && !item.locked && !item.sealed && ['gear', 'gem', 'sheet', 'banner_kit'].includes(item.type)) {
+    const stackNote = item.type === 'gem' && (item.count || 1) > 1 ? ' each' : '';
+    h += `<div class="tt-price">Vendor value: ${fmtInt(itemSellValue(item))} gold${stackNote}</div>`;
   }
   if (opts.price) h += `<div class="tt-price">${opts.priceLabel || 'Price'}: ${fmtInt(opts.price)} gold</div>`;
   if (opts.hint) h += `<div class="dim" style="margin-top:4px;font-size:12px">${opts.hint}</div>`;
