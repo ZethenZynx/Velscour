@@ -44,38 +44,49 @@ function masteryHtml(sk, compact) {
 export { SLOT_LABELS };
 let curTree = 0;
 let firstSkillTutorialTarget = null;
-let firstSkillTutorialPointerHandler = null;
+let firstSkillTutorialGuide = null;
+let firstSkillTutorialResizeHandler = null;
 
 function dismissFirstSkillTutorial() {
-  if (!firstSkillTutorialTarget) return;
-  document.removeEventListener('pointerdown', firstSkillTutorialPointerHandler);
-  firstSkillTutorialPointerHandler = null;
-  firstSkillTutorialTarget.classList.remove('first-skill-highlight');
+  if (firstSkillTutorialResizeHandler) window.removeEventListener('resize', firstSkillTutorialResizeHandler);
+  firstSkillTutorialResizeHandler = null;
+  firstSkillTutorialTarget?.classList.remove('first-skill-highlight');
   firstSkillTutorialTarget = null;
-  UI.tipEl?.classList.remove('first-skill-tutorial-tip');
-  UI.hideTip();
+  firstSkillTutorialGuide?.remove();
+  firstSkillTutorialGuide = null;
+}
+
+function positionFirstSkillTutorial() {
+  if (!firstSkillTutorialTarget || !firstSkillTutorialGuide) return;
+  const a = firstSkillTutorialTarget.getBoundingClientRect();
+  const r = firstSkillTutorialGuide.getBoundingClientRect();
+  let x, y;
+  if (a.right + 10 + r.width <= innerWidth - 8) { x = a.right + 10; y = a.top - 6; }
+  else if (a.left - 10 - r.width >= 8) { x = a.left - r.width - 10; y = a.top - 6; }
+  else { x = (innerWidth - r.width) / 2; y = a.bottom + 8 + r.height <= innerHeight - 8 ? a.bottom + 8 : a.top - r.height - 8; }
+  firstSkillTutorialGuide.style.left = `${Math.round(Math.max(8, Math.min(x, innerWidth - r.width - 8)))}px`;
+  firstSkillTutorialGuide.style.top = `${Math.round(Math.max(8, Math.min(y, innerHeight - r.height - 8)))}px`;
 }
 
 export function showFirstSkillTutorial() {
   const c = G.char;
-  if (!c || c.skillTutorialSeen || (c.skillPoints | 0) <= 0 || Object.values(c.skills || {}).some((level) => level > 0)) return false;
+  if (!c || c.skillTutorialSeen || (c.skillPoints | 0) <= 0 || Object.values(c.skills || {}).some((level) => level > 0)) {
+    dismissFirstSkillTutorial();
+    return false;
+  }
   const button = document.querySelector('#hud-buttons .hbtn[data-act="skills"]');
   if (!button) return false;
 
-  c.skillTutorialSeen = true;
+  dismissFirstSkillTutorial();
   firstSkillTutorialTarget = button;
   button.classList.add('first-skill-highlight');
-  UI.showTip(
-    '<b style="color:#ffd860">Choose your first skill</b><div style="margin-top:4px">Click the glowing Skill Tree button to open the tree, or press <b>K</b>. Spend your skill point on any starting skill.</div>',
-    0, 0, false, button, { interactive: true },
-  );
-  UI.tipEl?.classList.add('first-skill-tutorial-tip');
-  UI.tipEl?.classList.remove('interactive'); // keep the coach mark visible until the player acts
-  firstSkillTutorialPointerHandler = (event) => {
-    if (button.contains(event.target) || UI.tipEl?.contains(event.target)) return;
-    dismissFirstSkillTutorial();
-  };
-  document.addEventListener('pointerdown', firstSkillTutorialPointerHandler);
+  firstSkillTutorialGuide = document.createElement('div');
+  firstSkillTutorialGuide.className = 'first-skill-tutorial-guide';
+  firstSkillTutorialGuide.innerHTML = '<strong>Choose your first skill</strong><div>Click the glowing Skill Tree button to open the tree, or press <b>K</b>. Spend your skill point on any starting skill.</div>';
+  document.body.appendChild(firstSkillTutorialGuide);
+  firstSkillTutorialResizeHandler = positionFirstSkillTutorial;
+  window.addEventListener('resize', firstSkillTutorialResizeHandler);
+  positionFirstSkillTutorial();
   G.game?.autosave?.();
   return true;
 }
@@ -101,6 +112,10 @@ export function learn(sk, n = 1) {
   const first = !c.skills[sk.id];
   const firstCharacterSkill = first && !Object.values(c.skills).some((level) => level > 0);
   for (let k = 0; k < n && !canLearn(sk); k++) { c.skills[sk.id] = (c.skills[sk.id] || 0) + 1; c.skillPoints--; }
+  if (firstCharacterSkill && c.skills[sk.id] > 0) {
+    c.skillTutorialSeen = true;
+    dismissFirstSkillTutorial();
+  }
   sfx('buff');
   skillUp(sk, c.skills[sk.id]);
   if (first) {
@@ -399,7 +414,6 @@ export function renderBook(body) {
 }
 
 export function toggleTree() {
-  dismissFirstSkillTutorial();
   if (UI.isOpen('tree')) UI.closePanel('tree');
   else UI.openPanel('tree', 'Skill Tree', renderTree);
 }

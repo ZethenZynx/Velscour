@@ -2433,7 +2433,7 @@ export const game = {
       if (top && top.querySelector('.dialog-box')) top.dispatchEvent(new PointerEvent('pointerdown'));
     }
     const pauseMenus = G.settings.pauseMenus !== false && w.kind === 'dungeon' && ui.anyOpen();
-    G.paused = ui.modal || pauseMenus || !!G.critterTutorial;
+    G.paused = ui.modal || pauseMenus || !!(G.critterTutorial && G.critterTutorial.tutorialRendered);
     Cine.update(G.paused ? 0 : dt);
     if (G.cine && !G.paused) {   // a cut scene (game/cinema.js): no input, no monster thinks; the scene's actors move
       input.endFrame();
