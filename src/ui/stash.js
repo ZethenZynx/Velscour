@@ -83,7 +83,7 @@ export const Stash = {
     for (let i = 0; i < c.stash.length; i++) {
       const it = c.stash[i];
       if (!it) continue;
-      if (!addToBag(c, it)) { full = true; break; }
+      if (!addToBag(c, it)) { full = true; continue; }
       c.stash[i] = null;
       moved++;
     }
@@ -108,10 +108,7 @@ export const Stash = {
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         if (!it || it.locked) continue;
-        if (!addToStash(c, it)) {
-          full = true;
-          break;
-        }
+        if (!addToStash(c, it)) { full = true; continue; }
         delete it.autoStash;
         arr[i] = null;
         moved++;
@@ -124,7 +121,7 @@ export const Stash = {
       moveFrom(c.bag);
     } else if (where === 'all') {
       moveFrom(c.bag);
-      if (!full) moveFrom(c.gemBag);
+      moveFrom(c.gemBag);
     } else {
       // 'auto' keeps the original behavior: check the Gem Bag only when no backpack item moved.
       moveFrom(c.bag);
