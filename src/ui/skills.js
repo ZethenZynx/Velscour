@@ -127,7 +127,8 @@ export function respec() {
   c.gold -= cost;
   c.bar = c.bar.map((id) => (id && c.skills[id] > 0 ? id : null));
   if (!c.bar[0]) {
-    const def = (CLASS_SKILLS[c.classId] || []).find((s) => s.m.free && c.skills[s.id] > 0) || (CLASS_SKILLS[c.classId] || [])[0];
+    const clsSkills = CLASS_SKILLS[c.classId] || [];
+    const def = clsSkills.find((s) => s.m.free && c.skills[s.id] > 0) || clsSkills.find((s) => c.skills[s.id] > 0);
     if (def) c.bar[0] = def.id;
   }
   sfx('buff');
