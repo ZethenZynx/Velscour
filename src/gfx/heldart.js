@@ -7,7 +7,7 @@
 // Sets baked with free sprites also have each design whole and upright (heldFree), for the Death Knight's flying sword.
 import { G } from '../state.js';
 import { makeCanvas, hexToRgb, randi, chance, pick, clamp } from '../core/util.js';
-import { HELD_PER, HELD_START, heldSetOf, heldElement } from '../data/held.js';
+import { HELD_PER, HELD_START, heldTierForRarity, heldSetOf, heldElement } from '../data/held.js';
 import { PALETTES } from '../data/gear.js';
 import { GEMS, RARITY, shownEquip } from '../data/items.js';
 import { paletteLuts, itemLook, finishOf, gearMeta } from '../core/gearart.js';
@@ -59,7 +59,7 @@ function finishFor(R) {
 /** A weapon's or off-hand's look: [design within its rarity, finish, -1, gen], rolled on first use and kept on the item. */
 export function heldLook(item) {
   if (!item || item.type !== 'gear' || (item.slot !== 'weapon' && item.slot !== 'offhand')) return null;
-  const R = clamp(item.rarity | 0, 0, 5);
+  const R = heldTierForRarity(item.rarity);
   if (!item.look || item.look[3] !== LOOK_GEN || !(item.look[0] < HELD_PER[R])) item.look = [randi(0, HELD_PER[R] - 1), finishFor(R), -1, LOOK_GEN];
   return item.look;
 }
@@ -67,7 +67,7 @@ export function heldLook(item) {
 function pieceOf(item, slot, cls) {
   const set = heldSetOf(item.base, slot, cls), S = ensureSet(set);
   if (!S) return null;
-  const look = heldLook(item), R = clamp(item.rarity | 0, 0, 5), i = HELD_START[R] + look[0], d = S.meta.designs[i];
+  const look = heldLook(item), R = heldTierForRarity(item.rarity), i = HELD_START[R] + look[0], d = S.meta.designs[i];
   return d ? { set, S, d, i, finish: look[1] | 0, element: heldElement(item) || d.element, rarity: R, hand: S.meta.hand, item } : null;
 }
 

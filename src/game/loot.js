@@ -6,7 +6,7 @@ import { sfx } from '../core/audio.js';
 import { spawn, glowSprite, sparkle, floatText, addLight, elem } from '../gfx/vfx.js';
 import { replacementIcon } from '../core/replacementart.js';
 import { pixelSprite, gemIcon, goldIcon, ringIcon } from '../gfx/pixelart.js';
-import { rollItem, rollGem, itemName, itemColor, goldPile, goldScale, MATERIALS, GEMS, potionItem, RARITY_COLORS, SEAL_RARITY, SEALED_COLOR, SEAL_GAP } from '../data/items.js';
+import { rollItem, rollGem, itemName, itemColor, goldPile, goldScale, MATERIALS, GEMS, potionItem, RARITY_COLORS, RARITY_RARE, RARITY_LEGENDARY, qualityAtDepth, SEAL_RARITY, SEALED_COLOR, SEAL_GAP } from '../data/items.js';
 import { potionIcon } from '../core/assets.js';
 import { artIcon } from '../core/classart.js';
 import { gearIcon } from '../core/gearart.js';
@@ -20,16 +20,14 @@ import { maybeRelic } from '../data/relics.js';
 import { heresyAllows } from './heresies.js';
 import { keyChance } from './unbound.js';
 
-/** Highest quality available to ground drops at this campaign depth. Abyssal remains special-only (RARITY weight 0). */
-export function groundDropRarityCap(depth) {
-  return clamp(Math.floor(Math.max(0, depth || 0) / 24), 0, 6);
-}
+/** Highest quality unlocked for ground drops at this campaign depth. */
+export function groundDropRarityCap(depth) { return qualityAtDepth(Math.max(1, depth || 1)); }
 
 /** Roll gear drops at the character's level and current depth's quality cap. Keep vendor rolls on rollItem. */
 export function rollGroundItem(ilvl, opts = {}) {
   const level = G.char?.level;
   const depth = G.world?.depth > 0 ? G.world.depth : G.char?.depth ?? 1;
-  const rarityCap = groundDropRarityCap(depth);
+  const rarityCap = opts.maxRarity ?? groundDropRarityCap(depth);
   return rollItem(level == null ? ilvl : Math.min(ilvl, level), { ...opts, maxRarity: rarityCap });
 }
 
@@ -67,8 +65,8 @@ export function sigilIcon(rank, size = 48) {
   return c;
 }
 
-// Seconds a monster's lesser drop waits on the ground (Common, Uncommon, Rare; a gem). A long fight drops hundreds that
-// auto-play rightly walks past, and nothing else ever cleared them. Epics and up, sealed treasures, relics, Sigil Stones,
+// Seconds a monster's lesser drop waits on the ground (Orange, Light Blue, Yellow; a gem). A long fight drops hundreds that
+// auto-play rightly walks past, and nothing else ever cleared them. Green and up, sealed treasures, relics, Sigil Stones,
 // keys, what the hero dropped, chest and quest rewards don't fade. 0: never.
 const FADE = [45, 60, 120];
 export const fadeOf = (it) => (it.relic || it.sealed ? 0 : it.type === 'gem' ? (GEMS[it.gem].sigil ? 0 : 180) : it.type === 'gear' ? FADE[it.rarity] || 0 : 0);
@@ -78,7 +76,7 @@ export class GroundItem {
     this.x = x; this.y = y; this.z = 0;
     this.kind = kind; // gold | orb_hp | orb_mp | item | potion
     Object.assign(this, data);
-    // an Epic or better hits the floor sealed, once (dropFromBag marks items that were already opened), when the seal
+    // a Green-quality or better item hits the floor sealed, once (dropFromBag marks items that were already opened), when the seal
     // clock allows one (SEAL_GAP); otherwise it arrives open
     if (kind === 'item' && this.item.type === 'gear' && this.item.rarity >= SEAL_RARITY && this.item.sealed === undefined) {
       const c = G.char, ready = !c || (c.sealT ?? SEAL_GAP) >= SEAL_GAP;
@@ -129,8 +127,8 @@ export class GroundItem {
     if (this.t > 120 && this.kind !== 'item' && this.kind !== 'key') return false; // (an Abyssal Key waits)
     if (this.fades && this.t > this.fades && p.lootTarget !== this) return false;
     // light pillars for good loot
-    if (this.kind === 'item' && this.item.rarity >= 2) {
-      const r = this.item.sealed ? SEAL_RARITY : this.item.rarity;
+    if (this.kind === 'item' && this.item.rarity >= RARITY_RARE) {
+      const r = Math.min(5, this.item.sealed ? SEAL_RARITY : this.item.rarity);
       addLight(this.x, this.y, 1.6 + r * 0.5, 0.6);
       if (chance(dt * (r * 4))) sparkle(this.x, this.y, rand(4, 30), itemColor(this.item), 1, 0.2);
     }
@@ -170,10 +168,10 @@ export class GroundItem {
     }
     const art = this.kind === 'item' && !this.item.sealed && ((this.item.art && artIcon(this.item)) || gearIcon(this.item) || heldIcon(this.item));
     const s = this.kind === 'gold' ? 20 : art ? 30 : this.kind === 'key' ? 26 : 22;
-    if (this.kind === 'item' && this.item.rarity >= 2) {
-      const col = itemColor(this.item), r = this.item.sealed ? SEAL_RARITY : this.item.rarity;
+    if (this.kind === 'item' && this.item.rarity >= RARITY_RARE) {
+      const col = itemColor(this.item), r = Math.min(5, this.item.sealed ? SEAL_RARITY : this.item.rarity);
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.25 + r * 0.08;
+      ctx.globalAlpha = Math.min(0.65, 0.25 + r * 0.08);
       const g = ctx.createLinearGradient(px, py - 90, px, py);
       g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, col);
       ctx.fillStyle = g; ctx.fillRect(px - 3 - r, py - 90, 6 + r * 2, 90);
@@ -291,9 +289,9 @@ export function itemIcon(item, size = 48) {
   let c = iconCache.get(key);
   if (c) return c;
   const mat = MATERIALS[item.tier].color;
-  const pal = { m: mat, w: '#ffffff', b: item.icon === 'shield' ? '#5a2a1a' : '#5a3a20', g: item.rarity >= 3 ? '#ffd040' : '#b08a3a', c: item.rarity >= 2 ? RARITY_COLORS[item.rarity] : '#8a6a40', e: '#ff4040', k: '#101010' };
+  const pal = { m: mat, w: '#ffffff', b: item.icon === 'shield' ? '#5a2a1a' : '#5a3a20', g: item.rarity >= RARITY_LEGENDARY ? '#ffd040' : '#b08a3a', c: item.rarity >= RARITY_RARE ? RARITY_COLORS[item.rarity] : '#8a6a40', e: '#ff4040', k: '#101010' };
   if (item.icon === 'orb') { pal.c = mat; pal.e = '#c060ff'; }
-  if (item.icon === 'staff' || item.icon === 'wand') { pal.c = ['#a0a0a0', '#60ff60', '#60a0ff', '#c060ff', '#ffa020', '#ff4058', '#20e0ff'][item.rarity]; pal.b = '#6a4a2a'; pal.e = '#ffffff'; }
+  if (item.icon === 'staff' || item.icon === 'wand') { pal.c = RARITY_COLORS[item.rarity] || '#ffffff'; pal.b = '#6a4a2a'; pal.e = '#ffffff'; }
   c = replacementIcon('item_' + item.icon, size, mat) || pixelSprite(item.icon, pal, 4);
   iconCache.set(key, c);
   return c;

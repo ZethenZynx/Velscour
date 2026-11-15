@@ -528,11 +528,26 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .itemicon .socks { position: absolute; left: 1px; bottom: 1px; display: flex; gap: 1px; }
 .itemicon .socks i { width: 5px; height: 5px; border-radius: 50%; background: #111; border: 1px solid #777; }
 .itemicon .socks i.f { background: #ffd; border-color: #fff; }
-.r0 { border-color: #555 !important; } .r1 { border-color: #2c7a33 !important; background: rgba(20,60,20,.35) !important; }
-.r2 { border-color: #2d4f99 !important; background: rgba(20,30,80,.35) !important; } .r3 { border-color: #6a2d99 !important; background: rgba(50,15,80,.4) !important; }
-.r4 { border-color: #b8641a !important; background: rgba(90,40,5,.45) !important; box-shadow: inset 0 0 10px rgba(255,140,30,.35); }
-.r5 { border-color: #c0203a !important; background: rgba(90,5,20,.5) !important; box-shadow: inset 0 0 12px rgba(255,50,80,.45); }
-.r6 { border-color: #1aa8c0 !important; background: rgba(5,50,70,.55) !important; box-shadow: inset 0 0 14px rgba(32,224,255,.5); }
+.r0 { border-color: #ff8040 !important; background: rgba(255,128,64,0.18) !important; }
+.r1 { border-color: #80c8ff !important; background: rgba(128,200,255,0.18) !important; }
+.r2 { border-color: #fff080 !important; background: rgba(255,240,128,0.18) !important; }
+.r3 { border-color: #80e060 !important; background: rgba(128,224,96,0.18) !important; }
+.r4 { border-color: #c8c0b0 !important; background: rgba(200,192,176,0.18) !important; }
+.r5 { border-color: #e05040 !important; background: rgba(224,80,64,0.18) !important; }
+.r6 { border-color: #a08060 !important; background: rgba(160,128,96,0.18) !important; }
+.r7 { border-color: #ffb060 !important; background: rgba(255,176,96,0.18) !important; }
+.r8 { border-color: #c090ff !important; background: rgba(192,144,255,0.18) !important; }
+.r9 { border-color: #f0f0f0 !important; background: rgba(240,240,240,0.18) !important; }
+.r10 { border-color: #ffc040 !important; background: rgba(255,192,64,0.18) !important; }
+.r11 { border-color: #fff4c0 !important; background: rgba(255,244,192,0.18) !important; }
+.r12 { border-color: #9060c0 !important; background: rgba(144,96,192,0.28) !important; }
+.r13 { border-color: #80a0ff !important; background: rgba(128,160,255,0.28) !important; }
+.r14 { border-color: #c02030 !important; background: rgba(192,32,48,0.28) !important; }
+.r15 { border-color: #20e0ff !important; background: rgba(32,224,255,0.28) !important; }
+.r16 { border-color: #ff6060 !important; background: rgba(255,96,96,0.28) !important; }
+.r17 { border-color: #e0c080 !important; background: rgba(224,192,128,0.28) !important; }
+.r18 { border-color: #ffe0f0 !important; background: rgba(255,224,240,0.28) !important; }
+.r19 { border-color: #ffd700 !important; background: rgba(255,215,0,0.28) !important; }
 .rheir { border-color: #b8923a !important; background: rgba(80,58,14,.5) !important; box-shadow: inset 0 0 12px rgba(217,180,90,.5); }
 .rcov { border-color: #1f9e82 !important; background: rgba(8,64,52,.5) !important; box-shadow: inset 0 0 12px rgba(53,224,184,.45); }
 .rglyph { border-color: #b8a878 !important; background: rgba(60,52,30,.5) !important; box-shadow: inset 0 0 12px rgba(242,226,176,.45); }

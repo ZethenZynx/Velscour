@@ -132,7 +132,7 @@ export function drawGearSparkle(ctx, pts, gear, t, map, s, opts = {}) {
   for (const part of ['body', 'head']) {
     const g = gear[part], P = pts[part];
     if (!g || g.rarity < 2 || !P?.length) continue;
-    const R = g.rarity, c = g.col, n = [0, 0, 1, 2, 3, 4][R] * (part === 'head' ? 1 : 2);
+    const R = Math.min(5, g.rarity), c = g.col, n = [0, 0, 1, 2, 3, 4][R] * (part === 'head' ? 1 : 2);
     for (let i = 0; i < n; i++) { // glints popping on and off at random points of the piece
       const per = 2.2 + hr(sd, i + 11) * 1.6, k = t / per + hr(sd, i + part.length * 17), u = k % 1;
       if (u > 0.22) continue;

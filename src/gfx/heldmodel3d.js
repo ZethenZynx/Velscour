@@ -5,7 +5,7 @@
 // luminance ramps heldart.js recolours the sprites with), glowing parts the item's element, and each socketed gem sits
 // in a socket as a lit jewel. Drawn on one shared offscreen WebGL canvas and copied into the 2D frame at the device
 // resolution, as the Runeblade is (runeblade3d.js). three.js loads on first use; until then drawHeldModel3D returns null.
-import { heldSetOf, heldElement, HELD_START } from '../data/held.js';
+import { heldSetOf, heldElement, HELD_START, heldTierForRarity } from '../data/held.js';
 import { PALETTES } from '../data/gear.js';
 import { GEMS } from '../data/items.js';
 import { paletteLuts } from '../core/gearart.js';
@@ -129,7 +129,7 @@ export function heldModel3DReady(item, cls) {
   if (dead || !item) return false;
   if (!T) { start(); return false; }
   const set = heldSetOf(item.base, 'weapon', cls), look = heldLook(item);
-  return !!(set && look && file(set, HELD_START[item.rarity | 0] + look[0]));
+  return !!(set && look && file(set, HELD_START[heldTierForRarity(item.rarity)] + look[0]));
 }
 
 let snap = null; // the last render, copied out of the GL canvas: an image the caller's outline (o.rim) can stamp
@@ -142,7 +142,7 @@ let snap = null; // the last render, copied out of the GL canvas: an image the c
  */
 export function drawHeldModel3D(ctx, item, cls, x, y, a, len, o = {}) {
   if (!heldModel3DReady(item, cls) || !R || len <= 0) return null;
-  const set = heldSetOf(item.base, 'weapon', cls), look = heldLook(item), i = HELD_START[item.rarity | 0] + look[0], f = file(set, i);
+  const set = heldSetOf(item.base, 'weapon', cls), look = heldLook(item), i = HELD_START[heldTierForRarity(item.rarity)] + look[0], f = file(set, i);
   const element = heldElement(item) || f.obj.userData.element || 'cold', gems = (item.gems || []).map((g) => GEMS[g.gem]?.color || '#ffffff');
   const L = dressed(f, `${set}/${i}|${look[1] | 0}|${element}|${gems.join()}`, look[1] | 0, element, gems);
   const k = len / f.len, half = Math.ceil(L.rad * k + 2);

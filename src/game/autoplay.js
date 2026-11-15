@@ -373,7 +373,7 @@ function simulate(p, mutate) {
 
 // ================================================================== small helpers
 export const isValuableGear = (it) => it && it.type === 'gear' && (
-  (it.rarity || 0) >= 4 || // Legendary (4), Mythic (5), Abyssal (6)
+  (it.rarity || 0) >= 4 || // Ivory or better
   it.heirloom ||
   it.covenant ||
   it.sigil ||
@@ -2447,7 +2447,7 @@ export const Auto = {
     };
     store();
     // a full chest: make room by selling the weakest gear auto-play stored (+N gear last, then lowest rarity and item
-    // level), then store the rest; never sell valuable gear (Mythic/Legendary/Abyssal/Covenant)
+    // level), then store the rest; never sell valuable gear (Ivory or better/Covenant)
     if (Array.isArray(c.stash) && c.stash.every(Boolean)) {
       const worst = (c.stash || []).map((b, i) => ({ b, i })).filter(({ b }) => b && b.type === 'gear' && b.autoStash && !b.locked && !isValuableGear(b)).sort((a, b) => upgraded(a.b) - upgraded(b.b) || a.b.rarity - b.b.rarity || a.b.ilvl - b.b.ilvl).slice(0, 30);
       let gold = 0;

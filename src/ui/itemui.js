@@ -94,7 +94,7 @@ export function itemTooltip(item, opts = {}) {
     h += `<div class="dim">Sold by Fortunato the Gambler. Open the kit to tailor the cloth silhouette, field colors, heraldic patterns, and crest of your 3D War Banner.</div>`;
     h += `<div class="tt-sep"></div><div class="dim">${G.touch ? 'Tap' : 'Right-click'} or select <b>Customize Banner</b> to open the banner studio.</div>`;
   } else if (item.sealed) {
-    h += `<div class="tt-base">Epic or better · Item Level ${item.ilvl}</div><div style="color:${col}">What lies inside is anyone's guess until the seal is broken.</div><div class="tt-sep"></div><div class="dim">${G.touch ? 'Tap' : 'Click'} <b>Break the Seal</b>, or the SEALED button on the HUD. It can't be sold or worn sealed.</div>`;
+    h += `<div class="tt-base">${RARITY[3].name} or better · Item Level ${item.ilvl}</div><div style="color:${col}">What lies inside is anyone's guess until the seal is broken.</div><div class="tt-sep"></div><div class="dim">${G.touch ? 'Tap' : 'Click'} <b>Break the Seal</b>, or the SEALED button on the HUD. It can't be sold or worn sealed.</div>`;
   } else {
     if (item.unid) {
       h += `<div class="tt-base">${SLOT_NAMES[item.slot]} · Item Level ${item.ilvl}</div><div class="dim">Its true nature is revealed once purchased.</div>`;
