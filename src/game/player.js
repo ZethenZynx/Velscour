@@ -8,7 +8,7 @@ import { camera } from '../core/view.js';
 import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, sparkle, burst, spawn, elem, bloodSpray, smoke } from '../gfx/vfx.js';
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
-import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, cooldown, useTime, weaponCoef, skillRange } from '../data/skills.js';
+import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange } from '../data/skills.js';
 import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, shownEquip } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
@@ -482,7 +482,7 @@ export class Player extends Creature {
     const L = this.skillLevel(sk);
     if (!L) return 'unlearned';
     if ((this.cooldowns[sk.id] || 0) > 0) return 'cooldown';
-    if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < 10) || this.rage < rageCost(sk))) return 'rage';
+    if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < whirlwindRageCost(L)) || this.rage < rageCost(sk, L))) return 'rage';
     if (this.mana < manaCost(sk, L)) return 'mana';
     return null;
   }
@@ -490,7 +490,9 @@ export class Player extends Creature {
   tryUseSkill(skOrId, tx, ty, target = null) {
     const sk = typeof skOrId === 'string' ? SKILLS[skOrId] : skOrId;
     if (this.dead || !sk) return false;
-    if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < 10) || this.rage < rageCost(sk))) {
+    const L = this.skillLevel(sk);
+    if (!L) return false;
+    if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < whirlwindRageCost(L)) || this.rage < rageCost(sk, L))) {
       if ((this.noRageT || 0) <= 0) { floatText(this.x, this.y, 60, 'Need Rage', '#ff9933', 12); this.noRageT = 0.8; }
       return false;
     }
@@ -503,8 +505,6 @@ export class Player extends Creature {
       if (!(this.channel instanceof BeamCh)) return false;
       this.channel = null; // re-casting cancels a channelled beam
     }
-    const L = this.skillLevel(sk);
-    if (!L) return false;
     if ((this.cooldowns[sk.id] || 0) > 0) return false;
     const aug = this.augFor(sk), quick = aug && aug.haste ? 1 - Math.min(0.6, 0.25 * aug.haste) : 1;
     const cost = Math.round(manaCost(sk, L) * quick);
@@ -537,7 +537,7 @@ export class Player extends Creature {
     if (sk.id === 'barbarian.0.0') this.bashCastSerial++;
     const ok = castSkill(this, sk, L, tx, ty);
     if (ok === false) { this.mana += cost; this.cooldowns[sk.id] = 0; return false; }
-    if (rageCost(sk)) { this.rage -= rageCost(sk); this.char.rage = this.rage; }
+    if (rageCost(sk, L)) { this.rage -= rageCost(sk, L); this.char.rage = this.rage; }
     if (this.world && this.world.dungeonAffixes?.includes('curse_of_slowness')) this.affixSlowUntil = (this.world.time || 0) + DUNGEON_AFFIX_CONFIG.playerCurses.slowDuration;
     // Attacks build Rage; no passive regeneration. Hits award most of the resource.
     if (this.classId === 'barbarian' && sk.attack) this.gainRage(sk.id === 'barbarian.0.0' ? 3 : sk.kind === 'whirl' ? 0 : 0.7);

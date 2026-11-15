@@ -8,7 +8,7 @@ const {openGame,report}=require('./harness');
     const checks=await page.evaluate(async()=>{
       const problems=[];
       const {G,game}=window.VELSCOUR;
-      const {SKILLS,manaCost}=await import('/src/data/skills.js');
+      const {SKILLS,manaCost,whirlwindRageRate}=await import('/src/data/skills.js');
       const {BIOME_BY_ID}=await import('/src/data/biomes.js');
       const {newCharData}=await import('/src/game/save.js');
       const {rollItem,fitsSlot,slotFor}=await import('/src/data/items.js');
@@ -85,7 +85,8 @@ const {openGame,report}=require('./harness');
       else{
         const wrl=p.channel;
         wrl.update(0.5);
-        if(Math.abs(p.rage-95)>0.1)problems.push('Expected five Rage spent in half a second, got '+p.rage);
+        const expectedRage=p.rage;
+        if(Math.abs(expectedRage-(100-whirlwindRageRate(20)*0.5))>0.1)problems.push('Whirlwind Rage upkeep did not scale with skill rank: '+expectedRage);
         // While spinning, follow autopilot waypoints instead of a stale aimed target.
         const oldMove=w.map.move,oldAim=p.aim,oldAuto=p.whirlAuto;
         p.whirlAuto=true;p.moveVec=[0,1];p.aim=[p.x-20,p.y-20];

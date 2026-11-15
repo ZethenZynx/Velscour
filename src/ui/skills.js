@@ -5,7 +5,7 @@ import { shownDmg, heroDmgLevel } from '../data/depth.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable } from './ui.js';
 import { skillIcon, skillIconURL } from './icons.js';
-import { CLASS_SKILLS, SKILLS, MAX_SKILL_LEVEL, describe, manaCost, rageCost, cooldown, ROW_LEVELS, effLevel } from '../data/skills.js';
+import { CLASS_SKILLS, SKILLS, MAX_SKILL_LEVEL, describe, manaCost, rageCost, whirlwindRageCost, whirlwindRageRate, cooldown, ROW_LEVELS, effLevel } from '../data/skills.js';
 import { CLASSES } from '../data/classes.js';
 import { elem } from '../gfx/vfx.js';
 import { LMB, SLOT_LABELS, freeSlot } from '../data/bar.js';
@@ -16,6 +16,15 @@ import { skillMorphFor, applySkillMorph } from '../data/talents.js';
 
 /** A skill's damage range on the shown scale of the hero's depth (data/depth.js). */
 const skillDmg = (sk, L) => G.player.skillDamage(sk, L).map((v) => fmtDmg(shownDmg(v, heroDmgLevel(G.char))));
+
+function resourceCostLabel(sk, L) {
+  const rage = rageCost(sk, L);
+  if (rage) return rage + ' Rage';
+  if (sk.classId === 'barbarian' && sk.kind === 'whirl') {
+    return whirlwindRageCost(L) + ' Rage to start · ' + whirlwindRageRate(L).toFixed(1) + '/s';
+  }
+  return manaCost(sk, L) + ' Mana';
+}
 
 /** A skill's mastery: level, tier, an XP bar, its damage multiplier, and the ring augments on it. */
 function masteryHtml(sk, compact) {
@@ -166,12 +175,12 @@ export function skillDetail(sk) {
   if (morph && morph.labels && morph.labels.length) {
     h += `<div style="margin:4px 0;font-size:12px;color:#ffb86c">Talent Morphs: <b>${morph.labels.map(escapeHtml).join(', ')}</b></div>`;
   }
-  const mc = manaCost(sk, showL), rc = rageCost(sk), cd = cooldown(sk);
+  const rc = rageCost(sk, showL), cd = cooldown(sk);
   const effCd = cd ? Math.max(0.2, cd * (1 - p.st.cdr / 100) * (1 - (morph ? morph.cdPct || 0 : 0) / 100)) : 0;
-  h += `<div class="dim">${rc ? 'Rage' : 'Mana'}: <b style="color:${rc ? '#ff9933' : '#8fb4ff'}">${rc || mc || (sk.classId === 'barbarian' && sk.kind === 'whirl' ? '10 to start · 10/s' : 'Free')}</b>${effCd ? ` · Cooldown: <b>${effCd.toFixed(1)}s</b>` : ''}</div>`;
+  h += `<div class="dim">${rc || (sk.classId === 'barbarian' && sk.kind === 'whirl') ? 'Rage' : 'Mana'}: <b style="color:${rc || (sk.classId === 'barbarian' && sk.kind === 'whirl') ? '#ff9933' : '#8fb4ff'}">${resourceCostLabel(sk, showL)}</b>${effCd ? ` · Cooldown: <b>${effCd.toFixed(1)}s</b>` : ''}</div>`;
   if (base < MAX_SKILL_LEVEL) {
     const nd = skillDmg(sk, Math.max(1, L + 1));
-    h += `<div class="dim" style="margin-top:4px;font-size:12px">Next level: ${nd[0]}–${nd[1]} damage, ${rageCost(sk) ? rageCost(sk) + ' Rage' : manaCost(sk, L + 1) + ' mana'}</div>`;
+    h += `<div class="dim" style="margin-top:4px;font-size:12px">Next level: ${nd[0]}–${nd[1]} damage, ${resourceCostLabel(sk, L + 1)}</div>`;
   }
   if (base) h += masteryHtml(effSk);
   h += `<div class="dim" style="font-size:12px;margin-top:2px">Synergy: +1.5% damage per point in other ${escapeHtml(CLASSES[sk.classId].trees[sk.tree])} skills (now x${p.synergy(sk).toFixed(2)})</div>`;
@@ -228,12 +237,12 @@ export function skillTooltip(sk) {
   if (morph && morph.labels && morph.labels.length) {
     h += `<div style="margin:4px 0;font-size:12px;color:#ffb86c">Talent Morphs: <b>${morph.labels.map(escapeHtml).join(', ')}</b></div>`;
   }
-  const mc = manaCost(sk, showL), rc = rageCost(sk), cd = cooldown(sk);
+  const rc = rageCost(sk, showL), cd = cooldown(sk);
   const effCd = cd ? Math.max(0.2, cd * (1 - p.st.cdr / 100) * (1 - (morph ? morph.cdPct || 0 : 0) / 100)) : 0;
-  h += `<div class="dim" style="font-size:13px">${rc ? 'Rage' : 'Mana'}: <b style="color:${rc ? '#ff9933' : '#8fb4ff'}">${rc || mc || (sk.classId === 'barbarian' && sk.kind === 'whirl' ? '10 to start · 10/s' : 'Free')}</b>${effCd ? ` · Cooldown: <b>${effCd.toFixed(1)}s</b>` : ''}</div>`;
+  h += `<div class="dim" style="font-size:13px">${rc || (sk.classId === 'barbarian' && sk.kind === 'whirl') ? 'Rage' : 'Mana'}: <b style="color:${rc || (sk.classId === 'barbarian' && sk.kind === 'whirl') ? '#ff9933' : '#8fb4ff'}">${resourceCostLabel(sk, showL)}</b>${effCd ? ` · Cooldown: <b>${effCd.toFixed(1)}s</b>` : ''}</div>`;
   if (base < MAX_SKILL_LEVEL) {
     const nd = skillDmg(sk, Math.max(1, L + 1));
-    h += `<div class="dim" style="margin-top:3px;font-size:12px">Next level: ${nd[0]}–${nd[1]} damage, ${rageCost(sk) ? rageCost(sk) + ' Rage' : manaCost(sk, L + 1) + ' mana'}</div>`;
+    h += `<div class="dim" style="margin-top:3px;font-size:12px">Next level: ${nd[0]}–${nd[1]} damage, ${resourceCostLabel(sk, L + 1)}</div>`;
   }
   if (base) {
     h += `<div style="margin-top:5px">${masteryHtml(effSk, true)}</div>`;

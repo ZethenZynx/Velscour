@@ -194,7 +194,7 @@ function skillDps(p, sk, L, crowd = CROWD) {
   const effSk = morph ? applySkillMorph(sk, morph) : sk;
   const per = avg(p.skillDamage(sk, L)) * hitsPerCast(effSk, crowd, L) * critMul(p);
   const period = Math.max(castTime(p, effSk), cdOf(p, sk), 0.05);
-  const cost = manaCost(sk, L), rage = rageCost(sk);
+  const cost = manaCost(sk, L), rage = rageCost(sk, L);
   const supply = p.st.manaRegen + p.maxMana / 40;
   const sustain = cost ? Math.min(1, supply / (cost / period)) :
     rage ? Math.min(1, 12 / (rage / period)) : 1;
@@ -2035,7 +2035,7 @@ export const Auto = {
       if (sk.classId === 'barbarian' && sk.kind === 'whirl' && p.rage < 40) continue;
       // Spend 25 Rage on Earthquake only with surplus Rage and a real crowd,
       // keeping enough in reserve to initiate another Whirlwind.
-      if (rageCost(sk) && this.barSkills().some((s) => s.kind === 'whirl') &&
+      if (rageCost(sk, effLevel(p, sk)) && this.barSkills().some((s) => s.kind === 'whirl') &&
         (p.rage < 85 || (t.rank !== 'boss' && foes.filter((m) => dist(m.x, m.y, t.x, t.y) < 2.5).length < 2))) continue;
       if (sk.kind === 'summon' && now - (this.lastCast[sk.id] || -99) < 1.5) continue;
       if (this.banT > 0 && !OFFENSIVE.has(sk.kind) && sk.kind !== 'heal') continue;

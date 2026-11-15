@@ -8,7 +8,7 @@ import { GroundItem } from './loot.js';
 import { explosionFx } from '../gfx/shapes.js';
 import { hit, aoe, chainHit } from './combat.js';
 import { Projectile, Delayed, Area, makeWall, Orbit, Whirl, Leap, Dash, NovaWave, BeamCh, Trap, Rain, Fissure, AuraFx, explode, coneTargets } from './hazards.js';
-import { buffAmount, curseAmount, skillDuration, spearBarrageAreas, ricochetCount, RICOCHET_BLAST } from '../data/skills.js';
+import { buffAmount, curseAmount, skillDuration, spearBarrageAreas, ricochetCount, RICOCHET_BLAST, whirlwindRageRate } from '../data/skills.js';
 import { createSummon } from './monster.js';
 import { lanceLeap, lanceSpearBarrage } from '../gfx/lancefx.js';
 import { shieldVariantForSkill, shieldOrbitRadius, preloadLancerShield } from '../gfx/lancershields.js';
@@ -283,7 +283,7 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
       w.addHazard(new Whirl({ world: w, src: p, tx, ty, dur: m.dur || 2,
         r: 1.35 * (m.r ?? 1) * area, dmg, el, fx, o,
         speed: barbarian ? Math.max(5.4, p.speed * 1.15) : 4.2,
-        rage: barbarian, pull: (barbarian ? ((m.suck || 0) + (L >= 6 ? 0.55 : 0)) : 0) + (m.pull ? 0.65 : 0),
+        rage: barbarian, rageRate: barbarian ? whirlwindRageRate(L) : 10, pull: (barbarian ? ((m.suck || 0) + (L >= 6 ? 0.55 : 0)) : 0) + (m.pull ? 0.65 : 0),
         lightning: barbarian && (m.lightning || L >= 12),
         tornadoes: barbarian ? (m.tornado || 0) + (L >= 16 ? 2 : 0) : 0 }));
       break;

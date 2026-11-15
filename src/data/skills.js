@@ -82,12 +82,18 @@ export function skillBaseDamage(sk, L) {
   return d;
 }
 
-export function rageCost(sk) { return sk.classId === 'barbarian' ? (sk.m.rage || 0) : 0; }
+const rankResourceScale = (L = 1) => 1 + 0.09 * (Math.max(1, Number(L) || 1) - 1);
+export function rageCost(sk, L = 1) {
+  if (sk.classId !== 'barbarian' || !sk.m.rage) return 0;
+  return Math.round(sk.m.rage * rankResourceScale(L));
+}
+export function whirlwindRageCost(L = 1) { return Math.round(10 * rankResourceScale(L)); }
+export function whirlwindRageRate(L = 1) { return 10 * rankResourceScale(L); }
 export function manaCost(sk, L) {
-  if (sk.classId === 'barbarian' && (sk.kind === 'whirl' || rageCost(sk))) return 0; // Barbarian Rage abilities do not consume mana
+  if (sk.classId === 'barbarian' && (sk.kind === 'whirl' || rageCost(sk, L))) return 0; // Barbarian Rage abilities do not consume mana
   // "free" affects skill-specific mechanics and damage tuning, not mana cost.
   const row = sk.tierRow ?? sk.row;
-  return Math.round((2.5 + Math.pow(row, 1.4) * 3.2) * (1 + 0.09 * (L - 1)) * (sk.m.mana ?? 1) * (KIND_MANA[sk.kind] ?? 1));
+  return Math.round((2.5 + Math.pow(row, 1.4) * 3.2) * (rankResourceScale(L)) * (sk.m.mana ?? 1) * (KIND_MANA[sk.kind] ?? 1));
 }
 export function cooldown(sk) { return sk.m.cd ?? KIND_CD[sk.kind] ?? 0; }
 export function useTime(sk) { return sk.m.barrage ? 0 : KIND_USE[sk.kind] ?? 0.42; }

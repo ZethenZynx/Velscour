@@ -1,6 +1,6 @@
-// Mathematical verification of mana costs, regen, and resource economy across all classes.
+// Mathematical verification of skill resource costs, regen, and resource economy across all classes.
 import assert from 'node:assert';
-import { SKILLS, CLASS_SKILLS, manaCost, rageCost } from '../../src/data/skills.js';
+import { SKILLS, CLASS_SKILLS, manaCost, rageCost, whirlwindRageCost, whirlwindRageRate } from '../../src/data/skills.js';
 import { CLASSES } from '../../src/data/classes.js';
 
 console.log('Testing mana balance and economy...');
@@ -15,18 +15,23 @@ for (const [classId, skills] of Object.entries(CLASS_SKILLS)) {
       assert.strictEqual(cost, 0, skill.name + ' should use Rage instead of mana');
     } else {
       assert(cost > 0, skill.name + ' for ' + classId + ' must cost mana');
+      assert(manaCost(skill, 20) > cost, skill.name + ' mana cost should increase with skill rank');
     }
     assert(manaCost(skill, 20) >= cost, skill.name + ' mana cost should not decrease with skill level');
+    const rageAtRank1 = rageCost(skill, 1), rageAtRank20 = rageCost(skill, 20);
+    if (rageAtRank1) assert(rageAtRank20 > rageAtRank1, skill.name + ' Rage cost should increase with skill rank');
     checkedSkills++;
   }
 }
 assert(checkedSkills > 0, 'Must verify the skill catalog');
-console.log('Verified mana costs for ' + checkedSkills + ' skills across ' + Object.keys(CLASSES).length + ' classes');
+assert(whirlwindRageCost(20) > whirlwindRageCost(1), 'Whirlwind start Rage should increase with skill rank');
+assert(whirlwindRageRate(20) > whirlwindRageRate(1), 'Whirlwind upkeep Rage should increase with skill rank');
+console.log('Verified resource costs for ' + checkedSkills + ' skills across ' + Object.keys(CLASSES).length + ' classes');
 
 // 2. Verify Row 0 starting spenders cost <= 4 mana at L=1 (Early Game Protection)
 let testedRow0 = 0;
 for (const [id, sk] of Object.entries(SKILLS)) {
-  if (sk.row === 0 && !sk.m.free && sk.classId !== 'barbarian') {
+  if (sk.row === 0 && sk.classId !== 'barbarian') {
     const cost = manaCost(sk, 1);
     assert(cost <= 4, `Row 0 skill ${sk.name} (${sk.id}) cost ${cost} should be <= 4 for early game protection`);
     if (['proj', 'melee', 'dash'].includes(sk.kind)) {
