@@ -77,6 +77,7 @@ export function showFirstSkillTutorial() {
   const button = document.querySelector('#hud-buttons .hbtn[data-act="skills"]');
   if (!button) return false;
 
+  dismissFirstSkillTutorial();
   firstSkillTutorialTarget = button;
   button.classList.add('first-skill-highlight');
   firstSkillTutorialGuide = document.createElement('div');
