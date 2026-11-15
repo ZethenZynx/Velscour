@@ -317,7 +317,8 @@ body.touch #sealed-btn i { width: 16px; height: 16px; }
 .hbtn:active img { transform: scale(.94); }
 .hbtn.first-skill-highlight { z-index: 101; outline: 2px solid var(--gold-bright); outline-offset: 2px; border-radius: 6px; animation: first-skill-pulse 1s ease-in-out infinite; }
 @keyframes first-skill-pulse { 50% { filter: drop-shadow(0 0 10px rgba(255,190,70,.95)); transform: scale(1.06); } }
-#tooltip.first-skill-tutorial-tip::after { content: ''; position: absolute; top: 12px; right: -8px; border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 8px solid var(--gold-dim); filter: drop-shadow(1px 1px 1px #000); }
+.first-skill-tutorial-guide { position: fixed; z-index: 102; box-sizing: border-box; width: min(330px, calc(100vw - 16px)); padding: 10px 12px; border: 1px solid var(--gold-dim); border-radius: 4px; background: linear-gradient(#21160f, #0d0806); color: var(--text); font: 14px/1.35 var(--font-body); box-shadow: 0 5px 18px #000b, inset 0 1px rgba(255,225,165,.06); pointer-events: none; user-select: none; }
+.first-skill-tutorial-guide strong { display: block; margin-bottom: 4px; color: var(--gold-bright); font: 700 12px/1.2 var(--font-head); letter-spacing: .5px; text-transform: uppercase; }
 .hbtn .badge { top: -2px; right: 0; }
 .badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #b0160f; color: #fff; font: 700 11px var(--font-body); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 6px #f22; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { transform: scale(1.15); } }

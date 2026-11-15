@@ -383,6 +383,7 @@ export function migrate(c) {
     }
   }
   c.tips = c.tips || {};
+  c.skillTutorialSeen = !!c.skillTutorialSeen && Object.values(c.skills || {}).some((level) => level > 0);
   c.critterTutorialSeen = c.critterTutorialSeen ?? !!c.tips.critter;
   c.critterArrowEncounters = Math.max(0, Math.min(8, c.critterArrowEncounters | 0));
   if (c.classId === 'barbarian') c.rage = Math.max(0, Math.min(100, Number(c.rage) || 0));

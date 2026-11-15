@@ -47,7 +47,7 @@ const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#6
 class Critter {
   constructor(world, key, x, y) {
     const K = CRITTERS[key];
-    Object.assign(this, { world, key, K, x, y, z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU), caught: false, gone: false, showArrow: false, tutorial: false, layer: 'top' });
+    Object.assign(this, { world, key, K, x, y, z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU), caught: false, gone: false, showArrow: false, tutorial: false, tutorialRendered: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
   update(dt) {
@@ -146,24 +146,27 @@ class Critter {
       ctx.lineTo(px + 3, tip - 15); ctx.lineTo(px + 3, tip - 8); ctx.lineTo(px + 7, tip - 8); ctx.closePath();
       ctx.fill(); ctx.stroke();
     }
+    if (this.tutorial && G.critterTutorial === this) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
   }
   drawTutorial(ctx, px, py) {
     const K = this.K, gold = !!K.pay.gold;
-    const w = 224, h = 58, x = px - w / 2, y = py - this.z - 38 - h;
+    const w = 230, h = 58, x = px - w / 2, y = py - this.z - 70 - h;
     ctx.save();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = 'rgba(16, 10, 6, 0.96)';
-    ctx.strokeStyle = K.color; ctx.lineWidth = 2;
+    const panel = ctx.createLinearGradient(x, y, x, y + h);
+    panel.addColorStop(0, '#21160f'); panel.addColorStop(1, '#0d0806');
+    ctx.fillStyle = panel;
+    ctx.strokeStyle = '#92713d'; ctx.lineWidth = 1.5;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h);
     ctx.fill(); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffe3a0'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = '#e8cc83'; ctx.font = 'bold 14px Georgia, serif';
     ctx.fillText(K.name, px, y + 15);
-    ctx.fillStyle = '#ffffff'; ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#d1c2a6'; ctx.font = '12px Arial, sans-serif';
     ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 33);
-    ctx.fillStyle = '#ffd040'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = '#ffd878'; ctx.font = 'bold 12px Georgia, serif';
     ctx.fillText('Click it to collect the reward!', px, y + 49);
     ctx.restore();
   }
