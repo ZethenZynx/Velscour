@@ -40,13 +40,24 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
       G.player.moveTarget = null; G.player.lootTarget = null;
       window._before = { gold: G.char.gold, xp: G.char.xp, lvl: G.char.level, pots: { ...G.char.potions }, gems: G.char.bag.filter((b) => b && b.type === 'gem').length, n: G.char.critters || 0 };
       const [x, y] = cr.screen();
-      return { x, y, tutorial: G.critterTutorial === cr, arrow: cr.showArrow };
+      return { x, y, tutorial: G.critterTutorial === cr, rendered: cr.tutorialRendered, arrow: cr.showArrow };
     }, key);
     if (!pos) { check(false, `${key}: spawned`); continue; }
     if (key === 'wisp') {
-      await page.waitForTimeout(300);
+      const spawning = await page.evaluate(() => {
+        const cr = window.VELSCOUR.G.critterTutorial;
+        return !!cr && cr.t < 1 / 3 && !cr.tutorialRendered && !window.VELSCOUR.G.paused;
+      });
+      check(pos.tutorial && spawning, 'tutorial waits while the critter completes its fade-in');
+      await page.waitForTimeout(550);
+      const stillAppearing = await page.evaluate(() => {
+        const cr = window.VELSCOUR.G.critterTutorial;
+        return !!cr && cr.t < 1 && !cr.tutorialRendered && !window.VELSCOUR.G.paused;
+      });
+      check(pos.tutorial && stillAppearing, 'tutorial leaves time for the critter spawn effects to finish');
+      await page.waitForFunction(() => window.VELSCOUR.G.paused && !!window.VELSCOUR.G.critterTutorial?.tutorialRendered, null, { timeout: 2000 });
       const visible = await page.evaluate(() => window.VELSCOUR.G.paused && !!window.VELSCOUR.G.critterTutorial?.tutorialRendered);
-      check(pos.tutorial && visible, 'first critter is rendered before the tutorial pauses the game');
+      check(pos.tutorial && visible, 'first critter finishes appearing before the tutorial pauses the game');
       await shot('spectate_critter' + tag);
     } else check(pos.arrow, `${key}: red arrow remains during the learning encounters`);
     const p2 = await page.evaluate(() => { const c = window.VELSCOUR.G.world.critters.find((x) => x.alive); const [x, y] = c.screen(); return { x, y }; });

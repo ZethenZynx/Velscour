@@ -33,6 +33,8 @@ const KEYS = Object.keys(CRITTERS);
 export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
 export const CRITTER_ARROW_ENCOUNTERS = 7;
+// Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
+const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
@@ -87,11 +89,13 @@ class Critter {
   draw(ctx) {
     const K = this.K, px = isoX(this.x, this.y), py = isoY(this.x, this.y), t = this.t;
     const fade = this.gone ? Math.max(0, 1 - (t - this.t0) / 0.6) : Math.min(1, t * 3);
+    const tutorialReady = this.tutorial && G.critterTutorial === this && this.t >= CRITTER_TUTORIAL_SPAWN_DELAY;
     // a soft beacon ring on the floor so it reads as something to tap, brighter in its last seconds
     const late = !this.gone && this.life - t < 3;
     ctx.globalAlpha = fade * (0.35 + 0.25 * Math.sin(t * (late ? 14 : 5)));
     ctx.strokeStyle = K.color; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(px, py, 16, 8, 0, 0, TAU); ctx.stroke();
+    if (tutorialReady) this.drawTutorial(ctx, px, py);
     if (artReady()) this.drawModel(ctx, px, py, fade);
     else if (K.fly) {
       const y = py - this.z, col = this.key === 'prism' ? `hsl(${(t * 220) % 360},100%,70%)` : K.color;
@@ -136,7 +140,6 @@ class Critter {
       ctx.drawImage(glowSprite(K.color), px - 18, py - 21, 36, 36);
       ctx.globalCompositeOperation = 'source-over';
     }
-    if (this.tutorial && G.critterTutorial === this) this.drawTutorial(ctx, px, py);
     if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
       const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
       ctx.globalAlpha = fade;
@@ -146,28 +149,34 @@ class Critter {
       ctx.lineTo(px + 3, tip - 15); ctx.lineTo(px + 3, tip - 8); ctx.lineTo(px + 7, tip - 8); ctx.closePath();
       ctx.fill(); ctx.stroke();
     }
-    if (this.tutorial && G.critterTutorial === this) this.tutorialRendered = true;
+    if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
   }
   drawTutorial(ctx, px, py) {
     const K = this.K, gold = !!K.pay.gold;
-    const w = 230, h = 58, x = px - w / 2, y = py - this.z - 70 - h;
+    const w = 250, h = 68, x = px - w / 2, y = py - this.z - 22 - h;
     ctx.save();
     ctx.globalAlpha = 1;
-    const panel = ctx.createLinearGradient(x, y, x, y + h);
-    panel.addColorStop(0, '#21160f'); panel.addColorStop(1, '#0d0806');
-    ctx.fillStyle = panel;
-    ctx.strokeStyle = '#92713d'; ctx.lineWidth = 1.5;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = 'rgba(14, 9, 7, 0.96)';
+    ctx.strokeStyle = '#5c4424'; ctx.lineWidth = 2;
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h);
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6); else ctx.rect(x, y, w, h);
     ctx.fill(); ctx.stroke();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    const head = ctx.createLinearGradient(x, y, x, y + 26);
+    head.addColorStop(0, '#2a1a10'); head.addColorStop(1, '#140c08');
+    ctx.fillStyle = head; ctx.fillRect(x + 2, y + 2, w - 4, 25);
+    ctx.strokeStyle = '#5c4424'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 2, y + 27); ctx.lineTo(x + w - 2, y + 27); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#e8cc83'; ctx.font = 'bold 14px Georgia, serif';
-    ctx.fillText(K.name, px, y + 15);
-    ctx.fillStyle = '#d1c2a6'; ctx.font = '12px Arial, sans-serif';
-    ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 33);
-    ctx.fillStyle = '#ffd878'; ctx.font = 'bold 12px Georgia, serif';
-    ctx.fillText('Click it to collect the reward!', px, y + 49);
+    ctx.fillStyle = '#e7c778'; ctx.font = '700 13px Cinzel, Georgia, serif';
+    ctx.fillText(K.name.toLocaleUpperCase(), px, y + 15);
+    ctx.fillStyle = '#e9dcc4'; ctx.font = '13px "Alegreya Sans", "Segoe UI", sans-serif';
+    ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 43);
+    ctx.fillStyle = '#d8ad53'; ctx.font = '700 12px Cinzel, Georgia, serif';
+    ctx.fillText('Click it to collect the reward!', px, y + 59);
     ctx.restore();
   }
   /** The baked three.js model, wrapped in glows: a wide halo behind, a hot core over it and three orbiting lights. */
