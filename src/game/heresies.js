@@ -1,5 +1,5 @@
 // Heresies (docs/ENDGAME.md, data/heresies.js): the difficulty modifiers a hero switches on at the Altar of Heresy
-// once Velscour has fallen. They are read when a level is built (game.buildDungeon / buildBreach: heresySpawns and
+// from the beginning. They are read when a level is built (game.buildDungeon / buildBreach: heresySpawns and
 // heresyWorld, after the Greed lever) and never in Abyssal Rifts or Velscour Unbound; heresyTick (from happeningsTick)
 // marks every enemy as it appears. The hero's own ones (Glass Cannon, Dry Throat, Hunger) read the level he is in, so
 // a rift is played clean. Saves keep c.heresy.on; the rank's rewards are heresyMods in data/heresies.js.
@@ -10,7 +10,6 @@ import { addEffect, Telegraph, Ring, smoke, floatText } from '../gfx/vfx.js';
 import { explosionFx } from '../gfx/shapes.js';
 import { ELITE_AFFIXES } from '../data/enemies.js';
 import { HERESIES, HERESY_BY_ID, heresyRank, heresyMods, KEYS_RANK, MARKS_RANK } from '../data/heresies.js';
-import { endgameUnlocked } from './endgame.js';
 import { depthLevel } from '../data/depth.js';
 import { makeMonster } from './monster.js';
 
@@ -28,7 +27,7 @@ export function heresyActive(id, c = G.char, w = G.world) {
 }
 /** Switch one on or off (the altar). It takes hold from the next level built. */
 export function setHeresy(id, on, c = G.char) {
-  if (!c || !HERESY_BY_ID[id] || !endgameUnlocked(c)) return false;
+  if (!c || !HERESY_BY_ID[id]) return false;
   const ids = heresiesOf(c), has = ids.includes(id);
   if (!!on === has) return false;
   c.heresy = { on: on ? [...ids, id] : ids.filter((k) => k !== id) };
