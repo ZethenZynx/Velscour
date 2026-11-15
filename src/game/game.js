@@ -1299,6 +1299,7 @@ export const game = {
       }
       if (s.rank === 'boss') {
         const m = makeMonster(world, s.arch, biome, lvl + 2, 'boss', s.x, s.y, 0, s.look);
+        if (s.name) m.name = s.name;
         world.add(m);
         world.boss = m;
         if (m.isVelscour) setupVelscour(world, m, gen); // his five-phase last stand (game/velscour.js)
