@@ -33,6 +33,8 @@ const KEYS = Object.keys(CRITTERS);
 export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
 export const CRITTER_ARROW_ENCOUNTERS = 7;
+// Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
+const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
@@ -87,7 +89,7 @@ class Critter {
   draw(ctx) {
     const K = this.K, px = isoX(this.x, this.y), py = isoY(this.x, this.y), t = this.t;
     const fade = this.gone ? Math.max(0, 1 - (t - this.t0) / 0.6) : Math.min(1, t * 3);
-    const tutorialReady = this.tutorial && G.critterTutorial === this && fade >= 1;
+    const tutorialReady = this.tutorial && G.critterTutorial === this && this.t >= CRITTER_TUTORIAL_SPAWN_DELAY;
     // a soft beacon ring on the floor so it reads as something to tap, brighter in its last seconds
     const late = !this.gone && this.life - t < 3;
     ctx.globalAlpha = fade * (0.35 + 0.25 * Math.sin(t * (late ? 14 : 5)));
@@ -152,7 +154,7 @@ class Critter {
   }
   drawTutorial(ctx, px, py) {
     const K = this.K, gold = !!K.pay.gold;
-    const w = 250, h = 68, x = px - w / 2, y = py - this.z - 38 - h;
+    const w = 250, h = 68, x = px - w / 2, y = py - this.z - 22 - h;
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -169,11 +171,11 @@ class Critter {
     ctx.strokeStyle = '#5c4424'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x + 2, y + 27); ctx.lineTo(x + w - 2, y + 27); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffe2a0'; ctx.font = 'bold 13px Georgia, serif';
+    ctx.fillStyle = '#e7c778'; ctx.font = '700 13px Cinzel, Georgia, serif';
     ctx.fillText(K.name.toLocaleUpperCase(), px, y + 15);
-    ctx.fillStyle = '#e9dcc4'; ctx.font = '12px Arial, sans-serif';
+    ctx.fillStyle = '#e9dcc4'; ctx.font = '13px "Alegreya Sans", "Segoe UI", sans-serif';
     ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 43);
-    ctx.fillStyle = '#ffd34a'; ctx.font = 'bold 12px Georgia, serif';
+    ctx.fillStyle = '#d8ad53'; ctx.font = '700 12px Cinzel, Georgia, serif';
     ctx.fillText('Click it to collect the reward!', px, y + 59);
     ctx.restore();
   }

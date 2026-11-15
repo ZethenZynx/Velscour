@@ -49,7 +49,13 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
         return !!cr && cr.t < 1 / 3 && !cr.tutorialRendered && !window.VELSCOUR.G.paused;
       });
       check(pos.tutorial && spawning, 'tutorial waits while the critter completes its fade-in');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(550);
+      const stillAppearing = await page.evaluate(() => {
+        const cr = window.VELSCOUR.G.critterTutorial;
+        return !!cr && cr.t < 1 && !cr.tutorialRendered && !window.VELSCOUR.G.paused;
+      });
+      check(pos.tutorial && stillAppearing, 'tutorial leaves time for the critter spawn effects to finish');
+      await page.waitForFunction(() => window.VELSCOUR.G.paused && !!window.VELSCOUR.G.critterTutorial?.tutorialRendered, null, { timeout: 2000 });
       const visible = await page.evaluate(() => window.VELSCOUR.G.paused && !!window.VELSCOUR.G.critterTutorial?.tutorialRendered);
       check(pos.tutorial && visible, 'first critter finishes appearing before the tutorial pauses the game');
       await shot('spectate_critter' + tag);
