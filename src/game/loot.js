@@ -28,7 +28,8 @@ export function groundDropRarityCap(depth) {
 /** Roll gear drops at the character's level and current depth's quality cap. Keep vendor rolls on rollItem. */
 export function rollGroundItem(ilvl, opts = {}) {
   const level = G.char?.level;
-  const rarityCap = groundDropRarityCap(G.world?.depth ?? G.char?.depth ?? 1);
+  const depth = G.world?.depth > 0 ? G.world.depth : G.char?.depth ?? 1;
+  const rarityCap = groundDropRarityCap(depth);
   return rollItem(level == null ? ilvl : Math.min(ilvl, level), { ...opts, maxRarity: rarityCap });
 }
 

@@ -23,6 +23,12 @@ for (const [depth, expected] of rarityThresholds) {
   for (let i = 0; i < 20; i++) assert.ok(rollGroundItem(12).rarity <= expected, `random rarity exceeded cap at depth ${depth}`);
 }
 
+G.char = { level: 100, depth: 23 };
+G.world = { kind: 'town', depth: 0 };
+assert.equal(rollGroundItem(100, { rarity: 5 }).rarity, 0, 'town rewards use the saved campaign depth below depth 24');
+G.char.depth = 24;
+assert.equal(rollGroundItem(100, { rarity: 5 }).rarity, 1, 'town rewards unlock Uncommon at depth 24');
+
 assert.equal(rollItem(12, { rarity: 6 }).rarity, 6, 'non-ground item rolls remain outside the depth gate');
 
 G.char = null;
