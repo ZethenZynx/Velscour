@@ -21,7 +21,7 @@ const imp = (p) => import(pathToFileURL(path.join(root, p)));
 const { loadCastlePack } = await imp('src/gfx/castle.js');
 const { BIOME_BY_ID } = await imp('src/data/biomes.js');
 const { generateCastle, CASTLE_SIZE } = await imp('src/world/castleworld.js');
-const { createCastleRun } = await imp('src/game/darkforest.js');
+const { createCastleRun, createDarkForestRun } = await imp('src/game/darkforest.js');
 await loadCastlePack();
 
 const count = process.argv[2] == null ? 10 : +process.argv[2];
@@ -48,6 +48,8 @@ for (let seed = 1; seed <= count; seed++) {
   for (const p of [g.boss, g.exit, ...g.spawns.map((s) => [s.x, s.y])]) if (!seen[idx(...p)]) throw Error('unreachable spawn or route endpoint: ' + p);
   if (!(g.start[0] < m.w / 4 && g.start[1] > m.h * 3 / 4 && g.boss[0] > m.w * 3 / 4 && g.boss[1] < m.h / 4)) throw Error('entry and boss are not opposite corners');
 }
+const forestGuardian = { rank: 'boss', team: 'enemy', dead: false };
+if (createDarkForestRun({ boss: forestGuardian }, { seed: 1 }, biome).type !== 'forest') throw Error('Dark Forest run behavior changed');
 const guardian = { rank: 'boss', team: 'enemy', dead: false, x: 320.5, y: 15.5 };
 const world = { boss: guardian, creatures: [guardian] };
 let opened = false;
