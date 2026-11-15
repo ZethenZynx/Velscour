@@ -507,15 +507,49 @@ export class AffixFieldMarker {
     const px = isoX(this.x, this.y), py = isoY(this.x, this.y);
     const rx = this.r * HW * 1.41, ry = this.r * HH * 1.41;
     const warning = this.t < this.warning, pulse = 0.5 + 0.5 * Math.sin(this.t * 18);
+    const k = Math.max(0, 1 - this.t / this.dur);
     ctx.save();
-    ctx.globalAlpha = warning ? 0.12 + pulse * 0.1 : 0.1;
-    ctx.fillStyle = this.color; ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
-    ctx.globalAlpha = warning ? 0.62 + pulse * 0.22 : 0.5;
+    if (this.fx === 'fire') {
+      ctx.globalAlpha = 0.58 * k; ctx.fillStyle = '#29110a';
+      ctx.beginPath(); ctx.ellipse(px, py + 1, rx, ry * 1.08, 0, 0, TAU); ctx.fill();
+      const lava = ctx.createRadialGradient(px, py, 1, px, py, Math.max(rx, ry));
+      lava.addColorStop(0, '#fff4a0'); lava.addColorStop(0.3, '#ff9220'); lava.addColorStop(1, '#b71d08');
+      ctx.globalAlpha = 0.75 * k; ctx.fillStyle = lava;
+      ctx.beginPath(); ctx.ellipse(px, py, rx * 0.82, ry * 0.72, 0, 0, TAU); ctx.fill();
+    } else if (this.fx === 'poison') {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5, cx = px + Math.cos(a) * rx * 0.35 + Math.sin(this.t * 2 + i) * 2;
+        const cy = py + Math.sin(a) * ry * 0.28;
+        const cloud = ctx.createRadialGradient(cx, cy, 1, cx, cy, rx * 0.42);
+        cloud.addColorStop(0, 'rgba(150,230,64,0.45)'); cloud.addColorStop(1, 'rgba(48,90,16,0)');
+        ctx.globalAlpha = 0.7 * k; ctx.fillStyle = cloud;
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.42, ry * 0.38, 0, 0, TAU); ctx.fill();
+      }
+    } else if (this.fx === 'frost') {
+      ctx.globalAlpha = 0.32 * k; ctx.fillStyle = '#8de2ff';
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.85 * k; ctx.strokeStyle = '#e8fcff'; ctx.lineWidth = 1.7;
+      for (let i = 0; i < 4; i++) {
+        const a = i * TAU / 4 + Math.PI / 4, sx = px + Math.cos(a) * rx * 0.55, sy = py + Math.sin(a) * ry * 0.48;
+        ctx.beginPath(); ctx.moveTo(sx - 3, sy); ctx.lineTo(sx, sy - 10); ctx.lineTo(sx + 3, sy); ctx.stroke();
+      }
+    } else if (this.fx === 'void') {
+      ctx.globalAlpha = 0.26 * k; ctx.fillStyle = '#23003a';
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.2 * k;
+      ctx.drawImage(glowSprite('#9d52d8'), px - rx, py - ry, rx * 2, ry * 2);
+    } else {
+      ctx.globalAlpha = warning ? 0.12 + pulse * 0.1 : 0.1;
+      ctx.fillStyle = this.color; ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = warning ? 0.62 + pulse * 0.22 : 0.5 * k;
     ctx.strokeStyle = this.color; ctx.lineWidth = warning ? 2.5 : 1.5;
     ctx.setLineDash(warning ? [5, 3] : [3, 5]); ctx.lineDashOffset = -this.t * 18;
     ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.stroke();
     if (this.spokes) {
-      ctx.globalAlpha = warning ? 0.52 + pulse * 0.2 : 0.35; ctx.setLineDash([3, 4]);
+      ctx.globalAlpha = warning ? 0.52 + pulse * 0.2 : 0.35 * k; ctx.setLineDash([3, 4]);
       for (let i = 0; i < 8; i++) {
         const a = i * TAU / 8;
         ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * rx, py + Math.sin(a) * ry); ctx.stroke();
