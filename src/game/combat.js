@@ -196,7 +196,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     world.affixFields ||= [];
     world.affixFields.push({ x: tgt.x, y: tgt.y, radius: 1.5, damage: actualDamage * 0.28, el: el || 'phys', t: 0.65,
       delayT: 0.35, tickT: 0, interval: 1, label: 'Aftershock', color: '#ff8040' });
-    world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 1.5, dur: 0.65, warning: 0.35, color: '#ff8040' }));
+    world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 1.5, dur: 0.65, warning: 0.35, color: '#ff8040', fx: el === 'fire' ? 'fire' : el === 'cold' ? 'frost' : el === 'poison' ? 'poison' : el === 'shadow' ? 'void' : null }));
   }
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('lingering_wounds')) {
     if (!tgt.affixWoundBaseMaxHp) tgt.affixWoundBaseMaxHp = tgt.maxHp;
@@ -364,7 +364,7 @@ export function kill(tgt, src, info = {}) {
       world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
         tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
         label: id.replaceAll('_', ' '), color: elem(el).glow, o });
-      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : ['necrotic_remains', 'death_nova'].includes(id) ? 'void' : null }));
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null }));
     };
     if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
     if (worldAffixes.has('static_discharge')) {
@@ -385,9 +385,10 @@ export function kill(tgt, src, info = {}) {
       world.affixProjectileBursts ||= [];
       const delayT = 0.4;
       world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'phys', fx: 'spike', count: 10, speed: 8, range: 4, damage: Math.max(1, tgt.dmg * 0.4), delayT });
-      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 4, dur: delayT, warning: delayT, color: '#c0c0c0', fx: 'spike', spokes: true }));
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 4, dur: delayT, warning: delayT, color: '#c0c0c0', fx: 'shrapnel', spokes: true }));
     }
     if (worldAffixes.has('healing_burst')) {
+      addEffect(new Ring(tgt.x, tgt.y, 0.2, 2.8, 0.42, '#86e84f', 3, { fill: true }));
       for (const ally of world.query(tgt.x, tgt.y, 4, (c) => c.team === 'enemy' && !c.dead)) ally.heal(ally.maxHp * 0.2);
     }
     if (worldAffixes.has('chain_reaction')) {
