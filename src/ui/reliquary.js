@@ -171,8 +171,8 @@ export const Reliquary = {
       UI.log(`Vault ${ROMAN[this.tab]} is full.`, '#ff8080');
       sfx('error');
     } else {
-      const source = where === 'gemBag' ? c.gemBag : c.bag;
-      const hasLocked = Array.isArray(source) && source.some((it) => it && it.locked);
+      const sources = where === 'gemBag' ? [c.gemBag] : where === 'bag' ? [c.bag] : [c.bag, c.gemBag];
+      const hasLocked = sources.some((source) => Array.isArray(source) && source.some((it) => it && it.locked));
       if (hasLocked) {
         UI.log('All items in inventory are locked.', '#ffd860');
       } else {
@@ -211,6 +211,8 @@ export const Reliquary = {
     headActions.style.display = 'flex';
     headActions.style.gap = '6px';
     headActions.style.alignItems = 'center';
+    headActions.style.flexWrap = 'wrap';
+    headActions.style.justifyContent = 'flex-end';
 
     const stashAllBtn = el('button', 'btn small', 'Deposit All');
     stashAllBtn.title = `Stash all unlocked items from inventory into Vault ${ROMAN[this.tab]}`;
