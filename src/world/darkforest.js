@@ -73,6 +73,42 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     kind[i] = src.kind?.[si] || 0;
   }
   const pt = (p) => Array.isArray(p) ? [p[0] / scale, p[1] / scale] : p;
+  const place = (o) => { if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) { o.x /= scale; o.y /= scale; } return o; };
+  const labs = full.labyrinths.map((l) => ({ ...l, center: pt(l.center), rect: l.rect.map((v) => v / scale) }));
+  const scaledSpawns = full.spawns.map((s) => place({ ...s })), spawns = [], usedSpawns = new Set();
+  // Keep one guard pack in each labyrinth, then spread at most five more packs through the compact woods.
+  for (const lab of labs) {
+    let best = -1, bestD = 4.5;
+    for (let i = 0; i < scaledSpawns.length; i++) if (!usedSpawns.has(i)) {
+      const s = scaledSpawns[i], d = Math.hypot(s.x - lab.center[0], s.y - lab.center[1]);
+      if (d < bestD) { best = i; bestD = d; }
+    }
+    if (best >= 0) { usedSpawns.add(best); spawns.push(scaledSpawns[best]); }
+  }
+  for (let i = 0; i < scaledSpawns.length && spawns.length < 8; i++) if (!usedSpawns.has(i)) {
+    const s = scaledSpawns[i];
+    if (spawns.some((p) => Math.hypot(s.x - p.x, s.y - p.y) < 4.5)) continue;
+    usedSpawns.add(i); spawns.push(s);
+  }
+  const scaledChests = full.chests.map((c) => place({ ...c })), chests = [], usedChests = new Set();
+  // Preserve a treasure chest in each treasure labyrinth and at most one additional cache in the woods.
+  for (const lab of labs.filter((l) => !l.heart)) {
+    let best = -1, bestD = Infinity;
+    for (let i = 0; i < scaledChests.length; i++) if (!usedChests.has(i)) {
+      const c = scaledChests[i], d = Math.hypot(c.x - lab.center[0], c.y - lab.center[1]);
+      if (d < bestD) { best = i; bestD = d; }
+    }
+    if (best >= 0) { usedChests.add(best); chests.push(scaledChests[best]); }
+  }
+  let sideCache = -1, farthest = 7;
+  for (let i = 0; i < scaledChests.length; i++) if (!usedChests.has(i)) {
+    const c = scaledChests[i];
+    if (Math.hypot(c.x - pt(full.start)[0], c.y - pt(full.start)[1]) < 5) continue;
+    if (chests.some((p) => Math.hypot(c.x - p.x, c.y - p.y) < 7)) continue;
+    const d = Math.hypot(c.x - pt(full.start)[0], c.y - pt(full.start)[1]);
+    if (d > farthest) { sideCache = i; farthest = d; }
+  }
+  if (sideCache >= 0) chests.push(scaledChests[sideCache]);
   // Preserve a clear, connected route to every required objective after coarse sampling.
   const clearRoute = (a, b) => {
     const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 3);
@@ -86,10 +122,9 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const start = pt(full.start), targets = [
     ...full.glades.flatMap((g) => [pt(g.center), pt(g.shrine), ...g.sites.map(pt)]),
     pt(full.heart.center), pt(full.heart.shrine), ...full.heart.sites.map(pt), pt(full.exit),
-    ...full.chests.map((c) => pt([c.x, c.y])),
+    ...chests.map((c) => [c.x, c.y]),
   ];
   for (const target of targets) clearRoute(start, target);
-  const place = (o) => { if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) { o.x /= scale; o.y /= scale; } return o; };
   const trees = full.trees.filter((_, i) => i % 16 === 0).map((t) => ({ ...t, x: t.x / scale, y: t.y / scale }))
     .filter((t) => !map.walkable(t.x, t.y));
   const props = full.props.filter((_, i) => i % 4 === 0).map(place);
@@ -121,9 +156,9 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const heart = { ...full.heart, center: pt(full.heart.center), gate: pt(full.heart.gate), shrine: pt(full.heart.shrine), sites: full.heart.sites.map(pt) };
   return { ...full, map, props, trees, glades, heart,
     start, exit: pt(full.exit), shrine: pt(full.shrine), sites: full.sites.map(pt),
-    chests: full.chests.map((c) => ({ ...place(c) })), spawns: full.spawns.map((s) => ({ ...place(s) })),
+    chests, spawns,
     torches: full.torches.map((t) => ({ ...place(t) })),
-    labyrinths: full.labyrinths.map((l) => ({ ...l, center: pt(l.center), rect: l.rect.map((v) => v / scale) })),
+    labyrinths: labs,
     landmarks: full.landmarks.map((l) => ({ ...l, at: pt(l.at) })),
   };
 }

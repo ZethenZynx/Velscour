@@ -33,6 +33,7 @@ for(const V of CASTLE_VARIANTS){
   const seen=flood(m,gen.start);
   for(const [x,y] of [gen.exit,...gen.sites])if(!seen[I(m,x,y)])throw Error(tag+': unreachable objective at '+x+','+y);
   if(!gen.props.length||!m.road?.some(Boolean))throw Error(tag+': compact castle dressing or approach road missing');
+  if(gen.spawns.length||gen.chests.length)throw Error(tag+': compact Castle unexpectedly adds ambient enemies or chests');
   runs++;
  }
 }
