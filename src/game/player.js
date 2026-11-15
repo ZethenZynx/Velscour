@@ -491,7 +491,6 @@ export class Player extends Creature {
     const sk = typeof skOrId === 'string' ? SKILLS[skOrId] : skOrId;
     if (this.dead || !sk) return false;
     const L = this.skillLevel(sk);
-    if (!L) return false;
     if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < whirlwindRageCost(L)) || this.rage < rageCost(sk, L))) {
       if ((this.noRageT || 0) <= 0) { floatText(this.x, this.y, 60, 'Need Rage', '#ff9933', 12); this.noRageT = 0.8; }
       return false;
