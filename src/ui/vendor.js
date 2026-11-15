@@ -355,7 +355,7 @@ export const Vendor = {
           it.gems = [];
           sfx('gold');
         });
-        box.appendChild(el('div', 'dim', `Sockets by rarity: ${RARITY.map((r) => `${r.name} ${r.sockets}`).join(', ')}. Plain (Orange) items take up to 6 (weapons, body armor), 4 (helms, off-hands, legs) or 3 (hands, feet): bases for Glyphwords.`));
+        box.appendChild(el('div', 'dim', `Sockets by tier: ${RARITY.map((r) => `${r.name} ${r.sockets}`).join(', ')}. Tier 1 items take up to 6 (weapons, body armor), 4 (helms, off-hands, legs) or 3 (hands, feet): bases for Glyphwords.`));
       }
     }
     body.appendChild(box);

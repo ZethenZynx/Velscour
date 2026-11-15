@@ -49,7 +49,14 @@ export function itemCell(item) {
   }
   if (item.unid) d.appendChild(el('span', 'upg', '?'));
   if (item.sealed) d.classList.add('sealed');
-  if (item.locked) { const k = el('span', 'lockb', '🔒'); k.style.cssText = 'position:absolute;left:1px;top:0;font-size:10px;line-height:1;filter:drop-shadow(0 0 2px #000);pointer-events:none'; d.appendChild(k); }
+  if (item.type === 'gear' && !item.sealed) {
+    const tier = Math.max(1, Math.min(RARITY.length, Number(item.rarity) + 1 || 1));
+    const badge = el('span', 'quality-tier', 'T' + tier);
+    badge.title = `Tier ${tier}`;
+    badge.style.color = RARITY[tier - 1]?.color || '#fff';
+    d.appendChild(badge);
+  }
+  if (item.locked) { const k = el('span', 'lockb', '🔒'); k.title = 'Locked'; d.appendChild(k); }
   return d;
 }
 
