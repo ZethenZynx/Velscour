@@ -87,7 +87,8 @@ export function renderQuest(body) {
         h += step(sc.completed, sc.completed ? 'A portal burns above the falls — descend or return to town.' : 'The portal opens at the top of the falls when the last of them falls.');
       } else if (w.biome?.id === 'dark_forest') {
         const guardian = sc.guardian || w.boss;
-        h += step(!!guardian?.dead, `Cross the forest and defeat ${guardian?.name ? `<b>${escapeHtml(guardian.name)}</b>` : 'the <b>Forest Guardian</b>}.`);
+        const guardianName = guardian?.name ? '<b>' + escapeHtml(guardian.name) + '</b>' : 'the <b>Forest Guardian</b>';
+        h += step(!!guardian?.dead, 'Cross the forest and defeat ' + guardianName + '.');
         h += step(sc.completed, sc.completed ? 'The exit is open — descend or return to town.' : 'The exit opens when the guardian falls.');
       } else if (sc.type === 'dunes') {
         h += step(sc.campsDone >= sc.camps.length, `Win the waystones across ${escapeHtml(sc.variant.name)}: <b>${sc.campsDone}/${sc.camps.length}</b>.`);
