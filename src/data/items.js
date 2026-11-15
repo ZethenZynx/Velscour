@@ -10,26 +10,26 @@ import { MAX_LEVEL, weaponRef } from './depth.js';
 // original Mythic drop budget, redistributed across whichever qualities are currently unlocked.
 export const RARITY_COMMON = 0, RARITY_UNCOMMON = 1, RARITY_RARE = 2, RARITY_EPIC = 3, RARITY_LEGENDARY = 4, RARITY_MYTHIC = 5;
 export const RARITY = [
-  { id: 0, name: 'Orange', color: '#ff8040', weight: 32, lv: 0, perks: 0, sockets: 1, ringSockets: 0, bonus: 0, minIlvl: 1, fullIlvl: 1, minDepth: 1, value: 1 },
-  { id: 1, name: 'Light Blue', color: '#80c8ff', weight: 10, lv: 2, perks: 0, sockets: 2, ringSockets: 0, bonus: 1, minIlvl: 1, fullIlvl: 1, minDepth: 24, value: 2.5 },
-  { id: 2, name: 'Yellow', color: '#fff080', weight: 6, lv: 4, perks: 1, sockets: 3, ringSockets: 1, bonus: 1.6, minIlvl: 3, fullIlvl: 8, minDepth: 48, value: 6 },
-  { id: 3, name: 'Green', color: '#80e060', weight: 1, lv: 6, perks: 1, sockets: 3, ringSockets: 1, bonus: 2.2, minIlvl: 15, fullIlvl: 25, minDepth: 72, value: 15 },
-  { id: 4, name: 'Ivory', color: '#c8c0b0', weight: 0.14, lv: 9, perks: 1, sockets: 4, ringSockets: 2, bonus: 2.8, minIlvl: 30, fullIlvl: 45, minDepth: 96, value: 40 },
-  { id: 5, name: 'Vermilion', color: '#e05040', weight: 0.012, lv: 12, perks: 2, sockets: 4, ringSockets: 2, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 120, value: 100, dropGroup: 'mythic' },
-  { id: 6, name: 'Brown', color: '#a08060', weight: 0.012, lv: 12.286, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 144, value: 106.764, dropGroup: 'mythic' },
-  { id: 7, name: 'Amber', color: '#ffb060', weight: 0.012, lv: 12.571, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 168, value: 113.985, dropGroup: 'mythic' },
-  { id: 8, name: 'Purple', color: '#c090ff', weight: 0.012, lv: 12.857, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 192, value: 121.695, dropGroup: 'mythic' },
-  { id: 9, name: 'White', color: '#f0f0f0', weight: 0.012, lv: 13.143, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 216, value: 129.926, dropGroup: 'mythic' },
-  { id: 10, name: 'Dandelion', color: '#ffc040', weight: 0.012, lv: 13.429, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 240, value: 138.714, dropGroup: 'mythic' },
-  { id: 11, name: 'Pale Yellow', color: '#fff4c0', weight: 0.012, lv: 13.714, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 264, value: 148.097, dropGroup: 'mythic' },
-  { id: 12, name: 'Plum', color: '#9060c0', weight: 0.012, lv: 14, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 288, value: 158.114, dropGroup: 'mythic' },
-  { id: 13, name: 'Blue', color: '#80a0ff', weight: 0.012, lv: 14.286, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 312, value: 168.808, dropGroup: 'mythic' },
-  { id: 14, name: 'Red', color: '#c02030', weight: 0.012, lv: 14.571, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 336, value: 180.226, dropGroup: 'mythic' },
-  { id: 15, name: 'Cyan', color: '#20e0ff', weight: 0.012, lv: 14.857, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 360, value: 192.417, dropGroup: 'mythic' },
-  { id: 16, name: 'Salmon', color: '#ff6060', weight: 0.012, lv: 15.143, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 384, value: 205.432, dropGroup: 'mythic' },
-  { id: 17, name: 'Gold', color: '#e0c080', weight: 0.012, lv: 15.429, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 408, value: 219.327, dropGroup: 'mythic' },
-  { id: 18, name: 'Cream', color: '#ffe0f0', weight: 0.012, lv: 15.714, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 432, value: 234.162, dropGroup: 'mythic' },
-  { id: 19, name: 'Sunflower Yellow', color: '#ffd700', weight: 0.012, lv: 16, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 456, value: 250, dropGroup: 'mythic' }
+  { id: 0, name: 'Tier 1', color: '#ff8040', weight: 32, lv: 0, perks: 0, sockets: 1, ringSockets: 0, bonus: 0, minIlvl: 1, fullIlvl: 1, minDepth: 1, value: 1 },
+  { id: 1, name: 'Tier 2', color: '#80c8ff', weight: 10, lv: 2, perks: 0, sockets: 2, ringSockets: 0, bonus: 1, minIlvl: 1, fullIlvl: 1, minDepth: 24, value: 2.5 },
+  { id: 2, name: 'Tier 3', color: '#fff080', weight: 6, lv: 4, perks: 1, sockets: 3, ringSockets: 1, bonus: 1.6, minIlvl: 3, fullIlvl: 8, minDepth: 48, value: 6 },
+  { id: 3, name: 'Tier 4', color: '#80e060', weight: 1, lv: 6, perks: 1, sockets: 3, ringSockets: 1, bonus: 2.2, minIlvl: 15, fullIlvl: 25, minDepth: 72, value: 15 },
+  { id: 4, name: 'Tier 5', color: '#c8c0b0', weight: 0.14, lv: 9, perks: 1, sockets: 4, ringSockets: 2, bonus: 2.8, minIlvl: 30, fullIlvl: 45, minDepth: 96, value: 40 },
+  { id: 5, name: 'Tier 6', color: '#e05040', weight: 0.012, lv: 12, perks: 2, sockets: 4, ringSockets: 2, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 120, value: 100, dropGroup: 'mythic' },
+  { id: 6, name: 'Tier 7', color: '#a08060', weight: 0.012, lv: 12.286, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 144, value: 106.764, dropGroup: 'mythic' },
+  { id: 7, name: 'Tier 8', color: '#ffb060', weight: 0.012, lv: 12.571, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 168, value: 113.985, dropGroup: 'mythic' },
+  { id: 8, name: 'Tier 9', color: '#c090ff', weight: 0.012, lv: 12.857, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 192, value: 121.695, dropGroup: 'mythic' },
+  { id: 9, name: 'Tier 10', color: '#f0f0f0', weight: 0.012, lv: 13.143, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 216, value: 129.926, dropGroup: 'mythic' },
+  { id: 10, name: 'Tier 11', color: '#ffc040', weight: 0.012, lv: 13.429, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 240, value: 138.714, dropGroup: 'mythic' },
+  { id: 11, name: 'Tier 12', color: '#fff4c0', weight: 0.012, lv: 13.714, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 264, value: 148.097, dropGroup: 'mythic' },
+  { id: 12, name: 'Tier 13', color: '#9060c0', weight: 0.012, lv: 14, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 288, value: 158.114, dropGroup: 'mythic' },
+  { id: 13, name: 'Tier 14', color: '#80a0ff', weight: 0.012, lv: 14.286, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 312, value: 168.808, dropGroup: 'mythic' },
+  { id: 14, name: 'Tier 15', color: '#c02030', weight: 0.012, lv: 14.571, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 336, value: 180.226, dropGroup: 'mythic' },
+  { id: 15, name: 'Tier 16', color: '#20e0ff', weight: 0.012, lv: 14.857, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 360, value: 192.417, dropGroup: 'mythic' },
+  { id: 16, name: 'Tier 17', color: '#ff6060', weight: 0.012, lv: 15.143, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 384, value: 205.432, dropGroup: 'mythic' },
+  { id: 17, name: 'Tier 18', color: '#e0c080', weight: 0.012, lv: 15.429, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 408, value: 219.327, dropGroup: 'mythic' },
+  { id: 18, name: 'Tier 19', color: '#ffe0f0', weight: 0.012, lv: 15.714, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 432, value: 234.162, dropGroup: 'mythic' },
+  { id: 19, name: 'Tier 20', color: '#ffd700', weight: 0.012, lv: 16, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 456, value: 250, dropGroup: 'mythic' }
 ];
 export const ABYSSAL = RARITY.length - 1;
 /** Highest quality available at a campaign depth. */
