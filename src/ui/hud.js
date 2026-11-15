@@ -844,10 +844,15 @@ export const HUD = {
     }
   },
 
-  setArea(name, sub) {
-    const an = $('#area-name'), as = $('#area-sub');
+  setArea(name, sub, affixes = []) {
+    const an = $('#area-name'), as = $('#area-sub'), af = $('#area-affixes');
     if (an) an.textContent = name;
     if (as) as.textContent = sub || '';
+    if (af) {
+      const names = Array.isArray(affixes) ? affixes.filter(Boolean) : [];
+      af.textContent = names.length ? `Affixes: ${names.join(' · ')}` : '';
+      af.classList.toggle('hidden', !names.length);
+    }
   },
   show(v) { $('#hud').classList.toggle('hidden', !v); if (v) { this.layoutMobile(); this.applyVisibilitySettings(); } },
 };
