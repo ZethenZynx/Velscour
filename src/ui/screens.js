@@ -423,7 +423,8 @@ export function settingsDialog() {
       <label>Cloud save (Google account)</label><button class="btn small" data-cloud></button>
       <label>Hero backups</label><button class="btn small" data-backups>View</button>
       <label>Pause while menus open</label><input type="checkbox" data-k="pauseMenus" ${st.pauseMenus !== false ? 'checked' : ''}>
-      <label title="Off: a Sky Battle cut scene you have already watched once plays at 20x">Don't skip cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
+      <label title="Keep previously seen cutscenes at normal speed">Don't fast-forward seen cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
+      <label title="Automatically fast-forwards all cutscenes, dialogue, and scripted camera pans/zooms, including the first time">Skip cutscenes and camera transitions</label><input type="checkbox" data-k="skipCutscenes" ${st.skipCutscenes ? 'checked' : ''}>
       <label title="Summons, totems and turrets on your skill bar are cast again the moment one is missing (timed ones only with an enemy near)">Auto-cast summons</label><input type="checkbox" data-k="autoSummon" ${st.autoSummon !== false ? 'checked' : ''}>
       <label>Auto-pickup items</label><input type="checkbox" data-k="autoLoot" ${st.autoLoot ? 'checked' : ''}>
       <label title="Automatically equip eligible gear from drops and vendor purchases when its matching equipment slot is empty">Auto-equip gear in empty slots</label><input type="checkbox" data-k="autoEquip" ${st.autoEquip !== false ? 'checked' : ''}>

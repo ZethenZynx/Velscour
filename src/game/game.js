@@ -113,7 +113,7 @@ const DUNGEON_SPAWN_SCHEDULES = {
       summoning_bosses: [18, 28, 2, 'normal'], double_champions: [22, 34, 2, 'champion'], elite_reinforcements: [20, 32, 1, 'champion'], haunted_grounds: [21, 32, 1, 'normal'], unstable_rifts: [18, 28, 1, 'normal'],
       ambushing: [20, 30, 1, 'normal'], living_dungeon: [22, 34, 1, 'normal'],
     };
-import { Cine, CINE_FAST } from './cinema.js';
+import { Cine, CINE_FAST, CINE_SKIP } from './cinema.js';
 import { lights, updateVfx } from '../gfx/vfx.js';
 import { World } from './world.js';
 import { Player } from './player.js';
@@ -2437,7 +2437,7 @@ export const game = {
       input.endFrame();
       cineTick(w, dt);
       // a scene this hero has seen plays at 20x (Cine.fast; Settings > "Don't skip cutscenes" keeps it at 1x)
-      for (let i = 1; i < CINE_FAST && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
+      for (let i = 1, passes = G.settings.skipCutscenes ? CINE_SKIP : CINE_FAST; i < passes && Cine.fast && G.cine && G.world === w; i++) { G.time += dt; Cine.update(dt); cineTick(w, dt); }
     } else if (G.hitStop > 0) { G.hitStop -= dt; controls.update(0); }
     else if (!G.paused) {
       controls.update(dt);

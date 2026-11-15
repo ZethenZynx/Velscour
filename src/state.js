@@ -36,7 +36,8 @@ export const G = {
     autoSummon: true, // re-raise pets, totems and turrets on the skill bar the moment one is missing (Player.autoSummon)
     autoEquip: true, // equip received gear when a matching equipment slot is empty
     dkBlade: 'sprite', // the Death Knight's flying sword: 'sprite' (his sword as a 2D object), 'model' (live three.js), 'runeblade'
-    noSkipCine: false, // "Don't skip cutscenes": Sky Battle scenes already seen play at 1x, not 20x
+    noSkipCine: false, // Keep previously seen cutscenes at normal speed
+    skipCutscenes: false, // Automatically fast-forward scripted cutscenes and camera transitions
     fpsCap: 0, // frame rate cap: 0 none, 30 (phones run cooler over a long session)
     showHeroStats: true, // show/hide the #hero-stats div
     showTargetBox: true, // show/hide the #target-box div

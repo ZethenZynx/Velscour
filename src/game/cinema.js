@@ -126,6 +126,7 @@ function baseZoom() { const z = camera.zoom; camera.computeZoom(); const b = cam
 
 /** How much faster a scene the hero has already watched plays (game.js runs that many steps a frame). */
 export const CINE_FAST = 20;
+export const CINE_SKIP = 60;
 export const Cine = {
   fast: false,   // this scene was seen: it plays at CINE_FAST (set by the director's first step, game/skybattle.js scene())
   active: false, steps: [], i: 0, t: 0, speed: 1, bars: 0, card: null, line: null, cam: null, shook: false, back: null,
@@ -133,7 +134,7 @@ export const Cine = {
   /** Start a scene (or queue it after the one playing). */
   play(steps, onEnd = null) {
     if (this.active) { this.steps.push(...steps); if (onEnd) { const prev = this.onEnd; this.onEnd = () => { prev && prev(); onEnd(); }; } return; }
-    this.active = true; G.cine = true; this.steps = steps.slice(); this.i = 0; this.t = 0; this.onEnd = onEnd; this.line = null; this.card = null;
+    this.active = true; G.cine = true; this.fast = !!G.settings.skipCutscenes; this.steps = steps.slice(); this.i = 0; this.t = 0; this.onEnd = onEnd; this.line = null; this.card = null;
     this.zoom0 = baseZoom(); this.back = null; this.cam = null;
     if (G.player) {
       G.player.moveVec = [0, 0];
@@ -167,7 +168,8 @@ export const Cine = {
   },
   stop() {
     this.active = false; G.cine = false; this.fast = false; this.steps = []; this.line = null; this.card = null; this.cam = null;
-    this.back = { t: 0, z0: camera.zoom };   // ease the zoom home (game.js's camera.follow brings the frame back to the hero)
+    if (G.settings.skipCutscenes && G.player) { camera.zoom = baseZoom(); camera.follow(G.player.x, G.player.y, 0, true); this.back = null; this.bars = 0; }
+    else this.back = { t: 0, z0: camera.zoom };   // ease the zoom home (game.js's camera.follow brings the frame back to the hero)
     if (G.player) {
       G.player.moveVec = [0, 0];
       G.player.moveTarget = null;
@@ -290,7 +292,7 @@ export function drawCine(ctx, W, H) {
     }
     ctx.globalAlpha = 1;
   }
-  if (Cine.fast && k > 0.5) {   // fast-forwarding a scene already seen
+  if (Cine.fast && !G.settings.skipCutscenes && k > 0.5) {   // fast-forwarding a scene already seen
     const fs = Math.round(clamp(G.H / 52, 10, 14) * dpr);
     ctx.font = `${fs}px "Alegreya Sans", "Segoe UI", sans-serif`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#c8b898'; ctx.fillText(`▶▶ x${CINE_FAST}  ·  seen before  (Settings: Don't skip cutscenes)`, W - pad * dpr, bar / 2);
