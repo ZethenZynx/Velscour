@@ -1583,13 +1583,9 @@ export const game = {
     });
     let sel = 0;
     const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
-    const shortAffixDescription = (description) => {
-      const words = String(description || '').split(/[.!?]/, 1)[0].trim().split(/\\s+/).filter(Boolean);
-      return words.length > 7 ? `${words.slice(0, 7).join(' ')}…` : words.join(' ');
-    };
     const affixLine = (cd) => `<span class="pc-affixes"><b>Affixes</b>${cd.affixes.length ? cd.affixes.map((id) => {
       const affix = DUNGEON_AFFIX_BY_ID[id];
-      return affix ? `<span title="${escapeHtml(affix.description)}">${escapeHtml(affix.name)}<small style="display:block;font-size:.78em;line-height:1.15;margin-top:2px;font-weight:normal;opacity:.85">${escapeHtml(shortAffixDescription(affix.description))}</small></span>` : '';
+      return affix ? `<span title="${escapeHtml(affix.description)}"><b>${escapeHtml(affix.name)}</b><small class="pc-affix-description">${escapeHtml(String(affix.description || '').trim())}</small></span>` : '';
     }).join('') : '<i>No affixes</i>'}</span>`;
     const html = `<p class="dim">${cards.length > 1 ? `Depth ${next} lies beyond ${['', 'one', 'two', 'three'][cards.length]} portals. Choose your way down.` : `The way down opens onto Depth ${next}.`}</p>
       <div class="pc-row">${cards.map((cd, i) => `<button type="button" class="pc-card${i === sel ? ' sel' : ''}" data-i="${i}" style="--pc:${cd.biome.torch || '#ff8040'}"><i class="pc-swirl"></i><b class="pc-name">${escapeHtml(cd.biome.name)}</b><span class="pc-tag">${tag(cd)}</span>${cd.comm ? `<span class="pc-commission" style="color:#8fe0ff"><b>Commission</b>${escapeHtml(cd.comm)}</span>` : ''}${affixLine(cd)}</button>`).join('')}</div>
