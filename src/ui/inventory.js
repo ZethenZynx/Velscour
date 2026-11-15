@@ -270,6 +270,23 @@ function handleDropOnGemBag(idx, data) {
 function handleDropOnEquip(slot, data) {
   const c = G.char;
   if (data.type !== 'item') return false;
+  if (data.where === 'equip') {
+    const from = data.slot;
+    if (!from || from === slot) return false;
+    const moving = c.equip[from], target = c.equip[slot];
+    if (!fitsSlot(moving, slot, c.classId) || (target && !fitsSlot(target, from, c.classId))) return false;
+    if (!canEquipItem(c, moving, slot) || (target && !canEquipItem(c, target, from))) {
+      UI.log('The items do not meet the requirements for those slots.', '#ff8080');
+      sfx('error');
+      return false;
+    }
+    c.equip[slot] = moving;
+    c.equip[from] = target || null;
+    UI.selected = { where: 'equip', slot };
+    sfx('pickup');
+    changed();
+    return true;
+  }
   if (data.where === 'gemBag') {
     const it = c.gemBag ? c.gemBag[data.idx] : null;
     if (it && it.type === 'gem') return c.equip[slot] ? socketGem(data.idx, { where: 'equip', slot }, 'gemBag') : false;
@@ -480,6 +497,8 @@ function equipSlot(slot) {
     d,
     (data) => handleDropOnEquip(slot, data),
     (data) => data.type === 'item' && (
+      (data.where === 'equip' && data.slot !== slot && fitsSlot(c.equip[data.slot], slot, c.classId) &&
+        (!c.equip[slot] || fitsSlot(c.equip[slot], data.slot, c.classId))) ||
       (data.where === 'gemBag' && G.char.gemBag && G.char.gemBag[data.idx] && G.char.gemBag[data.idx].type === 'gem') ||
       (data.where === 'bag' && G.char.bag[data.idx] && (fitsSlot(G.char.bag[data.idx], slot, c.classId) || G.char.bag[data.idx].type === 'gem'))
     )
