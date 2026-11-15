@@ -34,7 +34,16 @@ for (let seed = 1; seed <= count; seed++) {
   const regular = g.spawns.filter((s) => s.rank !== 'boss');
   const enemies = regular.reduce((sum, s) => sum + s.n, 0);
   if (enemies < 240 || enemies > 300) throw Error('regular monster population drifted');
-  if (g.props.filter((p) => p.castleBuilding).length < 3 || !g.props.some((p) => p.spr?.name?.startsWith('wall_'))) throw Error('castle buildings or wall assets are missing');
+  const routeWalls = g.props.filter((p) => p.castleRouteWall).length;
+  const buildings = g.props.filter((p) => p.castleBuilding).length;
+  const gates = g.props.filter((p) => p.castleGate).length;
+  if (routeWalls < 500 || buildings < 10 || gates !== 3) throw Error('the route needs continuous walls, buildings and three gates');
+  const dx = g.boss[0] - g.start[0], dy = g.boss[1] - g.start[1], denom = dx * dx + dy * dy;
+  for (const s of regular) {
+    const t = Math.max(0, Math.min(1, ((s.x - g.start[0]) * dx + (s.y - g.start[1]) * dy) / denom));
+    const distance = Math.hypot(s.x - g.start[0] - t * dx, s.y - g.start[1] - t * dy);
+    if (distance >= 12) throw Error('a regular monster pack spawned outside the Castle route');
+  }
 
   const seen = new Uint8Array(m.w * m.h), idx = (x, y) => Math.floor(y) * m.w + Math.floor(x);
   const q = [idx(...g.start)]; seen[q[0]] = 1;
