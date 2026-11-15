@@ -278,6 +278,7 @@ export class Delayed {
     this.t += dt;
     if (this.t >= this.delay) {
       explode(this.world, this.src, this.x, this.y, this.r, this.dmg, this.el, this.o || {}, this.fx === 'meteor' ? 'meteor' : this.fx);
+      if (typeof this.onImpact === 'function') this.onImpact(this);
       if (this.fx === 'meteor' && this.o && this.o.burn) this.world.addHazard(new Area({ world: this.world, src: this.src, x: this.x, y: this.y, r: this.r * 0.7, dur: 3, tick: 0.5, dmg: this.dmg.map((v) => v * 0.15), el: this.el, fx: 'fire' }));
       return false;
     }

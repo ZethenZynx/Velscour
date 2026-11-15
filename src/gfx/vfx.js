@@ -499,6 +499,32 @@ function strokeBolt(ctx, p, frac, color, alpha, w) {
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4 * w; ctx.stroke();
 }
 
+/** Ground warning and footprint for dungeon-affix damage fields. */
+export class AffixFieldMarker {
+  constructor(opts) { Object.assign(this, { t: 0, dur: 1, warning: 0, ground: true, spokes: false }, opts); }
+  update(dt) { this.t += dt; return this.t < this.dur; }
+  draw(ctx) {
+    const px = isoX(this.x, this.y), py = isoY(this.x, this.y);
+    const rx = this.r * HW * 1.41, ry = this.r * HH * 1.41;
+    const warning = this.t < this.warning, pulse = 0.5 + 0.5 * Math.sin(this.t * 18);
+    ctx.save();
+    ctx.globalAlpha = warning ? 0.12 + pulse * 0.1 : 0.1;
+    ctx.fillStyle = this.color; ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = warning ? 0.62 + pulse * 0.22 : 0.5;
+    ctx.strokeStyle = this.color; ctx.lineWidth = warning ? 2.5 : 1.5;
+    ctx.setLineDash(warning ? [5, 3] : [3, 5]); ctx.lineDashOffset = -this.t * 18;
+    ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.stroke();
+    if (this.spokes) {
+      ctx.globalAlpha = warning ? 0.52 + pulse * 0.2 : 0.35; ctx.setLineDash([3, 4]);
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8;
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * rx, py + Math.sin(a) * ry); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+}
+
 export class Telegraph {
   // ground warning marker for enemy attacks: circle or line
   constructor(opts) { Object.assign(this, { t: 0, color: '#ff2a10' }, opts); }

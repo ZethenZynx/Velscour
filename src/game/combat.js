@@ -5,7 +5,7 @@ import { rand, chance, clamp, angleTo, TAU, mixHex, pick } from '../core/util.js
 import { camera } from '../core/view.js';
 import { sfx } from '../core/audio.js';
 import { petCorpse } from '../core/petart.js';
-import { floatText, damageText, bloodSpray, gibs, addDecal, addEffect, Bolt, elem, spawn, burst } from '../gfx/vfx.js';
+import { floatText, damageText, bloodSpray, gibs, addDecal, addEffect, Bolt, elem, spawn, burst, AffixFieldMarker } from '../gfx/vfx.js';
 import { Meter } from './dpsmeter.js';
 import { explosionFx, hitSpark } from '../gfx/shapes.js';
 import { GORE } from '../data/enemies.js';
@@ -196,6 +196,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     world.affixFields ||= [];
     world.affixFields.push({ x: tgt.x, y: tgt.y, radius: 1.5, damage: actualDamage * 0.28, el: el || 'phys', t: 0.65,
       delayT: 0.35, tickT: 0, interval: 1, label: 'Aftershock', color: '#ff8040' });
+    world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 1.5, dur: 0.65, warning: 0.35, color: '#ff8040' }));
   }
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('lingering_wounds')) {
     if (!tgt.affixWoundBaseMaxHp) tgt.affixWoundBaseMaxHp = tgt.maxHp;
@@ -362,14 +363,17 @@ export function kill(tgt, src, info = {}) {
       world.affixFields ||= [];
       world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
         tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
-        label: id.replaceAll('_', ' '), color: el === 'fire' ? '#ff8030' : el === 'poison' ? '#70d050' : '#b080ff', o });
+        label: id.replaceAll('_', ' '), color: elem(el).glow, o });
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow }));
     };
     if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
     if (worldAffixes.has('static_discharge')) {
       world.affixProjectileBursts ||= [];
-      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'light', fx: 'spark', count: 8, speed: 7, range: 5, damage: Math.max(1, tgt.dmg * 0.45) });
+      const delayT = 0.4;
+      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'light', fx: 'spark', count: 8, speed: 7, range: 5, damage: Math.max(1, tgt.dmg * 0.45), delayT });
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 5, dur: delayT, warning: delayT, color: elem('light').glow, spokes: true }));
     }
-    if (worldAffixes.has('frostburst')) aoe(world, tgt, tgt.x, tgt.y, 2.2, tgt.dmg * 0.8, 'cold', { slow: true, freeze: true, aoe: true });
+    if (worldAffixes.has('frostburst')) pushField('frostburst', 'cold', 2.2, tgt.dmg * 0.8, 0.9, 0.35, { slow: true, freeze: true });
     if (worldAffixes.has('corpse_explosion')) pushField('corpse_explosion', 'fire', 2.2, tgt.maxHp * 0.22, 0.8, 0.75);
     if (worldAffixes.has('necrotic_remains')) pushField('necrotic_remains', 'shadow', 2, tgt.maxHp * 0.035, 4);
     if (worldAffixes.has('vengeful_spirits')) {
@@ -379,7 +383,9 @@ export function kill(tgt, src, info = {}) {
     if (worldAffixes.has('burning_ground')) pushField('burning_ground', 'fire', 2, tgt.maxHp * 0.04, 4, 0, { burn: true });
     if (worldAffixes.has('shrapnel')) {
       world.affixProjectileBursts ||= [];
-      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'phys', fx: 'spike', count: 10, speed: 8, range: 4, damage: Math.max(1, tgt.dmg * 0.4) });
+      const delayT = 0.4;
+      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'phys', fx: 'spike', count: 10, speed: 8, range: 4, damage: Math.max(1, tgt.dmg * 0.4), delayT });
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 4, dur: delayT, warning: delayT, color: '#c0c0c0', spokes: true }));
     }
     if (worldAffixes.has('healing_burst')) {
       for (const ally of world.query(tgt.x, tgt.y, 4, (c) => c.team === 'enemy' && !c.dead)) ally.heal(ally.maxHp * 0.2);
@@ -395,7 +401,7 @@ export function kill(tgt, src, info = {}) {
       if (world.affixCorpseMarkers.length > 20) world.affixCorpseMarkers.shift();
     }
     if (worldAffixes.has('cursed_remains') && world.player) world.player.affixRemainsT = Math.max(world.player.affixRemainsT || 0, 6);
-    if (worldAffixes.has('death_nova')) aoe(world, tgt, tgt.x, tgt.y, 3.2, tgt.maxHp * 0.12, 'shadow', { aoe: true });
+    if (worldAffixes.has('death_nova')) pushField('death_nova', 'shadow', 3.2, tgt.maxHp * 0.12, 0.9, 0.35, {});
     if (worldAffixes.has('blood_pact')) for (const ally of world.query(tgt.x, tgt.y, 5, (c) => c.team === 'enemy' && !c.dead)) ally.affixBloodPactT = Math.max(ally.affixBloodPactT || 0, 8);
     if (worldAffixes.has('soul_harvest')) for (const ally of world.query(tgt.x, tgt.y, 6, (c) => c.team === 'enemy' && !c.dead)) {
       ally.heal(ally.maxHp * 0.08);
