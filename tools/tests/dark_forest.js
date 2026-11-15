@@ -14,9 +14,12 @@ const SHOTS = process.argv[2] !== 'noshots';
       const tileset = biomeTileSet(biome), problems = [];
       for (let n = 1; n <= 40; n++) {
         const seed = n * 7717 + 3, g = generateDarkForest(7, biome, tileset, seed), m = g.map;
-        if (m.w !== 48 || m.h !== 48) problems.push('wrong map size for seed ' + seed);
+        if (m.w !== 192 || m.h !== 192) problems.push('wrong map size for seed ' + seed);
         if (m.walls.length || m.doors.length || g.glades || g.labyrinths) problems.push('legacy maze or trial data for seed ' + seed);
         if (g.spawns.filter((s) => s.rank === 'boss').length !== 1) problems.push('missing guardian for seed ' + seed);
+        const packs = g.spawns.filter((s) => !['boss', 'raid'].includes(s.rank));
+        const enemies = packs.reduce((sum, s) => sum + s.n, 0);
+        if (packs.length < 80 || packs.length > 110 || enemies < 220 || enemies > 340) problems.push('wrong ambient population for seed ' + seed);
         const seen = new Uint8Array(m.w * m.h), I = (x,y) => Math.floor(y) * m.w + Math.floor(x), q=[I(...g.start)]; seen[q[0]]=1;
         for(let h=0;h<q.length;h++){const i=q[h],x=i%m.w,y=(i/m.w)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,j=I(X,Y);if(X>=0&&Y>=0&&X<m.w&&Y<m.h&&!seen[j]&&m.walkableTile(X,Y)){seen[j]=1;q.push(j);}}}
         for(const p of [g.boss,g.exit,...g.chests.map(c=>[c.x,c.y]),...g.spawns.map(s=>[s.x,s.y])])if(!seen[I(...p)])problems.push('unreachable route content for seed '+seed);
