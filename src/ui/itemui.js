@@ -143,7 +143,7 @@ export function itemTooltip(item, opts = {}) {
       }
     }
   }
-  if (opts.price == null && !item.locked && !item.sealed && ['gear', 'gem', 'sheet', 'banner_kit'].includes(item.type)) {
+  if (!opts.price && !item.locked && !item.sealed && ['gear', 'gem', 'sheet', 'banner_kit'].includes(item.type)) {
     const stackNote = item.type === 'gem' && (item.count || 1) > 1 ? ' each' : '';
     h += `<div class="tt-price">Vendor value: ${fmtInt(itemSellValue(item))} gold${stackNote}</div>`;
   }
