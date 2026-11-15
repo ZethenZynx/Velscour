@@ -1193,12 +1193,10 @@ body:not(.touch) .panel.moving .panel-head { cursor: grabbing; }
 body:not(.touch) .panel[data-panel="inventory"] { width: min(496px, calc(100vw - 24px)); }
 body:not(.touch) .panel[data-panel="character"],
 body:not(.touch) .character-panel { width: min(580px, calc(100vw - 24px)); }
-body:not(.touch) .vendor-panel,
-body:not(.touch) .stash-panel { width: min(460px, calc(100vw - 24px)); }
-body:not(.touch) .reliquary-panel { width: min(570px, calc(100vw - 24px)); }
-body:not(.touch) #panels:has(.vendor-panel, .stash-panel, .reliquary-panel) .vendor-panel,
-body:not(.touch) #panels:has(.vendor-panel, .stash-panel, .reliquary-panel) .stash-panel,
-body:not(.touch) #panels:has(.vendor-panel, .stash-panel, .reliquary-panel) .reliquary-panel { width: min(460px, 35vw); }
+body:not(.touch) .vendor-panel { width: min(460px, calc(100vw - 24px)); }
+body:not(.touch) .stash-panel,
+body:not(.touch) .reliquary-panel { width: min(500px, calc(100vw - 24px)); }
+body:not(.touch) #panels:has(.vendor-panel, .stash-panel, .reliquary-panel) .vendor-panel { width: min(460px, 35vw); }
 
 body:not(.touch) .character-panel .inv-wrap,
 body:not(.touch) .inv-wrap.character-view {
@@ -1484,7 +1482,7 @@ body.touch .shop-price { font-size: 8px; }
 .storage-detail { margin-top: 10px; padding: 10px; border: 1px solid #76532c; border-radius: 4px; background: #21170f; }
 .storage-detail .btn { margin-top: 9px; }
 .reliquary-panel .rel-grid { grid-template-columns: repeat(10, 44px); }
-body:not(.touch) #panels:has(.reliquary-panel) .reliquary-panel .rel-grid { grid-template-columns: repeat(9, 44px); }
+body:not(.touch) #panels:has(.reliquary-panel) .reliquary-panel .rel-grid { grid-template-columns: repeat(10, 44px); }
 .vendor-panel .item-detail { background: #21170f; border-color: #76532c; }
 @media (max-width: 1250px) { body:not(.touch) .vendor-panel .shop-grid { grid-template-columns: repeat(6, 44px); } }
 body.touch .inv-section-title { font-size: 11px; }
