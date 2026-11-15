@@ -761,6 +761,9 @@ export function itemValue(item) {
   return Math.round(base * (1 + item.affixes.length * 0.15) * (1 + item.sockets * 0.2) * (1 + (item.upg || 0) * 0.3));
 }
 
+/** Vendor payout for selling one item (or one unit of a stack). */
+export const itemSellValue = (item) => Math.max(1, Math.floor(itemValue(item) / 4));
+
 /** A gold pile at monster level `lvl`. Prices grow ~1.06x a level (items, upgrades, sockets, gambling), so past level ~85
  *  piles follow the same curve (1.5 x 1.06^level, a Normal item's price) instead of the old straight line, which left
  *  late-game heroes unable to afford anything. goldScale: how much richer than the line (every gold source uses it). */
