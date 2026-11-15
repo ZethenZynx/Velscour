@@ -534,6 +534,26 @@ export class AffixFieldMarker {
         const a = i * TAU / 4 + Math.PI / 4, sx = px + Math.cos(a) * rx * 0.55, sy = py + Math.sin(a) * ry * 0.48;
         ctx.beginPath(); ctx.moveTo(sx - 3, sy); ctx.lineTo(sx, sy - 10); ctx.lineTo(sx + 3, sy); ctx.stroke();
       }
+    } else if (this.fx === 'nova') {
+      // Death Nova visibly expands away from the corpse before the damaging field lingers.
+      const progress = this.warning > 0 ? clamp(this.t / this.warning, 0, 1) : 1;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) {
+        const scale = Math.min(1, progress + i * 0.18);
+        ctx.globalAlpha = (0.72 - i * 0.12) * k * (warning ? 1 : 0.45);
+        ctx.strokeStyle = i === 0 ? '#f2d8ff' : '#a754e0'; ctx.lineWidth = 3 - i * 0.55;
+        ctx.beginPath(); ctx.ellipse(px, py, rx * scale, ry * scale, 0, 0, TAU); ctx.stroke();
+      }
+    } else if (this.fx === 'shrapnel') {
+      // Metallic fragments point outward so the death burst reads as flying shrapnel.
+      const progress = this.warning > 0 ? clamp(this.t / this.warning, 0, 1) : 1;
+      ctx.globalAlpha = 0.85 * k; ctx.fillStyle = '#c9c9cf'; ctx.strokeStyle = '#f2f2f5'; ctx.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8, d = rx * (0.2 + progress * 0.62), cx = px + Math.cos(a) * d, cy = py + Math.sin(a) * d * (ry / rx);
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+        ctx.beginPath(); ctx.moveTo(-5, -2); ctx.lineTo(7, 0); ctx.lineTo(-5, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
     } else if (this.fx === 'void') {
       ctx.globalAlpha = 0.26 * k; ctx.fillStyle = '#23003a';
       ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
@@ -551,8 +571,14 @@ export class AffixFieldMarker {
     if (this.spokes) {
       ctx.globalAlpha = warning ? 0.52 + pulse * 0.2 : 0.35 * k; ctx.setLineDash([3, 4]);
       for (let i = 0; i < 8; i++) {
-        const a = i * TAU / 8;
-        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * rx, py + Math.sin(a) * ry); ctx.stroke();
+        const a = i * TAU / 8, ex = px + Math.cos(a) * rx, ey = py + Math.sin(a) * ry;
+        ctx.beginPath(); ctx.moveTo(px, py);
+        if (this.fx === 'storm') {
+          const mx = px + Math.cos(a) * rx * 0.52 + Math.sin(i * 7 + this.t * 20) * 3;
+          const my = py + Math.sin(a) * ry * 0.52 + Math.cos(i * 7 + this.t * 20) * 2;
+          ctx.lineTo(mx, my); ctx.lineTo(ex, ey);
+        } else ctx.lineTo(ex, ey);
+        ctx.stroke();
       }
     }
     ctx.restore();
