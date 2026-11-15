@@ -653,8 +653,7 @@ export const game = {
       return '<div class="floor-pick-affixes" style="margin:7px 0 2px;padding:6px 8px;background:rgba(255,176,112,0.08);border-left:2px solid #ffb070;border-radius:3px;font-size:11px;line-height:1.25;">' +
         '<b style="color:#ffd880;">Affixes for Depth ' + depth + '</b>' +
         affixes.map((affix) => {
-          const words = String(affix.description || '').split(/[.!?]/, 1)[0].trim().split(/\s+/).filter(Boolean);
-          const summary = words.length > 7 ? words.slice(0, 7).join(' ') + '…' : words.join(' ');
+          const summary = String(affix.description || '').trim();
           return '<div style="margin-top:2px;"><b>' + escapeHtml(affix.name) + '</b><span style="opacity:.82"> — ' + escapeHtml(summary) + '</span></div>';
         }).join('') +
         '</div>';
