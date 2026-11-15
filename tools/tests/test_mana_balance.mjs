@@ -5,14 +5,23 @@ import { CLASSES } from '../../src/data/classes.js';
 
 console.log('Testing mana balance and economy...');
 
-// 1. Verify every class has an innate 0-mana basic attack
+// 1. Every skill must use mana unless it is paid for with Barbarian Rage.
+let checkedSkills = 0;
 for (const [classId, skills] of Object.entries(CLASS_SKILLS)) {
-  const freeSkill = skills.find((s) => s.m.free);
-  assert(freeSkill, `Class ${classId} must have at least one free skill`);
-  const cost = manaCost(freeSkill, 1);
-  assert.strictEqual(cost, 0, `Free skill ${freeSkill.name} for ${classId} must cost 0 mana`);
+  for (const skill of skills) {
+    const cost = manaCost(skill, 1);
+    const ragePowered = classId === 'barbarian' && (skill.kind === 'whirl' || rageCost(skill) > 0);
+    if (ragePowered) {
+      assert.strictEqual(cost, 0, skill.name + ' should use Rage instead of mana');
+    } else {
+      assert(cost > 0, skill.name + ' for ' + classId + ' must cost mana');
+    }
+    assert(manaCost(skill, 20) >= cost, skill.name + ' mana cost should not decrease with skill level');
+    checkedSkills++;
+  }
 }
-console.log(`✔ All ${Object.keys(CLASSES).length} classes have a verified 0-mana basic attack`);
+assert(checkedSkills > 0, 'Must verify the skill catalog');
+console.log('Verified mana costs for ' + checkedSkills + ' skills across ' + Object.keys(CLASSES).length + ' classes');
 
 // 2. Verify Row 0 starting spenders cost <= 4 mana at L=1 (Early Game Protection)
 let testedRow0 = 0;
