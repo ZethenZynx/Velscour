@@ -521,7 +521,7 @@ export class Orbit {
 // ===================================================================== Whirlwind (caster spins toward a point)
 export class Whirl {
   constructor(o) {
-    Object.assign(this, { dur: 2, t: 0, r: 1.3, speed: 4.2, tick: 0.22, tickT: 0, o: {} }, o);
+    Object.assign(this, { dur: 2, t: 0, r: 1.3, speed: 4.2, tick: 0.22, tickT: 0, rageRate: 10, o: {} }, o);
     this.E = elem(this.el);
     this.fx = dkFx(this.src, this.fx);
     this.team = this.src.team;
@@ -540,7 +540,7 @@ export class Whirl {
     if (this.t > this.dur) { s.channel = null; return false; }
     // The Barbarian's full 100 Rage lasts ten seconds while spinning.
     if (this.rage) {
-      s.rage = Math.max(0, (s.rage || 0) - 10 * dt);
+      s.rage = Math.max(0, (s.rage || 0) - this.rageRate * dt);
       s.char.rage = s.rage;
       if (s.rage <= 0) { s.channel = null; return false; }
     }

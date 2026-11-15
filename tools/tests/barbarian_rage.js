@@ -8,7 +8,7 @@ const {openGame,report}=require('./harness');
     const checks=await page.evaluate(async()=>{
       const problems=[];
       const {G,game}=window.VELSCOUR;
-      const {SKILLS,manaCost}=await import('/src/data/skills.js');
+      const {SKILLS,manaCost,whirlwindRageRate}=await import('/src/data/skills.js');
       const {BIOME_BY_ID}=await import('/src/data/biomes.js');
       const {newCharData}=await import('/src/game/save.js');
       const {rollItem,fitsSlot,slotFor}=await import('/src/data/items.js');
@@ -60,8 +60,9 @@ const {openGame,report}=require('./harness');
       p.rage=0;p.char.rage=0;p.update(1);
       if(p.rage!==0)problems.push('Idle regeneration must not generate Rage');
       p.castLock=0;
-      const beforeBash=new Set(w.hazards);
-      if(!p.tryUseSkill(bash,p.x+1,p.y))problems.push('Free Bash could not cast at 0 Rage');
+      const beforeBash=new Set(w.hazards), beforeBashMana=p.mana;
+      if(!p.tryUseSkill(bash,p.x+1,p.y))problems.push('Bash could not cast at 0 Rage');
+      else if(p.mana>=beforeBashMana)problems.push('Bash did not consume Mana');
       const bolts=w.hazards.filter(h=>!beforeBash.has(h) && h.o?.bashBolt);
       if(bolts.length!==5 || new Set(bolts.map(h=>h.ang.toFixed(3))).size!==5)problems.push('Bash must fire five directional lightning bolts');
       if(w.hazards.some(h=>!beforeBash.has(h) && h.fx==='hammer'))problems.push('Bash spawned an orbiting hammer');
@@ -85,7 +86,8 @@ const {openGame,report}=require('./harness');
       else{
         const wrl=p.channel;
         wrl.update(0.5);
-        if(Math.abs(p.rage-95)>0.1)problems.push('Expected five Rage spent in half a second, got '+p.rage);
+        const expectedRage=p.rage;
+        if(Math.abs(expectedRage-(100-whirlwindRageRate(20)*0.5))>0.1)problems.push('Whirlwind Rage upkeep did not scale with skill rank: '+expectedRage);
         // While spinning, follow autopilot waypoints instead of a stale aimed target.
         const oldMove=w.map.move,oldAim=p.aim,oldAuto=p.whirlAuto;
         p.whirlAuto=true;p.moveVec=[0,1];p.aim=[p.x-20,p.y-20];

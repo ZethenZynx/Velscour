@@ -62,7 +62,7 @@ function skillDps(p, sk, level, crowd = CROWD) {
   const morph = skillMorphFor(p, sk), effective = morph ? applySkillMorph(sk, morph) : sk;
   const damage = avg(p.skillDamage(sk, level)) * hitsPerCast(effective, crowd, level) * critMul(p);
   const period = Math.max(castTime(p, effective), cdOf(p, sk), 0.05);
-  const cost = manaCost(sk, level), rage = rageCost(sk), supply = p.st.manaRegen + p.maxMana / 40;
+  const cost = manaCost(sk, level), rage = rageCost(sk, level), supply = p.st.manaRegen + p.maxMana / 40;
   const sustain = cost ? Math.min(1, supply / (cost / period)) : rage ? Math.min(1, 12 / (rage / period)) : 1;
   return { dps: damage / period, sustain };
 }

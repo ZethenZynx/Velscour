@@ -1,23 +1,49 @@
-// Mathematical verification of mana costs, regen, and resource economy across all classes.
+// Mathematical verification of skill resource costs, regen, and resource economy across all classes.
 import assert from 'node:assert';
-import { SKILLS, CLASS_SKILLS, manaCost, rageCost } from '../../src/data/skills.js';
+import { SKILLS, CLASS_SKILLS, manaCost, rageCost, whirlwindRageCost, whirlwindRageRate } from '../../src/data/skills.js';
 import { CLASSES } from '../../src/data/classes.js';
 
 console.log('Testing mana balance and economy...');
 
-// 1. Verify every class has an innate 0-mana basic attack
+// 1. Every skill must use mana unless it is paid for with Barbarian Rage.
+let checkedSkills = 0;
 for (const [classId, skills] of Object.entries(CLASS_SKILLS)) {
-  const freeSkill = skills.find((s) => s.m.free);
-  assert(freeSkill, `Class ${classId} must have at least one free skill`);
-  const cost = manaCost(freeSkill, 1);
-  assert.strictEqual(cost, 0, `Free skill ${freeSkill.name} for ${classId} must cost 0 mana`);
+  for (const skill of skills) {
+    const cost = manaCost(skill, 1);
+    const ragePowered = classId === 'barbarian' && (skill.kind === 'whirl' || rageCost(skill) > 0);
+    if (ragePowered) {
+      assert.strictEqual(cost, 0, skill.name + ' should use Rage instead of mana');
+    } else {
+      assert(cost > 0, skill.name + ' for ' + classId + ' must cost mana');
+      assert(manaCost(skill, 20) > cost, skill.name + ' mana cost should increase with skill rank');
+      for (let rank = 1; rank < 20; rank++) {
+        assert(manaCost(skill, rank + 1) > manaCost(skill, rank), skill.name + ' mana cost should rise at every rank');
+      }
+    }
+    assert(manaCost(skill, 20) >= cost, skill.name + ' mana cost should not decrease with skill level');
+    const rageAtRank1 = rageCost(skill, 1), rageAtRank20 = rageCost(skill, 20);
+    if (rageAtRank1) {
+      assert(rageAtRank20 > rageAtRank1, skill.name + ' Rage cost should increase with skill rank');
+      for (let rank = 1; rank < 20; rank++) {
+        assert(rageCost(skill, rank + 1) > rageCost(skill, rank), skill.name + ' Rage cost should rise at every rank');
+      }
+    }
+    checkedSkills++;
+  }
 }
-console.log(`✔ All ${Object.keys(CLASSES).length} classes have a verified 0-mana basic attack`);
+assert(checkedSkills > 0, 'Must verify the skill catalog');
+assert(whirlwindRageCost(20) > whirlwindRageCost(1), 'Whirlwind start Rage should increase with skill rank');
+assert(whirlwindRageRate(20) > whirlwindRageRate(1), 'Whirlwind upkeep Rage should increase with skill rank');
+for (let rank = 1; rank < 20; rank++) {
+  assert(whirlwindRageCost(rank + 1) > whirlwindRageCost(rank), 'Whirlwind start Rage should rise at every rank');
+  assert(whirlwindRageRate(rank + 1) > whirlwindRageRate(rank), 'Whirlwind upkeep Rage should rise at every rank');
+}
+console.log('Verified resource costs for ' + checkedSkills + ' skills across ' + Object.keys(CLASSES).length + ' classes');
 
 // 2. Verify Row 0 starting spenders cost <= 4 mana at L=1 (Early Game Protection)
 let testedRow0 = 0;
 for (const [id, sk] of Object.entries(SKILLS)) {
-  if (sk.row === 0 && !sk.m.free && sk.classId !== 'barbarian') {
+  if (sk.row === 0 && sk.classId !== 'barbarian') {
     const cost = manaCost(sk, 1);
     assert(cost <= 4, `Row 0 skill ${sk.name} (${sk.id}) cost ${cost} should be <= 4 for early game protection`);
     if (['proj', 'melee', 'dash'].includes(sk.kind)) {
@@ -38,18 +64,18 @@ const r2_l1 = manaCost(testSkill(2), 1);
 const r3_l1 = manaCost(testSkill(3), 1);
 const r4_l1 = manaCost(testSkill(4), 1);
 
-assert.strictEqual(r0_l1, 3, 'Row 0 L=1 is 3 mana');
-assert.strictEqual(r1_l1, 6, 'Row 1 L=1 is 6 mana');
-assert.strictEqual(r2_l1, 11, 'Row 2 L=1 is 11 mana');
-assert.strictEqual(r3_l1, 17, 'Row 3 L=1 is 17 mana');
-assert.strictEqual(r4_l1, 25, 'Row 4 L=1 is 25 mana');
+assert.strictEqual(r0_l1, 2.5, 'Row 0 L=1 is 2.5 mana');
+assert.strictEqual(r1_l1, 5.7, 'Row 1 L=1 is 5.7 mana');
+assert.strictEqual(r2_l1, 10.9, 'Row 2 L=1 is 10.9 mana');
+assert.strictEqual(r3_l1, 17.4, 'Row 3 L=1 is 17.4 mana');
+assert.strictEqual(r4_l1, 24.8, 'Row 4 L=1 is 24.8 mana');
 console.log(`✔ Base row progression verified: [R0: ${r0_l1}, R1: ${r1_l1}, R2: ${r2_l1}, R3: ${r3_l1}, R4: ${r4_l1}]`);
 
 // 4. Verify high-level skill investment scaling (L=20)
 const r0_l20 = manaCost(testSkill(0), 20);
 const r4_l20 = manaCost(testSkill(4), 20);
-assert.strictEqual(r0_l20, 7, 'Row 0 L=20 is 7 mana');
-assert.strictEqual(r4_l20, 67, 'Row 4 L=20 is 67 mana');
+assert.strictEqual(r0_l20, 6.8, 'Row 0 L=20 is 6.8 mana');
+assert.strictEqual(r4_l20, 67.2, 'Row 4 L=20 is 67.2 mana');
 console.log(`✔ Max-level skill scaling verified: [R0 L20: ${r0_l20}, R4 L20: ${r4_l20}]`);
 
 // 5. Verify Passive Mana Regen values across levels
