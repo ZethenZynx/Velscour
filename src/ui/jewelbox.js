@@ -136,14 +136,14 @@ export const JewelBox = {
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         if (!it || it.type !== 'gem' || it.locked) continue;
-        if (!addToJewelBox(c, it)) { full = true; break; }
+        if (!addToJewelBox(c, it)) { full = true; continue; }
         delete it.autoStash;
         arr[i] = null;
         moved++;
       }
     };
     moveGems(c.bag);
-    if (!full) moveGems(c.gemBag);
+    moveGems(c.gemBag);
     if (moved) {
       this.selected = null; UI.selected = null; sfx('pickup'); changed();
       UI.log(`Deposited ${moved} gem stack${moved === 1 ? '' : 's'} in the Jewel Box${full ? '; the box is full' : ''}.`, full ? '#ff8080' : '#80ff80');
@@ -163,7 +163,7 @@ export const JewelBox = {
     for (let i = 0; i < c.jewelBox.length; i++) {
       const it = c.jewelBox[i];
       if (!it || it.type !== 'gem') continue;
-      if (!addToBag(c, it)) { full = true; break; }
+      if (!addToBag(c, it)) { full = true; continue; }
       c.jewelBox[i] = null;
       moved++;
     }
