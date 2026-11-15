@@ -10,7 +10,10 @@ import { catchCritterAt, crittersTick } from './critters.js';
 
 export function initSpectate() {
   G.tapHook = (sx, sy, e) => {
-    if (G.mode !== 'game' || !G.world || !G.player || G.paused) return false;
+    if (G.mode !== 'game' || !G.world || !G.player) return false;
+    // The first-encounter tutorial pauses the world but still lets the player collect its highlighted critter.
+    if (G.critterTutorial) return catchCritterAt(sx, sy);
+    if (G.paused) return false;
     if (smiteArmed()) {
       if (e && e.pointerType === 'mouse' && e.button !== 0) { G.smiteArmed = false; return true; }
       const [x, y] = camera.screenToTile(sx, sy);

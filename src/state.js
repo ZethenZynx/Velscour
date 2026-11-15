@@ -12,6 +12,7 @@ export const G = {
   char: null, // persistent character record (saved)
   mode: 'loading', // loading | title | game
   paused: false, // simulation paused (menus on desktop keep running in town)
+  critterTutorial: null, // the first gilded critter is held still until the player collects it
   time: 0,
   dt: 0,
   frame: 0,
