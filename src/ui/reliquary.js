@@ -92,6 +92,27 @@ export const Reliquary = {
     saveReliquary(); sfx('pickup'); changed(); this.refresh();
     return true;
   },
+  /** Withdraw every item from the open vault tab that fits into the current hero's inventory. */
+  withdrawAll() {
+    const c = G.char, r = reliquary(), t = r?.tabs?.[this.tab];
+    if (!c || !Array.isArray(t) || this.tab >= openTabs()) return;
+    let moved = 0, full = false;
+    for (let i = 0; i < t.length; i++) {
+      const it = t[i];
+      if (!it) continue;
+      if (!addToBag(c, it)) { full = true; break; }
+      t[i] = null;
+      moved++;
+    }
+    if (moved) {
+      saveReliquary(); this.selected = null; UI.selected = null; sfx('pickup'); changed(); this.refresh();
+      UI.log(`Withdrew ${moved} item${moved === 1 ? '' : 's'} from Vault ${ROMAN[this.tab]}${full ? '; inventory is full' : ''}.`, full ? '#ff8080' : '#80ff80');
+    } else if (full) {
+      UI.log('Inventory and Gem Bag are full.', '#ff8080'); sfx('error');
+    } else {
+      UI.log(`Vault ${ROMAN[this.tab]} is empty.`); sfx('ui');
+    }
+  },
   /** Move items from inventory to the current vault tab. */
   stashAll(where = 'all') {
     const c = G.char;
@@ -133,9 +154,8 @@ export const Reliquary = {
       moveFrom(c.bag);
     } else {
       moveFrom(c.bag);
-      if (!full && moved === 0 && Array.isArray(c.gemBag)) {
-        moveFrom(c.gemBag);
-      }
+      if (!full && where === 'all') moveFrom(c.gemBag);
+      else if (!full && moved === 0 && Array.isArray(c.gemBag)) moveFrom(c.gemBag);
     }
 
     if (moved > 0) {
@@ -195,10 +215,14 @@ export const Reliquary = {
     headActions.style.gap = '6px';
     headActions.style.alignItems = 'center';
 
-    const stashAllBtn = el('button', 'btn small', 'Stash All');
+    const stashAllBtn = el('button', 'btn small', 'Deposit All');
     stashAllBtn.title = `Stash all unlocked items from inventory into Vault ${ROMAN[this.tab]}`;
-    stashAllBtn.onclick = () => { sfx('ui'); this.stashAll(); };
+    stashAllBtn.onclick = () => { sfx('ui'); this.stashAll('all'); };
     headActions.appendChild(stashAllBtn);
+    const withdrawAllBtn = el('button', 'btn small', 'Withdraw All');
+    withdrawAllBtn.title = `Move all items that fit from Vault ${ROMAN[this.tab]} into your inventory`;
+    withdrawAllBtn.onclick = () => { sfx('ui'); this.withdrawAll(); };
+    headActions.appendChild(withdrawAllBtn);
 
     for (const [by, label] of [['type', 'Sort by type'], ['rarity', 'Sort by rarity']]) {
       const b = el('button', 'btn small', label);
