@@ -100,7 +100,7 @@ export const Reliquary = {
     for (let i = 0; i < t.length; i++) {
       const it = t[i];
       if (!it) continue;
-      if (!addToBag(c, it)) { full = true; break; }
+      if (!addToBag(c, it)) { full = true; continue; }
       t[i] = null;
       moved++;
     }
@@ -123,7 +123,7 @@ export const Reliquary = {
 
     let moved = 0, full = false;
     const moveFrom = (arr) => {
-      if (!Array.isArray(arr) || full) return;
+      if (!Array.isArray(arr)) return;
       for (let i = 0; i < arr.length; i++) {
         const it = arr[i];
         if (!it || it.locked) continue;
@@ -137,10 +137,7 @@ export const Reliquary = {
           }
         }
         const emptyIdx = t.findIndex((b) => !b);
-        if (emptyIdx < 0) {
-          full = true;
-          break;
-        }
+        if (emptyIdx < 0) { full = true; continue; }
         delete it.autoStash;
         t[emptyIdx] = it;
         arr[i] = null;
@@ -154,7 +151,7 @@ export const Reliquary = {
       moveFrom(c.bag);
     } else {
       moveFrom(c.bag);
-      if (!full && where === 'all') moveFrom(c.gemBag);
+      if (where === 'all') moveFrom(c.gemBag);
       else if (!full && moved === 0 && Array.isArray(c.gemBag)) moveFrom(c.gemBag);
     }
 
