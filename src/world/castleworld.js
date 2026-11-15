@@ -1,10 +1,11 @@
 // Compact Castle overworld. Retains the Castle pack's floor art, variants, and story dialogue on an 84x76 map.
 import { TileMap } from './map.js';
 import { RNG } from '../core/util.js';
+import { TW } from '../core/view.js';
 import { rollLooks } from '../data/bestiary.js';
 import { castleFloorTiles, castleKeepFloorTiles, castleObject } from '../gfx/castle.js';
 import { MAT } from '../gfx/castleground.js';
-import { CASTLE_VARIANTS, castleVariant } from '../data/castles.js';
+import { castleVariant } from '../data/castles.js';
 
 export const CASTLE_SIZE = Object.freeze([84, 76]);
 export const CASTLE_OUTER = Object.freeze({ x0: 7, y0: 8, x1: 76, y1: 68 });
@@ -45,13 +46,14 @@ export function generateCastle(depth, biome, seed, variant = null) {
   for (let i = 0; i < N; i++) if (map.road[i]) map.castleMat[i] = MAT.road;
 
   // Reuse Castle wall art for the compact perimeter and courtyard.
-  const wall = castleObject('wall_01_quarry_limestone_straight_NE_SW', 'walls');
-  if (wall) {
-    const addWall = (x, y, flip = false) => props.push({ kind: 'scatter', x: x + 0.5, y: y + 0.5, spr: wall, k: 1, flip, light: 0, onWall: true });
-    for (let x = 8; x < 76; x += 2) if (x < 39 || x > 43) { addWall(x, 8); addWall(x, 67, true); }
-    for (let y = 10; y < 68; y += 2) { addWall(8, y, true); addWall(75, y); }
-    for (let x = 26; x < 58; x += 2) if (x < 39 || x > 43) { addWall(x, 25); addWall(x, 51, true); }
-    for (let y = 27; y < 52; y += 2) { addWall(26, y, true); addWall(57, y); }
+  const wallX = castleObject('wall_01_quarry_limestone_straight_NE_SW', 'walls');
+  const wallY = castleObject('wall_01_quarry_limestone_straight_SE_NW', 'walls');
+  if (wallX && wallY) {
+    const addWall = (spr, x, y, flip = false) => props.push({ kind: 'scatter', x: x + 0.5, y: y + 0.5, spr, k: TW / 160, flip, light: 0, onWall: true });
+    for (let x = 8; x < 76; x += 2) if (x < 39 || x > 43) { addWall(wallX, x, 8); addWall(wallX, x, 67, true); }
+    for (let y = 10; y < 68; y += 2) { addWall(wallY, 8, y, true); addWall(wallY, 75, y); }
+    for (let x = 26; x < 58; x += 2) if (x < 39 || x > 43) { addWall(wallX, x, 25); addWall(wallX, x, 51, true); }
+    for (let y = 27; y < 52; y += 2) { addWall(wallY, 26, y, true); addWall(wallY, 57, y); }
   }
 
   const start = [41.5, 72.5], exit = [41.5, 5.5];
