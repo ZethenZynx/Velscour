@@ -2265,7 +2265,12 @@ export const game = {
       if (!arch || w.creatures.filter((m) => m.team === 'enemy' && !m.dead).length >= DUNGEON_AFFIX_CONFIG.summons.maxExtraEnemies + 18) continue;
       const [x, y] = w.map.randomNear(event.x ?? p.x, event.y ?? p.y, 2.5);
       const spirit = makeMonster(w, arch, w.biome, depthLevel(w.depth || 1), 'normal', x, y);
-      if (spirit) { spirit.awake = true; spirit.affixSpawned = true; if (event.id === 'vengeful_spirits') spirit.el = 'shadow'; w.add(spirit); }
+      if (spirit) {
+        spirit.awake = true; spirit.affixSpawned = true;
+        if (event.id === 'vengeful_spirits') spirit.el = 'shadow';
+        addEffect(new Ring(spirit.x, spirit.y, 0.12, 1.15, 0.36, event.id === 'vengeful_spirits' ? '#9b62d4' : '#d0c0ff', 2.5));
+        w.add(spirit);
+      }
     }
     for (let i = w.affixProjectileBursts?.length - 1; i >= 0; i--) {
       const burst = w.affixProjectileBursts[i];
@@ -2311,6 +2316,11 @@ export const game = {
         m.awake = true;
         m.affixSpawned = true;
         if (id === 'shadow_clones') { m.scale *= 0.7; m.maxHp *= 0.45; m.hp = m.maxHp; }
+        const portalColor = id.includes('bone') || id.includes('necromantic') ? '#c8d8d8' :
+          id.includes('infernal') || id.includes('demonic') ? '#ff6430' :
+          id.includes('swarm') || id.includes('brood') ? '#9aca42' :
+          id.includes('shadow') || id.includes('haunted') || id.includes('rift') ? '#a65fe0' : '#d4a8ff';
+        addEffect(new Ring(x, y, 0.12, 1.1, 0.36, portalColor, 2.5));
         w.add(m);
       }
       if (id === 'demonic_portals' || id === 'infernal_invasion') floatText(p.x, p.y, 68, 'Portal opens', '#e03030', 12);
@@ -2324,6 +2334,7 @@ export const game = {
         for (const m of w.creatures) if (m.team === 'enemy' && !m.dead && dist2(m.x, m.y, p.x, p.y) < 12 * 12) {
           m.affixShieldT = 4;
           m.affixShield = 0.25;
+          addEffect(new Ring(m.x, m.y, 0.7, 1.45, 0.3, '#8feaff', 2));
         }
       }
     }
@@ -2333,6 +2344,7 @@ export const game = {
         w.affixTimers.guardian_shield = rand(8, 12);
         w.boss.affixShieldT = 4;
         w.boss.affixShield = 0.35;
+        addEffect(new Ring(w.boss.x, w.boss.y, 0.7, 1.8, 0.36, '#8feaff', 3));
         floatText(w.boss.x, w.boss.y, 70, 'GUARDIAN SHIELD', '#8feaff', 11);
       }
     }
@@ -2351,7 +2363,11 @@ export const game = {
           const by = p.y - Math.sin(p.facing || 0) * 1.3;
           if (w.map.isFloor(bx, by)) [x, y] = [bx, by];
         }
-        if (w.map.isFloor(x, y)) { m.x = x; m.y = y; }
+        if (w.map.isFloor(x, y)) {
+          addEffect(new Ring(m.x, m.y, 0.1, 0.8, 0.24, '#bd82ff', 2));
+          m.x = x; m.y = y;
+          addEffect(new Ring(x, y, 0.1, 1.05, 0.3, '#bd82ff', 2.5));
+        }
         m.dungeonTeleportT = rand(...movement.teleportRepeat);
       }
     }
