@@ -396,19 +396,74 @@ export class Area {
         ctx.beginPath(); ctx.ellipse(px + Math.sin(this.t * 6 + i) * 3, py - h, rr, rr * 0.4, 0, this.t * 10 + i, this.t * 10 + i + 4.5); ctx.stroke();
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-      if (this.fx === 'dkblade') dkBlades(ctx, this.x, this.y, this.r * 0.6, this.t, 2, 24, this.E, k); // Runeblade Storm: his swords whirl in it
+      if (this.fx === 'dkblade') dkBlades(ctx, this.x, this.y, this.r * 0.6, this.t, 2, 24, this.E, k);
       return;
     }
-    if (this.mode === 'wallseg') return; // particles only
+    if (this.mode === 'wallseg') return;
     const rx = this.r * HW * 1.41, ry = this.r * HH * 1.41;
-    ctx.globalAlpha = 0.22 * k;
-    const col = this.fx === 'void' ? '#200030' : this.fx === 'poison' || this.fx === 'plague' ? '#3a7010' : this.E.glow;
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 0.5 * k; ctx.strokeStyle = this.E.glow; ctx.lineWidth = 1.5;
-    ctx.setLineDash([6, 4]); ctx.lineDashOffset = -this.t * 20;
-    ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    const poison = ['poison', 'plague', 'spore'].includes(this.fx);
+    const cold = ['frost', 'ice'].includes(this.fx);
+    const fire = ['fire', 'explosion'].includes(this.fx);
+    const blood = this.fx === 'blood';
+    const voidFx = ['void', 'shadow'].includes(this.fx);
+    ctx.save();
+    if (fire) {
+      // Dark cooled crust, bright molten centre and branching lava cracks.
+      ctx.globalAlpha = 0.78 * k; ctx.fillStyle = '#24110c';
+      ctx.beginPath(); ctx.ellipse(px, py + 1, rx * 1.06, ry * 1.1, 0, 0, TAU); ctx.fill();
+      const lava = ctx.createRadialGradient(px - rx * 0.22, py - ry * 0.25, 1, px, py, Math.max(rx, ry));
+      lava.addColorStop(0, '#fff2a0'); lava.addColorStop(0.22, '#ffb21c'); lava.addColorStop(0.62, '#f23a08'); lava.addColorStop(1, '#631006');
+      ctx.globalAlpha = 0.9 * k; ctx.fillStyle = lava;
+      ctx.beginPath(); ctx.ellipse(px, py, rx * 0.92, ry * 0.83, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.8 * k; ctx.strokeStyle = '#ffd45a'; ctx.lineWidth = Math.max(1.5, this.r * 1.2);
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5 + this.t * 0.15, ex = px + Math.cos(a) * rx * 0.72, ey = py + Math.sin(a) * ry * 0.62;
+        ctx.moveTo(px + Math.cos(a + 0.6) * rx * 0.12, py + Math.sin(a + 0.6) * ry * 0.12);
+        ctx.lineTo(px + Math.cos(a) * rx * 0.36, py + Math.sin(a) * ry * 0.3); ctx.lineTo(ex, ey);
+      }
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (0.18 + 0.12 * Math.sin(this.t * 7)) * k;
+      ctx.drawImage(glowSprite('#ff4a08'), px - rx, py - ry, rx * 2, ry * 2);
+    } else if (poison) {
+      // Several translucent, slowly drifting lobes read as poisonous gas rather than a flat stain.
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 6; i++) {
+        const a = i * TAU / 6 + 0.3, drift = Math.sin(this.t * 1.7 + i * 2.1);
+        const cx = px + Math.cos(a) * rx * 0.38 + drift * 3;
+        const cy = py + Math.sin(a) * ry * 0.34 - Math.max(0, drift) * 3;
+        const cr = rx * (0.34 + (i % 2) * 0.05);
+        const cloud = ctx.createRadialGradient(cx, cy, 1, cx, cy, cr);
+        cloud.addColorStop(0, 'rgba(146,230,50,0.58)'); cloud.addColorStop(0.55, 'rgba(67,145,24,0.34)'); cloud.addColorStop(1, 'rgba(30,70,12,0)');
+        ctx.globalAlpha = 0.8 * k; ctx.fillStyle = cloud;
+        ctx.beginPath(); ctx.ellipse(cx, cy, cr, cr * 0.58, 0, 0, TAU); ctx.fill();
+      }
+    } else if (cold) {
+      ctx.globalAlpha = 0.42 * k; ctx.fillStyle = '#9beaff';
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.7 * k; ctx.strokeStyle = '#e3fbff'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]); ctx.lineDashOffset = -this.t * 8;
+      ctx.beginPath(); ctx.ellipse(px, py, rx * 0.82, ry * 0.78, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.globalAlpha = 0.86 * k;
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5 + this.t * 0.12, sx = px + Math.cos(a) * rx * 0.52, sy = py + Math.sin(a) * ry * 0.48;
+        ctx.fillStyle = '#e9fbff'; ctx.strokeStyle = '#65c8ee'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(sx - 3, sy); ctx.lineTo(sx, sy - 8 - (i % 2) * 4); ctx.lineTo(sx + 3, sy); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+    } else if (blood) {
+      ctx.globalAlpha = 0.72 * k; ctx.fillStyle = '#5c0710';
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#cb171e';
+      ctx.beginPath(); ctx.ellipse(px - rx * 0.1, py - ry * 0.1, rx * 0.68, ry * 0.52, 0, 0, TAU); ctx.fill();
+    } else {
+      const col = voidFx ? '#200030' : this.fx === 'storm' ? '#526cff' : this.E.glow;
+      ctx.globalAlpha = (voidFx ? 0.34 : 0.22) * k; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.5 * k; ctx.strokeStyle = this.E.glow; ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]); ctx.lineDashOffset = -this.t * 20;
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.restore();
   }
 }
 
