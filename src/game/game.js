@@ -290,6 +290,7 @@ export const game = {
 
   startChar(c, fresh) {
     Macros.reset();
+    G.critterTutorial = null;
     hideScreen();
     G.char = c;
     preloadSkillSheets(c.classId);
@@ -325,6 +326,7 @@ export const game = {
 
   quitToTitle() {
     this.autosave();
+    G.critterTutorial = null;
     UI.closeAll();
     G.world = null; G.player = null; G.char = null;
     setClassItems(null);
@@ -2431,7 +2433,7 @@ export const game = {
       if (top && top.querySelector('.dialog-box')) top.dispatchEvent(new PointerEvent('pointerdown'));
     }
     const pauseMenus = G.settings.pauseMenus !== false && w.kind === 'dungeon' && ui.anyOpen();
-    G.paused = ui.modal || pauseMenus;
+    G.paused = ui.modal || pauseMenus || !!G.critterTutorial;
     Cine.update(G.paused ? 0 : dt);
     if (G.cine && !G.paused) {   // a cut scene (game/cinema.js): no input, no monster thinks; the scene's actors move
       input.endFrame();

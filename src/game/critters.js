@@ -32,6 +32,7 @@ const KEYS = Object.keys(CRITTERS);
 // gap after each critter's 9-12 s life (one every ~30 s); at most CRITTER_MAX at once
 export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
+export const CRITTER_ARROW_ENCOUNTERS = 7;
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
@@ -46,7 +47,7 @@ const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#6
 class Critter {
   constructor(world, key, x, y) {
     const K = CRITTERS[key];
-    Object.assign(this, { world, key, K, x, y, z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU), caught: false, gone: false, layer: 'top' });
+    Object.assign(this, { world, key, K, x, y, z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU), caught: false, gone: false, showArrow: false, tutorial: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
   update(dt) {
@@ -135,7 +136,8 @@ class Critter {
       ctx.drawImage(glowSprite(K.color), px - 18, py - 21, 36, 36);
       ctx.globalCompositeOperation = 'source-over';
     }
-    if (!this.gone) { // a small red arrow bobbing over it, pointing down at it
+    if (this.tutorial && G.critterTutorial === this) this.drawTutorial(ctx, px, py);
+    if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
       const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
       ctx.globalAlpha = fade;
       ctx.fillStyle = '#ff2a2a'; ctx.strokeStyle = '#3a0000'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
@@ -145,6 +147,25 @@ class Critter {
       ctx.fill(); ctx.stroke();
     }
     ctx.globalAlpha = 1;
+  }
+  drawTutorial(ctx, px, py) {
+    const K = this.K, gold = !!K.pay.gold;
+    const w = 224, h = 58, x = px - w / 2, y = py - this.z - 38 - h;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(16, 10, 6, 0.96)';
+    ctx.strokeStyle = K.color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h);
+    ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffe3a0'; ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(K.name, px, y + 15);
+    ctx.fillStyle = '#ffffff'; ctx.font = '12px sans-serif';
+    ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 33);
+    ctx.fillStyle = '#ffd040'; ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('Click it to collect the reward!', px, y + 49);
+    ctx.restore();
   }
   /** The baked three.js model, wrapped in glows: a wide halo behind, a hot core over it and three orbiting lights. */
   drawModel(ctx, px, py, fade) {
@@ -197,7 +218,21 @@ export function spawnCritter(world, key = null) {
     sparkle(x, y, c.z, c.K.color, 10, 0.4);
     sfx('pickup', 0.5);
     const ch = G.char;
-    if (ch && !ch.tips.critter) { ch.tips.critter = true; UI.log(`A <b style="color:${c.K.color}">${c.K.name}</b>! ${G.touch ? 'Tap' : 'Click'} it before it gets away: each gilded critter is worth a big sum of experience (a Golden Scarab, a pile of gold).`, '#ffe2a0'); }
+    if (ch) {
+      ch.tips ||= {};
+      if (!ch.critterTutorialSeen && !ch.tips.critter) {
+        ch.critterTutorialSeen = true;
+        ch.tips.critter = true;
+        c.tutorial = true;
+        G.critterTutorial = c;
+        G.game?.autosave?.();
+      } else {
+        // The old tip flag means this hero has encountered critters before this tutorial existed.
+        ch.critterTutorialSeen = true;
+        ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
+        c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
+      }
+    }
     return c;
   }
   return null;
@@ -225,6 +260,7 @@ export function catchCritterAt(sx, sy) {
   const reach = (G.touch ? 42 : 32);
   let best = null, bd = reach;
   for (const c of w.critters) {
+    if (G.critterTutorial && c !== G.critterTutorial) continue;
     if (!c.alive) continue;
     const [x, y] = c.screen(), d = Math.hypot(x - sx, y - sy);
     if (d < bd) { bd = d; best = c; }
@@ -239,6 +275,7 @@ export function catchCritter(cr) {
   const p = G.player, c = G.char, K = cr.K;
   if (!p || !c || !cr.alive) return;
   cr.caught = true;
+  if (G.critterTutorial === cr) G.critterTutorial = null;
   const gold = !!K.pay.gold;
   const x = gold ? Math.round(goldPile(c.level) * K.pay.gold * rand(0.85, 1.15) * (1 + p.st.goldFind / 100)) : Math.max(5, Math.round(xpToNext(c.level) * K.pay.xp * rand(0.9, 1.1)));
   if (gold) { c.gold += x; sfx('gold'); } else p.gainXp(x, true);

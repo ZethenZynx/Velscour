@@ -152,7 +152,7 @@ export function newCharData(classId, name) {
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
     depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
-    kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, wdmg: 1,
+    kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, critterTutorialSeen: false, critterArrowEncounters: 0, wdmg: 1,
   };
   c.equip.weapon = rollItem(1, { slot: 'weapon', base: C.weapon, rarity: 0 });
   c.equip.weapon.affixes = c.equip.weapon.affixes.filter((a) => a.implicit);
@@ -383,6 +383,8 @@ export function migrate(c) {
     }
   }
   c.tips = c.tips || {};
+  c.critterTutorialSeen = c.critterTutorialSeen ?? !!c.tips.critter;
+  c.critterArrowEncounters = Math.max(0, Math.min(8, c.critterArrowEncounters | 0));
   if (c.classId === 'barbarian') c.rage = Math.max(0, Math.min(100, Number(c.rage) || 0));
   if (c.hearth === undefined) c.hearth = 1;
   c.homunculus = c.homunculus || { talks: 0, chapter: 0, told: [], recap: [] }; // the blacksmith's axe story (game/homunculus.js)

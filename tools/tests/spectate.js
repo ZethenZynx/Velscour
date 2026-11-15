@@ -40,10 +40,15 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
       G.player.moveTarget = null; G.player.lootTarget = null;
       window._before = { gold: G.char.gold, xp: G.char.xp, lvl: G.char.level, pots: { ...G.char.potions }, gems: G.char.bag.filter((b) => b && b.type === 'gem').length, n: G.char.critters || 0 };
       const [x, y] = cr.screen();
-      return { x, y };
+      return { x, y, tutorial: G.critterTutorial === cr, arrow: cr.showArrow };
     }, key);
     if (!pos) { check(false, `${key}: spawned`); continue; }
-    if (key === 'wisp') { await page.waitForTimeout(300); await shot('spectate_critter' + tag); }
+    if (key === 'wisp') {
+      await page.waitForTimeout(300);
+      const paused = await page.evaluate(() => window.VELSCOUR.G.paused && !!window.VELSCOUR.G.critterTutorial);
+      check(pos.tutorial && paused, 'first critter pauses the game and opens its tutorial');
+      await shot('spectate_critter' + tag);
+    } else check(pos.arrow, `${key}: red arrow remains during the learning encounters`);
     const p2 = await page.evaluate(() => { const c = window.VELSCOUR.G.world.critters.find((x) => x.alive); const [x, y] = c.screen(); return { x, y }; });
     await tap(p2.x, p2.y);
     await page.waitForTimeout(120);
@@ -65,9 +70,9 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     const cr = spawnCritter(G.world, 'wisp');
     const n = G.char.critters || 0;
     for (let i = 0; i < 30 * 15; i++) game.update(1 / 30);
-    return { gone: cr.gone, caught: cr.caught, n: (G.char.critters || 0) - n, listed: G.world.critters.includes(cr) };
+    return { gone: cr.gone, caught: cr.caught, n: (G.char.critters || 0) - n, listed: G.world.critters.includes(cr), arrow: cr.showArrow };
   });
-  check(away.gone && !away.caught && away.n === 0 && !away.listed, 'an untouched critter escapes and is cleared');
+  check(away.gone && !away.caught && away.n === 0 && !away.listed && away.arrow, 'an untouched learning-stage critter escapes and is cleared');
   // the hero walking over one never catches it: only a click or a tap does (and it shies away)
   const walk = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
@@ -79,12 +84,13 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
       if (!cr) { out.push(null); continue; }
       cr.x = G.player.x; cr.y = G.player.y;
       for (let i = 0; i < 30 * 3; i++) { game.update(1 / 30); if (cr.alive && i < 45) { G.player.x = cr.x; G.player.y = cr.y; } }
-      out.push({ caught: cr.caught, n: (G.char.critters || 0) - n, d: Math.hypot(cr.x - G.player.x, cr.y - G.player.y) });
+      out.push({ caught: cr.caught, n: (G.char.critters || 0) - n, d: Math.hypot(cr.x - G.player.x, cr.y - G.player.y), arrow: cr.showArrow });
     }
     return out;
   });
   check(walk.every((w) => w && !w.caught && w.n === 0), `the hero standing on critters never catches them ${JSON.stringify(walk)}`);
   check(walk.every((w) => w && w.d > 0.8), 'critters shy away from the hero');
+  check(walk.every((w) => w && w.arrow), 'red arrows remain through the seventh post-tutorial encounter');
   // the spawning clock
   const clock = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
@@ -92,9 +98,18 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     Auto.toggle(false);
     G.world.critterT = 0.5; G.world.critters = [];
     for (let i = 0; i < 30; i++) game.update(1 / 30);
-    return (G.world.critters || []).filter((c) => c.alive).length;
+    return { count: (G.world.critters || []).filter((c) => c.alive).length, arrow: G.world.critters.find((c) => c.alive)?.showArrow, seen: G.char.critterArrowEncounters };
   });
-  check(clock === 1, 'the clock spawns a critter on its own');
+  check(clock.count === 1, 'the clock spawns a critter on its own');
+  check(clock.seen === 7 && clock.arrow, 'red arrow remains through seven post-tutorial encounters');
+  const arrowGone = await page.evaluate(async () => {
+    const { G } = window.VELSCOUR;
+    const { spawnCritter } = await import('/src/game/critters.js');
+    for (const c of G.world.critters || []) c.caught = true;
+    const next = spawnCritter(G.world, 'wisp');
+    return !!next && !next.showArrow && G.char.critterArrowEncounters === 8;
+  });
+  check(arrowGone, 'red arrow disappears after the seventh post-tutorial encounter');
 
   // ---------------------------------------------------------------- 5. SMITE
   const fill = await page.evaluate(async () => {
