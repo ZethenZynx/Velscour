@@ -481,11 +481,11 @@ export function createSkyBattle(world, gen, biome, depth, opts, onSuccess) {
   world.skyRun = run;
 
   // ---- cut scenes a hero has watched once (per story; the weathers share theirs) fast-forward at 20x the next time,
-  // unless Settings > "Don't skip cutscenes" (game/cinema.js Cine.fast)
+  // unless Settings > "Don't fast-forward seen cutscenes" (game/cinema.js Cine.fast)
   const seenKey = skySeenKey(v);
   function scene(name, steps, onEnd) {
     const c = G.char, k = `${seenKey}:${name}`, seen = !!(c && c.skySeen && c.skySeen[k]);
-    Cine.play([{ do: () => { Cine.fast = seen && !G.settings.noSkipCine; } }, ...steps, { do: () => { Cine.fast = false; if (c) (c.skySeen ||= {})[k] = 1; } }], onEnd);
+    Cine.play([{ do: () => { Cine.fast = G.settings.skipCutscenes || (seen && !G.settings.noSkipCine); } }, ...steps, { do: () => { Cine.fast = false; if (c) (c.skySeen ||= {})[k] = 1; } }], onEnd);
   }
   const fl = (ln) => ({ ...ln, text: fillAll(ln.text) });
   /** After a scene: the knights back at the hero's side, fighting. */

@@ -541,7 +541,7 @@ export function createSeaBattle(world, gen, biome, depth, opts, onSuccess) {
   const seen = (c0.seaSeen ||= {});
   function scene(name, steps, onEnd) {
     const k = 'cine:' + name, was = !!seen[k];
-    Cine.play([{ do: () => { Cine.fast = was && !G.settings.noSkipCine; } }, ...steps, { do: () => { Cine.fast = false; seen[k] = 1; } }], onEnd);
+    Cine.play([{ do: () => { Cine.fast = G.settings.skipCutscenes || (was && !G.settings.noSkipCine); } }, ...steps, { do: () => { Cine.fast = false; seen[k] = 1; } }], onEnd);
   }
 
   // ---- the arrival: the Dawnwake on the water from astern, along her deck to the bell tower, in on its door; it flares
