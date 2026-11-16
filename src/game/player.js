@@ -427,7 +427,7 @@ export class Player extends Creature {
     switch (kind) {
       case 'hp': this.potionRegen.push({ hp: this.maxHp * 0.45 / 2, mp: 0, t: 2 }); break;
       case 'mp':
-        if (this.classId === 'barbarian') this.potionRegen.push({ hp: 0, mp: 0, rage: 100 * 0.5 / 2, t: 2 });
+        if (this.classId === 'barbarian') this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, rage: 100 * 0.5 / 2, t: 2 });
         else this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 });
         break;
       case 'rejuv': this.heal(this.maxHp * 0.35); this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35); break;
