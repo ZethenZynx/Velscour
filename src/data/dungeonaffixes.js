@@ -2099,6 +2099,32 @@ export function applyDungeonAffix(monster, id) {
       }
       break;
     case 'splitting': monster.split = true; break;
+    case 'barrier': case 'thorns': case 'adaptive_resistance': case 'elemental_resistance':
+    case 'shared_health': case 'protective_aura': case 'last_stand':
+      monster.affixRuntime = true;
+      if (id === 'thorns') monster.affixThorns = true;
+      if (id === 'elemental_resistance') monster.affixElementalRes = ['fire', 'cold', 'light', 'poison'][Math.floor(Math.random() * 4)];
+      break;
+    case 'bloodthirsty': case 'executioner': case 'sunder': case 'soul_rend':
+    case 'arcane_leech': case 'triple_strike': case 'crushing_blows': case 'unholy_weapons':
+    case 'elemental_weapons':
+      monster.affixRuntime = true;
+      break;
+    case 'treasure_hoard':
+      monster.maxHp *= 1.2; monster.hp *= 1.2; monster.xp *= 1; break;
+    case 'ancient_knowledge':
+      monster.xp *= 1.25; monster.dmg *= 1.2; break;
+    case 'gemstone_infusion':
+      for (const e of cfg.resistant.elements) addResistance(monster, e, 0.15);
+      break;
+    case 'champions_bounty':
+      if (['champion', 'unique', 'elite'].includes(monster.rank)) {
+        monster.maxHp *= 1.35; monster.hp *= 1.35; monster.xp *= 1.5;
+      }
+      break;
+    case 'legendary_hunt':
+      if (monster.rank === 'boss') { monster.maxHp *= 1.25; monster.hp *= 1.25; monster.dmg *= 1.15; }
+      break;
   }
   return true;
 }
