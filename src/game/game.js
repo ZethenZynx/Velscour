@@ -197,6 +197,15 @@ let act2TownCache = null, act2TownTiles = null;
 let saveT = 0;
 let automapCanvas = null;
 
+// Give the loading overlay a couple of paint opportunities before expensive synchronous setup begins.
+function yieldForLoadingPaint() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === 'function' && typeof document !== 'undefined' && !document.hidden) {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    } else setTimeout(resolve, 0);
+  });
+}
+
 // Build the level's monster sprites (palette swap, hit flash, corpse shade) behind the loading screen: each swap reads
 // pixels back from the GPU, and doing that on a monster's first hit or death stalled the frame (worst on phones).
 // Yields every ~40 ms so the loading screen keeps painting (not while hidden: a hidden page's chained timers can wait a minute).
@@ -1188,17 +1197,23 @@ export const game = {
         if (G.room && net.connected) {
           net.requestDungeonState(depth);
         }
-        LoadingScreen.setProgress(25, `Mapping ${biome.name}…`);
+        LoadingScreen.setProgress(25, `Loading ${biome.name} assets…`);
+        await yieldForLoadingPaint();
         await this.loadLevelArt(biome, mix);
       } catch (e) { console.warn(e); }
       try {
+        LoadingScreen.setProgress(40, `Mapping ${biome.name}…`);
+        await yieldForLoadingPaint();
         LoadingScreen.setProgress(50, 'Forging labyrinth…');
+        await yieldForLoadingPaint();
         this.buildDungeon(depth, biome, mix, isStarterDepth);
         // the level's monster art (set 2 sheets load per level); a failed sheet falls back to pixel sprites
         const w = G.world;
-        LoadingScreen.setProgress(75, 'Summoning inhabitants…');
+        LoadingScreen.setProgress(75, 'Loading inhabitants…');
+        await yieldForLoadingPaint();
         await loadArtFor([...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])], true).catch((e) => console.warn(e));
         LoadingScreen.setProgress(90, 'Preparing the veil…');
+        await yieldForLoadingPaint();
         await warmLevelArt(w);
         releaseLevelArt(biome);
         LoadingScreen.setProgress(100, 'Arriving…');
