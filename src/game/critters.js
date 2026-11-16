@@ -270,7 +270,8 @@ class Critter {
     ctx.restore();
   }
   drawRewardBadge(ctx, px, py, fade) {
-    if (this.gone) return;
+    // Resource rewards are identifiable from the tutorial; omit the floating plus badge to reduce clutter.
+    if (this.gone || this.reward === 'resource') return;
     const reward = CRITTER_REWARDS.find((r) => r.id === this.reward) || CRITTER_REWARDS[0];
     const x = px + 18, y = py - this.z - 31, r = 7 + Math.min(3, this.tier * 0.15);
     ctx.save(); ctx.globalAlpha = fade;
@@ -279,8 +280,6 @@ class Critter {
     ctx.fillStyle = reward.color; ctx.strokeStyle = reward.color; ctx.lineWidth = 1.7;
     if (this.reward === 'gem') {
       ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3.5, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3.5, y); ctx.closePath(); ctx.fill();
-    } else if (this.reward === 'resource') {
-      ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x + 3, y); ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3); ctx.stroke();
     } else if (this.reward === 'gold' || this.reward === 'jackpot') {
       ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 2, y); ctx.stroke();
