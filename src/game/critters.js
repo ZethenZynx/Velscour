@@ -112,11 +112,30 @@ export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
 // Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
 const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
-const CRITTER_TUTORIAL_POPUP = { root: null, title: null, reward: null, action: null };
+const CRITTER_TUTORIAL_POPUP = { root: null, title: null, reward: null, action: null, connector: null, connectorOutline: null, connectorLine: null, connectorTip: null };
 function showCritterTutorialPopup(cr) {
   if (typeof document === 'undefined' || !document.body) return;
   const popup = CRITTER_TUTORIAL_POPUP;
   if (!popup.root) {
+    const connector = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    connector.setAttribute('aria-hidden', 'true');
+    connector.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:2147483646;overflow:visible;pointer-events:none;display:none;';
+    const connectorOutline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    connectorOutline.setAttribute('stroke', '#160e08');
+    connectorOutline.setAttribute('stroke-width', '5');
+    connectorOutline.setAttribute('stroke-linecap', 'round');
+    const connectorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    connectorLine.setAttribute('stroke', '#d8ad53');
+    connectorLine.setAttribute('stroke-width', '1.7');
+    connectorLine.setAttribute('stroke-linecap', 'round');
+    const connectorTip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    connectorTip.setAttribute('r', '3');
+    connectorTip.setAttribute('fill', '#e7c778');
+    connectorTip.setAttribute('stroke', '#160e08');
+    connectorTip.setAttribute('stroke-width', '1.5');
+    connector.append(connectorOutline, connectorLine, connectorTip);
+    document.body.appendChild(connector);
+
     const root = document.createElement('div');
     root.setAttribute('role', 'status');
     root.setAttribute('aria-live', 'polite');
@@ -130,7 +149,7 @@ function showCritterTutorialPopup(cr) {
     action.textContent = 'Click it to collect the reward!';
     root.append(title, reward, action);
     document.body.appendChild(root);
-    Object.assign(popup, { root, title, reward, action });
+    Object.assign(popup, { root, title, reward, action, connector, connectorOutline, connectorLine, connectorTip });
   }
   const title = cr.K.name.toLocaleUpperCase(), reward = 'Critters can offer different rewards, including experience, gold, health/mana orbs, gems, jackpots, and temporary blessings.';
   if (popup.title.textContent !== title) popup.title.textContent = title;
@@ -138,15 +157,22 @@ function showCritterTutorialPopup(cr) {
   popup.root.style.display = 'block';
   const [sx, sy] = cr.screen(), rect = popup.root.getBoundingClientRect();
   const left = Math.max(8, Math.min(window.innerWidth - rect.width - 8, sx - rect.width / 2));
-  let top = sy - rect.height - 22;
-  if (top < 8) top = sy + 22;
-  top = Math.max(8, Math.min(window.innerHeight - rect.height - 8, top));
+  const top = Math.max(8, Math.min(window.innerHeight - rect.height - 8, sy - rect.height - 50));
   popup.root.style.left = `${left}px`;
   popup.root.style.top = `${top}px`;
+  popup.connector.style.display = 'block';
+  const x1 = left + rect.width / 2, y1 = top + rect.height, x2 = sx, y2 = sy;
+  for (const line of [popup.connectorOutline, popup.connectorLine]) {
+    line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1));
+    line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y2));
+  }
+  popup.connectorTip.setAttribute('cx', String(x2));
+  popup.connectorTip.setAttribute('cy', String(y2));
 }
 function hideCritterTutorialPopup() {
-  const root = CRITTER_TUTORIAL_POPUP.root;
-  if (root) root.style.display = 'none';
+  const popup = CRITTER_TUTORIAL_POPUP;
+  if (popup.root) popup.root.style.display = 'none';
+  if (popup.connector) popup.connector.style.display = 'none';
 }
 
 
