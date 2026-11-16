@@ -9,7 +9,6 @@ import { UI, $ } from './ui/ui.js';
 import { HUD } from './ui/hud.js';
 import { LoadingScreen } from './ui/loading.js';
 import { titleScreen } from './ui/screens.js';
-import { Cloud } from './game/cloud.js';
 import { Vendor } from './ui/vendor.js';
 import { Stash } from './ui/stash.js';
 import { JewelBox } from './ui/jewelbox.js';
@@ -321,7 +320,6 @@ async function boot() {
   applyVolumes();
   titleScreen();
   await LoadingScreen.hide();
-  Cloud.start(); // a device signed in to Google picks its session back up and syncs (game/cloud.js)
   // prefetch monster art while the player is on the title screen; then redraw skill icons that show summon art
   const redrawIcons = () => {
     for (const s of HUD.slots) s.last.icon = s.last.id = undefined;

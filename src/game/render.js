@@ -342,8 +342,17 @@ function drawChest(ctx, c) {
     ctx.drawImage(s.img, s.sx, s.sy, s.w, s.h, x - w / 2, y + w / 4 - h, w, h);
     if (!c.opened) {
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + Math.sin(G.time * 3) * 0.15;
-      ctx.drawImage(glowSprite(c.rare ? '#c080ff' : '#ffd060'), x - 28, y - 40, 56, 46);
+      ctx.drawImage(glowSprite(c.glow || (c.rare ? '#c080ff' : '#ffd060')), x - 28, y - 40, 56, 46);
+      if (c.tint) {
+        ctx.globalAlpha = 0.14;
+        ctx.drawImage(glowSprite(c.tint), x - 24, y - 34, 48, 40);
+      }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    if (!c.opened && c.label && G.player && Math.hypot(c.x - G.player.x, c.y - G.player.y) < 5) {
+      ctx.save(); ctx.font = '10px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,8,5,.9)'; ctx.strokeText(c.label.toUpperCase(), x, y - h - 4);
+      ctx.fillStyle = c.glow || '#e8c575'; ctx.fillText(c.label.toUpperCase(), x, y - h - 4); ctx.restore();
     }
     return;
   }
@@ -364,7 +373,8 @@ function drawChest(ctx, c) {
     ctx.beginPath(); ctx.moveTo(x - 14, y - 16); ctx.lineTo(x, y - 9); ctx.lineTo(x + 14, y - 16); ctx.lineTo(x, y - 23); ctx.fill();
     ctx.strokeStyle = trim; ctx.beginPath(); ctx.moveTo(x - 7, y - 19.5); ctx.lineTo(x + 7, y - 12.5); ctx.stroke();
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + Math.sin(G.time * 3) * 0.15;
-    ctx.drawImage(glowSprite(c.rare ? '#c080ff' : '#ffd060'), x - 24, y - 34, 48, 40);
+    ctx.drawImage(glowSprite(c.glow || (c.rare ? '#c080ff' : '#ffd060')), x - 24, y - 34, 48, 40);
+    if (c.tint) { ctx.globalAlpha = 0.14; ctx.drawImage(glowSprite(c.tint), x - 20, y - 28, 40, 34); }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
 }

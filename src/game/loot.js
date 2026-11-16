@@ -19,6 +19,7 @@ import { rollSigil, SIGILS } from '../data/items.js';
 import { maybeRelic } from '../data/relics.js';
 import { heresyAllows } from './heresies.js';
 import { keyChance } from './unbound.js';
+import { CHEST_RARITIES } from '../data/treasurechests.js';
 
 /** Highest quality unlocked for ground drops at this campaign depth. */
 export function groundDropRarityCap(depth) { return qualityAtDepth(Math.max(1, depth || 1)); }
@@ -299,6 +300,7 @@ export function itemIcon(item, size = 48) {
 
 // ------------------------------------------------------------------ drops
 export function dropLoot(world, m) {
+  if (m.chestMimic) return; // the disguised chest pays its own stored reward when the mimic dies
   const p = G.player;
   if (!p) return;
   const isRiftActive = world.rift && !world.rift.done && !m.isRaid && !m.riftPinata;
@@ -365,12 +367,27 @@ export function dropLoot(world, m) {
 
 export function dropChest(world, chest, depth) {
   const st = G.player ? G.player.st : { magicFind: 0, goldFind: 0 };
-  const n = chest.rare ? randi(2, 3) : randi(1, 2);
   const add = (kind, data) => world.addLoot(new GroundItem(chest.x, chest.y + 0.3, kind, data));
-  for (let i = 0; i < n; i++) add('item', { item: maybeRelic(rollGroundItem(depthLevel(depth) + 1, { mf: st.magicFind + (world.mfAdd || 0), bonus: chest.rare ? 1.2 : 0.35 })) });
-  if (chance(chest.rare ? 0.25 : 0.06)) add('item', { item: rollSigil(depth) });
-  for (let i = 0; i < randi(2, 4); i++) add('gold', { amount: Math.round((10 + depthLevel(depth) * 4) * goldScale(depthLevel(depth)) * rand(0.6, 1.4) * (1 + st.goldFind / 100)) });
-  if (chance(chest.rare ? 0.8 : 0.3)) add('item', { item: rollGroundGem(depthLevel(depth) + 4) });
+  const rarity = Number.isInteger(chest.chestRarity) ? CHEST_RARITIES[chest.chestRarity] : null;
+  // Special map caches and event chests keep their original rare/ordinary reward rules.
+  const gearRange = rarity ? rarity.gear : chest.rare ? [2, 3] : [1, 2];
+  const goldRange = rarity ? rarity.gold : [2, 4];
+  let gearCount = randi(gearRange[0], gearRange[1]);
+  if (chest.chestType === 'explosive' || chest.chestType === 'mimic') gearCount++;
+  const rarityBonus = rarity ? [0.35, 0.65, 1.2, 1.5, 1.8, 2.1][rarity.id] : chest.rare ? 1.2 : 0.35;
+  for (let i = 0; i < gearCount; i++) {
+    add('item', { item: maybeRelic(rollGroundItem(depthLevel(depth) + 1, { mf: st.magicFind + (world.mfAdd || 0), bonus: rarityBonus })) });
+  }
+  const sigilChance = rarity ? rarity.sigilChance : chest.rare ? 0.25 : 0.06;
+  if (chance(sigilChance)) add('item', { item: rollSigil(depth) });
+  const goldPiles = randi(goldRange[0], goldRange[1]) + (chest.chestType === 'gilded' ? 2 : 0);
+  for (let i = 0; i < goldPiles; i++) add('gold', { amount: Math.round((10 + depthLevel(depth) * 4) * goldScale(depthLevel(depth)) * rand(0.6, 1.4) * (1 + st.goldFind / 100)) });
+  const gemChance = rarity ? rarity.gemChance : chest.rare ? 0.8 : 0.3;
+  const guaranteedGems = (rarity ? rarity.guaranteedGems : 0) + (chest.chestType === 'jeweled' ? 1 : 0);
+  for (let i = 0; i < guaranteedGems + (chance(rarity?.extraGemChance || 0) ? 1 : 0); i++) {
+    add('item', { item: rollGroundGem(depthLevel(depth) + 4) });
+  }
+  if (chance(gemChance) && guaranteedGems === 0) add('item', { item: rollGroundGem(depthLevel(depth) + 4) });
   if (chance(0.5)) add('potion', { item: potionItem(pick(['hp', 'mp', 'rejuv'])) });
   if (heresyAllows('orb', G.player?.char, world) && chance(0.75)) add('orb_hp', {});
 }

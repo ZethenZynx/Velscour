@@ -12,8 +12,7 @@ import { hit } from './combat.js';
 import { RIFT_TIME, RIFT_QUOTA, RIFT_DENSITY, RIFT_GUARDIAN_HP, PYLONS, riftDepth, riftLevel, riftJump, riftWeight, riftReward, fmtTime, instabilitiesForTier } from '../data/rifts.js';
 import { markBonuses, grantMarks, riftMarks } from './marks.js';
 import { noteRiftBest, endgame } from './endgame.js';
-import { Board, barred } from './leaderboard.js';
-import { Cloud } from './cloud.js';
+import { barred } from './leaderboard.js';
 
 export { RIFT_TIME, RIFT_QUOTA, RIFT_DENSITY, riftDepth, riftLevel, riftJump, riftReward, fmtTime };
 /** The clock a rift gives: the base plus Haste Marks. */
@@ -173,12 +172,6 @@ export function riftWin(world, m) {
   // Records
   const cheat = barred(c), best = !cheat && noteRiftBest(c.classId, tier, time);
   R.result = { tier, time, jump, next: tier + jump, marks, first, rarity: chance(RW.abyssal) ? ABYSSAL : 5, best, personal: c.rifts.bestTime[tier] === Math.round(time * 10) / 10 };
-  if (cheat) { R.result.board = 'barred'; Board.withdraw(c.classId).catch((e) => console.warn('Honour board:', e)); }
-  else if (best) {
-    R.result.board = Cloud.signedIn ? 'pending' : 'signedout';
-    Board.submit(c, tier, time).then((r) => { R.result.board = r && r.ok ? 'posted' : r && r.kept ? 'kept' : Cloud.signedIn ? 'offline' : 'signedout'; })
-      .catch((e) => { R.result.board = 'offline'; console.warn('Honour board:', e); });
-  }
   UI.centerMsg('THE RIFT IS CLOSED', `Tier ${tier} in ${fmtTime(time)} · Tier${jump > 1 ? 's' : ''} ${tier + 1}${jump > 1 ? `-${tier + jump}` : ''} open`, 4);
   UI.log(`<b style="color:#20e0ff">Abyssal Rift Tier ${tier}</b> closed in ${fmtTime(time)} (${Math.round(k * 100)}% of the clock): +${jump} tier${jump > 1 ? 's' : ''}${best ? ', <b>a new best</b> for your ' + c.classId.replace('_', ' ') : ''}.`, '#a0f0ff');
   addEffect(new Column(m.x, m.y, '#20e0ff', 1.4, 60, 420)); G.flash = 0.5; sfx('levelup');

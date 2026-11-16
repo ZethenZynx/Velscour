@@ -1,6 +1,6 @@
 // The loot filter (Settings > Loot filter): which item types and rarities auto-pickup grabs. Ground labels have a
 // separately saved filter, initially copied from this one to preserve existing behavior. Clicking an item always picks it up.
-import { G } from '../state.js';
+import { G, saveSettings } from '../state.js';
 
 /** Filter rows: what each covers. Rarity rows hold the lowest rarity to keep (-1: none of them). */
 export const FILTER_ROWS = [
@@ -11,35 +11,52 @@ export const FILTER_ROWS = [
 ];
 export const FILTER_DEFAULT = { on: false, weapon: 0, offhand: 0, armor: 0, ring: 0, gems: 0, upgrades: true, keep: false };
 
-/** The filter's settings, filled with defaults (old settings have none). */
-export function lootFilter() {
-  if (!G.settings || typeof G.settings !== 'object') G.settings = {};
-  const f = G.settings.lootFilter;
-  if (!f || typeof f !== 'object') return (G.settings.lootFilter = { ...FILTER_DEFAULT });
-  for (const k in FILTER_DEFAULT) if (f[k] === undefined) f[k] = FILTER_DEFAULT[k];
-  // Migrate legacy boolean gems to tier grade (true -> 0: all, false -> -1: none)
+const LABEL_FILTER_DEFAULT = { on: false, weapon: 0, offhand: 0, armor: 0, ring: 0, gems: 0 };
+
+function normalizedFilter(target, key, defaults, fallback) {
+  let f = target[key];
+  if (!f || typeof f !== 'object') f = target[key] = { ...(fallback || defaults) };
+  for (const k in defaults) if (f[k] === undefined) f[k] = defaults[k];
   if (f.gems === true) f.gems = 0;
   else if (f.gems === false) f.gems = -1;
   return f;
 }
+
+/** Copy the former shared settings into a character the first time it is loaded. */
+export function initializeCharacterLootFilters(char) {
+  if (!char || typeof char !== 'object') return;
+  const legacyLoot = G.settings && G.settings.lootFilter;
+  const legacyLabels = G.settings && G.settings.lootLabelFilter;
+  normalizedFilter(char, 'lootFilter', FILTER_DEFAULT, legacyLoot);
+  const labelFallback = legacyLabels && typeof legacyLabels === 'object'
+    ? legacyLabels
+    : Object.fromEntries(Object.keys(LABEL_FILTER_DEFAULT).map((k) => [k, char.lootFilter[k]]));
+  normalizedFilter(char, 'lootLabelFilter', LABEL_FILTER_DEFAULT, labelFallback);
+}
+
+/** Persist filter edits to the active hero; title-screen edits remain shared for characters without saved profiles. */
+export function saveLootFilterSettings() {
+  if (G.char) {
+    if (G.game && typeof G.game.autosave === 'function') G.game.autosave();
+  } else saveSettings();
+}
+
+/** The filter's settings, filled with defaults (old settings have none). */
+export function lootFilter() {
+  if (!G.settings || typeof G.settings !== 'object') G.settings = {};
+  const target = G.char || G.settings;
+  if (G.char && (!G.char.lootFilter || typeof G.char.lootFilter !== 'object')) initializeCharacterLootFilters(G.char);
+  return normalizedFilter(target, 'lootFilter', FILTER_DEFAULT, null);
+}
 /** The filter when it's switched on, else null. */
 export const activeFilter = () => { const f = lootFilter(); return f && f.on ? f : null; };
 
-/** The ground-label filter keeps the same item categories but has its own settings. */
-const LABEL_FILTER_DEFAULT = { on: false, weapon: 0, offhand: 0, armor: 0, ring: 0, gems: 0 };
-
-/** Fill defaults for old saves; seed new label settings from the former shared filter behavior. */
+/** The ground-label filter keeps the same item categories but has its own character settings. */
 export function lootLabelFilter() {
   if (!G.settings || typeof G.settings !== 'object') G.settings = {};
-  let f = G.settings.lootLabelFilter;
-  if (!f || typeof f !== 'object') {
-    const old = lootFilter();
-    f = G.settings.lootLabelFilter = Object.fromEntries(Object.keys(LABEL_FILTER_DEFAULT).map((k) => [k, old[k]]));
-  }
-  for (const k in LABEL_FILTER_DEFAULT) if (f[k] === undefined) f[k] = LABEL_FILTER_DEFAULT[k];
-  if (f.gems === true) f.gems = 0;
-  else if (f.gems === false) f.gems = -1;
-  return f;
+  const target = G.char || G.settings;
+  if (G.char && (!G.char.lootLabelFilter || typeof G.char.lootLabelFilter !== 'object')) initializeCharacterLootFilters(G.char);
+  return normalizedFilter(target, 'lootLabelFilter', LABEL_FILTER_DEFAULT, null);
 }
 /** The label filter when it is switched on, else null. */
 export const activeLabelFilter = () => { const f = lootLabelFilter(); return f && f.on ? f : null; };

@@ -6,33 +6,21 @@ and the rift gate stand in town but refuse: *"Velscour still sits his throne."*
 
 Tests: `tools/tests/heresies.js`, `rifts.js`, `unbound.js`, `marks.js`, `rift_balance.js` (model, no play), plus the
 Marks columns in `endgame.js`. Data lives in `src/data/heresies.js`, `src/data/rifts.js`, additions to
-`src/data/items.js` (the Abyssal rarity) and `src/data/relics.js` (Unbound Heirlooms). Account-wide state in
-`src/game/endgame.js` (localStorage `velscour_endgame_v1`, and the signed-in player's Firestore document
-`users/{uid}/account/endgame`).
+`src/data/items.js` (the Abyssal rarity) and `src/data/relics.js` (Unbound Heirlooms). Shared state in
+`src/game/endgame.js` is stored locally in `velscour_endgame_v1` and shared by characters in this browser.
 
 ## The shared record (`src/game/endgame.js`)
 ```
 { v: 1, unlocked: 0 | timestamp,                       // any hero slew Velscour
   marks: { pts: 0, xp: 0, spent: { life: 0, crit: 0, mf: 0, rift: 0 } },
-  bests: { [classId]: { tier, time, at } },            // best Abyssal Rift per class on this account (shown offline)
+  bests: { [classId]: { tier, time, at } },            // best Abyssal Rift per class in this browser
   keysFound: 0, unboundWins: 0 }
 ```
 API: `endgame()` (cached, like `reliquary()`), `saveEndgame()`, `resetEndgameCache()`, `endgameUnlocked()`
-(record.unlocked, or the current hero's `c.cleared[FINAL_DEPTH]`), `unlockEndgame()` (called from
-`game.buildDungeon`'s `onBossKilled` when `m.isVelscour && !world.practice && !world.unbound`),
-`mergeEndgame(local, cloud, base)`: never loses anything. `base` is the record this device last synced (`st.endBase` in
-`velscour_cloud_v1`; null on a first sign-in). Counters (`marks.pts`, `keysFound`, `unboundWins`) = the base plus what
-each side earned since it (no base: the larger), never below either side or the base; `marks.spent` = each side's
-change since the base per category (only one side changed: that side's), this device's if the sum passes the Marks, a
-side with fewer Marks than the base counts as damaged (its spending ignored), no base: the larger side's; `marks.xp`
-the larger; `unlocked` = earliest truthy; `bests[cls]` = the higher tier (then the faster time); everything sanitised and
-spending clamped to the Marks by `fixEndgame`. `saveEndgame(quiet)`: quiet (XP towards a Mark only) skips the listeners.
-Cloud: `Cloud` pushes the record after a change (debounced 60 s, and on `flush`) and merges on every `sync` through two
-new backend calls, `account(uid)` and `putAccount(uid, rec, expect)` (a transaction that writes only if the document
-still holds `expect`, else the sync reads and merges again); the base becomes what was read, then the merge once it is
-written; sign-out clears it and keeps the local record. Rules and cases in docs/CLOUD_SAVES.md; `src/game/cloud.js` keeps
-its three-way rules for heroes untouched. The fake backend in `tools/tests/cloud.js` gets the two calls too (`runTransaction` get/set on the path
-`users/{uid}/account/endgame`).
+(record.unlocked, or the current hero's `c.cleared[FINAL_DEPTH]`), and `unlockEndgame()` (called from
+`game.buildDungeon`'s `onBossKilled` when `m.isVelscour && !world.practice && !world.unbound`). `fixEndgame` sanitizes
+this local record. Google account synchronization has been removed; progression is no longer read from or written to
+remote accounts.
 
 ## 1. Heresies (`src/data/heresies.js`, `src/game/heresies.js`, `src/ui/heresies.js`)
 Difficulty modifiers the player switches on at the **Altar of Heresy** in Herrington Hollow (a dark obelisk beside the
@@ -57,7 +45,7 @@ must compare like with like) and not in Velscour Unbound. The Quest Log and the 
 | hunger | Hunger of the Abyss | 2 | no life or mana orbs drop from any source (kills, the Feeding Frenzy omen: `heresyWorld` filters `world.addLoot`), no life regeneration from gear or buffs |
 | gaze | Velscour's Gaze | 2 | monsters notice the hero from twice as far (`aggroRange *= 2`, was 2.5: with every Heresy on it woke 300+ monsters at once and doubled the frame cost; a raid boss's 0 stays 0) and, once awake, never lose him (`m.gaze`: `Monster.pickTarget` tracks him anywhere, like a hunter) |
 
-Rank = the sum of the ranks on (max 26). `heresyMods(rank)` → `{ mf: 4 * rank, gold: 1 + 0.04 * rank, loot: 1 +
+Rank = the sum of the ranks on (max 26). `heresyMods(rank)` ΓåÆ `{ mf: 4 * rank, gold: 1 + 0.04 * rank, loot: 1 +
 0.02 * rank, xp: 1 + 0.02 * rank, sigil: 1 + 0.05 * rank, relic: 1 + 0.04 * rank }`. Where they land: `heresyWorld(world,
 c)` runs after `greedWorld` in `buildDungeon` and `buildBreach` and multiplies `world.lootMul`, `world.goldMul`,
 `world.mfAdd`, `world.sigilMul` and `world.relicMul` (new; `dropLoot` multiplies the Sigil odds and `maybeRelic`'s boost
@@ -103,15 +91,15 @@ Gaze's "never loses him" for the 60 nearest awake monsters only (the rest forget
 Short timed dungeons. **Tier T is as deadly as Depth 500 + 10 T** (`riftDepth(T) = FINAL_DEPTH + 10 * T`,
 `riftLevel(T) = depthLevel(riftDepth(T))`; tier 1: monster level 263, tier 10: 303, tier 50: 483, tier 100: 708). The
 **Abyssal Rift gate** is a third portal in town (`world.portals` entry `{ rift: true, color: '#20e0ff', label, use: () =>
-game.confirmRift() }`, lit and labelled "Abyssal Rift — Tier N" once the Endgame is open, "(sealed)" and refusing before)
+game.confirmRift() }`, lit and labelled "Abyssal Rift ΓÇö Tier N" once the Endgame is open, "(sealed)" and refusing before)
 on the breach yard's road short of the purple portal (`t.rift` from `generateTown`). `c.rifts = { open: 1, best: 0,
 cleared: {tier: times}, bestTime: {tier: secs}, runs: 0, fails: 0, deaths: 0 }` (migrate adds it); `c.lastRift` (the last
 biome) and `c.lastRiftBoss` (the last Guardian) keep two runs in a row from repeating.
 
-The dialog (`game.confirmRift(tier)` → `Rifts.open`, class `rift-dialog`): a tier select (`c.rifts.open` .. 1), each line
-"Tier 7 — as deadly as Depth 570 (monster level 290) · best 3:21", the rules and the clock the hero gets, a warning when
+The dialog (`game.confirmRift(tier)` ΓåÆ `Rifts.open`, class `rift-dialog`): a tier select (`c.rifts.open` .. 1), each line
+"Tier 7 ΓÇö as deadly as Depth 570 (monster level 290) ┬╖ best 3:21", the rules and the clock the hero gets, a warning when
 the monsters are more than 4 levels above the hero, the hero's record (best tier, runs, closed, collapsed, fallen) and an
-**Honour Board** button. `game.enterRift(tier)` → `game.buildRift(tier, biome, mix, seed = G.riftSeed ?? random)`: a
+**Honour Board** button. `game.enterRift(tier)` ΓåÆ `game.buildRift(tier, biome, mix, seed = G.riftSeed ?? random)`: a
 random standard dungeon biome (`BIOMES` that are neither overworld, beta, challenge, tower nor cave, nor the throne; never
 the same twice running), `generateDungeon(depth, biome, tileset, seed, { raid: true, small: true, density: RIFT_DENSITY
 })` (`opts.raid` forces the arena, `opts.small` clamps the chunk grid to 4 x 4, `opts.density` thins the normal packs: a
@@ -138,7 +126,7 @@ run = { tier, t, limit: riftTime(), progress, total, quota, guardian, gT, done, 
 - Leaving any other way (the town portal, auto-play's retreat) is a fail too: `game.setWorld` calls `riftLeave(old)`.
 - Death: `game.riftDeath(src)` like `breachDeath` (no Defiance, `c.rifts.deaths++`, not also a fail; the death screen
   says "Slain in Abyssal Rift Tier N").
-- Win: `time = run.t`, `jump = riftJump(time / limit)` (<= 0.5 → 3 tiers, <= 0.8 → 2, else 1), `c.rifts.open =
+- Win: `time = run.t`, `jump = riftJump(time / limit)` (<= 0.5 ΓåÆ 3 tiers, <= 0.8 ΓåÆ 2, else 1), `c.rifts.open =
   max(open, tier + jump)`, `best`, `cleared[tier]++`, `bestTime[tier] = min`; `grantMarks(riftMarks(tier))` (`ceil(tier /
   10)`); `noteRiftBest` puts it in the account record's `bests[cls]` when it beats it (higher tier, or the same tier
   faster), and then `Board.submit` posts it to the honour board (signed in); `run.result.board` says how that went
@@ -147,7 +135,7 @@ run = { tier, t, limit: riftTime(), progress, total, quota, guardian, gT, done, 
   shows the results (`Rifts.results`: the time and its share of the clock, the tiers opened, Marks, the prize, a new best
   and the board) with "On to Tier T+jump" / "Return to Town". Auto-play (`opts.auto`): on to `tier + jump` when
   `riftReady` says so, else to the highest open tier it is ready for if that is still a climb (`riftTier()`), else home
-  (and home when it wants to trade). HUD: `#rift-bar` under the area name: `ABYSSAL RIFT · Tier 12 · 4:31 · [bar] 63%`
+  (and home when it wants to trade). HUD: `#rift-bar` under the area name: `ABYSSAL RIFT ┬╖ Tier 12 ┬╖ 4:31 ┬╖ [bar] 63%`
   ("the Guardian" at the quota, "closed" / "collapsed"), urgent and pulsing red under a minute.
 - The Guardian's hoard (`riftReward(tier, first)`, dropped by `riftWin` on top of the raid's own loot): one gear item at
   item level `riftLevel + 2` of rarity **Abyssal** with chance `min(0.6, 0.1 + 0.02 * tier)` (a tier's first clear:
@@ -159,22 +147,10 @@ lv: 14, perks: 3, sockets: 5, bonus: 0, minIlvl: 200, fullIlvl: 200 }`: never ro
 `rollItem(ilvl, { rarity: 6 })`; `mfMul` gets a seventh entry; `css/style.css` `.r6`; `core/gearart.js` uses the Mythic
 designs/finishes for it (`rarityName` falls back); the loot filter dialog lists it; `rarity.js` prints it. Worth 21 item levels over a Common (Mythic 15.8, Legendary 11; tools/tests/rarity.js): each step up is bigger than the last.
 
-Honour board (`src/game/leaderboard.js`, `Board`): Firestore `boards/{classId}/entries/{uid}` →
-`{ v: 1, name, cls, tier, time, at, level, marks, build: { bar: [skill ids], gear: { slot: { name, rarity, ilvl, relic,
-upg } }, level, marks } }`. `Board.submit(c, tier, time)` (signed in only) goes through the backend's `putBoard(cls, uid,
-rec)`, a **read-compare-set transaction**: it reads the entry and writes only a better run (a higher tier, or the same
-tier faster), resolving `{ ok, kept }`, so a stale or offline device can't replace a better entry. `Board.top(cls)` reads
-`board(cls)` (all of a class's entries; `Cloud.board` loads the SDK first, signed out too) and sorts tier desc, time asc,
-then the earliest post; `at` comes back a number (`atMs`: the real SDK returns a Timestamp). The Honour Board dialog
-(`Rifts.board(cls)`, class `rift-board`): a class select, "your best on this browser" (the account record) with "Sign in
-with Google in Settings to be listed" when signed out, "Loading…" / "Could not reach the board" / "Nobody listed yet" /
-rows (rank, hero, tier, time, level; the player's own row highlighted, and shown below the top 50 when it is further
-down); a row opens the build (skills on the bar by name, the gear per slot in its rarity colour with +upgrades and item
-level, level, Marks, the date). Everything read from the board is escaped. It is an **honour** board: saves are local,
-so a cheat can post anything; the build beside every entry lets readers judge it. `firestore.rules` holds the rules
-(public read of boards, create/update by the owner only with field checks, no deletes; heroes and the account record by
-their owner only); docs/CLOUD_SAVES.md says how to deploy them.
-
+Honour board (`src/game/leaderboard.js`, `Board`): previously posted entries are read from the public Firestore
+collection `boards/{classId}/entries/{uid}` through `src/game/leaderboard-cloud.js`. The dialog shows archived entries
+and the current browser's own best. Posting and remote deletion are disabled. Firebase App and Firestore Lite load
+only when the board is opened; Firebase Auth is not loaded. Existing remote records are left untouched.
 **Tunables** (`src/data/rifts.js`) and what they were tuned on (`tools/tests/rift_balance.js`, a model fitted on 24
 god-mode auto-play runs; `tools/tests/rifts.js` "auto"): `RIFT_TIME` 420 s, `RIFT_QUOTA` 0.6 (was 0.7), `RIFT_DENSITY`
 0.8 (was 1: ~167 monsters, weight ~270, quota ~163 in ~45 packs), `RIFT_GUARDIAN_HP` 0.6 (the Guardian's life against a
@@ -191,7 +167,7 @@ in the Endless Torment: at the tier's level tier 20 took 67-191% of the clock ac
 from full clears: ~267 at depth 500, ~270 at tier 1, 420-436 at tier 40 (depth 900). A run's time also swings with the
 biome's monsters: a tier-1 normal had 0.9e12 to 1.05e13 life across the runs (the archetype's life multiplier).
 
-Auto-play: a third card in `askDest` (`'rift'`): "Abyssal Rift · Tier N"; `riftReady(T)` = `riftLevel(T) <= level + 2`,
+Auto-play: a third card in `askDest` (`'rift'`): "Abyssal Rift ┬╖ Tier N"; `riftReady(T)` = `riftLevel(T) <= level + 2`,
 `riftTier()` = the highest open tier the hero is ready for. In a rift it hunts the whole level (`huntGoal` treats it as
 farming), and once the Guardian stirs it **rushes** to the arena (`riftRush`): no loot, and it fights only the Guardian or
 what blocks the way (no ground gained on the path for 1.5 s), so the chasers follow it in; in the arena it fights the
@@ -201,7 +177,7 @@ Unbound.
 
 ## 3. Velscour Unbound (`src/game/unbound.js`, additions to `src/game/velscour.js`, `src/data/relics.js`)
 Three **Abyssal Keys** (`c.keys`, a counter; a ground item `GroundItem(x, y, 'key')` drawn as a cyan key glyph, picked
-up by `Player.pickup` → `c.keys++`, `endgame().keysFound++`) open the rematch. They drop from BOSS ROOM bosses past depth
+up by `Player.pickup` ΓåÆ `c.keys++`, `endgame().keysFound++`) open the rematch. They drop from BOSS ROOM bosses past depth
 600 (chance `0.06 + 0.002 * (depth - 600)`, capped 0.25, only with Heresy rank >= 10) and from rift guardians (`0.12 +
 0.005 * tier` from tier 10, capped 0.5). `keyChance(world, m)` (read by `loot.dropLoot`) rolls **once per boss** (`m._keyRoll`:
 `dropLoot` runs three times for a BOSS ROOM boss), never for the court; `G.forceKey = true` (tests only) makes the key
@@ -210,7 +186,7 @@ certain wherever one can drop. A key on the floor never fades (the 120-s rule sk
 `game.enterUnbound()` spends the keys and builds the throne at `D = max(FINAL_DEPTH, c.depth)` with `G.unboundNext =
 true` (consumed by `buildDungeon`: `world.unbound = true`, `world.practice = false`); `c.depth` is untouched; the hero is
 set down in the arena like `finalBoss()` (the court's art is loaded with the level). In Unbound `onBossKilled` opens the
-exit ('Exit — to town') but changes no `cleared`/`deepest` and shows no victory screen; the exit and the town portal lead
+exit ('Exit ΓÇö to town') but changes no `cleared`/`deepest` and shows no victory screen; the exit and the town portal lead
 to town only. Death (`game.unboundDeath`): the death screen ("on Velscour's throne"), back to town, no Defiance, the
 keys stay spent.
 
@@ -291,14 +267,14 @@ Vitality is a multiplier of its own on `maxHp` (after gear's life %, Defiance an
 saved records) is `st.drops`: `dropLoot` multiplies a kill's gear and gems by `1 + drops / 100` (rounded at random) and
 the Sigil chance by it, like the Greed lever. As plain life % and magic find they were lost beside gear's hundreds and
 thousands of percent (a player's report, October 30, 2026).
-`markBonuses()` → `{ life, crit, critDmg, mf, rift }`; `Player.recompute` multiplies maxHp by `1 + life / 100`, adds crit
+`markBonuses()` ΓåÆ `{ life, crit, critDmg, mf, rift }`; `Player.recompute` multiplies maxHp by `1 + life / 100`, adds crit
 to `critChance` (inside the 75 clamp; past it, like all crit chance, 2% critical damage per 1%: `CRIT_OVER`) and critDmg to `critDmg`, and sets `st.drops = mf`; `riftTime()` adds rift. Measured
 (`marks.js`): 100 points = x1.232 maxHp, +3.48 crit and +28.99 crit damage, +14.5% drops, +17.40 s; 500 Vitality =
 x1.81; the 454th Vitality point +0.12%; 1000 Fortune: 300 champions dropped x1.74 the items (+81%). The character sheet shows "Infernal Marks: 37 (12 free)" and an
 "Infernal Marks" button; the Quest Log a line; the panel (`ui/marks.js`, two columns on touch) shows the total, the free
 count, the XP towards the next Mark, and per category its points, bonus, a bar of how far the next point's worth has fallen, +1/+5/+25, then
 "Spend all (balanced)" and "Reset (free)". `grantMarks(n, why)` logs. Unspent Marks sit in `pts - sum(spent)`.
-Cloud: in the account record (above), merged three ways so Marks earned on two devices add up.
+Marks and progression remain local to this browser.
 Rate (`marks.js`, a level-3000 hero full-clearing a level): 0.04 Marks per depth at depths 6000-6560 (he out-levels the
 monsters: XP x0.1), 0.39 at 6600 (monster level 3003), 0.40 at 6800; Heresy rank 20 adds 1 per depth; a
 rift clear `ceil(tier / 10)` (was tier / 4, 18 a clear at tier 70: rifts dwarfed XP and the Heresies; now 1 a clear to tier 10, 3 at tiers 21-30, where a hero of the tier's level meets the wall).

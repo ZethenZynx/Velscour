@@ -1,7 +1,6 @@
-// Hero backups: before cloud sync replaces or deletes a hero on this device (or a cloud copy), the old one is kept
-// here, in IndexedDB (not localStorage, so backups never eat the saves' quota). Settings > Hero backups restores them.
-// A backup that can't be written rejects, and cloud.js then changes nothing. The 'raw' store keeps unreadable save
-// data that save.js set aside when localStorage had no room for the copy.
+// Local hero recovery copies live here in IndexedDB, not localStorage, so they never eat the saves' quota.
+// Settings > Hero backups can restore them. The 'raw' store keeps unreadable save data that save.js set aside
+// when localStorage had no room for the copy.
 const DB = 'velscour_backups', STORE = 'heroes', RAW = 'raw', KEEP = 12;   // newest copies kept per class
 
 let dbP = null;
@@ -22,7 +21,7 @@ function open() {
 const done = (t) => new Promise((res, rej) => { t.oncomplete = () => res(); t.onerror = t.onabort = () => rej(t.error || new Error('Backup failed')); });
 const all = (q) => new Promise((res, rej) => { q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
 
-/** Keep copies of heroes (why: 'cloud' | 'deleted' | 'cloudcopy' | 'restore'). Resolves once they're on disk. */
+/** Keep a local recovery copy of heroes. Resolves once they're on disk. */
 export async function backupHeroes(heroes, why) {
   heroes = heroes.filter(Boolean);
   if (!heroes.length) return;

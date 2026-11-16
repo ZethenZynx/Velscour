@@ -8,7 +8,7 @@
 //     x1.232 maxHp (a multiplier of its own), 500 = x1.81 (no cap: the 454th point still adds +0.12), +3.48 crit inside
 //     the 75 clamp and +28.99 crit damage, +14.5% more drops (st.drops; dropLoot on 300 champions: ~x1.81 the items at
 //     1000 Fortune), +17.4 s on riftTime()), a damaged
-//     record clamped, mergeEndgame's base rules (the cloud side is in cloud.js).
+//     record clamped and persisted locally.
 //  3. Shared: a second hero of another class has the same bonuses; deleting heroes keeps the Marks; the panel (its
 //     buttons by click), the sheet's row and button, the Quest Log line, the skull's "marks"; desktop + phone shots.
 //   node tools/tests/marks.js
@@ -194,19 +194,6 @@ const { openGame, report } = require('./harness');
       E.resetEndgameCache();
       const d = E.endgame();
       o.damaged = { pts: d.marks.pts, xp: d.marks.xp, spent: d.marks.spent, sum: M.marksSpent(), bests: Object.keys(d.bests).length, keys: d.keysFound, unlocked: d.unlocked };
-      // the merge rules (no browser needed, but the same module)
-      const R = (pts, spent = {}, x = {}) => ({ v: 1, unlocked: 0, marks: { pts, xp: 0, spent: { life: 0, crit: 0, mf: 0, rift: 0, ...spent } }, bests: {}, keysFound: 0, unboundWins: 0, ...x });
-      const mm = (a, b, base) => { const r = E.mergeEndgame(a, b, base); return [r.marks.pts, r.marks.spent.life, r.marks.spent.crit, r.marks.spent.mf, r.keysFound]; };
-      o.merge = {
-        twoDevices: mm(R(16, { life: 4 }), R(13, { life: 4, crit: 2 }), R(10, { life: 4 })),
-        firstSignIn: mm(R(16, { life: 4 }), R(13, { crit: 2 }), null),
-        damagedCloud: mm(R(19, { life: 4, crit: 2 }), { marks: { pts: 'x', spent: { life: 99 } } }, R(19, { life: 4, crit: 2 })),
-        lostLocal: mm(R(0), R(19, { life: 4 }), R(19, { life: 4 })),
-        doubleSpend: mm(R(10, { life: 10 }), R(10, { crit: 10 }), R(10)),
-        resetAndSpend: mm(R(10), R(10, { life: 4, crit: 2 }), R(10, { life: 4 })),
-        keys: mm(R(0, {}, { keysFound: 5 }), R(0, {}, { keysFound: 4 }), R(0, {}, { keysFound: 3 })),
-        same: mm(R(7, { mf: 3 }), R(7, { mf: 3 }), R(7, { mf: 3 })),
-      };
       M.resetMarks();
       return o;
     });
@@ -232,15 +219,6 @@ const { openGame, report } = require('./harness');
     console.log(`  sheet text: ${sp.text}`);
     const dm = sp.damaged;
     check(dm.pts === 5 && dm.sum <= 5 && dm.xp === 0 && dm.spent.crit === 0 && dm.spent.mf === 0 && dm.bests === 0 && dm.keys === 0 && dm.unlocked === 0, `a damaged record is clamped: ${JSON.stringify(dm.spent)} of ${dm.pts}`);
-    const mg = sp.merge, eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-    check(eq(mg.twoDevices, [19, 4, 2, 0, 0]), `merge: 10 synced, +6 here, +3 and 2 crit there -> ${mg.twoDevices}`);
-    check(eq(mg.firstSignIn, [16, 4, 0, 0, 0]), `merge, first sign-in (no base): the larger side -> ${mg.firstSignIn}`);
-    check(eq(mg.damagedCloud, [19, 4, 2, 0, 0]), `merge: a damaged cloud copy lowers nothing -> ${mg.damagedCloud}`);
-    check(eq(mg.lostLocal, [19, 4, 0, 0, 0]), `merge: a lost local copy lowers nothing -> ${mg.lostLocal}`);
-    check(eq(mg.doubleSpend, [10, 10, 0, 0, 0]), `merge: the same free Marks spent on both sides -> this device's (${mg.doubleSpend})`);
-    check(eq(mg.resetAndSpend, [10, 0, 2, 0, 0]), `merge: a reset here and a spend there both hold -> ${mg.resetAndSpend}`);
-    check(mg.keys[4] === 6 && eq(mg.same, [7, 0, 0, 3, 0]), `merge: keys found add up (3 synced, +2, +1 = ${mg.keys[4]}); unchanged stays unchanged`);
-
     // ---------------------------------------------- 3. shared across heroes, the panel
     const sh = await page.evaluate(async () => {
       const { G, game } = window.VELSCOUR;
