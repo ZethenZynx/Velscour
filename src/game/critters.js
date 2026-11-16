@@ -305,8 +305,6 @@ class Critter {
     }
     ctx.restore();
   }
-  drawRewardBadge(ctx, px, py, fade) {
-    //lows: a wide halo behind, a hot core over it and three orbiting lights. */
   /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
     const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 1.3;
