@@ -3,6 +3,7 @@ import { sfx } from '../core/audio.js';
 import { spawn, smoke, burst } from '../gfx/vfx.js';
 import { rand, TAU } from '../core/util.js';
 import { G } from '../state.js';
+import { dropClutterLoot } from './loot.js';
 
 const DARK_FOREST_TREES = new Set([
   'ancient_black_oak', 'spire_pine', 'twisted_yew', 'dead_crowned_elm',
@@ -96,7 +97,8 @@ export class Clutter extends Creature {
 
 export function breakClutter(c) {
   const w = c?.world;
-  if (!w || !c || isTreeProp(c.prop)) return;
+  if (!w || !c || c.clutterBroken || isTreeProp(c.prop)) return;
+  c.clutterBroken = true;
 
   // 1. Remove prop from world.props
   if (w.props && c.prop) {
@@ -115,6 +117,9 @@ export function breakClutter(c) {
       w.map.blockKey = (w.map.blockKey || 0) + 1;
     }
   }
+
+  // Broken props can produce only their small gold, orb or gem rewards.
+  dropClutterLoot(w, c.x, c.y);
 
   // 3. Audio & debris splinters
   sfx('thud', 0.85);

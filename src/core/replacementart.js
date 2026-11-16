@@ -57,10 +57,10 @@ export function replacementImage(id, swap = null, mode = '') {
 }
 
 // Fit without stretching. Tint overlays preserve the original pixel texture and alpha.
-export function replacementIcon(id, size = 48, tint = null, fraction = .88) {
-  const src = replacementImage(id);
+export function replacementIcon(id, size = 48, tint = null, fraction = .88, swap = null) {
+  const src = replacementImage(id, swap);
   if (!src) return null;
-  const key = `icon|${id}|${size}|${tint}|${fraction}`;
+  const key = `icon|${id}|${size}|${tint}|${fraction}|${swapKey(swap)}`;
   let image = cache.get(key);
   if (image) return image;
   image = makeCanvas(size, size);

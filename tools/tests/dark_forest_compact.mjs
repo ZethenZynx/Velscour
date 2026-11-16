@@ -1,4 +1,4 @@
-// Node-only contract checks for the simplified Dark Forest.
+// Node-only contract checks for the full-size Dark Forest and its optional side labyrinths.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -15,17 +15,17 @@ const { createDarkForestRun } = await imp('src/game/darkforest.js');
 const { G } = await imp('src/state.js');
 await loadDarkForestTrees();
 const biome = BIOME_BY_ID.dark_forest;
-const tileset = { pack: 'dark_forest', floors: pack.floors };
+const tileset = { pack: 'dark_forest', floors: pack.floors, walls: pack.walls, families: Object.keys(pack.walls).map((name) => [name, 1]) };
 const seeds = process.argv[2] == null ? 100 : +process.argv[2];
 for (let n = 1; n <= seeds; n++) {
   const g = generateDarkForest(7, biome, tileset, n * 7717 + 3), m = g.map;
   if (m.w !== DF_W || m.h !== DF_H || DF_W !== 192 || DF_H !== 192) throw Error('incorrect map size');
-  if (m.walls.length || m.doors.length || g.glades || g.labyrinths) throw Error('legacy trials or labyrinth structures remain');
+  if (m.walls.length < 1000 || m.doors.length || g.glades || g.labyrinths?.length !== 2) throw Error('expected two optional walled labyrinths and no trials');
   if (g.spawns.filter((s) => s.rank === 'boss').length !== 1) throw Error('expected exactly one boss');
   const regular = g.spawns.filter((s) => !['boss', 'raid'].includes(s.rank));
   const enemies = regular.reduce((sum, s) => sum + s.n, 0);
   if (regular.length < 80 || regular.length > 110 || enemies < 220 || enemies > 340) throw Error('enemy population is outside the original forest scale');
-  if (g.chests.length !== 2) throw Error('expected two chests');
+  if (g.chests.length !== 4) throw Error('expected two route caches and one cache in each optional labyrinth');
   const seen = new Uint8Array(m.w * m.h), idx = (x, y) => Math.floor(y) * m.w + Math.floor(x);
   const q = [idx(...g.start)]; seen[q[0]] = 1;
   for (let h = 0; h < q.length; h++) {
@@ -37,12 +37,17 @@ for (let n = 1; n <= seeds; n++) {
   }
   for (const p of [g.boss,g.exit,...g.chests.map((c)=>[c.x,c.y]),...g.spawns.map((s)=>[s.x,s.y])]) if (!seen[idx(...p)]) throw Error('unreachable spawn or objective: '+p);
   if (!(g.start[0] < m.w/4 && g.start[1] > m.h*3/4 && g.boss[0] > m.w*3/4 && g.boss[1] < m.h/4)) throw Error('start and boss are not on opposite corners');
+  const [north, south] = g.labyrinths;
+  if (north.side !== 'north' || south.side !== 'south' || north.rect[2] - north.rect[0] !== 44 || north.rect[3] - north.rect[1] !== 44 || south.rect[2] - south.rect[0] !== 44 || south.rect[3] - south.rect[1] !== 44) throw Error('side labyrinths must be full-sized and on opposite sides of the path');
+  if (north.rect[2] + north.rect[3] >= 192 || south.rect[0] + south.rect[1] <= 192) throw Error('side labyrinths crossed the main path');
+  if (!g.chests.some(c => Math.hypot(c.x - north.center[0] - 0.5, c.y - north.center[1] - 0.5) < 2) || !g.chests.some(c => Math.hypot(c.x - south.center[0] - 0.5, c.y - south.center[1] - 0.5) < 2)) throw Error('each optional labyrinth must contain a reward chest');
   if (g.trees.length < 14000 || g.trees.length > 15500) throw Error('tree population drifted from the full-size forest');
   if (g.trees.some((t)=>m.walkable(t.x,t.y))) throw Error('blocking tree has no collision');
 }
 const guardian = { rank:'boss', dead:false, x:179.5, y:12.5 }, world = { boss:guardian };
 let opened = false;
 const run = createDarkForestRun(world, {}, biome, () => { opened = true; });
+guardian.dead = true;
 run.bossDefeated(guardian);
 if (!run.completed || run.active || !opened) throw Error('guardian defeat did not complete the Forest run');
-console.log('PASS full-size Dark Forest: '+seeds+' seeds, connected boss route, no trials or mazes, exit callback verified');
+console.log('PASS full-size Dark Forest: '+seeds+' seeds, connected boss route and side labyrinth rewards, exit callback verified');

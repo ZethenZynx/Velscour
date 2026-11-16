@@ -1,5 +1,10 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - small rewards from breakable dungeon clutter (local, not published)
+- Breaking dungeon clutter now has low independent chances to drop gold (10%), one orb (Health 8%, Mana 8%, Rejuvenation 5%, or Fury 2%), and a gem (1%). Gems are the rarest reward. These props never drop equipment, potions or other item types; orb drops respect Hunger of the Abyss, gold uses the existing gold-find scaling, and gems respect the hero's level cap.
+- `node tools/tests/test_clutter_drops.mjs` and `node tools/tests/test_regen_orbs.mjs` pass; changed JavaScript passes syntax checks and `git diff --check` passes. The broader clutter test could not load assets on this Windows path because its test helper constructed `C:\C:\Games\Velscour`.
+- No commit or GitHub update was made.
+
 ## November 16, 2026 - Remove auto-play from the game (local, not published)
 - Deleted the former `src/game/autoplay.js` module and cleared its references from playable source, settings cleanup,
   and item-storage code. No game UI, game entry point, or game module loads an auto-play system.
