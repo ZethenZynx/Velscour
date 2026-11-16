@@ -7,7 +7,7 @@ import { RNG } from '../core/util.js';
 import { A } from '../core/assets.js';
 import { TW } from '../core/view.js';
 import { townObject, makeTownTiles } from './town.js';
-import { overworldObject, EXTRA_TREES, SHRINES } from '../gfx/overworldart.js';
+import { overworldObject, EXTRA_TREES } from '../gfx/overworldart.js';
 import { isoBarrier } from '../gfx/isobarriers.js';
 import { rollLooks } from '../data/bestiary.js';
 import { wallHangingAtBuilding } from '../gfx/wallhangings.js';
@@ -210,7 +210,7 @@ export function generateOverworld(depth,biome,seed,variant=null) {
     else if(rng.chance(.45)){const nm=rng.pick(['wildflowers','ow_blue_flowers','ow_red_flowers','wildflowers','fieldstone_cluster','leafy_shrub','dry_reeds']);
       for(let k=/flowers/.test(nm)?rng.int(2,3):1;k>0;k--){const sx=cx+rng.range(-.7,.7),sy=cy+rng.range(-.7,.7);if(openAt(sx,sy)&&add(nm,sx,sy))n++;}}
   }
-  add(SHRINES[rng.int(0,SHRINES.length-1)],SHRINE[0],SHRINE[1],{light:5});
+  if (biome.id !== 'overworld') add(SHRINES[rng.int(0,SHRINES.length-1)],SHRINE[0],SHRINE[1],{light:5});
   // Reuse the town tiles and chest art; do NOT build indoor wall segments. (The hills' banks show turf over grass, earth
   // under the lanes.)
   const townTiles=makeTownTiles().map((f,k)=>({...f,soil:k?'dirt':'grass'}));
@@ -229,6 +229,11 @@ export function generateOverworld(depth,biome,seed,variant=null) {
     if(!map.circleFree(x,y,.35)||dist(x,y,ENTRY)<11||dist(x,y,SHRINE)<7)continue;
     const arch=rng.pick(archs);
     spawns.push({x,y,arch,n:rng.int(2,4),rank:i%11===0?'champion':'normal',look:looks.pick(arch)});
+  }
+  if (biome.id === 'overworld') {
+    const bossArchs=biome.roster.filter(a=>!['bat','spider','shroom'].includes(a));
+    const arch=rng.pick(bossArchs.length?bossArchs:archs);
+    spawns.push({x:SHRINE[0],y:SHRINE[1],arch,n:1,rank:'boss',look:looks.pick(arch),name:'Forsaken Guardian'});
   }
   const chests=[];
   for(const p of [OVERWORLD_SITES[2],OVERWORLD_SITES[3],OVERWORLD_SITES[4]]) {
