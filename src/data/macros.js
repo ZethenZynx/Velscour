@@ -1,9 +1,9 @@
 // Macros' saved shape (G.char.macros; the casting is game/macros.js, the panel ui/macros.js).
 export const MACRO_N = 5, MACRO_LEN = 8;
 // keys nothing else uses (WASD, Q I K T B H P G F M, Z X C V and the bar's are taken)
-export const MACRO_KEYS = ['KeyR', 'KeyE', 'KeyY', 'KeyU', 'KeyO', 'KeyJ', 'KeyL', 'KeyN'];
+export const MACRO_KEYS = [...Array.from({ length: 12 }, (_, i) => `F${i + 1}`), 'KeyR', 'KeyE', 'KeyY', 'KeyU', 'KeyO', 'KeyJ', 'KeyL', 'KeyN'];
 export const keyLabel = (k) => (k ? k.replace(/^Key/, '') : 'none');
-const blank = (i) => ({ name: `Macro ${i + 1}`, skills: [], key: MACRO_KEYS[i], keep: false });
+const blank = (i) => ({ name: `Macro ${i + 1}`, skills: [], key: `F${i + 1}`, keep: false });
 export const newMacros = () => Array.from({ length: MACRO_N }, (_, i) => blank(i));
 
 /** A saved hero's macros, made whole (save.js migrate): five, known keys (no key twice), skill ids only. */

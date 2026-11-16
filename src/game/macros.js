@@ -14,8 +14,13 @@ export { MACRO_N, MACRO_LEN, MACRO_KEYS, keyLabel } from '../data/macros.js';
 /** Set macro i's key; a key another macro held is taken from it. */
 export function setMacroKey(i, key) {
   const ms = G.char.macros;
-  if (key) for (const m of ms) if (m.key === key) m.key = null;
-  ms[i].key = MACRO_KEYS.includes(key) ? key : null;
+  const macro = ms[i];
+  const nextKey = MACRO_KEYS.includes(key) ? key : null;
+  if (nextKey) {
+    const other = ms.find((m, index) => index !== i && m.key === nextKey);
+    if (other) other.key = macro.key;
+  }
+  macro.key = nextKey;
 }
 /** The keys assigned to the character's macros. */
 export const macroKeys = () => (G.char && G.char.macros ? G.char.macros.map((m) => m.skills.length && m.key).filter(Boolean) : []);
