@@ -12,7 +12,7 @@ const campaignAreas = [
 ];
 const specialAreas = [
   'The Iron Express', 'The Endless Siege', 'The Deep Rail Mines', 'The Great Hunt',
-  "Depth's Edge Caverns", 'The Pirate Seas',
+  "Depth's Edge Caverns", 'The Pirate Seas', 'The Pyramid of the Scorpion King',
 ];
 
 for (const name of [...campaignAreas, ...specialAreas]) {

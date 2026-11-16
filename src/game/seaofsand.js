@@ -1,6 +1,7 @@
 // A Sea of Sand run chains one to five ordinary overworld scenarios through a
 // single cliff maze. The established scenario engines still own each beat.
 import { createOverworldScenario, WILD_SCENARIOS, wildScenario } from './overworld.js';
+import { makeMonster } from './monster.js';
 import { SAND_BOSSES } from '../data/seaofsand.js';
 import { GroundItem, groundDropRarityCap } from './loot.js';
 import { rollSandScenarioRewards } from './sandrewards.js';
@@ -14,14 +15,16 @@ export function createSeaOfSandScenario(world, gen, biome, onSuccess) {
   const record=runs[key]||(runs[key]={seed:gen.seed,completed:0,rewarded:0});
   const sites=gen.scenarioSites||[gen.shrine],total=sites.length;
   let beat=Math.min(total,Math.max(record.completed||0,record.rewarded||0)),current=null;
-  const run={id:'sea_of_sand',active:false,completed:false,failed:false,
+  const run={id:'sea_of_sand',active:false,completed:false,failed:false,phase:'areas',guardian:null,
     get beat(){return beat;},get total(){return total;},get current(){return current;},
-    get title(){return current?.title||'Sea of Sand';},
+    get title(){return run.phase==='guardian'?'The Sand Guardian':current?.title||'Sea of Sand';},
     get shrine(){return current?.shrine;},get type(){return current?.type;},
     get markers(){return current?.markers||[];},get route(){return current?.route||[];},
     get stage(){return current?.stage||0;},get escort(){return current?.escort||null;},
     get routeIndex(){return current?.routeIndex||0;},
+    get objective(){return run.guardian&&!run.guardian.dead?{x:run.guardian.x,y:run.guardian.y,reach:1.5}:current?.objective;},
     get hud(){
+      if(run.phase==='guardian')return {title:'The Sand Guardian',beat:total,total,timer:'',progress:run.guardian?.dead?'Guardian defeated':'Defeat the guardian'};
       if(!current)return {title:'Sea of Sand',beat,total,timer:'',progress:beat>=total?'All areas secured':'Preparing next area'};
       const timer=current.timer>0?`${Math.max(0,Math.ceil(current.timer-current.seconds))}s`:'';
       let progress='';
@@ -32,11 +35,25 @@ export function createSeaOfSandScenario(world, gen, biome, onSuccess) {
       } else progress=`Stage ${current.stage||0}`;
       return {title:current.title,beat:Math.min(total,beat+1),total,timer,progress};
     },
-    update(dt){if(current){current.update(dt);run.active=current.active;}},
+    update(dt){
+      if(run.phase==='guardian'){
+        if(run.guardian?.dead&&!run.completed){run.active=false;run.completed=true;run.phase='complete';UI.centerMsg('THE SEA OF SAND IS WON','The guardian falls and the exit opens',3.5);if(onSuccess)onSuccess(run);}
+        return;
+      }
+      if(current){current.update(dt);if(run.phase!=='guardian')run.active=current.active;}
+    },
   };
   const finishRun=()=>{
-    run.active=false;run.completed=true;
-    if(onSuccess)onSuccess(run);
+    if(run.phase==='guardian'||run.completed)return;
+    run.active=true;run.phase='guardian';
+    const [,name,arch]=SAND_BOSSES[Math.abs((world.depth||1)+gen.seed)%SAND_BOSSES.length];
+    let [x,y]=gen.exit;
+    if(!world.map.walkable(x,y))[x,y]=world.map.randomNear(sites[0][0],sites[0][1],5);
+    const guardian=makeMonster(world,arch,biome,depthLevel(world.depth)+2,'boss',x,y);
+    guardian.name=name;guardian.awake=true;guardian.hunter=true;
+    world.add(guardian);world.boss=guardian;run.guardian=guardian;
+    UI.centerMsg(name.toUpperCase(),'Guardian of the Sea of Sand',3.2);
+    UI.log(`The surface route is complete. Defeat ${name} to open the exit.`, '#ffe2a0');
   };
   const reward=(index)=>{
     if(index<record.rewarded)return;
@@ -74,7 +91,7 @@ export function createSeaOfSandScenario(world, gen, biome, onSuccess) {
       if(pl&&current.timer>0)current.timer+=Math.hypot(p[0]-pl.x,p[1]-pl.y)/3;
     }
   };
-  if(beat>=total){run.completed=true;finishRun();}
+  if(beat>=total){finishRun();}
   else beginBeat(beat);
   return run;
 }

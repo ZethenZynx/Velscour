@@ -1,5 +1,10 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - six-act campaign schedule and finale bosses (local, not published)
+- Reworked the acts to Act 1: 1–95, Act 2: 96–191, Act 3: 192–287, Act 4: 288–359, Act 5: 360–455, and Act 6: 456–500. Boundary depths belong to the new act.
+- Moved finale superbosses to Depths 96 (Colossus), 192 (Sekhmun), 288 (Hollowmere), 360 (Aurion), and 456 (Kragmaul). Velscour remains at Depth 500; the established mid-act bosses remain at 50, 150, 250 and 350. Non-finale Throne floors keep regular guardians.
+- Depth 456's Throne layout now uses a raid boss encounter with a barrier across its south entrance. `node tools/tests/act_depths.mjs`, `node tools/tests/data_check.mjs`, syntax checks and `git diff --check` pass. Browser raid verification could not run because Playwright is unavailable in this local environment. No GitHub update was made.
+
 ## November 16, 2026 - place Dark Forest landmark clearings on the route
 - Moved the camp, well, shrine, obelisk, swamp and web clearings from side spurs onto the main trail, with varied lateral offsets and spacing so they do not line up in repetitive opposing rows. Their props remain scenery, the route can pass through, and the four optional mazes stay off the trail.
 - Route chests avoid the clearings' props. `node tools/tests/dark_forest_compact.mjs` passes across 100 seeds, including reachability for spawns/objectives, landmarks and chests; syntax and whitespace checks pass. No GitHub update was made.

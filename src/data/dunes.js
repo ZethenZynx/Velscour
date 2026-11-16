@@ -12,7 +12,8 @@
 //  - pyramid: half (tiles from its middle to a side), rise (height / half), steps (0 smooth casing, else tiers),
 //    stone and dark (casing colours), cap (the capstone), glyph (the carvings inside), torch, fog (the dark inside);
 //  - swap: the creatures' sand palette (bestiary.js looks); roster: art ids by archetype, hand-picked to fit;
-//  - bosses: [art, raid template (game/raid.js), title]: the first waits in the burial chamber, the second in the tomb;
+//  - bosses: [art, raid template (game/raid.js), title]: the first is the pyramid master, the second is the surface
+//    guardian and a tomb mid-boss;
 //  - camps and rooms: the checkpoints' and the tomb's names (their fights: game/dunes.js ENCOUNTERS).
 
 // art the desert shares, by archetype (each variant adds its own)
@@ -42,7 +43,7 @@ export const DUNE_VARIANTS = [
     bosses: [['sandstone_scarab_emperor', 'scarab', 'Emperor of the Golden Tomb'], ['ss_boss_the_salt_pharaoh', 'pontiff', 'the Pharaoh Who Would Not Lie Down']],
     camps: ["Khepra's Gate", 'The Broken Colossus', 'The Scarab Fields', 'Well of the Nine Palms', 'The Buried Caravan', 'Obelisk of Dawn', 'The Sun Road', 'The Last Waystone', 'The Fallen Sphinx'],
     rooms: ['The Hall of Offerings', 'The Descending Passage', 'The Gallery of Kings', 'The Chamber of Jars', 'The Hall of Columns', 'The Sealed Gallery', 'The Well Shaft', 'The Queen\'s Chamber', 'The Antechamber'],
-    intro: 'Gold dunes roll away to the Great Pyramid of Khepra. Its door stays sealed until every waystone across the sands is won.' },
+    intro: 'Gold dunes roll away to the Great Pyramid of Khepra. Win the waystones, then face the guardian at the plaza.' },
   { id: 'red', name: 'The Red Erg', epithet: 'rust-red dunes at dusk round the Pyramid of the Scorpion King',
     floors: [7, 1, 23, 37], sand: null, sky: { haze: '#d9805a', sun: '#ffb070', sunI: 2.1, hemiSky: '#ffc8a0', hemiGround: '#7a3420', amb: '#4a2418' },
     dune: { wind: 1.1, amp: 1.45, wave: 30, ridges: 9, size: 184, camps: 8, oases: 1 },
@@ -52,7 +53,7 @@ export const DUNE_VARIANTS = [
     bosses: [['ss_boss_queen_of_red_scorpions', 'carapace', 'Mother of the Red Erg'], ['ravenous_centipede_king', 'centipede', 'the Thousand Feet Under the Sand']],
     camps: ['The Red Wells', 'Stinger Ridge', 'The Rust Caravan', 'Bloodsand Hollow', 'The Burning Cairn', 'Obelisk of Dusk', 'The Scorpion Shrine', 'The Last Oasis', 'The Crimson Wall'],
     rooms: ['The Stinger Hall', 'The Red Gallery', 'The Brood Chamber', 'The Descending Passage', 'The Hall of Husks', 'The Chamber of Jars', 'The Venom Cistern', 'The Molting Hall', 'The Antechamber'],
-    intro: 'The Red Erg burns at dusk. The Scorpion King\'s pyramid waits beyond the wells, and its door answers only when the sands are won.' },
+    intro: 'The Red Erg burns at dusk. Win its obelisk trials and face the guardian at the plaza; the Scorpion King pyramid is a separate destination.' },
   { id: 'gypsum', name: 'The White Gypsum Sea', epithet: 'blinding white dunes round the Alabaster Pyramid',
     floors: [2, 58, 12, 35], sand: { sat: 0.2, light: 0.12, contrast: 0.7 }, sky: { haze: '#e8eef4', sun: '#ffffff', sunI: 2.3, bump: 0.25, hemiSky: '#eef2ff', hemiGround: '#b0a898', amb: '#5a5a62' },
     dune: { wind: 0.3, amp: 1.1, wave: 22, ridges: 6, size: 168, camps: 6, oases: 2 },

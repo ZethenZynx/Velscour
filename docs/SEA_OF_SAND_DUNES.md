@@ -1,16 +1,19 @@
 # The Sea of Sand's dunes and pyramids
 
-Ten variants of the Sea of Sand built as live three.js height fields, the way the Depth's Edge Caverns are
+Ten surface variants of the Sea of Sand are built as live three.js height fields, like the Depth's Edge Caverns
 ([DEPTHS_EDGE.md](DEPTHS_EDGE.md)). Each is a square of rolling dunes, 168 to 188 tiles a side (the classic desert
 is 72), smoothed into barchans along the wind with ridges you can't cross. A caravan trail zig-zags past six to nine
-**waystones**, and each waystone is a fight. Win them all and the door of a **big pyramid** in the far corner
-opens. Inside, the way goes down and round: seven chambers on a ring of landings and ramped corridors, about 19 tiles
-of height from the entrance hall to the **burial chamber** at the heart. Six of the chambers are fights; slabs seal
-the way on until each is won, and a tomb boss guards the way down. In the burial chamber the pyramid's master rises
-from its sarcophagus. When it falls, a portal opens over the sarcophagus.
+**waystones**, each with its own encounter. Win them all and a surface guardian rises in the plaza; defeat it to open
+a normal exit portal across the dunes. The surface route no longer enters its pyramid.
 
-The classic flat Sea of Sand (the five-area maze, [SEA_OF_SAND.md](SEA_OF_SAND.md)) stays in the rotation as
-variant 0 of 11. Entering the Sea of Sand picks one of the eleven at random, never the one seen last
+The **Pyramid of the Scorpion King** is now a separate level, available for testing by typing its name into Contact
+Velscour. It uses the Red Erg's existing tomb, starts inside the entrance hall, and retains its sealed room sequence,
+tomb guardian, burial-chamber master and final portal. It is intentionally excluded from normal depth selection until
+its future access point is designed.
+
+The classic flat Sea of Sand ([SEA_OF_SAND.md](SEA_OF_SAND.md)) stays in the rotation alongside the ten dune surfaces.
+It keeps its one-to-five scenario areas and now ends with a guardian and normal exit portal. Entering Sea of Sand picks
+one of the eleven surface maps at random, never the one seen last
 (`c.lastSand`). A kept run (`c.seaOfSandRuns[depth]`) rebuilds the same variant. Velscour's skull goes straight to a
 random dune variant: send `pyramid`, `pyramids`, `dunes` or `tomb`. `G.sandVariant = 1..10` forces one (tests).
 
@@ -19,11 +22,11 @@ random dune variant: send `pyramid`, `pyramids`, `dunes` or `tomb`. `G.sandVaria
 | `src/data/dunes.js` | `DUNE_VARIANTS` (10): sand floors and palette, sky and sun, dune shape and size, waystone count, the pyramid, monster swap/tint, roster, bosses, names, intro |
 | `src/world/dunes.js` | `generateDunes`: the plan (pyramid, plaza, start, camps, route), the dune heights, ridges, oases, the tomb's ring of rooms and corridors, seals, the vertex field, props, torches, spawns, chests, reachability |
 | `src/gfx/dunes3d.js` | the two three.js scenes (outside, inside), sand and masonry textures, the terrain shader, the skirt past the map's edges, the pyramid, water, torches, seals, baked props |
-| `src/game/dunes.js` | the run: `ENCOUNTERS`, `useDunes` (picking, horizon and props by region), waystone and room fights, the door, into the tomb, the tomb boss, the burial chamber, the portal, the HUD and auto-play's `objective` |
+| `src/game/dunes.js` | the run: `ENCOUNTERS`, `useDunes` (picking, horizon and props by region), surface waystone and guardian fights, pyramid room fights, tomb boss, burial chamber, portals and objective HUD |
 | `src/game/game.js` | the variant pick (`loadLevelArt`), `buildDungeon`'s branch, the skull words |
 | `src/ui/quest.js` | the Quest Log's dunes page |
 | `tools/tests/dunes_map.mjs` | node: every variant over seeds, reachability, climb steps, depth, counts, map images |
-| `tools/tests/dunes.js` | browser: every variant live, picking, a camp, the door, the tomb, a room, the chamber boss, the portal, shots; `auto` for auto-play |
+| `tools/tests/dunes.js` | browser: every surface variant, picking, waystone, plaza guardian and exit; separate pyramid entry, chamber master and exit |
 
 ## The ten variants
 
@@ -93,18 +96,15 @@ off one landing holds chests and its guards.
   in looked like a wall, and the one gap it left was easily plugged by a pet or a foe.
 
 ## Auto-play
-`run.objective` drives it between fights (`autoplay.js` reads `ow.objective`): the next waystone, then inside a
-fight its marks, its relics, its nearest foe or its centre (never null mid-fight, or a farming hero would wander off
-hunting the far dunes), then the door (its `use` takes the party in), the next room, the chamber, the master.
-Combat outranks the objective, and some fights keep spawning until the hero gets somewhere. So `run.duty` names
-that place mid-fight: the next cache (`hold`: he stands on it until it is dug), the nearest relic, or back inside the
-ring when kiting has drawn him out. After 5 s of fighting, auto-play pushes through to it for up to 3 s.
+`run.objective` points to the next waystone during the surface route and to the surface guardian after the last
+waystone. In the separate pyramid, it points to the next tomb room and then the burial-chamber master. During a fight,
+`run.duty` directs the hero to the next dig cache (`hold`), relic, or back inside the encounter area when kiting has
+drawn them out.
 
 ## Tests
 - `node tools/tests/dunes_map.mjs [ids|all] [seeds]`: no browser. The trail joins the start, every waystone and the
-  door; the tomb joins its entrance to the burial chamber with every seal open; at most 20 steps over the climb limit;
+  plaza; the standalone pyramid starts inside the Red Erg tomb and joins its entrance to the burial chamber; at most 20 steps over the climb limit;
   the chamber at least 12 tiles under the entrance; every corridor's mouth open its full width two tiles into its room,
   no jar within 2 tiles of one; counts of spawns and props. Writes `out/dunes_map_<id>.png`.
-- `node tools/tests/dunes.js [ids|all] [mobile] [auto] [noflow]`: the live game. Shots per stage
-  (`dunes_<id>_{arrive,camp,pyramid,door,tomb,room,chamber}.png`). `auto` then lets auto-play take the first
-  variant's whole level with a level-1 paladin in god mode, logging its progress.
+- `node tools/tests/dunes.js [ids|all] [mobile] [auto] [noflow]`: the live game. It checks each surface route's plaza
+  guardian and portal, then the standalone pyramid's burial-chamber master and portal. `auto` tests a surface clear.
