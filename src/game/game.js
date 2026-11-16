@@ -89,7 +89,7 @@ const DUNGEON_ENVIRONMENT_HAZARDS = {
       cursed_totems: { el: 'shadow', radius: 2.2, damage: 0.04, interval: [14, 20], fx: 'void', area: true, duration: 4 },
       explosive_barrels: { el: 'fire', radius: 2.1, damage: 0.1, interval: [13, 20], fx: 'explosion', warning: 1.2 },
       haunted_grounds: { el: 'shadow', radius: 2.2, damage: 0.055, interval: [12, 18], fx: 'void', area: true, duration: 3 },
-      blood_pools: { el: 'blood', radius: 1.9, damage: 0.04, interval: [12, 19], fx: 'blood', area: true, duration: 5, o: { bleed: true } },
+      blood_pools: { el: 'phys', radius: 1.9, damage: 0.04, interval: [12, 19], fx: 'blood', area: true, duration: 5, o: { bleed: true, slow: true } },
       unstable_rifts: { el: 'arcane', radius: 2.4, damage: 0.07, interval: [14, 20], fx: 'nova' },
       gravity_wells: { el: 'arcane', radius: 2.5, damage: 0.035, interval: [15, 22], fx: 'void', area: true, duration: 4 },
       corrupted_shrines: { el: 'shadow', radius: 2.1, damage: 0.05, interval: [16, 23], fx: 'void', area: true, duration: 3 },
@@ -2251,7 +2251,7 @@ export const game = {
           dur: spec.duration || 4, tick: 0.7, dmg: [damage, damage], el, fx: spec.fx,
           mode: spec.cyclone ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false } }));
+          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true } }));
       } else {
         w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius,
           delay: spec.warning || 1, dmg: [damage, damage], el, fx: spec.fx,
