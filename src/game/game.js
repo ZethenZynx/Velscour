@@ -2213,7 +2213,7 @@ export const game = {
       const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
       if (spec.area) {
         w.addHazard(new Area({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
-          dmg: p.maxHp * spec.damage, el, fx: spec.fx || el,
+          dmg: [p.maxHp * spec.damage, p.maxHp * spec.damage], el, fx: spec.fx || el,
           mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
           heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
