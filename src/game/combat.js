@@ -70,10 +70,10 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   for (const [id, element] of Object.entries(worldElements)) if (enemyAttack && sourceAffixes.includes(id)) { el = element; break; }
   if (enemyAttack && sourceAffixes.includes('elemental_weapons')) {
     const cycle = ['fire', 'cold', 'light'];
-    if ((src.affixElementUntil || 0) <= world.time) {
+    if ((src.affixElementUntil || 0) <= (world?.time || 0)) {
       src.affixElementIndex = ((src.affixElementIndex || 0) + 1) % cycle.length;
       src.affixElement = cycle[src.affixElementIndex];
-      src.affixElementUntil = world.time + 5;
+      src.affixElementUntil = (world?.time || 0) + 5;
     }
     el = src.affixElement || 'fire';
   }
@@ -179,7 +179,13 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
     if (tgt.rank === 'boss' && (o.freeze || o.stun)) { o = { ...o, freeze: false, stun: o.stun && chance(0.15) }; }
   }
-  dmg = tgt.isPlayer && G.godMode ? 0 : Math.max(1, dmg * rand(0.92, 1.08));
+  if (tgt.isPlayer && enemyAttack) {
+    if (worldAffixes.has('bloodthirsty') && tgt.hp < tgt.maxHp * 0.5) dmg *= 1.25;
+    if (worldAffixes.has('executioner') && tgt.hp < tgt.maxHp * 0.25) dmg = Math.min(tgt.maxHp * 0.08, dmg * 2);
+    if (worldAffixes.has('soul_rend')) dmg += (tgt.maxHp - tgt.hp) * 0.025;
+    if (worldAffixes.has('crushing_blows') && chance(0.12)) dmg = Math.min(tgt.maxHp * 0.08, Math.max(dmg, tgt.maxHp * 0.03));
+  }
+    dmg = tgt.isPlayer && G.godMode ? 0 : Math.max(1, dmg * rand(0.92, 1.08));
   if (tgt.vel) dmg = tgt.vel.absorb(dmg); // Velscour's life gates and damage cap (game/velscour.js)
 
   const byHero = !tgt.isPlayer && tgt.team !== 'player' && (fromPlayer || (src && src.team === 'player'));
@@ -228,10 +234,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       if (src.heal) src.heal(Math.max(1, actualDamage * 0.15));
       addEffect(new Bolt(src.x, src.y, 25, tgt.x, tgt.y, 25, '#a77aff', 0.2, 2));
     }
-    if (worldAffixes.has('bloodthirsty') && tgt.hp < tgt.maxHp * 0.5) dmg *= 1.25;
-    if (worldAffixes.has('executioner') && tgt.hp < tgt.maxHp * 0.25) dmg = Math.min(tgt.maxHp * 0.08, dmg * 2);
-    if (worldAffixes.has('soul_rend')) dmg += (tgt.maxHp - tgt.hp) * 0.025;
-    if (worldAffixes.has('crushing_blows') && chance(0.12)) dmg = Math.min(tgt.maxHp * 0.08, Math.max(dmg, tgt.maxHp * 0.03));
+
     if (worldAffixes.has('triple_strike') && chance(0.12) && !o.affixTriple) {
       world.affixEchoes ||= [];
       for (let n = 1; n <= 2; n++) world.affixEchoes.push({ t: 0.28 * n, target: tgt, src, damage: amount * 0.28, el, o: { affixTriple: true } });
