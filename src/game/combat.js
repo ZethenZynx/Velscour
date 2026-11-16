@@ -56,9 +56,28 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   const fromPlayer = owner && owner.isPlayer;
   if (fromPlayer && !tgt.isPlayer && G.char && G.char.madT > 0) dmg *= 2; // MADNESS (game/mayhem.js)
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
+  if (fromPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
+  if (fromPlayer && worldAffixes.has('blood_sacrifice')) dmg *= 1.25;
+  if (tgt.isPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
+  if (tgt.isPlayer && worldAffixes.has('mana_surge') && el !== 'phys') dmg *= 1.2;
+  if (tgt.isPlayer && (tgt.affixSunderT || 0) > 0) dmg *= 1.15;
 
   const sourceAffixes = src && src.team === 'enemy' ? (src.dungeonAffixIds || []) : [];
   const enemyAttack = sourceAffixes.length > 0 && !o.dot;
+  const worldElements = { eternal_winter: 'cold', scorched_earth: 'fire', plague_season: 'poison',
+    arcane_instability: 'arcane', shadow_dominion: 'shadow', thunder_dominion: 'light',
+    cursed_armory: 'shadow', divine_judgment: 'holy' };
+  for (const [id, element] of Object.entries(worldElements)) if (enemyAttack && sourceAffixes.includes(id)) { el = element; break; }
+  if (enemyAttack && sourceAffixes.includes('elemental_weapons')) {
+    const cycle = ['fire', 'cold', 'light'];
+    if ((src.affixElementUntil || 0) <= world.time) {
+      src.affixElementIndex = ((src.affixElementIndex || 0) + 1) % cycle.length;
+      src.affixElement = cycle[src.affixElementIndex];
+      src.affixElementUntil = world.time + 5;
+    }
+    el = src.affixElement || 'fire';
+  }
+  if (enemyAttack && sourceAffixes.includes('unholy_weapons')) { el = 'shadow'; o.poison = true; }
   if (enemyAttack) {
     if (worldAffixes.has('explosive_attacks')) o.explosive = true;
     if (worldAffixes.has('poisonous_strikes')) o.poison = true;
@@ -130,7 +149,9 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
     let res = (tgt.res && tgt.res[el === 'astral' ? 'arcane' : el]) || 0;
     if (el === 'arcane' || el === 'astral') res *= 0.5;
-    dmg *= 1 - clamp(res, -1, 0.9);
+    dmg *= 1 - clamp(res + (tgt.affixAdaptiveRes?.[el] || 0), -1, 0.9);
+    if (tgt.affixAdaptiveRes?.[el]) dmg *= 1 - Math.min(0.3, tgt.affixAdaptiveRes[el]);
+    if (tgt.affixLastStand && tgt.hp < tgt.maxHp * 0.35) dmg *= 0.7;
     if (tgt.dmgReduce) dmg *= 1 - clamp(tgt.dmgReduce, 0, 0.75);
     if (el === 'holy' && (tgt.undead || tgt.demon)) dmg *= 1.5;
     const C = tgt.curses;
@@ -149,6 +170,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (fromPlayer) {
       const st = owner.st;
       if (tgt.rank === 'boss' && st.bossDmg) dmg *= 1 + st.bossDmg / 100;
+      if (worldAffixes.has('cursed_fortune')) dmg *= 1.15;
       if (src.isPlayer && !o.dot && o.crit !== false && chance(st.critChance / 100)) {
         crit = true;
         dmg *= 1 + st.critDmg / 100;
@@ -181,6 +203,43 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
   }
   tgt.hp -= dmg;
+  if (!tgt.isPlayer && tgt.team === 'enemy' && fromPlayer && !o.dot) {
+    if (worldAffixes.has('adaptive_resistance')) {
+      tgt.affixAdaptiveRes ||= {};
+      tgt.affixAdaptiveRes[el] = Math.min(0.3, (tgt.affixAdaptiveRes[el] || 0) + 0.04);
+    }
+    if (worldAffixes.has('thorns') && el === 'phys' && actualDamage > 0 && owner && !owner.dead) {
+      hit(tgt, owner, Math.min(actualDamage * 0.1, owner.maxHp * 0.04), 'phys', { dot: true, crit: false, noArc: true });
+    }
+    if (worldAffixes.has('shared_health') && !o.sharedTransfer && tgt.world) {
+      const ally = tgt.world.query(tgt.x, tgt.y, 4, (m) => m !== tgt && m.team === 'enemy' && !m.dead)[0];
+      if (ally) hit(src, ally, actualDamage * 0.2, el, { dot: true, crit: false, sharedTransfer: true, silent: true });
+    }
+    if (worldAffixes.has('blood_sacrifice') && owner?.isPlayer && !o.affixSacrifice) {
+      owner.hp = Math.max(1, owner.hp - owner.maxHp * 0.005);
+    }
+    if (worldAffixes.has('vampiric_blessing') && owner?.isPlayer && actualDamage > 0) owner.heal(actualDamage * 0.04, true);
+  }
+  if (tgt.isPlayer && enemyAttack) {
+    if (worldAffixes.has('sunder')) tgt.affixSunderT = 5;
+    if (worldAffixes.has('arcane_leech') && src) {
+      const stolen = Math.min(tgt.mana || 0, Math.max(1, (tgt.maxMana || 0) * 0.05));
+      tgt.mana = Math.max(0, (tgt.mana || 0) - stolen);
+      if (src.heal) src.heal(Math.max(1, actualDamage * 0.15));
+      addEffect(new Bolt(src.x, src.y, 25, tgt.x, tgt.y, 25, '#a77aff', 0.2, 2));
+    }
+    if (worldAffixes.has('bloodthirsty') && tgt.hp < tgt.maxHp * 0.5) dmg *= 1.25;
+    if (worldAffixes.has('executioner') && tgt.hp < tgt.maxHp * 0.25) dmg = Math.min(tgt.maxHp * 0.08, dmg * 2);
+    if (worldAffixes.has('soul_rend')) dmg += (tgt.maxHp - tgt.hp) * 0.025;
+    if (worldAffixes.has('crushing_blows') && chance(0.12)) dmg = Math.min(tgt.maxHp * 0.08, Math.max(dmg, tgt.maxHp * 0.03));
+    if (worldAffixes.has('triple_strike') && chance(0.12) && !o.affixTriple) {
+      world.affixEchoes ||= [];
+      for (let n = 1; n <= 2; n++) world.affixEchoes.push({ t: 0.28 * n, target: tgt, src, damage: amount * 0.28, el, o: { affixTriple: true } });
+    }
+  }
+  if (tgt.isPlayer && enemyAttack && (worldAffixes.has('plague_season') || worldAffixes.has('cursed_fortune'))) {
+    if (worldAffixes.has('plague_season')) o.poison = true;
+  }
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('armor_shred')) tgt.affixArmorShredT = Math.max(tgt.affixArmorShredT || 0, DUNGEON_AFFIX_CONFIG.enemyAttack.statusDuration);
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('mortal_vulnerability') && crit) tgt.affixCritVulnerableT = 5;
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('mana_burn')) {
@@ -249,7 +308,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   // not raw damage, which runs far ahead of hero life (it healed whole life bars a hit)
   if (fromPlayer && src.isPlayer && !tgt.isPlayer) {
     const st = src.st, share = Math.min(1, dmg / Math.max(1, tgt.maxHp)) * LEECH_K;
-    const ls = (st.lifeSteal + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
+    const ls = (st.lifeSteal + (worldAffixes.has('vampiric_blessing') ? 4 : 0) + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
     if (ls > 0) src.heal(share * src.maxHp * ls * (o.dot ? 0.3 : 1), true);
     if (st.manaSteal > 0) src.mana = Math.min(src.maxMana, src.mana + share * src.maxMana * st.manaSteal / 100);
     if (tgt.curses.leech && tgt.curses.leech.t > 0) src.heal(share * src.maxHp * tgt.curses.leech.amt / 100 * 0.3, true);
