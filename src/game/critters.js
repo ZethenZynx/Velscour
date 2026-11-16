@@ -1,8 +1,8 @@
 // Gilded critters: little treasures that cross the screen now and then (a gilded wisp drifting through the air, a
 // starmoth, a golden scarab scuttling over the floor, now and then a prismatic wisp).
 // they are the player's to tap (or click) before they get away. They aren't creatures, so nothing fights them.
-// Each critter rolls a separate reward and gear tier; the species only determines its appearance and movement. A red arrow bobs over
-// each one and sparks stream up from it so players know to tap.
+// Each critter rolls a separate reward and gear tier; the species only determines its appearance and movement.
+// Tier-colored sparks and a beacon ring help players spot them.
 // Only a click or a tap catches one: the hero never does (they shy away from the hero, and nothing but
 // catchCritterAt calls catchCritter).
 // Looks: three.js models (tools/critters3d.html), baked by `node tools/critters3d_bake.js` into
@@ -110,7 +110,6 @@ function critterSprite(key, K) {
 // gap after each critter's 9-12 s life (one every ~30 s); at most CRITTER_MAX at once
 export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
-export const CRITTER_ARROW_ENCOUNTERS = 7;
 // Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
 const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
 const CRITTER_TUTORIAL_POPUP = { root: null, title: null, reward: null, action: null };
@@ -174,7 +173,7 @@ class Critter {
     const K = { ...CRITTERS[key], tier, color: TIER_COLORS[tier] || TIER_COLORS[0] };
     Object.assign(this, { world, key, K, tier, reward: critterReward(key), x, y, originX: x, originY: y,
       z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU),
-      caught: false, gone: false, showArrow: false, tutorial: false, tutorialRendered: false, layer: 'top' });
+      caught: false, gone: false, tutorial: false, tutorialRendered: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
   update(dt) {
@@ -251,15 +250,6 @@ class Critter {
     if (Number.isInteger(K.artIndex) && critterSheetReady()) this.drawSheetSprite(ctx, px, py, fade);
     else if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
-    if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
-      const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
-      ctx.globalAlpha = fade;
-      ctx.fillStyle = '#ff2a2a'; ctx.strokeStyle = '#3a0000'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(px, tip); ctx.lineTo(px - 7, tip - 8); ctx.lineTo(px - 3, tip - 8); ctx.lineTo(px - 3, tip - 15);
-      ctx.lineTo(px + 3, tip - 15); ctx.lineTo(px + 3, tip - 8); ctx.lineTo(px + 7, tip - 8); ctx.closePath();
-      ctx.fill(); ctx.stroke();
-    }
     if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
   }
@@ -267,7 +257,7 @@ class Critter {
     const K = this.K, img = CRITTER_SHEET.img;
     const cellW = img.naturalWidth / 5, cellH = img.naturalHeight / 4;
     const sx = (K.artIndex % 5) * cellW, sy = Math.floor(K.artIndex / 5) * cellH;
-    const size = 76, y = K.fly ? py - this.z : py - 5;
+    const size = 48, y = K.fly ? py - this.z : py - 5;
     const tinted = drawTinted(K.color, (c) => {
       c.imageSmoothingEnabled = true;
       c.drawImage(img, sx, sy, cellW, cellH, 0, 0, 128, 128);
@@ -303,7 +293,7 @@ class Critter {
       }
       ctx.globalAlpha = fade;
     }
-    ctx.drawImage(tinted, px - 32, y - 32, 64, 64);
+    ctx.drawImage(tinted, px - 24, y - 24, 48, 48);
     if (K.accent === 'crystals') {
       ctx.fillStyle = '#ffffff'; ctx.strokeStyle = K.color; ctx.lineWidth = 1;
       for (let i = -1; i <= 1; i++) {
@@ -336,13 +326,13 @@ class Critter {
   }
   /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
-    const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 1.3;
+    const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 0.8;
     const d = s.dirs > 1 ? ((Math.round(this.a / (TAU / s.dirs)) % s.dirs) + s.dirs) % s.dirs : 0;
     const i = s.at + d * s.frames + Math.floor(t * (K.artKey === 'moth' ? 16 : K.artKey === 'scarab' ? 14 : 10) + this.ph * 3) % s.frames;
     const cy = K.fly ? py - this.z : py - 6;
     if (K.fly) { ctx.globalAlpha = fade * 0.3; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(px, py, 9, 4.5, 0, 0, TAU); ctx.fill(); }
     ctx.globalCompositeOperation = 'lighter';
-    const b = 25 + Math.min(10, this.tier * 0.45) + Math.sin(t * 5) * 3;
+    const b = 18 + Math.min(7, this.tier * 0.3) + Math.sin(t * 5) * 2;
     ctx.globalAlpha = fade * 0.4; ctx.drawImage(glowSprite(K.color), px - b, cy - b, b * 2, b * 2);
     ctx.globalAlpha = fade * 0.2; ctx.drawImage(glowSprite(LIGHT2[this.key] || K.color), px - b * 1.5, cy - b * 1.5, b * 3, b * 3);
     ctx.globalCompositeOperation = 'source-over';
@@ -396,8 +386,6 @@ export function spawnCritter(world, key = null) {
         G.game?.autosave?.();
       } else {
         ch.critterTutorialSeen = true;
-        ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
-        c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
       }
     }
     return c;
