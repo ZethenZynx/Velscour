@@ -482,14 +482,14 @@ export function mixPartner(biome, rnd = Math.random) {
   return kin.length ? kin[Math.floor(rnd() * kin.length)] : null;
 }
 
-// Beta biomes and follow-on regions: never in a biome bag or the overworld guarantee. Velscour's skull button reaches
-// them (a region's words, or the HAIL VELSCOUR! list; game.js openVelscourContact).
+// Additional regions: those named in an Act pool can be selected for campaign depths; other special regions are reached
+// through Velscour's skull button (a region's words or the HAIL VELSCOUR! list; game.js openVelscourContact).
 export const BETA_BIOMES = [
   {
-    // THE SNOWY SUMMIT (docs/SNOWY_SUMMIT.md): where the Mountainside's summit leads, never drawn on its own. Thin
+    // THE SNOWY SUMMIT (docs/SNOWY_SUMMIT.md): a standalone Act 3 overworld depth. Thin
     // ridgelines across a mountain range, plateaus where groups fight, the peak and one of five snow-swapped bosses;
     // a three.js height field like the Mountainside's, in the Snowy Summit pack (assets/tiles/snowy_summit/)
-    id: 'snowy_summit', name: 'The Snowy Summit', pack: 'snowy_summit', overworld: true, packArt: true, painted: false, wallPack: null, region: true, follows: 'mountainside',
+    id: 'snowy_summit', name: 'The Snowy Summit', pack: 'snowy_summit', overworld: true, packArt: true, painted: false, wallPack: null, region: true,
     palette: null, dark: 0.2, light: 14,
     ambient: { type: 'snow', color: '#f2f6fc' }, mon: { hue: 200, sat: 0.6, light: 0.1 },
     el: 'cold', blood: '#7c1424', adj: ['Frostbitten', 'Rime-Bound', 'Howling', 'Snowblind'],
