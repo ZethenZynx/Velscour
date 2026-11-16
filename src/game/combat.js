@@ -360,12 +360,12 @@ export function kill(tgt, src, info = {}) {
   if (tgt.onDeath) tgt.onDeath(src);
 
   if (world && tgt.team === 'enemy' && !tgt.affixNoDeathEffects) {
-    const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}) => {
+    const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}, fxOverride = null) => {
       world.affixFields ||= [];
       world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
         tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
         label: id.replaceAll('_', ' '), color: elem(el).glow, o });
-      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null }));
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: fxOverride || (id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null) }));
     };
     if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
     if (worldAffixes.has('static_discharge')) {
@@ -417,10 +417,7 @@ export function kill(tgt, src, info = {}) {
     for (const [id, [el, fx, radius, status]] of Object.entries(EXTRA_AFFIX_DEATHS)) {
       if (worldAffixes.has(id)) {
         const dmg = (world.player?.maxHp || tgt.maxHp) * 0.035;
-        pushField(id, el, radius, dmg, 1.25, 0.35, status);
-        world.affixFields[world.affixFields.length - 1].color = elem(el).glow;
-        const marker = world.hazards && world.hazards[world.hazards.length - 1];
-        if (marker && marker.constructor?.name === 'AffixFieldMarker') marker.fx = fx;
+        pushField(id, el, radius, dmg, 1.25, 0.35, status, fx);
       }
     }
   }
