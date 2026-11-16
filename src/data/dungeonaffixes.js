@@ -805,7 +805,7 @@ export const DUNGEON_AFFIXES = Object.freeze(
     "id": "blood_pools",
     "name": "Blood Pools",
     "category": "Environmental & Dungeon Modifiers",
-    "description": "Pools of blood slow players and periodically inflict bleeding.",
+    "description": "Pools of blood periodically deal physical damage, inflict bleeding, and slow players.",
     "implemented": true
   },
   {
@@ -1107,6 +1107,699 @@ export const DUNGEON_AFFIXES = Object.freeze(
     "name": "Feeding Frenzy",
     "category": "World Effects",
     "description": "Kills have a chance to drop health or mana orbs.",
+    "implemented": true
+  },
+  {
+    "id": "poison_pools",
+    "name": "Poison Pools",
+    "category": "Elemental Hazards",
+    "description": "Poisonous pools inflict stacking poison damage.",
+    "implemented": true
+  },
+  {
+    "id": "acid_pools",
+    "name": "Acid Pools",
+    "category": "Elemental Hazards",
+    "description": "Acid pools damage players and temporarily reduce armor.",
+    "implemented": true
+  },
+  {
+    "id": "frost_pools",
+    "name": "Frost Pools",
+    "category": "Elemental Hazards",
+    "description": "Freezing pools deal frost damage and reduce attack speed.",
+    "implemented": true
+  },
+  {
+    "id": "lightning_pools",
+    "name": "Lightning Pools",
+    "category": "Elemental Hazards",
+    "description": "Electrified pools periodically deal lightning damage.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_pools",
+    "name": "Shadow Pools",
+    "category": "Elemental Hazards",
+    "description": "Dark pools deal shadow damage and reduce healing received.",
+    "implemented": true
+  },
+  {
+    "id": "arcane_pools",
+    "name": "Arcane Pools",
+    "category": "Elemental Hazards",
+    "description": "Magical pools deal arcane damage and drain mana.",
+    "implemented": true
+  },
+  {
+    "id": "holy_pools",
+    "name": "Holy Pools",
+    "category": "Elemental Hazards",
+    "description": "Radiant pools deal holy damage and temporarily weaken resistances.",
+    "implemented": true
+  },
+  {
+    "id": "necrotic_pools",
+    "name": "Necrotic Pools",
+    "category": "Elemental Hazards",
+    "description": "Decaying pools damage players and temporarily reduce maximum health.",
+    "implemented": true
+  },
+  {
+    "id": "burning_oil",
+    "name": "Burning Oil",
+    "category": "Elemental Hazards",
+    "description": "Oil pools ignite periodically and deal fire damage over time.",
+    "implemented": true
+  },
+  {
+    "id": "molten_blood",
+    "name": "Molten Blood",
+    "category": "Elemental Hazards",
+    "description": "Burning blood pools deal fire damage and inflict bleeding.",
+    "implemented": true
+  },
+  {
+    "id": "cursed_pools",
+    "name": "Cursed Pools",
+    "category": "Elemental Hazards",
+    "description": "Cursed pools deal damage and temporarily reduce player damage.",
+    "implemented": true
+  },
+  {
+    "id": "venom_pools",
+    "name": "Venom Pools",
+    "category": "Elemental Hazards",
+    "description": "Venom damage increases while a player remains in the pool.",
+    "implemented": true
+  },
+  {
+    "id": "soul_pools",
+    "name": "Soul Pools",
+    "category": "Elemental Hazards",
+    "description": "Spectral pools deal magical damage and drain player resources.",
+    "implemented": true
+  },
+  {
+    "id": "plague_pools",
+    "name": "Plague Pools",
+    "category": "Elemental Hazards",
+    "description": "Diseased pools damage players over time and reduce healing.",
+    "implemented": true
+  },
+  {
+    "id": "chaos_pools",
+    "name": "Chaos Pools",
+    "category": "Elemental Hazards",
+    "description": "Unstable pools change damage type and secondary effect between eruptions.",
+    "implemented": true
+  },
+  {
+    "id": "crystal_pools",
+    "name": "Crystal Pools",
+    "category": "Elemental Hazards",
+    "description": "Crystalline pools periodically erupt and deal piercing damage.",
+    "implemented": true
+  },
+  {
+    "id": "gravity_pools",
+    "name": "Gravity Pools",
+    "category": "Elemental Hazards",
+    "description": "Gravitational pools damage players and slow their movement.",
+    "implemented": true
+  },
+  {
+    "id": "void_pools",
+    "name": "Void Pools",
+    "category": "Elemental Hazards",
+    "description": "Void pools deal increasing damage while players remain inside.",
+    "implemented": true
+  },
+  {
+    "id": "corruption_pools",
+    "name": "Corruption Pools",
+    "category": "Elemental Hazards",
+    "description": "Corrupted pools build stacking damage vulnerability.",
+    "implemented": true
+  },
+  {
+    "id": "quicksand_pools",
+    "name": "Quicksand Pools",
+    "category": "Elemental Hazards",
+    "description": "Quicksand slows movement and periodically deals crushing damage.",
+    "implemented": true
+  },
+  {
+    "id": "steam_pools",
+    "name": "Steam Pools",
+    "category": "Elemental Hazards",
+    "description": "Scalding steam deals fire damage and reduces accuracy.",
+    "implemented": true
+  },
+  {
+    "id": "toxic_sludge",
+    "name": "Toxic Sludge",
+    "category": "Elemental Hazards",
+    "description": "Thick poisonous sludge slows players and inflicts poison.",
+    "implemented": true
+  },
+  {
+    "id": "psychic_pools",
+    "name": "Psychic Pools",
+    "category": "Elemental Hazards",
+    "description": "Psychic pools deal magical damage and temporarily reduce spell effectiveness.",
+    "implemented": true
+  },
+  {
+    "id": "life_draining_pools",
+    "name": "Life-Draining Pools",
+    "category": "Elemental Hazards",
+    "description": "Pools drain player health and heal nearby enemies.",
+    "implemented": true
+  },
+  {
+    "id": "barrier",
+    "name": "Barrier",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies periodically gain a visible shield that absorbs up to 20% of maximum health.",
+    "implemented": true
+  },
+  {
+    "id": "thorns",
+    "name": "Thorns",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies reflect 10% of physical damage they receive.",
+    "implemented": true
+  },
+  {
+    "id": "adaptive_resistance",
+    "name": "Adaptive Resistance",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies gradually gain resistance to damage types repeatedly used against them.",
+    "implemented": true
+  },
+  {
+    "id": "elemental_resistance",
+    "name": "Elemental Resistance",
+    "category": "Enemy Stat Modifiers",
+    "description": "Enemies periodically gain capped resistance to one indicated elemental type.",
+    "implemented": true
+  },
+  {
+    "id": "shared_health",
+    "name": "Shared Health",
+    "category": "Enemy Stat Modifiers",
+    "description": "Nearby enemies share a portion of damage taken, shown by magical links.",
+    "implemented": true
+  },
+  {
+    "id": "protective_aura",
+    "name": "Protective Aura",
+    "category": "Enemy Stat Modifiers",
+    "description": "Elite enemies reduce damage taken by nearby allies while the aura is active.",
+    "implemented": true
+  },
+  {
+    "id": "last_stand",
+    "name": "Last Stand",
+    "category": "Enemy Stat Modifiers",
+    "description": "Wounded regular enemies briefly gain capped damage reduction.",
+    "implemented": true
+  },
+  {
+    "id": "bloodthirsty",
+    "name": "Bloodthirsty",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemies deal increased damage against injured players.",
+    "implemented": true
+  },
+  {
+    "id": "executioner",
+    "name": "Executioner",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemies deal double damage against players below 25% health.",
+    "implemented": true
+  },
+  {
+    "id": "sunder",
+    "name": "Sunder",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks temporarily reduce player resistances.",
+    "implemented": true
+  },
+  {
+    "id": "soul_rend",
+    "name": "Soul Rend",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks deal additional damage based on the player's missing health.",
+    "implemented": true
+  },
+  {
+    "id": "arcane_leech",
+    "name": "Arcane Leech",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks steal mana and restore the attacker, with a visible drain effect.",
+    "implemented": true
+  },
+  {
+    "id": "triple_strike",
+    "name": "Triple Strike",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks occasionally repeat two times in rapid succession.",
+    "implemented": true
+  },
+  {
+    "id": "crushing_blows",
+    "name": "Crushing Blows",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks occasionally deal capped damage based on player maximum health.",
+    "implemented": true
+  },
+  {
+    "id": "unholy_weapons",
+    "name": "Unholy Weapons",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemy attacks inflict stacking shadow damage.",
+    "implemented": true
+  },
+  {
+    "id": "elemental_weapons",
+    "name": "Elemental Weapons",
+    "category": "Enemy Attack Modifiers",
+    "description": "Enemies periodically switch between fire, frost, and lightning attacks.",
+    "implemented": true
+  },
+  {
+    "id": "blood_explosion",
+    "name": "Blood Explosion",
+    "category": "On-Death Effects",
+    "description": "Enemies explode on death, dealing physical damage and inflicting bleeding.",
+    "implemented": true
+  },
+  {
+    "id": "acid_explosion",
+    "name": "Acid Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release acidic explosions that temporarily reduce armor.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_explosion",
+    "name": "Shadow Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release shadow explosions that reduce healing.",
+    "implemented": true
+  },
+  {
+    "id": "holy_explosion",
+    "name": "Holy Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release bursts of radiant damage.",
+    "implemented": true
+  },
+  {
+    "id": "arcane_explosion",
+    "name": "Arcane Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies explode with magical energy that drains mana.",
+    "implemented": true
+  },
+  {
+    "id": "plague_burst",
+    "name": "Plague Burst",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release infectious bursts that apply disease.",
+    "implemented": true
+  },
+  {
+    "id": "soul_explosion",
+    "name": "Soul Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release magical explosions that drain player resources.",
+    "implemented": true
+  },
+  {
+    "id": "crystal_explosion",
+    "name": "Crystal Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies shatter into damaging crystal fragments.",
+    "implemented": true
+  },
+  {
+    "id": "void_explosion",
+    "name": "Void Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies release void explosions that increase damage taken.",
+    "implemented": true
+  },
+  {
+    "id": "corruption_explosion",
+    "name": "Corruption Explosion",
+    "category": "On-Death Effects",
+    "description": "Dead enemies explode and apply stacking damage vulnerability.",
+    "implemented": true
+  },
+  {
+    "id": "eternal_winter",
+    "name": "Eternal Winter",
+    "category": "World Effects",
+    "description": "Enemies deal additional frost damage.",
+    "implemented": true
+  },
+  {
+    "id": "scorched_earth",
+    "name": "Scorched Earth",
+    "category": "World Effects",
+    "description": "Enemies deal additional fire damage.",
+    "implemented": true
+  },
+  {
+    "id": "plague_season",
+    "name": "Plague Season",
+    "category": "World Effects",
+    "description": "Enemies deal additional poison damage.",
+    "implemented": true
+  },
+  {
+    "id": "arcane_instability",
+    "name": "Arcane Instability",
+    "category": "World Effects",
+    "description": "Enemies deal additional arcane damage.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_dominion",
+    "name": "Shadow Dominion",
+    "category": "World Effects",
+    "description": "Enemies deal additional shadow damage.",
+    "implemented": true
+  },
+  {
+    "id": "thunder_dominion",
+    "name": "Thunder Dominion",
+    "category": "World Effects",
+    "description": "Enemies deal additional lightning damage.",
+    "implemented": true
+  },
+  {
+    "id": "cursed_armory",
+    "name": "Cursed Armory",
+    "category": "World Effects",
+    "description": "Enemies deal additional necrotic damage.",
+    "implemented": true
+  },
+  {
+    "id": "divine_judgment",
+    "name": "Divine Judgment",
+    "category": "World Effects",
+    "description": "Enemies deal additional holy damage.",
+    "implemented": true
+  },
+  {
+    "id": "treasure_hoard",
+    "name": "Treasure Hoard",
+    "category": "Risk & Reward",
+    "description": "Enemies drop 25% more gold and have 20% more health.",
+    "implemented": true
+  },
+  {
+    "id": "ancient_knowledge",
+    "name": "Ancient Knowledge",
+    "category": "Risk & Reward",
+    "description": "Enemies grant 25% more experience and deal 20% more damage.",
+    "implemented": true
+  },
+  {
+    "id": "gemstone_infusion",
+    "name": "Gemstone Infusion",
+    "category": "Risk & Reward",
+    "description": "Enemies have increased gem drop chances and capped elemental resistance.",
+    "implemented": true
+  },
+  {
+    "id": "cursed_fortune",
+    "name": "Cursed Fortune",
+    "category": "Risk & Reward",
+    "description": "Item drop chances increase, but player healing is reduced.",
+    "implemented": true
+  },
+  {
+    "id": "glass_cannon",
+    "name": "Glass Cannon",
+    "category": "Risk & Reward",
+    "description": "Players deal 50% more damage and take 50% more damage.",
+    "implemented": true
+  },
+  {
+    "id": "blood_sacrifice",
+    "name": "Blood Sacrifice",
+    "category": "Risk & Reward",
+    "description": "Players deal increased damage but lose a small amount of health on attacks.",
+    "implemented": true
+  },
+  {
+    "id": "mana_surge",
+    "name": "Mana Surge",
+    "category": "Risk & Reward",
+    "description": "Mana regeneration doubles, but magical damage taken increases.",
+    "implemented": true
+  },
+  {
+    "id": "vampiric_blessing",
+    "name": "Vampiric Blessing",
+    "category": "Risk & Reward",
+    "description": "Players gain life steal while maximum health is reduced.",
+    "implemented": true
+  },
+  {
+    "id": "champions_bounty",
+    "name": "Champion's Bounty",
+    "category": "Risk & Reward",
+    "description": "Elite enemies have increased health and grant extra rewards.",
+    "implemented": true
+  },
+  {
+    "id": "legendary_hunt",
+    "name": "Legendary Hunt",
+    "category": "Risk & Reward",
+    "description": "Bosses gain an extra attack and improved rare item drop chances.",
+    "implemented": true
+  },
+  {
+    "id": "fire_walls",
+    "name": "Fire Walls",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Telegraphed walls of flame erupt across the ground and deal fire damage.",
+    "implemented": true
+  },
+  {
+    "id": "ice_walls",
+    "name": "Ice Walls",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Jagged ice walls rise, briefly block paths, then shatter.",
+    "implemented": true
+  },
+  {
+    "id": "lightning_beams",
+    "name": "Lightning Beams",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Glowing pylons connect with damaging electrical beams.",
+    "implemented": true
+  },
+  {
+    "id": "rotating_lasers",
+    "name": "Rotating Lasers",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Magical crystals sweep rotating beams across the dungeon.",
+    "implemented": true
+  },
+  {
+    "id": "orbital_fireballs",
+    "name": "Orbital Fireballs",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Burning orbs orbit elite enemies and damage nearby players.",
+    "implemented": true
+  },
+  {
+    "id": "orbital_lightning",
+    "name": "Orbital Lightning",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Electrical orbs orbit enemies and periodically discharge.",
+    "implemented": true
+  },
+  {
+    "id": "orbital_frost",
+    "name": "Orbital Frost",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Frost orbs circle enemies and slow nearby players.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_tentacles",
+    "name": "Shadow Tentacles",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Dark tentacles emerge from the floor and lash nearby players.",
+    "implemented": true
+  },
+  {
+    "id": "bone_spikes",
+    "name": "Bone Spikes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Bone pillars erupt from marked ground and damage nearby players.",
+    "implemented": true
+  },
+  {
+    "id": "crystal_spires",
+    "name": "Crystal Spires",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Glowing crystals rise from marked ground and explode after a warning.",
+    "implemented": true
+  },
+  {
+    "id": "flame_tornadoes",
+    "name": "Flame Tornadoes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Moving fire whirlwinds burn players in their path.",
+    "implemented": true
+  },
+  {
+    "id": "frost_tornadoes",
+    "name": "Frost Tornadoes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Moving blizzards damage and slow players in their path.",
+    "implemented": true
+  },
+  {
+    "id": "lightning_tornadoes",
+    "name": "Lightning Tornadoes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Electrified whirlwinds periodically discharge lightning.",
+    "implemented": true
+  },
+  {
+    "id": "poison_vortex",
+    "name": "Poison Vortex",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Moving poison clouds inflict damage over time.",
+    "implemented": true
+  },
+  {
+    "id": "blood_rain",
+    "name": "Blood Rain",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Blood falls from above and creates damaging puddles on impact.",
+    "implemented": true
+  },
+  {
+    "id": "falling_swords",
+    "name": "Falling Swords",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Spectral swords fall onto marked locations.",
+    "implemented": true
+  },
+  {
+    "id": "falling_spears",
+    "name": "Falling Spears",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Magical spears descend and pierce marked locations.",
+    "implemented": true
+  },
+  {
+    "id": "falling_crystals",
+    "name": "Falling Crystals",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Large crystals fall and shatter into damaging fragments.",
+    "implemented": true
+  },
+  {
+    "id": "soul_chains",
+    "name": "Soul Chains",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Spectral chains connect enemies and damage players who cross them.",
+    "implemented": true
+  },
+  {
+    "id": "burning_chains",
+    "name": "Burning Chains",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Flaming chains connect nearby enemies and burn players on contact.",
+    "implemented": true
+  },
+  {
+    "id": "arcane_runes",
+    "name": "Arcane Runes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Glowing runes appear on the ground and detonate after a warning.",
+    "implemented": true
+  },
+  {
+    "id": "blood_runes",
+    "name": "Blood Runes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Pulsating runes erupt into damaging blood explosions.",
+    "implemented": true
+  },
+  {
+    "id": "frost_runes",
+    "name": "Frost Runes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Icy runes release freezing explosions after a warning.",
+    "implemented": true
+  },
+  {
+    "id": "lightning_runes",
+    "name": "Lightning Runes",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Electrical runes discharge lightning after a warning.",
+    "implemented": true
+  },
+  {
+    "id": "shadow_rifts",
+    "name": "Shadow Rifts",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Dark tears open in the ground and pulse shadow damage.",
+    "implemented": true
+  },
+  {
+    "id": "flame_geysers",
+    "name": "Flame Geysers",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Columns of fire erupt periodically from marked floor cracks.",
+    "implemented": true
+  },
+  {
+    "id": "poison_geysers",
+    "name": "Poison Geysers",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Poisonous gas erupts from vents and lingers in clouds.",
+    "implemented": true
+  },
+  {
+    "id": "frost_geysers",
+    "name": "Frost Geysers",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Freezing mist erupts from the ground and slows players.",
+    "implemented": true
+  },
+  {
+    "id": "lightning_geysers",
+    "name": "Lightning Geysers",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Electrical energy erupts upward and damages nearby players.",
+    "implemented": true
+  },
+  {
+    "id": "spinning_blades",
+    "name": "Spinning Blades",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Spectral blades rotate around fixed points and damage on contact.",
+    "implemented": true
+  },
+  {
+    "id": "wandering_flames",
+    "name": "Wandering Flames",
+    "category": "Environmental & Dungeon Modifiers",
+    "description": "Small animated flames roam the dungeon and burn players they touch.",
     "implemented": true
   }
 
