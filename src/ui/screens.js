@@ -548,13 +548,22 @@ export function settingsDialog() {
       return;
     }
     if (capturingMacro !== null) {
+      if (e.code === "Backspace" || e.code === "Delete") {
+        setMacroKey(capturingMacro, null);
+        if (G.game && typeof G.game.autosave === "function") G.game.autosave();
+        stopKeyCapture("Macro key cleared."); refreshMacroButtons(); return;
+      }
       if (!MACRO_KEYS.includes(e.code)) { keybindStatus.textContent = "Use F1–F12 or one of the existing macro letter keys."; return; }
+      const actionConflict = KEY_BINDING_ACTIONS.find((action) => getKeyBinding(action.id) === e.code);
+      if (actionConflict) { keybindStatus.textContent = "That key is assigned to " + actionConflict.label + ". Rebind that action first."; return; }
       setMacroKey(capturingMacro, e.code);
       if (G.game && typeof G.game.autosave === "function") G.game.autosave();
       stopKeyCapture("Macro key saved. Any macro that used that key now uses this macro’s previous key.");
       refreshMacroButtons();
       return;
     }
+    const macroConflict = G.char && G.char.macros && G.char.macros.some((macro) => macro.key === e.code);
+    if (macroConflict) { keybindStatus.textContent = "That key is assigned to a macro. Rebind the macro first."; return; }
     if (setKeyBinding(capturingKeybind, e.code)) {
       stopKeyCapture("Binding saved. Any action that used that key was moved to the previous key.");
       refreshKeybindButtons();
@@ -657,7 +666,7 @@ export function helpDialog() {
     <div><kbd>R</kbd> <kbd>E</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> macros: several skills on one key, set up from the skill tree's <b>Macros</b> button (or the menu)</div>
     <div><kbd>C</kbd> character · <kbd>I</kbd> bag · <kbd>K</kbd> skill tree · <kbd>T</kbd> passive talent tree · <kbd>Q</kbd> quest log</div>
     <div><kbd>Tab</kbd>/<kbd>M</kbd> map · <kbd>Esc</kbd> menu · wheel zoom</div>
-    <div><kbd>G</kbd> MADNESS · <kbd>F</kbd> CLASS ULTIMATE (Smite, Cataclysm, Supernova, etc.), then click where it should strike (both fill as you fight) · <kbd>H</kbd> HEARTHSTONE (two-way town portal) · <kbd>F1</kbd> How to Play</div>
+    <div><kbd>G</kbd> MADNESS · <kbd>F</kbd> CLASS ULTIMATE (Smite, Cataclysm, Supernova, etc.), then click where it should strike (both fill as you fight) · <kbd>H</kbd> HEARTHSTONE (two-way town portal) · <kbd>F12</kbd> How to Play</div>
     <div><b style="color:#ffe2a0">While the hero plays</b></div>
     <div>Click or tap <b style="color:#ffd040">gilded critters</b> before they get away (follow the red arrows): each is worth a big sum of experience (a Golden Scarab, a pile of gold). </div>
     <div>Now and then a Green or better item drops <b style="color:#ffdf8a">sealed</b>: break the seals from the SEALED button or the inventory. The inventory panel shows the available space.</div>
