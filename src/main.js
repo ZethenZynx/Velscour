@@ -234,7 +234,6 @@ function loop(now) {
 }
 
 // A hidden page (minimised, covered by other windows, a locked PC) gets no animation frames, and its timers are
-// throttled to once a second, then once a minute. A worker's timer is not, so its ticks keep the game (and auto-play)
 // running in real time while nothing is drawn. They also step in when frames stop on a page that still counts as visible.
 let lastTick = 0;
 function tick() {

@@ -26,7 +26,7 @@ const clean = (page) => page.evaluate(() => { const { G } = window.VELSCOUR; doc
 // a hero of level H in gear of item level IL, the way tools/tests/endgame.js gears one (best of 150 drops, upgrades, gems, mastery)
 const hero = (page, cls, H, IL, unlock = true) => page.evaluate(async ({ cls, H, IL, unlock }) => {
   const { G, game } = window.VELSCOUR;
-  const { Auto, heroDamage } = await import('/src/game/autoplay.js');
+  const { Auto, heroDamage } = await import('/tools/tests/auto_player.js');
   const { rollItem, rollGem } = await import('/src/data/items.js');
   const { endgame, saveEndgame, resetEndgameCache } = await import('/src/game/endgame.js');
   localStorage.removeItem('velscour_endgame_v1'); resetEndgameCache();
@@ -281,7 +281,7 @@ async function endPart(page, shot, step) {
   // auto-play's exit: on when ready, else home
   const ex = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR, c = G.char;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     c.level = 300; c.rifts.open = 9; // riftLevel(2) 267 .. riftLevel(9) 299: tier 2 is next and ready
     game.riftExit(G.world, { auto: true });
     await new Promise((r) => { const t = setInterval(() => { if (G.world.rift && G.world.rift.tier === 2 && document.querySelector('#loading').classList.contains('hidden')) { clearInterval(t); r(); } }, 50); });
@@ -313,12 +313,12 @@ async function autoPart(page, shot, step) {
   const g = await hero(page, 'wizard', 273, 263);
   console.log(`auto-play: wizard level 273 in item level 263 gear (dps ${g.dps.toExponential(2)}, life ${Math.round(g.hp)}), god mode, tier 1 (monster level 263)`);
   await page.evaluate(async () => {
-    const { G } = window.VELSCOUR; const { Auto } = await import('/src/game/autoplay.js');
+    const { G } = window.VELSCOUR; const { Auto } = await import('/tools/tests/auto_player.js');
     G.godMode = true; G.autoDest = 'rift'; G.char.rifts.open = 1; Auto.toggle(true);
   });
   const res = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const ev = { status: new Set() };
     let R = null, w0 = null;
     for (let f = 0; f < 30 * 1500; f++) {

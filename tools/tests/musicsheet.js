@@ -194,7 +194,7 @@ E|---------------------------|---------------------------|`;
     const copy = JSON.parse(JSON.stringify(G.char));
     const old = JSON.parse(JSON.stringify(G.char)); delete old.tabs; delete old.tabAt; migrate(old);
     migrate(copy);
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.sellJunk();
     const kept = G.char.bag.filter((b) => b && b.type === 'sheet').length;
     Auto.toggle(true);

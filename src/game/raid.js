@@ -865,7 +865,6 @@ class Raid {
     this.unseal();
     if (w.player) { w.player.raidDmgMul = 1; w.player.raidTakenMul = 1; }
     w.darkK = 0; m.reflect = false;
-    // fight record, for balancing (tools/tests/autoplay.js prints it)
     if ((G.raidLog || (G.raidLog = [])).length > 50) G.raidLog.shift();
     G.raidLog.push({ boss: this.tpl.id, depth: this.depth, secs: Math.round(this.t), minHp: +(this.minHp ?? 1).toFixed(2), phases: this.phases.length, mods: this.mods.join(',') });
     for (const c of [...this.wards, ...this.minions]) if (!c.dead) { c.dead = true; burst(c.x, c.y, 30, this.tpl.el, 12, 2); }
@@ -919,7 +918,7 @@ class Raid {
       case 'charge3': case 'charge': {
         if (k === 'charge3') this.follow.unshift('charge', 'charge');
         const len = Math.min(12, d + 2);
-        tele({ kind: 'line', x: m.x, y: m.y, ang, len, w: 1.6, reach: m.r + 0.4, dur: 0.6 }); // reach: the body's hit, for auto-play
+        tele({ kind: 'line', x: m.x, y: m.y, ang, len, w: 1.6, reach: m.r + 0.4, dur: 0.6 });
         m.startAction('charge', 0.6, { ang, len });
         this.say(k === 'charge3' ? 'charge3' : null);
         return true;
@@ -1163,7 +1162,6 @@ class RingWave {
     }
     return this.r < this.max && !this.src.dead;
   }
-  /** For auto-play: the band about to sweep over. */
   danger(out) { out.push({ ring: true, x: this.x, y: this.y, r0: this.r - 0.6, r1: this.r + 1.4, gap: this.gap, gapW: this.gapW * 0.8 }); }
   draw(ctx) {
     const steps = 72, fade = Math.min(1, (this.max - this.r) / 3);

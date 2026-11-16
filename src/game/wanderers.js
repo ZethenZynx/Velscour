@@ -1,7 +1,6 @@
 // Wanderers: Herrington Hollow's townsfolk out on the overworld maps (the Wilds, the Castle, the Sea of Sand).
 // They walk real paths between landmarks with their animated sheets (facing their way), cower and flee when monsters
 // come near, cheer when the area is won, and talk. One or two of them carry a bounty ("!" over the head): walk up to
-// them (auto-play does) and they ask for a number of kills, a guardian slain or a relic fetched, and pay out on the spot.
 import { G } from '../state.js';
 import { rand, chance, pick, dist, angleTo } from '../core/util.js';
 import { TOWNSFOLK, folkLabel } from '../data/townsfolk.js';
@@ -157,7 +156,6 @@ function wanderTick(world, n, spots, dt) {
   n.running = n.mood === 'scared';
 }
 
-/** For auto-play: a bounty giver worth walking to, or an heirloom to pick up. */
 export function bountyGoal(world) {
   for (const n of world.npcs) {
     const b = n.wanderer && n.bounty;

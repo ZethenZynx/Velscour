@@ -9,7 +9,7 @@ const { openGame, report } = require('./harness');
     const { G, game } = window.VELSCOUR;
     await game.newChar('paladin', 'Locksmith');
     const { Vendor } = await import('/src/ui/vendor.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { rollItem, goldPile, goldScale } = await import('/src/data/items.js');
     const { attrRespec } = await import('/src/ui/inventory.js');
     const { dropFromBag } = await import('/src/ui/inventory.js');

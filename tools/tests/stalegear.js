@@ -16,7 +16,7 @@ const { openGame, report } = require('./harness');
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char, p = G.player;
     c.level = 330; c.depth = 500; c.gold = 2e8;
     // a full kit of level-appropriate gear so only the body slot is stale

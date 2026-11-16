@@ -153,7 +153,7 @@ const step = (page, secs) => page.evaluate(async (secs) => {   // run the game f
     // ------------------------------------------------ auto-play climbs the tower and takes the roof (god mode: this is about the way, not the odds)
     if (AUTO) {
       await page.evaluate(async () => {
-        const { G, game } = window.VELSCOUR, { BIOME_BY_ID } = await import('/src/data/biomes.js'), { Auto } = await import('/src/game/autoplay.js');
+        const { G, game } = window.VELSCOUR, { BIOME_BY_ID } = await import('/src/data/biomes.js'), { Auto } = await import('/tools/tests/auto_player.js');
         G.towerVariant = null; G.towerScenario = null; G.char.depth = 3; G.godMode = true;
         if (G.world) G.world.depth = 3;   // the skull keeps the current depth: a level-1 hero should face depth 3
         await game.teleportToBiome(BIOME_BY_ID.serpentine_tower);
@@ -163,7 +163,7 @@ const step = (page, secs) => page.evaluate(async (secs) => {   // run the game f
       let last = null;
       for (let min = 1; min <= 20; min++) {
         const r = await page.evaluate(async () => {
-          const { G, game } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js'), w = G.world, run = w.overworldScenario;
+          const { G, game } = window.VELSCOUR, { Auto } = await import('/tools/tests/auto_player.js'), w = G.world, run = w.overworldScenario;
           for (let i = 0; i < 1800 && !run.completed; i++) { G.dt = 1 / 30; G.time += G.dt; G.frame++; game.update(1 / 30); if (i % 300 === 0) await new Promise((r) => setTimeout(r, 0)); }
           game.render();
           const p = G.player;

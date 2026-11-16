@@ -58,7 +58,7 @@ const samples = +(process.argv[3] || 30);
   for (const cls of classes) {
     const res = await page.evaluate(async ({ cls, samples }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto, charScore } = await import('/src/game/autoplay.js');
+      const { Auto, charScore } = await import('/tools/tests/auto_player.js');
       const { rollItem, RARITY, RING_SLOTS } = await import('/src/data/items.js');
       const { CLASSES } = await import('/src/data/classes.js');
       if (Auto.on) Auto.toggle(false);

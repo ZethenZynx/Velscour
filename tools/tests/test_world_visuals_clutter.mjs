@@ -150,7 +150,7 @@ const { hit } = await import('../../src/game/combat.js');
 const { Player } = await import('../../src/game/player.js');
 const { newCharData } = await import('../../src/game/save.js');
 const { Cine, drawCine, getHeroCutscenePortrait, drawHeroCutscenePortrait } = await import('../../src/game/cinema.js');
-const { Auto } = await import('../../src/game/autoplay.js');
+const { Auto } = await import('./auto_player.js');
 const { LoadingScreen, LORE_TIPS } = await import('../../src/ui/loading.js');
 
 G.ctx = makeMockCtx();

@@ -679,7 +679,6 @@ function occludeStatic(o, r, x = o.x, y = o.y, live = false) {
 
 /** Main world render. */
 // the Castle's roofs: each building's whole roof eases out while the hero is inside it and back in once they leave
-// (real time, so it reads the same at auto-play speed); a[bld] is that roof's opacity
 const ROOF_FADE_S = 0.45;
 function roofFade(world, heroBld) {
   const now = performance.now(), f = world._roofs || (world._roofs = { a: [], t: now });

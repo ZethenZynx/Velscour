@@ -224,7 +224,6 @@ export function madnessTick(dt) {
 export const madnessReady = () => !!G.char && (G.char.madness || 0) >= 1 && !(G.char.madT > 0) && G.world && G.world.kind === 'dungeon';
 export const madnessOn = () => !!G.char && G.char.madT > 0;
 
-/** Only ever called from the hero's own input (the MADNESS button / G key), never by auto-play. */
 export function unleashMadness() {
   if (!madnessReady()) return false;
   const c = G.char, p = G.player;

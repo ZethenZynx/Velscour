@@ -51,7 +51,7 @@ const { openGame, report } = require('./harness');
     const { G, game } = window.VELSCOUR;
     const H = await import('/src/game/happenings.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     G.godMode = true;
     game.buildDungeon(34, BIOME_BY_ID.catacombs);
     const w = G.world, p = G.player, map = w.map;
@@ -72,7 +72,7 @@ const { openGame, report } = require('./harness');
   ok(placed === 9, `placed 7 shrines + remains + cursed chest (${placed})`);
   await run(1); await shot('happen_interactables');
   // monsters take a few seconds each: 200 s to get round the level
-  for (let i = 0; i < 20; i++) { await run(10); if (process.env.TRACE) console.log('   trace', await page.evaluate(async () => { const { Auto } = await import('/src/game/autoplay.js'); const G = window.VELSCOUR.G; return G.world.kind + ' D' + G.world.depth + ' ' + Auto.status + ' hp ' + Math.round(G.player.hp) + ' boss ' + (G.world.boss && G.world.boss.dead); })); }
+  for (let i = 0; i < 20; i++) { await run(10); if (process.env.TRACE) console.log('   trace', await page.evaluate(async () => { const { Auto } = await import('/tools/tests/auto_player.js'); const G = window.VELSCOUR.G; return G.world.kind + ' D' + G.world.depth + ' ' + Auto.status + ' hp ' + Math.round(G.player.hp) + ' boss ' + (G.world.boss && G.world.boss.dead); })); }
   const used = await page.evaluate(() => {
     const w = window.VELSCOUR.G.world;
     return { open: w.chests.filter((c) => c.label && c.opened).map((c) => c.label), shut: w.chests.filter((c) => c.label && !c.opened).map((c) => c.label), buffs: window.VELSCOUR.G.player.buffs.map((b) => b.id), cursed: window.__cursed && { opened: window.__cursed.opened, done: window.__cursed.done } };
@@ -117,7 +117,7 @@ const { openGame, report } = require('./harness');
   const town = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
     const H = await import('/src/game/happenings.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(false); G.godMode = false;
     const out = {};
     for (const k of Object.keys(H.TOWN_EVENTS)) {

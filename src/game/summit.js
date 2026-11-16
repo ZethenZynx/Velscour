@@ -65,7 +65,6 @@ export function createSummitRun(world, gen, biome, depth, win) {
       return e ? `${e.name}: ${SUMMIT_ENCOUNTERS[e.kind][1]}` : 'Walk the ridgelines up the range to its peak.';
     },
     get won() { return plateaus.filter((e) => e.state === 'done').length; },
-    /** Mid-fight, where the fight needs the hero (autoplay.js): the nearest standing cairn. */
     get duty() {
       const e = current(), p = world.player;
       if (!e || e.kind !== 'cairns' || !p) return null;
@@ -146,7 +145,7 @@ export function createSummitRun(world, gen, biome, depth, win) {
     } else if (e.kind === 'cairns') {
       for (const [x, y] of e.n.cairns || []) {
         const m = makeMonster(world, 'golem', biome, lvl, 'champion', x, y, 0, { art: 'va_crystal', swap: { colorize: [195, 0.5], light: 0.15 }, tint: 'Ice' });
-        m.name = 'Howling Cairn'; m.static = true; m.speed = 0; m.raidPriority = 5; m.maxHp *= 0.85; m.hp = m.maxHp; m.scale = (m.scale || 1) * 1.15; m.awake = true; m.xp *= 0.5;   // raidPriority: auto-play breaks them before their brood
+        m.name = 'Howling Cairn'; m.static = true; m.speed = 0; m.raidPriority = 5; m.maxHp *= 0.85; m.hp = m.maxHp; m.scale = (m.scale || 1) * 1.15; m.awake = true; m.xp *= 0.5;
         m.wardTick = () => { m.moving = false; };
         world.add(m); e.objs.push(m);
       }

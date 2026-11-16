@@ -12,7 +12,7 @@ const only = (process.argv[2] || '').split(',').filter(Boolean), secs = +(proces
     G.ui.modalCount = 0;
     // a depth-25 hero: levels, a full kit of rare gear, auto-play spends the points and dresses it
     const { rollItem } = await import('/src/data/items.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     while (G.char.level < 30) G.player.levelUp();
     G.char.bag.fill(null);
     let i = 0;
@@ -55,7 +55,7 @@ const only = (process.argv[2] || '').split(',').filter(Boolean), secs = +(proces
       const { G, game } = window.VELSCOUR;
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       const { RAID_BOSSES } = await import('/src/game/raid.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const T = RAID_BOSSES.find((b) => b.id === id), keep = RAID_BOSSES.slice();
       G.godMode = false;
       const c = G.char; c.potions.hp = 20; c.potions.rejuv = 8; c.lastRaid = null;

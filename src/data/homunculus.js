@@ -1,5 +1,4 @@
 // Homunculus the Proud, the Hollow's blacksmith (src/game/homunculus.js). He thinks he is a Paladin; his "holy"
-// powers come from Varrow the Rimebound, a death knight sealed in the great axe on his wall. With auto-play on, the
 // hero stops for a 3-10 second chat before every visit to the forge.
 //
 // Everyday talk is a small grammar: a topic is three bubbles, [speaker, template]; speakers are h (Homunculus),

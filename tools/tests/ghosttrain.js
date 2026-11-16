@@ -343,7 +343,7 @@ const DEEP_CLASSES = (process.argv[5] || 'paladin').split(',');
     if (AUTO) {
       const res = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { BIOME_BY_ID } = await import('/src/data/biomes.js');
         // as in seabattle.js: a fresh hero at depth 1 fights it for real (god mode only keeps the soak from dying)
         await game.newChar('paladin', 'Conductor'); G.char.depth = 1; G.godMode = true;
@@ -383,7 +383,7 @@ const DEEP_CLASSES = (process.argv[5] || 'paladin').split(',');
     for (const cls of DEEP_CLASSES) for (const D of DEPTHS) {
       const r = await page.evaluate(async ({ cls, D }) => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { depthLevel } = await import('/src/data/depth.js');
         const { rollItem, rollGem } = await import('/src/data/items.js');
         const { xpToNext } = await import('/src/game/player.js');

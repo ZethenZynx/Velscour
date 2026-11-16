@@ -39,7 +39,7 @@ const mobile = process.argv.includes('mobile');
   if (s.len !== 120 || s.btn !== null || s.cost !== 0 || s.gold !== 400000 - 315000) fail.push('full: ' + JSON.stringify(s));
   await page.screenshot({ path: 'tools/tests/out/bagrows_12.png' });
   const r = await ev(async () => {
-    const { G } = window.VELSCOUR, { migrate } = await import('/src/game/save.js'), { buyBagRow } = await import('/src/data/bag.js'), { Auto } = await import('/src/game/autoplay.js');
+    const { G } = window.VELSCOUR, { migrate } = await import('/src/game/save.js'), { buyBagRow } = await import('/src/data/bag.js'), { Auto } = await import('/tools/tests/auto_player.js');
     const out = {};
     G.char.bag[119] = { type: 'gem', gem: 'ruby', tier: 0 };
     const back = migrate(JSON.parse(JSON.stringify(G.char)));

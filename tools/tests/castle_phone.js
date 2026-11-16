@@ -95,7 +95,7 @@ async function browserMiB(bcdp) {
       await shot(tag(id, 'gate'));
       // frame cost while auto-play walks the castle
       const f = await page.evaluate(() => new Promise(async (res) => {
-        const { G, game } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js');
+        const { G, game } = window.VELSCOUR, { Auto } = await import('/tools/tests/auto_player.js');
         Auto.toggle(true);
         const u = game.update, rd = game.render, s = { u: 0, r: 0, n: 0, worst: 0 };
         game.update = function (dt) { const t = performance.now(); u.call(this, dt); s.u += performance.now() - t; };

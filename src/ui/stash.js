@@ -60,7 +60,6 @@ export const Stash = {
     const it = container[idx];
     if (!it) return false;
     if (!addToStash(c, it)) { UI.log('The storage chest is full.', '#ff8080'); sfx('error'); return false; }
-    delete it.autoStash; // the player stored it: auto-play leaves it be (game/autoplay.js unstash)
     container[idx] = null;
     sfx('pickup'); UI.selected = null; changed();
     return true;
@@ -109,7 +108,6 @@ export const Stash = {
         const it = arr[i];
         if (!it || it.locked) continue;
         if (!addToStash(c, it)) { full = true; continue; }
-        delete it.autoStash;
         arr[i] = null;
         moved++;
       }

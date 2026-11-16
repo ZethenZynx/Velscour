@@ -79,7 +79,6 @@ export default {
       });
       // the fire on her planks, under the sprites
       api.addEffect({ update: () => api.world.seaRun === api.run && !S.out, draw: (ctx) => drawFires(api, ctx) }, 'ground');
-      // burning planks are ground auto-play keeps off (it walks through after a moment's wait at the edge)
       api.world.addHazard({ team: 'enemy', update: () => api.world.seaRun === api.run, draw() {},
         danger(out) { for (const c of S.fires.values()) if (c.age > 0.5) out.push({ x: c.x, y: c.y, r: 0.62, linger: true }); } });
     },
@@ -157,7 +156,6 @@ export default {
         if (n >= 10 && (!best || n > best.n)) best = { n, o };
       }
       if (best) return { x: best.o.x, y: best.o.y, reach: 1.2, use: () => douse(api, best.o) };
-      // else the nearest of hers still standing (the bombers up the stairs, the Admiral at the end), so auto-play goes over
       let foe = null, d = Infinity;
       for (const m of api.live) if (!m.dead && !m.entering && m.targetable !== false) { const q = Math.hypot(m.x - pl.x, m.y - pl.y); if (q < d) { d = q; foe = m; } }
       return foe ? { x: foe.x, y: foe.y, reach: 1.8 } : { x: S.hatches[0][0], y: S.hatches[0][1], reach: 4 };

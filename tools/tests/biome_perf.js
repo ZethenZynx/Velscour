@@ -25,7 +25,7 @@ const depth = +(process.argv[3] || 24), rate = +(process.argv[4] || 4), secs = +
       const { G, game } = window.VELSCOUR;
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       const { loadBiomeArt } = await import('/src/core/assets.js'); const { loadArtFor } = await import('/src/core/enemyart.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       if (Auto.on) Auto.toggle(false);
       if (id === 'town') { game.enterTown(); }
       else {

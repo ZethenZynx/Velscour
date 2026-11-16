@@ -2,7 +2,7 @@
 // Varrow the Rimebound's, a death knight sealed in the great axe on the rack beside his forge. Lines and the story are
 // in src/data/homunculus.js; his 30 poses are drawn by src/gfx/homunculus.js.
 //
-// - homunculusChat: with auto-play on, the hero stops at the forge for a 3-10 s back-and-forth before trading. Every
+// - homunculusChat: the hero can stop at the forge for a short back-and-forth before trading. Every
 //   other chat tells the next beat of the axe story (G.char.homunculus), each chapter twice in different words; the
 //   rest are generated topics (over 2,000 different Homunculus lines), now and then a recap of an earlier chapter.
 // - setupHomunculus (from townlife.js): his poses follow what he says, he hails passing townsfolk by name and they
@@ -133,7 +133,7 @@ export function holyFlare(v, ch, n = 18) {
   for (let i = 0; i < n; i++) spawn({ type: 'dot', x: v.x + rand(-0.5, 0.5), y: v.y + rand(-0.5, 0.5), z: rand(10, 60), vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3), vz: rand(10, 35), g: -6, life: rand(0.9, 1.7), size: rand(1.3, 2.4), color: pick(cols) });
 }
 
-/** Auto-play's chat at the forge. Returns the scene (done when the last bubble has been read). */
+/** Starts a conversation at the forge. Returns the scene (done when the last bubble has been read). */
 export function homunculusChat(d, v) {
   const plan = planChat(d), times = chatTimes(plan.lines);
   const s = homunculusState();

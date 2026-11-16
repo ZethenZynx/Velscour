@@ -85,5 +85,4 @@ export function filterPasses(it) {
 export function labelFilterPasses(it) {
   return passesFilter(it, activeLabelFilter());
 }
-/** Should auto-play keep this item (store it in the chest) rather than sell it? */
 export const filterKeeps = (it) => { const f = activeFilter(); return !!(f && f.keep && it && !it.sealed && filterPasses(it)); };

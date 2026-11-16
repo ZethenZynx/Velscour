@@ -182,7 +182,6 @@ export function createCaveRun(world, gen, biome, onSuccess) {
       if (p.dead) return;
       const i = map.tileIdx(p.x, p.y), r = cv.reg[i];
       if (r) cr.region = r;
-      // where on the way the hero has got to (auto-play's waypoints)
       const adv = (list, k) => { for (let j = Math.min(list.length - 1, k + 8); j > k; j--) if (Math.hypot(list[j][0] - p.x, list[j][1] - p.y) < 3.2) return j; return k; };
       if (run.phase === 'delve') {
         run.wp = adv(route, run.wp);

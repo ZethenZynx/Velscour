@@ -12,7 +12,6 @@
 // Pacing: life gates (damage can't carry past a phase threshold) and a damage cap (at most PACE of his life a second,
 // banked up to 3 s) keep even an overgeared hero in the fight for about five minutes; at ENRAGE_T (15 min) he executes.
 // Measured (tools/tests/velscour_real.js, depth-500 gear, no god mode): paladin/wizard 6-8 min, ranger 8-12, most win.
-// Auto-play reads the hazards: danger() (lava, flame walls), safeAt() (APOCALYPSE's circles), autoGoal() (lanterns).
 // world.practice ("final boss" in the skull's message box at any depth): the same fight scaled to that depth, without
 // the guaranteed relic drops or the victory screen.
 import { G } from '../state.js';
@@ -360,7 +359,6 @@ class VelscourFight {
     const left = this.parts.filter((c) => c.vk === 'shard' && !c.dead).length;
     if (!left || this.p4t > 75) this.endAbyss(left);
   }
-  /** Auto-play: back to a lantern when the dark has been eating at the hero. */
   autoGoal() {
     if (this.phase !== 4 || this.p4t < 12) return null;
     const p = this.p;
@@ -532,7 +530,7 @@ class LavaRing {
     }
     return true;
   }
-  danger(out) { const k = this.k * 0.95; out.push({ outside: true, x: C.x, y: C.y, rx: C.rx * k, ry: C.ry * k }); } // outside the oval (game/autoplay.js inDanger)
+  danger(out) { const k = this.k * 0.95; out.push({ outside: true, x: C.x, y: C.y, rx: C.rx * k, ry: C.ry * k }); }
   draw(ctx) {
     const ring = (k) => { const pts = []; for (let i = 0; i <= 48; i++) { const a = (i / 48) * TAU; pts.push([isoX(C.x + Math.cos(a) * C.rx * k, C.y + Math.sin(a) * C.ry * k), isoY(C.x + Math.cos(a) * C.rx * k, C.y + Math.sin(a) * C.ry * k)]); } return pts; };
     const o = ring(1.05), n = ring(this.k);

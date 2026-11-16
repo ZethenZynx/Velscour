@@ -3,7 +3,6 @@
 // portcullis down. Between waves the hero mends the gates at their winches, loads the ballistae on the corner towers
 // (they loose on their own while they have bolts) and sounds the horn under the keep's standard when he is ready. The
 // dead inside the walls wear down the keep's Resolve; at none the keep is overrun and the wave comes again. Hold every
-// wave (the last brings their lord) and the exit in the courtyard opens. Auto-play follows `objective` (autoplay.js).
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { rand, pick, chance, clamp } from '../core/util.js';
@@ -97,7 +96,6 @@ export function createSiegeRun(world, gen, biome0, depth, onSuccess) {
         progress: run.completed ? 'The exit is open' : run.phase === 'wave' ? `${left} of the dead left` : `Next wave in ${Math.ceil(run.t)}s`,
         gates: gates.map((g) => (g.broken ? 0 : Math.round((g.hp / g.max) * 100))) };
     },
-    /** Where auto-play should be: the next chore between waves, the gate under the heaviest attack during one. */
     get objective() {
       if (run.completed) return undefined;
       const p = world.player;
@@ -129,12 +127,10 @@ export function createSiegeRun(world, gen, biome0, depth, onSuccess) {
     },
     update(dt) { tick(dt); },
   };
-  /** Does the hero fight from range (auto-play's own test, Auto.meleeBuild, turned round)? */
   function ranged() {
     const c = G.char, sk = c && SKILLS[c.bar[0]];
     return !!c && !['lancer', 'barbarian', 'dragoon'].includes(c.classId) && !(sk && ['melee', 'whirl', 'leap', 'dash'].includes(sk.kind));
   }
-  /** The work waiting between waves: gates to mend, ballistae to load (auto-play's objectives). */
   function chores() {
     const out = [];
     for (const w of winches) if (w.needs()) out.push({ x: w.x, y: w.y, reach: 1.1, use: () => mend(w.gate) });
@@ -362,7 +358,6 @@ export function createSiegeRun(world, gen, biome0, depth, onSuccess) {
   function tick(dt) {
     const p = world.player;
     // a fighter on the walls goes down the stairs to what he fights below (and up to what climbed them), as on the
-    // Castle's walls (autoplay.js offTier reads rampartDeck); a shooter stays up there and looses down
     map.rampartDeck = ranged() ? null : map.siegeDeck;
     holdGates(dt);
     ballistae(dt);

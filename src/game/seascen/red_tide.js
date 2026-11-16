@@ -67,7 +67,7 @@ export default {
       }
     },
     holdFinal(api) { return !!(api.state.idol && !api.state.idol.dead); },   // the Gallows King waits until it's broken
-    objective(api) {   // auto-play calls the guns when they're ready
+    objective(api) {
       const S = api.state;
       if (!S.idol || S.idol.dead) return null;
       if (S.lever && S.charges > 0 && !S.leverCd) return { x: S.lever.x, y: S.lever.y, reach: 1.2, use: () => fire(api) };

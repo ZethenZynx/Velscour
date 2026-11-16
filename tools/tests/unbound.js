@@ -123,7 +123,7 @@ const gearN = +((process.argv.find((a) => a.startsWith('gear=')) || 'gear=60').s
     });
     const k4 = await page.evaluate(async () => {
       const { G } = window.VELSCOUR, c = G.char;
-      const { Auto } = await import('/src/game/autoplay.js'), { endgame } = await import('/src/game/endgame.js');
+      const { Auto } = await import('/tools/tests/auto_player.js'), { endgame } = await import('/src/game/endgame.js');
       const keys0 = c.keys | 0;
       Auto.toggle(true);
       let t = 0;
@@ -348,7 +348,7 @@ const gearN = +((process.argv.find((a) => a.startsWith('gear=')) || 'gear=60').s
     const t0 = Date.now();
     const res = await page.evaluate(async ({ run, original, courtArg, trace: tracing, gearN }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto, charScore } = await import('/src/game/autoplay.js');
+      const { Auto, charScore } = await import('/tools/tests/auto_player.js');
       const { rollItem, rollGem, SLOTS } = await import('/src/data/items.js');
       const c = G.char, p = G.player;
       if (!run) { // gear like tools/tests/velscour.js: level 259, the best of many item level 262 drops per slot, +8, gems
@@ -445,7 +445,7 @@ async function worth(classes) {
   for (const cls of classes) {
     const res = await page.evaluate(async (cls) => {
       const { G, game } = window.VELSCOUR;
-      const { charScore } = await import('/src/game/autoplay.js'), { Auto } = await import('/src/game/autoplay.js');
+      const { charScore } = await import('/tools/tests/auto_player.js'), { Auto } = await import('/tools/tests/auto_player.js');
       const { rollItem } = await import('/src/data/items.js'), R = await import('/src/data/relics.js'), { CLASSES } = await import('/src/data/classes.js');
       await game.newChar(cls, 'Worth');
       document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.ui.closeAll();

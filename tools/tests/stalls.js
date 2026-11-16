@@ -27,7 +27,7 @@ const has = (k) => process.argv.includes(k);
     await page.waitForTimeout(1200);
     const res = await page.evaluate(async ({ minutes, dest }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       G.autoDest = dest; Auto.toggle(true);
       let lastTry = '-';
       const P = G.player.constructor.prototype, tu = P.tryUseSkill;

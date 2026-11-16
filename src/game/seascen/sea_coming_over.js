@@ -30,7 +30,6 @@ export default {
       S.seaT = 6; S.sea = null; S.over = null; S.seas = 0; S.last = -1; S.barkK = 'sea2';
       // the white water, the lane's arrows and the hauling line: over the sprites
       api.world.addHazard({ update: () => api.world === G.world, draw: (ctx) => drawSea(api, ctx) });
-      // auto-play keeps out of a sea while it sweeps (the telegraph covers the warning)
       api.world.addHazard({ team: 'enemy', update: () => api.world === G.world, draw() {},
         danger(out) { const q = S.sea; if (q && q.ph !== 'drain') out.push({ line: true, x: api.OX + q.xi, y: api.OY + q.z, x1: api.OX - q.xi, y1: api.OY + q.z, r: q.L.w / 2 + 0.6 }); } });
     },
@@ -59,7 +58,7 @@ function startSea(api) {
   S.last = i;
   const L = LANES[i], z = L.z, s = api.sAt(z), xi = api.inner(s) - 0.15, bm = api.beam(s);
   if (L.mast) {
-    api.telegraph(api.OX + L.mast[0], api.OY + L.mast[1], BRACE - 0.2, TELE, '#40ff60');   // (green: the safe ring, auto-play doesn't flee it)
+    api.telegraph(api.OX + L.mast[0], api.OY + L.mast[1], BRACE - 0.2, TELE, '#40ff60');
     api.floatText(api.OX + L.mast[0], api.OY + L.mast[1], 90, 'BRACE AT THE MAST', '#a8ffb8', 14);
   }
   S.barkK = S.barkK === 'sea' ? 'sea2' : 'sea'; api.bark(S.barkK);

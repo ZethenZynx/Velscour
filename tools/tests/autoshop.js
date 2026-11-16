@@ -13,7 +13,7 @@ const rounds = +(process.argv[3] || 40);
       const { G, game } = window.VELSCOUR;
       await game.newChar(cls, 'Shopper');
       const { Vendor } = await import('/src/ui/vendor.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { rollItem } = await import('/src/data/items.js');
       const c = G.char, out = { bought: 0, sold: 0, spent: 0 };
       for (let k = 0; k < rounds; k++) {
@@ -39,7 +39,7 @@ const rounds = +(process.argv[3] || 40);
   const f = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
     await game.newChar('paladin', 'Filter');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { rollItem, makeGem } = await import('/src/data/items.js');
     const { filterPasses, lootFilter } = await import('/src/game/lootfilter.js');
     const { sortStash, Stash } = await import('/src/ui/stash.js');

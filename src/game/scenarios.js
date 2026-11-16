@@ -2,7 +2,6 @@
 // (data/biomerooms.js: titles and wording per biome, twenty shared mechanics here). They are never required to leave;
 // each pays a hoard. Also announces the themed rooms (dungeon.js) as the hero walks into them.
 // Wiring: happenings.setupHappenings -> setupScenario, happeningsTick -> scenarioTick, the Quest Log reads
-// world.scenario (title, desc, progress()), auto-play reads world.scenario.objective. Interactables live in
 // world.chests (drawn by their draw(), used like chests), people in world.npcs.
 import { G } from '../state.js';
 import { rand, randi, chance, pick, TAU, dist } from '../core/util.js';

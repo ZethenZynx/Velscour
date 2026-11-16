@@ -3,7 +3,6 @@
 // input locked, the camera on the cart, the hero standing in it). At a junction a switch by the cart picks the line.
 // The cart then waits at the lower buffer stop, facing back up, and rides the same line back to its own shaft: so the
 // hero can back out of a junction and take the other line, or leave the Bottom. At the Bottom something waits; its
-// death opens the exit there. Auto-play follows `objective` (autoplay.js): to the cart and down, never back up unless
 // the shaft has no cart down; then the boss.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
@@ -88,7 +87,6 @@ export function createMinesRun(world, gen, biome, depth, win) {
     get description() {
       return run.completed ? 'The exit at the Bottom is open.' : run.bottom ? 'Something waits at the Bottom.' : 'Ride the minecarts down to the Bottom.';
     },
-    /** Auto-play's next step: always down toward the Bottom; back up only when this shaft has no cart down. */
     get objective() {
       if (run.ride || (run.completed && run.bottom)) return undefined;
       const s = run.at;

@@ -453,7 +453,6 @@ function build(depth, biome, seed) {
     if (!passable()) return null;
   }
 
-  // ---------------------------------------------------------------- the way, for auto-play and the HUD; the ridge packs
   const reach = reachFrom(W, H, hgt, walk, null, s0i, CLIMB, DROP);
   const route = [];
   for (const R of ridges) {

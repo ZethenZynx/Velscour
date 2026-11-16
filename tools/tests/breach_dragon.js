@@ -133,7 +133,7 @@ const FLOOR = +(process.argv[3] || 3);
       // geared for the floor like tools/tests/breach.js (auto)
       await page.evaluate(async (FLOOR) => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { breachLevel } = await import('/src/data/breach.js');
         const { rollItem, rollGem } = await import('/src/data/items.js');
         const { xpToNext } = await import('/src/game/player.js');
@@ -189,7 +189,7 @@ const FLOOR = +(process.argv[3] || 3);
       const f = await page.evaluate(async (STEP) => {
         const step = window.__step;
         const { G, game } = window.VELSCOUR, W = G.world.overworldScenario.wyrm, P = G.player;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         Auto.toggle(true);
         let hitbox = 0, frames = 0, shot = false;
         const t = await step(300, (t) => { frames++; if (W.m.targetable) hitbox++; if (W.slain) return false; if (!shot && t > 20 && W.w.mouth && Math.hypot(W.w.x - P.x, W.w.y - P.y) < 3) { shot = true; window.__mid = t; return false; } });
@@ -201,7 +201,7 @@ const FLOOR = +(process.argv[3] || 3);
         await shot('wyrm_fight_close');
         Object.assign(f, await page.evaluate(async () => {
           const step = window.__step, { G } = window.VELSCOUR, W = G.world.overworldScenario.wyrm;
-          const { Auto } = await import('/src/game/autoplay.js');
+          const { Auto } = await import('/tools/tests/auto_player.js');
           let hitbox = 0, frames = 0;
           const t = await step(300, () => { frames++; if (W.m.targetable) hitbox++; if (W.slain) return false; });
           Auto.toggle(false);

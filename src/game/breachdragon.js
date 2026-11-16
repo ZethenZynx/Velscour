@@ -12,7 +12,6 @@
 //              across it, biting, breathing, raining void orbs and calling its brood at 2/3 and 1/3 life. Its body is
 //              solid now: the hero strikes whichever part of it is nearest (a hidden boss monster, the hitbox, rides
 //              along the body). The Breach Heart answers only once it is slain; its hoard is an Epic or better.
-// The fight speaks the run's scenario shape (title, foes, objective...) so the HUD, the wards and auto-play follow it.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { RNG, rand, chance, TAU, clamp, angleDiff, pick } from '../core/util.js';

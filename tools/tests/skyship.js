@@ -26,7 +26,7 @@ const ALL = ['clear', 'storm', 'night', 'fog', 'sunset', 'gale', 'blizzard', 'as
     await game.newChar('paladin', 'Skyla');
     G.godMode = true;
     G.settings.noSkipCine = true;   // every battle at 1x (the end checks the 20x replay)
-    if (auto) { const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(true); }
+    if (auto) { const { Auto } = await import('/tools/tests/auto_player.js'); Auto.toggle(true); }
   }, auto);
   /** Run the game `sec` simulated seconds (30 updates a second), clearing landed boarders unless auto-play fights;
    * stops early when `until` (a phase name) is reached. Returns the run's state. */
@@ -67,7 +67,7 @@ const ALL = ['clear', 'storm', 'night', 'fog', 'sunset', 'gale', 'blizzard', 'as
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       G.char.skyVariant = id; G.char.depth = auto ? 1 : 12;   // auto-play fights it for real: a fresh hero at depth 1
       await game.teleportToBiome(BIOME_BY_ID.skyship);
-      if (auto) { const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(true); }   // the teleport turned it off
+      if (auto) { const { Auto } = await import('/tools/tests/auto_player.js'); Auto.toggle(true); }   // the teleport turned it off
     }, [id, auto]);
     let s = await run(0.1);
     expect(s.phase === 'intro', `${id}: starts with the arrival`);

@@ -1,4 +1,4 @@
-// Where attribute points go when the game spends them for the player (auto-play, and the Stats panel's Auto button).
+// Where the Stats panel's Auto button spends the player's attribute points.
 // Each class has its own plan: first the stat its weapon / off-hand needs (kept at the requirement of gear of the
 // hero's level, gear bonuses counted), then its primary attribute (+damage to every skill) and Vitality (life) by
 // weight. Slime Lords (primary Vitality) put the rest into their weapon's stat.

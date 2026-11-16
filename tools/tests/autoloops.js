@@ -16,7 +16,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
 const setup = (page) => page.evaluate(async () => {
   const { G, game } = window.VELSCOUR;
   const { BIOME_BY_ID } = await import('/src/data/biomes.js');
-  const { Auto } = await import('/src/game/autoplay.js');
+  const { Auto } = await import('/tools/tests/auto_player.js');
   if (!G.char || G.char.classId !== 'lancer') await game.newChar('lancer', 'Loopy');
   document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.ui.closeAll();
   G.char.level = 12; G.player.recompute();
@@ -31,7 +31,7 @@ const setup = (page) => page.evaluate(async () => {
 // step the game n seconds; f(t) each frame, stop when it returns true
 const run = (page, secs, body) => page.evaluate(async ({ secs, body }) => {
   const { G, game } = window.VELSCOUR;
-  const { Auto } = await import('/src/game/autoplay.js');
+  const { Auto } = await import('/tools/tests/auto_player.js');
   const f = new Function('G', 'Auto', 't', 'S', body), S = {};
   for (let i = 0; i < secs * 30; i++) {
     G.dt = 1 / 30; G.time += G.dt; G.frame++; game.update(1 / 30);
@@ -66,7 +66,7 @@ async function channel(page) {
   await setup(page);
   const S = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR, p = G.player, w = G.world;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { SKILLS } = await import('/src/data/skills.js');
     Auto.toggle(false);
     G.char.skills['lancer.0.2'] = 1; p.recompute(); p.mana = p.maxMana;
@@ -114,7 +114,7 @@ async function edge(page) {
     const { G } = window.VELSCOUR, p = G.player, w = G.world, map = w.map, c = G.char;
     const { makeMonster } = await import('/src/game/monster.js');
     const { Area } = await import('/src/game/hazards.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     // only the plain thrust: a charge would carry him straight over the fire
     for (const k of Object.keys(c.skills)) if (k !== 'lancer.0.0') c.skills[k] = 0;
     Auto.arrangeBar(); p.recompute();
@@ -149,7 +149,7 @@ async function edge(page) {
 async function rift(page) {
   const S = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { endgame, saveEndgame, resetEndgameCache } = await import('/src/game/endgame.js');
     const { grantDeathGift } = await import('/src/game/deathgift.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');

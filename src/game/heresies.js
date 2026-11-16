@@ -66,9 +66,9 @@ export function heresyWorld(world, c = G.char) {
   world.relicMul = (world.relicMul || 1) * M.relic; // (XP: per monster, heresyMonster)
   if (ids.includes('ambush')) world.heresyAmbush = 3;
   if (ids.includes('legion')) world.legionT = rand(25, 40);
-  if (ids.includes('hunger')) { // no orbs from any source (kills, the Feeding Frenzy omen, ...)
+  if (ids.includes('hunger')) { // no orbs from any source (kills, chests, the Feeding Frenzy affix, ...)
     const add = world.addLoot;
-    world.addLoot = function (l) { return l && (l.kind === 'orb_hp' || l.kind === 'orb_mp') ? l : add.call(this, l); };
+    world.addLoot = function (l) { return l && l.kind && l.kind.startsWith('orb_') ? l : add.call(this, l); };
   }
 }
 /** Each enemy as it appears (packs, ambushes, adds): Iron Hide, Cruel Hand, Velscour's Gaze, Crowned Champions, the XP bonus. */

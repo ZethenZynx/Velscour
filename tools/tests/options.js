@@ -15,7 +15,7 @@ const { openGame, report } = require('./harness');
   // ---- auto skill points off: auto-play leaves them for the player
   const r1 = await page.evaluate(async () => {
     const { G } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     G.char.level = 20; G.char.skillPoints = 12; G.player.recompute();
     G.settings.autoSkillPoints = false; Auto.manageHero();
     const kept = G.char.skillPoints;
@@ -28,7 +28,7 @@ const { openGame, report } = require('./harness');
   // ---- lock skill bar: the player's slots stay, empty ones fill
   const r2 = await page.evaluate(async () => {
     const { G } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { CLASS_SKILLS } = await import('/src/data/skills.js');
     const learned = CLASS_SKILLS.wizard.filter((s) => G.char.skills[s.id] > 0).map((s) => s.id);
     const mine = Array(15).fill(null); mine[0] = learned[learned.length - 1]; mine[5] = learned[0];

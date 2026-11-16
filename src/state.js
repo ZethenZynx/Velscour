@@ -53,7 +53,7 @@ export function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     Object.assign(G.settings, s);
-    for (const key of ['lockSkillBar', 'autoSkillPoints', 'autoStatPoints', 'autoGear', 'mobileSkillBar', 'mobileHudV2', 'firstPerson']) delete G.settings[key];
+    for (const key of ['lockSkillBar', 'mobileSkillBar', 'mobileHudV2', 'firstPerson']) delete G.settings[key];
   } catch (e) { /* ignore */ }
 }
 export function saveSettings() {

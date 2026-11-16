@@ -1,6 +1,6 @@
 // Cut scenes (the Sky Battle's, docs/SKY_BATTLE.md): letterbox bars, a scripted camera (pans, zooms, shakes), title
 // cards and a dialogue panel (portrait, name, typed text, a syllable-blip voice). While one plays the game holds still
-// round it: no input, no auto-play, no monster thinks (game.js), and it can't be skipped, auto-play or not.
+// round it: no input or monster thinks (game.js), and the scripted sequence cannot be skipped.
 // Cine.play(steps) runs steps in order; a step is
 //   { cam: { on, fit, x, y, lv, zoom, dur, ease, wait, push, drift } }  a camera move (wait: true holds the script):
 //       on: () => [wx, wy]       a world px point read every frame (an actor's face, a boat): the camera eases onto it

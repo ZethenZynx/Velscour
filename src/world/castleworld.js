@@ -670,7 +670,6 @@ export function generateCastle(depth,biome,seed,variant=null){
   // ---------------------------------------------------------------- trails
   // Every place worth walking to has a way there: house doors, the chests, the stairs and the keep exit
   // connect to the nearest road, lane or paving over open ground
-  // (round props and trees, over no wall or water). map.road marks the whole network: auto-play keeps to it.
   const ROADS=new Set([MAT.road,MAT.cobble,MAT.dark,MAT.pave,MAT.moss,MAT.plank,MAT.hall]);   // (the halls' floors are the way indoors)
   const onRoad=(i)=>ROADS.has(mat[i])||faceArt[i]===FACE.bridge&&!map.block[i];
   const groundOK=(i)=>!map.block[i]&&hgt[i]===0&&mat[i]!==MAT.water&&mat[i]!==MAT.hall&&!kind[i];
@@ -774,13 +773,12 @@ export function generateCastle(depth,biome,seed,variant=null){
   }
   {const D=map.drawbridge;D.tiles=[];rect(D.x0,D.hinge,D.x1-1,D.y1-1,(x,y,i)=>{D.tiles.push(i);map.block[i]=1;});D.down=false;D.lowering=false;
     D.plankV=WARM+8;D.faceArt=FACE.bridge;D.mat=MAT.plank;
-    // route planners (auto-play) may plan across it while it is up: it comes down as the hero nears it
     map.planOpen=(x,y)=>!D.down&&x>=D.x0&&x<D.x1&&y>=D.hinge&&y<D.y1;}
   map.castleKeep={x:KEEP[0],y:KEEP[1]};map.castleGarden=GDN;map.castleSiege=SG;map.castleVillage=[vx,vy];
   // the story's people: the herald by the road where the hero arrives, the lord in the keep's council chamber
   const council=room3('council').tiles;
   const story={herald:near([ENTRY[0]+3.5,ENTRY[1]-9],3),lord:near([(council[0]+council[2]+1)/2,(council[1]+council[3]+1)/2],2)};
-  map.stepMask();   // (auto-play's road field reads it: built here, behind the loading screen)
+  map.stepMask();
   return {map,props,buildings,trees,wallHangings:[],townTiles:[...floors,...keepFloors,...castleCarpetTiles(),...castleRampartTops(),...castleRampartTops(KEEP_STONE),castlePlankTile()],looks,spawns,chests,torches:[],
     start:ENTRY,exit,boss:bossPoint,scenarioId,seed,engines,tents,variant:V,story};
 }

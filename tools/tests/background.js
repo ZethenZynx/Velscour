@@ -81,7 +81,7 @@ function cdp(url, onEvent) {
       const { G, game } = window.VELSCOUR;
       await game.newChar(cls, 'Sleepwalker');
       G.settings.fpsCap = 30;   // the cap skips frames by the game clock, which the hidden-page ticker also moves
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       Auto.toggle(true);
       // a chained page timer, to show how hard this page is throttled: wakes are counted, not steps
       window.bgProbe = { wakes: 0, frames: 0, dungeons: 0, draws: 0 };

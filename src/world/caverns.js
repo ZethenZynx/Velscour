@@ -496,7 +496,6 @@ export function generateCaverns(depth, biome, seed, force = null) {
     const fx = Math.min(VW - 1.001, Math.max(0, x * S)), fy = Math.min(VH - 1.001, Math.max(0, y * S)), i = Math.floor(fx), j = Math.floor(fy), u = fx - i, t = fy - j, k = j * VW + i;
     return (hv[k] * (1 - u) + hv[k + 1] * u) * (1 - t) + (hv[k + VW] * (1 - u) + hv[k + VW + 1] * u) * t;
   };
-  // the route the party takes (auto-play walks it; props keep clear of it)
   const route = [XY(start), ...lines.flatMap((l) => l.filter((_, n) => n % 6 === 0)), XY(entry), XY([notch[0], notch[1] + 1]), XY(notchIn)].filter(([x, y]) => walk[I(Math.floor(x), Math.floor(y))]);
   const climbRoute = [];
   for (let th = 0.12; th < thEnd; th += 0.22) { const s = spiral(th); climbRoute.push(XY([s.a, s.b])); }

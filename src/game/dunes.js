@@ -223,7 +223,6 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       return { title: enc ? c.name : run.title, beat, total, timer, progress };
     },
     /**
-     * Where a fight needs the hero even while it fights (auto-play pushes through to it every few seconds): a cache to
      * stand on (`hold`), the nearest relic to break, or back inside the fight's ring when kiting has drawn him out.
      */
     get duty() {
@@ -235,7 +234,6 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       if (o) return { x: o.x, y: o.y, reach: 1.6, label: 'Breaking the ' + o.name };
       return Math.hypot(p.x - c.x, p.y - c.y) > c.r + 5 ? { x: c.x, y: c.y, reach: c.r * 0.5, label: 'Back to ' + c.name } : null;
     },
-    /** Where auto-play goes next (game/autoplay.js): the next waystone, the door, the next room, the chamber. */
     get objective() {
       if (run.completed) return undefined;
       const p = world.player, c = run.current;

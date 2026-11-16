@@ -18,7 +18,7 @@ const handsOff = process.argv.includes('handsoff');
     await window.VELSCOUR.game.newChar(cls, 'Autobot');
     if (heresies.length) { (await import('/src/game/endgame.js')).unlockEndgame(); const H = await import('/src/game/heresies.js'); for (const id of heresies) H.setHeresy(id, true); }
     if (filter) Object.assign((await import('/src/game/lootfilter.js')).lootFilter(), { on: true, weapon: 3, offhand: 3, armor: 3, ring: 1, gems: true, upgrades: true, keep: true });
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { G } = window.VELSCOUR;
     G.autoOpenSeals = true; // nobody is watching: auto-play breaks sealed treasures itself instead of waiting in town
     G.settings.autoGear = !handsOff;
@@ -31,7 +31,7 @@ const handsOff = process.argv.includes('handsoff');
   for (let min = 1; min <= minutes; min++) {
     const res = await page.evaluate(async (handsOff) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { SKILLS } = await import('/src/data/skills.js');
       const { itemName } = await import('/src/data/items.js');
       const t0 = performance.now();

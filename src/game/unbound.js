@@ -32,7 +32,7 @@ export const MAX_UNBOUND_DEPTH = 100;
 
 /** Depth scaling for Unbound Exploration floors (Hardmode 502..700) */
 export const unboundDepth = (floor) => Math.round(500 + Math.min(MAX_UNBOUND_DEPTH, Math.max(1, floor)) * 2);
-/** The rematch's dials, tuned with tools/tests/unbound.js (auto-play, depth-500 gear: 6.2-13.5 minutes, mean 8.3; the
+/** Endgame encounter balance relative to his
  *  plain fight 5-6): his life on top of HP_MUL (he sits at the damage cap, so it mostly sizes his seals, shards and
  *  obelisks), his hits instead of DMG_MUL, the clock, the court's life and hits (of a BOSS ROOM boss's) and cast pace
  *  while he fights, the Pact's ward, the Crown's odds after the first win, an Unbound Chains obelisk's life (of his); the
@@ -42,7 +42,6 @@ export const UNBOUND = { hp: 2.4, dmg: 0.85, enrage: 20 * 60, courtHp: 0.8, cour
 const ARENA = { x: 6, y: 4, w: 32, h: 27, cx: 22, cy: 17.5, gate: { x: -40, y0: -40, y1: -39 } };
 const POST = [31, 13]; // the east guard post
 // not in the court: the Pipe Organ's Danse Macabre wants a square hall (its rows cross the oval's walls and the lava tide,
-// and auto-play spent 14 minutes dodging it, tools/tests/unbound.js)
 const NOT_COURT = ['organ'];
 
 export const keysOf = (c = G.char) => ((c && c.keys) | 0);
@@ -183,14 +182,12 @@ export function unboundTick(V, dt) {
   // the Pact holds for every hero: of the damage cap's refill (VelscourFight.pace) only the ward's share stays, so a hero
   // far over the cap (whose 40% would still fill it) loses the same 60% of his pace as one under it
   if (binding.length && V.phase) V.bank = Math.max(0, V.bank - m.maxHp * PACE * dt * (1 - UNBOUND.pact));
-  // the timed objectives (seals: two minutes, shards: the abyss) come before the court for auto-play: the court gives up its
   // priority meanwhile (else the courtier at hand beat a seal ten tiles off, and all four seals ran out)
   const timed = V.phase === 2 || V.phase === 4;
   if (timed && V.objPri !== V.phase) { V.objPri = V.phase; for (const c of V.parts) if (c.vk === 'seal' || c.vk === 'shard') { c.raidPriority = 9; if (c.warden) c.warden.raidPriority = 9.5; } }
   if (V.phase === 4) w.darkK = Math.max(w.darkK || 0, 0.93); // a court boss's eclipse clears the dark when it ends
   const k = V.lava && !V.lava.dead ? V.lava.k : 1.03; // (the hero keeps to 0.95 of it: a courtier at its rim is in reach)
   for (const b of alive) {
-    // while he fights too (phases 1, 3, 5) a courtier casts at 1/1.6 its pace: both their hazards at once left auto-play
     // no ground to stand on (Ser Valdric beside the lava tide: 14 minutes of dodging)
     const R = b.raid;
     b.raidPriority = timed || b.waned ? 0 : 6; // (once its Pact has waned, he is the target again: a wizard spent 19 minutes on Vexis)

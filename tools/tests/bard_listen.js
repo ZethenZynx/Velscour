@@ -31,7 +31,7 @@ const BAR = ['bard.0.0', 'bard.1.0', 'bard.2.0', 'bard.2.1', 'bard.1.4', 'bard.1
     game.buildDungeon(8, BIOME_BY_ID.catacombs);
     await new Promise((r) => setTimeout(r, 400));
     G.player.recompute(); G.bardStats = { cad: 0, dis: 0, songs: [] };
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(true);
     const rec = [], casts = {};
     setNoteTap((e) => rec.push({ ...e, t: G.time + (e.at - e.now) }));

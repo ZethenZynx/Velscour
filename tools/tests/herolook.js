@@ -75,7 +75,7 @@ const SOAK = process.argv[3] || 'death_knight', MINUTES = +(process.argv[4] || 8
     await page.evaluate(async (cls) => {
       const { game } = window.VELSCOUR;
       await game.newChar(cls, 'Lookbot');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       Auto.toggle(true);
     }, SOAK);
     for (let min = 1; min <= MINUTES; min++) {

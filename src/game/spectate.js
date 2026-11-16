@@ -1,5 +1,3 @@
-// The spectator's taps: things the player does while the hero plays (on auto-play or not) that must never move the
-// hero or take over from auto-play. input.js hands every canvas press to G.tapHook first; a press it claims is
 // swallowed whole. Claims, in order: aiming an armed SMITE (game/smite.js), catching a gilded critter
 // (game/critters.js). Right-click or Esc disarms SMITE.
 import { G } from '../state.js';

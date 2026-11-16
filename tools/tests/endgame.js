@@ -65,7 +65,7 @@ const MARKS = mkArg ? mkArg.slice(6).split(',').map((v) => [parseInt(v, 10) || 0
       const runsBy = MARKS.map(() => []);
       for (let rep = 0; rep < 3; rep++) {
       const { G, game } = window.VELSCOUR;
-      const { Auto, heroDamage } = await import('/src/game/autoplay.js');
+      const { Auto, heroDamage } = await import('/tools/tests/auto_player.js');
       const { depthLevel, armorDiv } = await import('/src/data/depth.js');
       const { rollItem, rollGem } = await import('/src/data/items.js');
       const { monsterBase, VELSCOUR_HP } = await import('/src/game/monster.js');

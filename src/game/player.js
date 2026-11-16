@@ -368,6 +368,20 @@ export class Player extends Creature {
     }
   }
   // ------------------------------------------------------------------ items & potions
+  /** Shared potion/orb effect: restores 35% of each maximum resource. */
+  applyRejuvenation() {
+    const hpBefore = this.hp, manaBefore = this.mana;
+    this.heal(this.maxHp * 0.35);
+    this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35);
+    return { hp: Math.round(this.hp - hpBefore), mana: Math.round(this.mana - manaBefore) };
+  }
+
+  /** Shared potion/orb effect: the Elixir of Fury's 15-second haste blessing. */
+  applyFury() {
+    this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
+    burst(this.x, this.y, 20, 'fire', 20, 3);
+  }
+
   pickup(g) {
     const c = this.char;
     switch (g.kind) {
@@ -389,6 +403,19 @@ export class Player extends Creature {
         floatText(this.x, this.y, 46, `+${fmtInt(manaAmt)} mana`, '#6a8aff', 11);
         return true;
       }
+      case 'orb_rejuv': {
+        const restored = this.applyRejuvenation();
+        sfx('orb');
+        sparkle(this.x, this.y, 20, '#c040ff', 12, 0.4);
+        if (restored.hp || restored.mana) floatText(this.x, this.y, 46, `+${fmtInt(restored.hp)} life · +${fmtInt(restored.mana)} mana`, '#c040ff', 12);
+        return true;
+      }
+      case 'orb_fury':
+        this.applyFury();
+        sfx('orb');
+        sparkle(this.x, this.y, 20, '#ffa020', 12, 0.4);
+        floatText(this.x, this.y, 46, 'Fury', '#ffa020', 13);
+        return true;
       case 'key': { // an Abyssal Key (docs/ENDGAME.md): three open Velscour Unbound
         c.keys = (c.keys | 0) + 1; endgame().keysFound++; saveEndgame();
         sfx('levelup', 0.5); floatText(this.x, this.y, 56, `ABYSSAL KEY ${Math.min(3, c.keys)}/3`, '#20e0ff', 15, { life: 2 });
@@ -430,11 +457,8 @@ export class Player extends Creature {
     switch (kind) {
       case 'hp': this.potionRegen.push({ hp: this.maxHp * 0.45 / 2, mp: 0, t: 2 }); break;
       case 'mp': this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 }); break;
-      case 'rejuv': this.heal(this.maxHp * 0.35); this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35); break;
-      case 'fury':
-        this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
-        burst(this.x, this.y, 20, 'fire', 20, 3);
-        break;
+      case 'rejuv': this.applyRejuvenation(); break;
+      case 'fury': this.applyFury(); break;
     }
     const col = { hp: '#ff3030', mp: '#4060ff', rejuv: '#c040ff', fury: '#ffa020' }[kind];
     sparkle(this.x, this.y, 20, col, 12, 0.4);

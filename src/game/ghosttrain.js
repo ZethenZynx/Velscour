@@ -237,7 +237,6 @@ export function createGhostTrainRun(world, gen, biome, depth, onSuccess) {
 
   // ------------------------------------------------------------------ the chief's fight
   // A cast every 6-8 s, coal and steam in turn, and a whistle at 2/3 and 1/3 of his life. Each stands him still for
-  // its wind-up (startAction: his own patterns wait) under a telegraph auto-play steps out of (autoplay.dangers).
   const C = run.chief;
   const later = (t, fn) => C.later.push({ t, fn });
   const bark = (k, x = boss.x, y = boss.y) => floatText(x, y, (boss.artH || 60) * (boss.scale || 1) + 12, pick(BARK[k]), '#ffc080', 16, { life: 1.6, vz: 18 });
@@ -307,7 +306,6 @@ export function createGhostTrainRun(world, gen, biome, depth, onSuccess) {
     cast(C.k++ % 2 ? 'vent' : 'coal');
   }
 
-  // ------------------------------------------------------------------ auto-play's goal (autoplay.js reads ow.objective)
   function objective() {
     const pl = p();
     if (run.completed || !pl) return undefined;

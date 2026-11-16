@@ -130,7 +130,7 @@ const place = (page, x, y, clear = 10) => page.evaluate(({ x, y, clear }) => {
       });
       await page.waitForFunction(() => window.VELSCOUR.G.world?.cave && document.querySelector('#loading').classList.contains('hidden'), null, { timeout: 90000 });
       const res = await page.evaluate(async () => {
-        const { G, game } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js');
+        const { G, game } = window.VELSCOUR, { Auto } = await import('/tools/tests/auto_player.js');
         const w = G.world, run = w.overworldScenario, t0 = performance.now(), log = [];
         Auto.toggle(true);
         let last = '';
