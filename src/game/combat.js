@@ -58,6 +58,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
   if (fromPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
   if (fromPlayer && worldAffixes.has('blood_sacrifice')) dmg *= 1.25;
+  if (fromPlayer && owner?.affixDamageDownT > 0) dmg *= 0.85;
   if (tgt.isPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
   if (tgt.isPlayer && worldAffixes.has('mana_surge') && el !== 'phys') dmg *= 1.2;
   if (tgt.isPlayer && (tgt.affixSunderT || 0) > 0) dmg *= 1.15;
@@ -225,6 +226,24 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       owner.hp = Math.max(1, owner.hp - owner.maxHp * 0.005);
     }
     if (worldAffixes.has('vampiric_blessing') && owner?.isPlayer && actualDamage > 0) owner.heal(actualDamage * 0.04, true);
+  }
+  if (tgt.isPlayer && o.affixId) {
+    const id = o.affixId;
+    if (['arcane_pools', 'soul_pools', 'arcane_explosion', 'soul_explosion'].includes(id)) {
+      tgt.mana = Math.max(0, (tgt.mana || 0) - Math.max(1, (tgt.maxMana || 0) * 0.08));
+      floatText(tgt.x, tgt.y, 28, 'MANA DRAIN', '#a77aff', 9);
+    }
+    if (['shadow_pools', 'shadow_explosion'].includes(id)) tgt.affixHealPenaltyT = Math.max(tgt.affixHealPenaltyT || 0, 4);
+    if (['corruption_pools', 'corruption_explosion', 'void_pools', 'void_explosion'].includes(id)) {
+      tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
+      tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
+    }
+    if (id === 'venom_pools') {
+      tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
+      tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
+    }
+    if (['cursed_pools', 'psychic_pools'].includes(id)) tgt.affixDamageDownT = Math.max(tgt.affixDamageDownT || 0, 4);
+    if (['holy_pools', 'acid_explosion'].includes(id)) tgt.affixSunderT = Math.max(tgt.affixSunderT || 0, 4);
   }
   if (tgt.isPlayer && enemyAttack) {
     if (worldAffixes.has('sunder')) tgt.affixSunderT = 5;
@@ -483,7 +502,7 @@ export function kill(tgt, src, info = {}) {
     for (const [id, [el, fx, radius, status]] of Object.entries(EXTRA_AFFIX_DEATHS)) {
       if (worldAffixes.has(id)) {
         const dmg = (world.player?.maxHp || tgt.maxHp) * 0.035;
-        pushField(id, el, radius, dmg, 1.25, 0.35, { ...status, affixStatus: true }, fx);
+        pushField(id, el, radius, dmg, 1.25, 0.35, { ...status, affixStatus: true, affixId: id }, fx);
       }
     }
   }
