@@ -110,7 +110,6 @@ function critterSprite(key, K) {
 // gap after each critter's 9-12 s life (one every ~30 s); at most CRITTER_MAX at once
 export const CRITTER_GAP = [10, 19];
 export const CRITTER_MAX = 3;
-export const CRITTER_ARROW_ENCOUNTERS = 7;
 // Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
 const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
 const CRITTER_TUTORIAL_POPUP = { root: null, title: null, reward: null, action: null };
@@ -167,7 +166,7 @@ class Critter {
     const K = { ...CRITTERS[key], tier, color: TIER_COLORS[tier] || TIER_COLORS[0] };
     Object.assign(this, { world, key, K, tier, reward: critterReward(key), x, y, originX: x, originY: y,
       z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU),
-      caught: false, gone: false, showArrow: false, tutorial: false, tutorialRendered: false, layer: 'top' });
+      caught: false, gone: false, tutorial: false, tutorialRendered: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
   update(dt) {
@@ -243,15 +242,6 @@ class Critter {
     if (tutorialReady) showCritterTutorialPopup(this);
     if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
-    if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
-      const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
-      ctx.globalAlpha = fade;
-      ctx.fillStyle = '#ff2a2a'; ctx.strokeStyle = '#3a0000'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(px, tip); ctx.lineTo(px - 7, tip - 8); ctx.lineTo(px - 3, tip - 8); ctx.lineTo(px - 3, tip - 15);
-      ctx.lineTo(px + 3, tip - 15); ctx.lineTo(px + 3, tip - 8); ctx.lineTo(px + 7, tip - 8); ctx.closePath();
-      ctx.fill(); ctx.stroke();
-    }
     if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
   }
@@ -368,10 +358,6 @@ export function spawnCritter(world, key = null) {
         c.tutorial = true;
         G.critterTutorial = c;
         G.game?.autosave?.();
-      } else if (seenSpecies) {
-        ch.critterTutorialSeen = true;
-        ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
-        c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
       }
       // If another species' tutorial is already open, leave this species unrecorded so it can be taught next time.
     }
