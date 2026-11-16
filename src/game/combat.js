@@ -234,6 +234,13 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       floatText(tgt.x, tgt.y, 28, 'MANA DRAIN', '#a77aff', 9);
     }
     if (['shadow_pools', 'shadow_explosion'].includes(id)) tgt.affixHealPenaltyT = Math.max(tgt.affixHealPenaltyT || 0, 4);
+    if (id === 'plague_pools') tgt.affixHealPenaltyT = Math.max(tgt.affixHealPenaltyT || 0, 4);
+    if (id === 'necrotic_pools') {
+      if (!tgt.affixNecroticBaseMaxHp) tgt.affixNecroticBaseMaxHp = tgt.maxHp;
+      tgt.maxHp = Math.max(tgt.affixNecroticBaseMaxHp * 0.75, tgt.maxHp * 0.95);
+      tgt.hp = Math.min(tgt.hp, tgt.maxHp);
+      tgt.affixNecroticT = 6;
+    }
     if (['corruption_pools', 'corruption_explosion', 'void_pools', 'void_explosion'].includes(id)) {
       tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
       tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
@@ -242,7 +249,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
       tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
     }
-    if (['cursed_pools', 'psychic_pools'].includes(id)) tgt.affixDamageDownT = Math.max(tgt.affixDamageDownT || 0, 4);
+    if (['cursed_pools', 'psychic_pools', 'steam_pools'].includes(id)) tgt.affixDamageDownT = Math.max(tgt.affixDamageDownT || 0, 4);
     if (['holy_pools', 'acid_explosion'].includes(id)) tgt.affixSunderT = Math.max(tgt.affixSunderT || 0, 4);
   }
   if (tgt.isPlayer && enemyAttack) {
