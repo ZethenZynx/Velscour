@@ -47,7 +47,7 @@ export const keyBindingLabel = (code) => {
   if (code.startsWith('Key')) return code.slice(3);
   if (code.startsWith('Digit')) return code.slice(5);
   if (code.startsWith('Numpad')) return `Num ${code.slice(6)}`;
-  if (/^F\\d+$/.test(code)) return code;
+  if (/^F\d+$/.test(code)) return code;
   return code.replace(/([A-Z])/g, ' $1').trim();
 };
 export const getKeyBinding = (action) => currentBinding(action);
