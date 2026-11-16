@@ -6,7 +6,7 @@ Herrington Hollow: there are enemies, a town-return portal, a separate dungeon e
 shrine-triggered combat/objective encounter. Clearing that encounter replaces the
 normal single-guardian condition for opening the exit.
 
-The largest overworld, **The Dark Forest** (192×192: thick woods, a trail maze, walled labyrinths, five optional trial glades with twelve forest-only trials, and the Heart of the Forest), is described in [DARK_FOREST.md](DARK_FOREST.md).
+The largest overworld, **The Dark Forest** (192×192: thick woods, a clear route to the Forest Guardian, four optional walled labyrinths, and six decorative landmark clearings), is described in [DARK_FOREST.md](DARK_FOREST.md).
 
 Its sibling **Sea of Sand** uses a native 60-floor desert atlas, a 60-monster bestiary, ten bosses, and modular cliff mazes. Routes connect one to five timed scenario areas and show live progress in the HUD. See [SEA_OF_SAND.md](SEA_OF_SAND.md) for implementation details.
 

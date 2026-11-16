@@ -101,6 +101,69 @@ const SOUNDS = {
   fire: (t, p) => noise(t, 0.35, { f0: 2400 * p, f1: 300, vol: 0.35, a: 0.03 }),
   cold: (t, p) => { tone(t, 0.25, { f0: 2200 * p, f1: 3400, vol: 0.07 }); noise(t, 0.2, { type: 'highpass', f0: 5000, f1: 2500, vol: 0.18 }); },
   light: (t, p) => { const o = ac.createOscillator(); o.type = 'sawtooth'; const g = ac.createGain(); env(g, t, 0.003, 0.12, 0.2); for (let i = 0; i < 8; i++) o.frequency.setValueAtTime(R(150, 1800) * p, t + i * 0.02); o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.25); noise(t, 0.15, { type: 'highpass', f0: 3000, vol: 0.2 }); },
+  holy_bolt: (t, p) => {
+    noise(t, 0.2, { type: 'bandpass', f0: 4200, f1: 700, q: 1.2, vol: 0.22, a: 0.002 });
+    for (let i = 0; i < 3; i++) noise(t + 0.025 + i * 0.035, 0.045, { type: 'highpass', f0: R(2800, 5200), f1: 900, vol: 0.12, a: 0.001 });
+    tone(t, 0.2, { f0: 155 * p, f1: 48, vol: 0.16, wave: 'triangle', a: 0.002 });
+  },
+  consecration: (t, p) => {
+    noise(t, 0.65, { type: 'lowpass', f0: 180, f1: 1500, q: 0.7, vol: 0.13, a: 0.16 });
+    tone(t + 0.04, 0.75, { f0: 220 * p, f1: 330 * p, vol: 0.08, a: 0.18 });
+    tone(t + 0.11, 0.62, { f0: 330 * p, f1: 440 * p, vol: 0.045, a: 0.2 });
+  },
+  condemn: (t, p) => {
+    noise(t, 0.38, { type: 'lowpass', f0: 950, f1: 55, q: 1.4, vol: 0.42, a: 0.004 });
+    noise(t + 0.05, 0.24, { type: 'bandpass', f0: 420, f1: 90, q: 3, vol: 0.2, a: 0.01 });
+    tone(t, 0.42, { f0: 95 * p, f1: 34, vol: 0.4, wave: 'triangle', a: 0.004 });
+  },
+  lightwell: (t, p) => {
+    noise(t, 0.48, { type: 'highpass', f0: 3600, f1: 1800, vol: 0.11, a: 0.08 });
+    tone(t, 0.62, { f0: 610 * p, f1: 880 * p, vol: 0.075, a: 0.12 });
+    tone(t + 0.1, 0.55, { f0: 920 * p, f1: 1240 * p, vol: 0.04, a: 0.15 });
+  },
+  judgment_beam: (t, p) => {
+    noise(t, 0.52, { type: 'bandpass', f0: 3200, f1: 1100, q: 1.4, vol: 0.25, a: 0.025 });
+    noise(t + 0.08, 0.34, { type: 'highpass', f0: 5200, f1: 1800, vol: 0.12, a: 0.01 });
+    tone(t, 0.55, { f0: 185 * p, f1: 125 * p, vol: 0.16, wave: 'triangle', a: 0.04 });
+  },
+  sanctuary: (t, p) => {
+    noise(t, 0.9, { type: 'lowpass', f0: 260, f1: 1200, q: 0.7, vol: 0.1, a: 0.25 });
+    [146.8, 220, 293.7].forEach((f, i) => tone(t + i * 0.055, 0.95, { f0: f * p, f1: f * p * 1.015, vol: 0.055 - i * 0.009, wave: 'sine', a: 0.22 }));
+  },
+  blessed_shield_cast: (t, p) => {
+    noise(t, 0.24, { type: 'bandpass', f0: 2600, f1: 420, q: 1.6, vol: 0.32, a: 0.003 });
+    tone(t + 0.035, 0.32, { f0: 290 * p, f1: 92 * p, vol: 0.26, wave: 'triangle', a: 0.003 });
+    tone(t + 0.04, 0.24, { f0: 510 * p, f1: 210 * p, vol: 0.09, wave: 'sine', a: 0.002 });
+  },
+  radiant_cascade: (t, p) => {
+    noise(t, 0.42, { type: 'bandpass', f0: 4600, f1: 650, q: 1.1, vol: 0.3, a: 0.002 });
+    for (let i = 0; i < 6; i++) noise(t + 0.025 + i * 0.045, 0.055, { type: 'highpass', f0: R(3000, 6200), f1: 700, vol: 0.18, a: 0.001 });
+    tone(t, 0.38, { f0: 185 * p, f1: 48, vol: 0.22, wave: 'triangle', a: 0.002 });
+  },
+  purifying_nova: (t, p) => {
+    noise(t, 0.45, { type: 'lowpass', f0: 130, f1: 2400, q: 0.8, vol: 0.34, a: 0.004 });
+    noise(t + 0.07, 0.38, { type: 'highpass', f0: 5000, f1: 1300, vol: 0.16, a: 0.012 });
+    tone(t, 0.42, { f0: 115 * p, f1: 42, vol: 0.3, wave: 'triangle', a: 0.002 });
+  },
+  apocalypse_light: (t, p) => {
+    noise(t, 0.95, { type: 'lowpass', f0: 85, f1: 1300, q: 0.8, vol: 0.3, a: 0.42 });
+    [73.4, 110, 146.8].forEach((f, i) => tone(t + i * 0.07, 1.05, { f0: f * p, f1: f * p * 1.03, vol: 0.12 - i * 0.018, wave: 'sine', a: 0.42 }));
+    noise(t + 0.35, 0.52, { type: 'bandpass', f0: 1800, f1: 360, q: 1.2, vol: 0.18, a: 0.08 });
+  },
+  wings_judgment: (t, p) => {
+    noise(t, 0.38, { type: 'bandpass', f0: 2100, f1: 260, q: 0.8, vol: 0.26, a: 0.045 });
+    noise(t + 0.08, 0.34, { type: 'highpass', f0: 4400, f1: 1700, vol: 0.13, a: 0.06 });
+    tone(t + 0.08, 0.48, { f0: 330 * p, f1: 190 * p, vol: 0.12, wave: 'triangle', a: 0.1 });
+  },
+  apocalypse_impact: (t, p) => {
+    noise(t, 0.2, { type: 'lowpass', f0: 620, f1: 70, vol: 0.28, a: 0.002 });
+    noise(t + 0.025, 0.14, { type: 'highpass', f0: 4100, f1: 1200, vol: 0.12, a: 0.002 });
+    tone(t, 0.2, { f0: 105 * p, f1: 44, vol: 0.2, wave: 'triangle', a: 0.002 });
+  },
+  wings_judgment_impact: (t, p) => {
+    noise(t, 0.16, { type: 'bandpass', f0: 1800, f1: 340, q: 1, vol: 0.18, a: 0.003 });
+    tone(t, 0.18, { f0: 220 * p, f1: 90, vol: 0.17, wave: 'triangle', a: 0.002 });
+  },
   arcane: (t, p) => { tone(t, 0.3, { f0: 500 * p, f1: 1400 * p, vol: 0.12 }); tone(t, 0.3, { f0: 750 * p, f1: 2100 * p, vol: 0.06, wave: 'triangle' }); },
   holy: (t, p) => { [523, 659, 784].forEach((f, i) => tone(t + i * 0.02, 0.5, { f0: f * p, vol: 0.07, a: 0.03 })); },
   ready_hearth: (t, p) => { [523, 659, 784, 1046].forEach((f, i) => tone(t + i * 0.05, 0.45, { f0: f * p, vol: 0.09, wave: 'triangle' })); },

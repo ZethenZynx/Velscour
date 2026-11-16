@@ -69,7 +69,12 @@ G.game = {
 console.log('1. Validating 17-Class 3x3 Skill Trees & 5-Tier Talent Trees...');
 const classIds = Object.keys(CLASS_SKILLS);
 assert.equal(classIds.length, 17, 'Expected 17 active classes');
-assert.deepEqual(ROW_LEVELS, [1, 12, 30]);
+assert.deepEqual(ROW_LEVELS, [1, 15, 30]);
+for (const [classId, skills] of Object.entries(CLASS_SKILLS)) {
+  for (const sk of skills) {
+    assert.equal(sk.reqLevel, ROW_LEVELS[Math.floor(sk.idx / 3)], `${classId}/${sk.name}: row requirement`);
+  }
+}
 assert.deepEqual(TALENT_ROW_LEVELS, [1, 10, 20, 30, 45]);
 assert.equal(Object.keys(SKILLS).length, 612, 'Expected 612 total skills');
 assert.equal(Object.keys(TALENTS).length, 408, 'Expected 408 total talent nodes');

@@ -1,5 +1,35 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - Paladin skill sound overhaul (local, not published)
+- Added distinct non-arcade procedural sounds for Holy Bolt, Consecration, Condemn, Lightwell, Judgment Beam, Sanctuary, Blessed Shield's cast, Radiant Cascade, Purifying Nova, Apocalypse of Light and Wings of Judgment. The two falling-light skills also use separate impact sounds. Blessed Shield's existing ricochet and explosion audio is unchanged.
+- `node --check` for the changed JavaScript files and `git diff --check` pass. The effects still need an in-game listening pass; no files were generated and no GitHub update was made.
+
+## November 16, 2026 - middle skill unlock and free respec (local, not published)
+- Raised the middle row of every skill tree to character level 15. Existing characters receive a one-time free skill respec on their next load: paid ranks are returned as skill points, unspent skill points and mastery are preserved, and old bar assignments are cleared. New characters do not receive a redundant refund.
+- `node tools/tests/skill_respec_migration.mjs`, JavaScript syntax checks, and `git diff --check` pass. Two broader existing checks remain blocked by unrelated stale expectations: the skill/talent integration test expects a removed `Player.applyGrants()` API, and the Dragoon check expects removed free skill grants. `data_check.mjs` also reports its existing biome-order uniqueness issue. No GitHub update was made.
+
+## November 16, 2026 - Eternal Breach exit prompt (local, not published)
+- The sealed-floor prompt now uses a **Return to Town** button and omits the extra note about remaining Breach floors. Its existing action still returns safely to town.
+- `node --check src/game/game.js` and `git diff --check` pass. No GitHub update was made.
+
+## November 16, 2026 - title screen update summaries (local, not published)
+- Moved the Recent Changes panel near the left edge on wide screens and expanded its scrollable list to major gameplay, content and quality-of-life features. Minor bug fixes are excluded.
+- `node --check src/ui/screens.js`, `node --check src/data/recent-changes.js`, and `git diff --check` pass. No GitHub update was made.
+
+## November 16, 2026 - restore Dark Forest landmark clearings (local, not published)
+- Restored the six former decorative landmarks—camp, well, shrine, obelisk, swamp and webs—with their existing prop sets. Small walk-in spurs connect them to the main trail between the four mazes. They are scenery only and do not add objectives or block the boss route.
+- Landmark patches remove overlapping trees and relocate any affected enemy pack to nearby open ground. The established pack count and encounter mix remain intact. `node tools/tests/dark_forest_compact.mjs` passes for 100 seeds, including landmark reachability; syntax and whitespace checks pass. No GitHub update was made.
+- General undergrowth/trailside scatter and the old trial-specific set pieces remain removed; only the six requested landmark sets were restored.
+
+## November 16, 2026 - four spaced Dark Forest labyrinths (local, not published)
+- Expanded the optional side labyrinths from two to four full-size mazes. They sit north, south, north, then south of the main route, with at least 25 tiles between adjacent maze entrances; each has its own reachable bonus chest.
+- Updated `tools/tests/dark_forest_compact.mjs`, the browser smoke-test expectations, and the Dark Forest/Overworld docs. The generator contract check passes for 100 randomized seeds, including route reachability, maze alternation, separation and chest placement. No GitHub update was made.
+- The earlier objective overhaul removed the five trial glades and their trial set pieces, plus six optional landmark clearings; those landmarks were restored in the following entry without their trial behavior. The old undergrowth/trailside scatter remains absent.
+
+## November 16, 2026 - refresh descriptions for boss-route overworlds (local, not published)
+- Updated the town depth-picker blurbs and portal card labels for the Dark Forest, Castle and Forsaken Wilds to describe their current guardian-boss routes, optional forest labyrinths and exit conditions. Updated their entry messages and Castle/Forsaken exit-sealed prompts so they no longer refer to obsolete objectives or shrine trials.
+- `node --check src/game/game.js`, the 100-seed Dark Forest compact test, and `git diff --check` pass. No GitHub update was made.
+
 ## November 16, 2026 - small rewards from breakable dungeon clutter (local, not published)
 - Breaking dungeon clutter now has low independent chances to drop gold (10%), one orb (Health 8%, Mana 8%, Rejuvenation 5%, or Fury 2%), and a gem (1%). Gems are the rarest reward. These props never drop equipment, potions or other item types; orb drops respect Hunger of the Abyss, gold uses the existing gold-find scaling, and gems respect the hero's level cap.
 - `node tools/tests/test_clutter_drops.mjs` and `node tools/tests/test_regen_orbs.mjs` pass; changed JavaScript passes syntax checks and `git diff --check` passes. The broader clutter test could not load assets on this Windows path because its test helper constructed `C:\C:\Games\Velscour`.

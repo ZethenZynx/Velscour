@@ -23,6 +23,15 @@ import { skillMorphFor, applySkillMorph } from '../data/talents.js';
 import { bodyR } from '../world/map.js';
 
 const roll = (d) => rand(d[0], d[1]);
+const PALADIN_SKILL_SFX = {
+  'Holy Bolt': 'holy_bolt', Consecration: 'consecration', Condemn: 'condemn', Lightwell: 'lightwell',
+  'Judgment Beam': 'judgment_beam', Sanctuary: 'sanctuary', 'Blessed Shield': 'blessed_shield_cast',
+  'Radiant Cascade': 'radiant_cascade', 'Purifying Nova': 'purifying_nova',
+  'Apocalypse of Light': 'apocalypse_light', 'Wings of Judgment': 'wings_judgment',
+};
+const PALADIN_RAIN_IMPACT_SFX = {
+  'Apocalypse of Light': 'apocalypse_impact', 'Wings of Judgment': 'wings_judgment_impact',
+};
 
 export class Timer {
   constructor(delay, fn) { this.t = delay; this.fn = fn; }
@@ -61,6 +70,8 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
   if (aug && aug.multiply) sk = withMore(sk, multN(aug.multiply));
 
   const w = p.world, m = sk.m, st = p.st;
+  const castSfx = p.classId === 'paladin' ? PALADIN_SKILL_SFX[baseSk.name] : null;
+  const playCastSfx = (fallback, volume = 1) => sfx(castSfx || fallback, volume);
   const astro = sk.classId === ASTRONOMER;
   const el = astro && sk.el === 'arcane' ? 'astral' : sk.el, E = elem(el); // the Astronomer's arcane flies as blue starlight
   let fx = sk.fx;
@@ -68,6 +79,7 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
   const area = (1 + ((st.areaPct || 0) + (morph ? morph.areaPct : 0)) / 100) * vis;
   const ang = angleTo(p.x, p.y, tx, ty);
   const o = statusOpts(m);
+  if (castSfx) o.silentSfx = true; // Avoid stacking the old generic holy sound under these bespoke casts.
   if (m.curse && sk.kind !== 'curse') o.curse = Array.isArray(m.curse) ? m.curse : [m.curse];
   else delete o.curse;
   o.sk = sk.id; o.vis = vis;
@@ -159,14 +171,15 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
           w.addHazard(new Projectile({ world: w, src: p, x: mx, y: my, ang: a, speed, range, fx, el, dmg: dmg.map((v) => v * 0.3), o, pierce: m.pierce ? 99 : 0, home: 1, size: 0.8 * (m.r ?? 1) * vis, r: 0.3 * (m.r ?? 1), ret: m.ret, exp: m.exp ? 1.1 * (m.r ?? 1) * area : 0, pull: m.pull }));
         }
       }
-      if (p.classId !== 'bard') sfx(fx === 'arrow' || fx === 'javelin' ? 'bow' : fx === 'bullet' || fx === 'rocket' ? 'shoot' : fx === 'note' || bard >= 0 ? 'note' : fx === 'rang' || fx === 'blade' || fx === 'axe' ? 'swing' : E.sfx, 0.7);
+      if (p.classId !== 'bard') playCastSfx(fx === 'arrow' || fx === 'javelin' ? 'bow' : fx === 'bullet' || fx === 'rocket' ? 'shoot' : fx === 'note' || bard >= 0 ? 'note' : fx === 'rang' || fx === 'blade' || fx === 'axe' ? 'swing' : E.sfx, 0.7);
       p.lunge = 0.6;
       break;
     }
     case 'nova': {
       const n = m.n || 1;
       for (let i = 0; i < n; i++) later(w, i * 0.28, () => { if (!p.dead) w.addHazard(new NovaWave({ world: w, src: p, x: p.x, y: p.y, r: 3 * (m.r ?? 1) * area, dmg, el, fx, o, heal: m.heal, pullIn: m.pull, staticPct: m.static || 0, arcs: m.arcs || 0 })); });
-      if (m.pull) sfx('shadow');
+      if (castSfx) playCastSfx();
+      else if (m.pull) sfx('shadow');
       break;
     }
     case 'aoe': {
@@ -233,7 +246,7 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
     case 'beam': {
       const len = 8 * (m.range ?? 1) * (m.cone ? 0.55 : 1);
       const channel = (m.dur || 0) > 0;
-      w.addHazard(new BeamCh({ world: w, src: p, ang, len, dur: m.dur || 0, cone: m.cone, fx, el, dmg: channel ? dmg.map((v) => v * 0.32) : dmg, o: { ...o, leech: m.leech }, n: m.n || 1 }));
+      w.addHazard(new BeamCh({ world: w, src: p, ang, len, dur: m.dur || 0, cone: m.cone, fx, el, dmg: channel ? dmg.map((v) => v * 0.32) : dmg, o: { ...o, leech: m.leech }, n: m.n || 1, sound: castSfx }));
       if (m.lance) energyLance(p, ang, len, el, Math.max(0.3, m.dur || 0), L, m.prism).aim = true;
       break;
     }
@@ -241,7 +254,7 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
       const first = w.nearestHostile(p.team, tx, ty, 3, false) || w.nearestHostile(p.team, p.x, p.y, 7, true);
       if (first) chainHit(w, p, p.x, p.y, first, (m.n || 4) + Math.floor(st.chainPlus || 0), roll(dmg), el, E.glow, { ...o, leech: m.leech });
       else addEffect(new Bolt(p.x, p.y, 28, tx, ty, 10, E.glow, 0.25, 2.5));
-      sfx(el === 'light' ? 'light' : E.sfx);
+      playCastSfx(el === 'light' ? 'light' : E.sfx);
       break;
     }
     case 'wall': {
@@ -253,7 +266,7 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
     case 'zone': {
       const [x, y] = m.follow ? [p.x, p.y] : clampTarget(w, p, tx, ty, 9);
       w.addHazard(new Area({ world: w, src: p, x, y, r: 1.8 * (m.r ?? 1) * area, dur: m.dur || 5, tick: 0.5, dmg, el, fx, follow: m.follow ? p : null, heal: m.heal, slow: m.slow, o, freezeZone: m.freeze }));
-      sfx(E.sfx);
+      playCastSfx(E.sfx);
       break;
     }
     case 'orbit': {
@@ -380,8 +393,10 @@ export function castSkill(p, sk, L, tx, ty, opts = {}) {
     }
     case 'rain': {
       const [x, y] = clampTarget(w, p, tx, ty, 10);
-      w.addHazard(new Rain({ world: w, src: p, x, y, r: 2 * (m.r ?? 1) * area, n: (m.n || 12) + Math.floor((st.extraProj || 0) * 3), dur: m.dur || 1.2, fx, el, dmg, o }));
+      const impactSfx = PALADIN_RAIN_IMPACT_SFX[baseSk.name] || null;
+      w.addHazard(new Rain({ world: w, src: p, x, y, r: 2 * (m.r ?? 1) * area, n: (m.n || 12) + Math.floor((st.extraProj || 0) * 3), dur: m.dur || 1.2, fx, el, dmg, o, impactSfx }));
       addEffect(new Ring(x, y, 0.2, 2 * (m.r ?? 1) * area, 0.5, E.glow, 2));
+      if (castSfx) playCastSfx();
       break;
     }
     case 'strike': {

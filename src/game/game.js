@@ -621,14 +621,14 @@ export const game = {
   /** The one-line "what to do here" blurb for a biome (the town portal's floor picker). */
   biomeBlurb(biome) {
     if (regionOf(biome)) return regionOf(biome).portal;
-    return biome.id === 'overworld' ? 'Cross the hamlet and defeat the Forsaken Guardian to open the exit.'
+    return biome.id === 'dark_forest' ? 'Follow the main forest path to the Forest Guardian. Optional full-size labyrinths north and south of the path hold bonus treasure; defeat the guardian to open the exit.'
+      : biome.id === 'castle' ? 'Find your way through the castle grounds and buildings to the throne room, where the Castle Guardian waits. Defeat the guardian to open the exit.'
+      : biome.id === 'overworld' ? 'Explore the hamlet and defeat the Forsaken Guardian at its center to open the exit.'
       : biome.id === 'sea_of_sand' ? 'Follow the cliff maze and clear every marked scenario area to open the exit.'
       : biome.id === 'skyship' ? "Step out onto the heroes' airship. Hold the deck against the Air Pirates' boarding waves, their captains and their flagship; victory turns the gate into the exit."
       : biome.sea ? "Step out onto the Dawnwake, the Lampwardens' steam frigate. Hold her deck against the Black Tide's boarders, wave on wave, and their captain; victory opens the bell tower's door onward."
-      : biome.id === 'dark_forest' ? 'Follow the forest path to the guardian. Optional labyrinths to the north and south may hold bonus treasure; defeat the guardian to open the exit.'
       : biome.tower ? 'Climb the spiral stair to the roof. Three waves of bosses hold it, and then their master comes on an airship.'
       : biome.cave ? 'Follow the passages and caverns to the underground lake. At the foot of its waterfall a passage climbs a long, spiralling shaft to the top of the falls, where its masters wait.'
-      : biome.id === 'overworld' ? 'Cross the hamlet and defeat the Forsaken Guardian to open the exit.'
       : biome.overworld ? 'Activate the scenario shrine and complete its trial to open the exit.'
       : 'Find the exit. It is sealed until its guardian is slain.';
   },
@@ -1591,9 +1591,9 @@ export const game = {
     else if (sea) UI.log(`${world.seaRun.variant.name}: ${world.seaRun.variant.blurb} Hold the Dawnwake's deck against the Black Tide's boarders.`, '#ffe2a0');
     else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the stair; things wait on the floors above, and some will not wait.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
-    else if (forest) UI.log('The Dark Forest closes in. Follow the path to its guardian, or explore the optional labyrinths to the north and south for bonus treasure.', '#c8f0a0');
-    else if (castle) UI.log('The Castle grounds open before you. Cross the courtyard and defeat the Castle Guardian to unlock the exit.', '#e8d0a8');
-    else if (biome.id === 'overworld') UI.log('The hamlet lies at the heart of the Forsaken Wilds. Defeat its guardian to open the exit.', '#c8f0a0');
+    else if (forest) UI.log('The Dark Forest closes in. Follow the main path to its guardian, or explore the optional full-size labyrinths north and south for bonus treasure.', '#c8f0a0');
+    else if (castle) UI.log('The Castle walls and buildings form the route ahead. Find your way through them to the throne room, where the Castle Guardian waits; defeating it opens the exit.', '#e8d0a8');
+    else if (biome.id === 'overworld') UI.log('The hamlet lies at the heart of the Forsaken Wilds. Defeat the Forsaken Guardian at its center to open the exit.', '#c8f0a0');
     else if (biome.overworld) {
       if (biome.id === 'castle' && gen.variant?.story?.intro) UI.log(gen.variant.story.intro, '#e8d0a8');
       UI.log('Activate the glowing shrine and complete its objective to open the exit.', '#ffe2a0');
@@ -1613,7 +1613,7 @@ export const game = {
 
   useExit(world, exit) {
     const c = G.char;
-    if (!exit.active) { floatText(exit.x, exit.y, 70, world.breach ? 'Sealed — the Breach Heart still beats!' : world.rift ? 'Sealed — the Guardian still stands!' : world.biome?.id === 'dark_forest' ? 'Sealed — defeat the Forest Guardian!' : world.overworldScenario ? 'Sealed — complete the shrine trial!' : 'Sealed — slay the guardian!', '#ff6040', 13, { life: 1.6 }); sfx('error'); return; }
+    if (!exit.active) { floatText(exit.x, exit.y, 70, world.breach ? 'Sealed - the Breach Heart still beats!' : world.rift ? 'Sealed - the Guardian still stands!' : world.biome?.id === 'dark_forest' ? 'Sealed - defeat the Forest Guardian!' : world.biome?.id === 'castle' ? 'Sealed - defeat the Castle Guardian!' : world.biome?.id === 'overworld' ? 'Sealed - defeat the Forsaken Guardian!' : world.overworldScenario ? 'Sealed - complete the shrine trial!' : 'Sealed - slay the guardian!', '#ff6040', 13, { life: 1.6 }); sfx('error'); return; }
     if (world.breach) this.breachExit(world);
     else if (world.rift) this.riftExit(world);
     else if (world.unboundExploration && world.unboundExploration.floor < MAX_UNBOUND_DEPTH) this.unboundExit(world);
@@ -1669,7 +1669,7 @@ export const game = {
       return { id: biome.id, biome, affixes: rollDungeonAffixesForDepth(next, Math.random, c && c.affixStartDepth || 1, heresiesOf(c).includes('omens')), comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
     let sel = 0;
-    const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
+    const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.id === 'dark_forest' ? 'Guardian · Optional labyrinths' : cd.biome.id === 'castle' ? 'Castle Guardian' : cd.biome.id === 'overworld' ? 'Forsaken Guardian' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
     const affixLine = (cd) => `<span class="pc-affixes"><b>Affixes</b>${cd.affixes.length ? cd.affixes.map((id) => {
       const affix = DUNGEON_AFFIX_BY_ID[id];
       return affix ? `<span title="${escapeHtml(affix.description)}"><b>${escapeHtml(affix.name)}</b><small class="pc-affix-description">${escapeHtml(String(affix.description || '').trim())}</small></span>` : '';
@@ -1846,8 +1846,8 @@ export const game = {
     const floor = world.breach.floor, depth = G.char?.depth || breachDepth(floor);
     UI.dialog({
       title: `Breach Floor ${floor} Sealed`,
-      html: `<p>The Heart is still. Return to town to continue your campaign at Depth <b>${depth}</b>. Any remaining Breach floors for this milestone come before its Boss Room.</p>`,
-      buttons: [{ label: `Return to Depth ${depth}`, cls: 'red', fn: () => { sfx('portal'); this.enterTown(); } }],
+      html: `<p>The Heart is still. Return to town to continue your campaign at Depth <b>${depth}</b>.</p>`,
+      buttons: [{ label: 'Return to Town', cls: 'red', fn: () => { sfx('portal'); this.enterTown(); } }],
     });
   },
 

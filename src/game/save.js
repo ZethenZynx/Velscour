@@ -121,7 +121,7 @@ export function newCharData(classId, name) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     version: 1, rebalancedV1: true, name, classId, level: 1, xp: 0,
     attrs: { ...C.base }, statPoints: 0, skillPoints: 1, talentPoints: 0,
-    skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, bar: Array(BAR_SIZE).fill(null),
+    skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, skillRespecV2: true, bar: Array(BAR_SIZE).fill(null),
     equip: { weapon: null, offhand: null, head: null, body: null, hands: null, legs: null, feet: null, ring1: null, ring2: null, ring3: null, ring4: null },
     vanity: { head: null, body: null, weapon: null, offhand: null }, hideHelm: false,
     macros: newMacros(), // game/macros.js
@@ -332,6 +332,20 @@ export function migrate(c) {
     c.skillPoints = Math.max(1, Number(c.level) | 0) + bossSkillPoints;
     c.bar = Array(BAR_SIZE).fill(null);
     c.skillRespecV1 = true;
+  }
+  // One-time free respec for the skill requirement update. Preserve unspent points,
+  // refund paid ranks, and clear stale bar assignments to skills that are no longer learned.
+  if (!c.skillRespecV2) {
+    const spentPoints = Object.entries(c.skills).reduce((total, [id, rawLv]) => {
+      const lv = Math.max(0, rawLv | 0);
+      const freeRanks = c.granted[id] ? Math.min(1, lv) : 0;
+      return total + Math.max(0, lv - freeRanks);
+    }, 0);
+    c.skillPoints += spentPoints;
+    c.skills = {};
+    c.granted = {};
+    c.bar = Array(BAR_SIZE).fill(null);
+    c.skillRespecV2 = true;
   }
   c.talents = c.talents || {};
   if (!Number.isInteger(c.talentPoints)) {

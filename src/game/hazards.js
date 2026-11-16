@@ -854,7 +854,7 @@ export class NovaWave {
       spawn({ type, x: this.x, y: this.y, z: 12, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: this.dur * 1.05, size: type === 'shard' ? 3 : 3.5, size1: 1, color: this.fx === 'crow' ? '#140c18' : this.fx === 'bone' ? '#e8dcc0' : i % 2 ? this.E.glow : this.E.core, add: type === 'glow', rot: a });
     }
     if (this.fx === 'lightning' || this.fx === 'storm') for (let i = 0; i < 6; i++) { const a = rand(TAU); addEffect(new Bolt(this.x, this.y, 20, this.x + Math.cos(a) * this.r, this.y + Math.sin(a) * this.r, 10, this.E.glow, 0.25, 2)); }
-    sfx(this.E.sfx);
+    if (!this.o.silentSfx) sfx(this.E.sfx);
     addLight(this.x, this.y, this.r * 1.5, 1.2, 20, this.E && this.E.glow);
   }
   update(dt) {
@@ -893,7 +893,7 @@ export class BeamCh {
     this.ends = [];
     this.instant = !(this.dur > 0);
     if (this.instant) { this.dur = 0.3; this.fire(true); }
-    sfx(this.cone ? 'fire' : this.E.sfx);
+    sfx(this.sound || (this.cone ? 'fire' : this.E.sfx));
   }
   get depth() { return this.src.x + this.src.y + 0.6; }
   aimAngle() {
@@ -1079,7 +1079,7 @@ export class Rain {
         else {
           aoe(this.world, this.src, f.x, f.y, this.impactR, roll(this.dmg), this.el, this.o);
           burst(f.x, f.y, 2, this.el, 5, 1.5, { size: 0.8 });
-          if (chance(0.3)) sfx(this.E.sfx, 0.4);
+          if (chance(0.3)) sfx(this.impactSfx || this.E.sfx, 0.4);
         }
       }
     }

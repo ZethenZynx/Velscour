@@ -1,0 +1,20 @@
+// Short title-screen summaries for recent Velscour PC updates.
+export const RECENT_CHANGES = [
+  { title: 'Dark Forest overhaul', summary: 'Fight the Guardian, explore four mazes, and find six side clearings.' },
+  { title: '257 dungeon affixes', summary: 'A broad pool of active modifiers brings variety to each floor.' },
+  { title: 'Guardian boss routes', summary: 'Castle and Forsaken Wilds now end with a guardian fight.' },
+  { title: 'Expanded treasure chests', summary: 'Six chest types and six rarities bring distinct rewards.' },
+  { title: 'Twenty gear tiers', summary: 'Depth unlocks stronger item tiers, marked T1 through T20.' },
+  { title: 'Choose your first skill', summary: 'New heroes spend a skill point to learn their first ability.' },
+  { title: 'Level 15 middle skill tier', summary: 'Every hero receives a one-time free skill-point refund.' },
+  { title: 'Paladin skill sound overhaul', summary: 'Holy attacks, blessings, shields, and area spells have distinct effects.' },
+  { title: 'Skill resource costs', summary: 'Skills spend class resources, with costs that grow by rank.' },
+  { title: 'Expanded gilded critters', summary: 'Find new critter species with varied tier-colored rewards.' },
+  { title: 'Automatic gear equip', summary: 'Picked up or purchased gear fills a compatible empty slot.' },
+  { title: 'Rejuvenation and Fury orbs', summary: 'Rare orbs restore resources or grant a burst of haste.' },
+  { title: 'Loot from breakables', summary: 'Scenery can rarely yield gold, orbs, or gems.' },
+  { title: 'Per-hero loot filters', summary: 'Set auto-pickup and ground labels for each character.' },
+  { title: 'Custom keybinds and macros', summary: 'Remap controls and bind macros to function keys.' },
+  { title: 'Bulk town storage', summary: 'Deposit or withdraw eligible items with one click.' },
+  { title: 'Velscour PC edition', summary: 'A PC-focused version with auto-play removed.' },
+];
