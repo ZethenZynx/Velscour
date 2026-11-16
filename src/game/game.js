@@ -2212,13 +2212,13 @@ export const game = {
       const baseDamage = id === 'inferno' ? Math.min(0.12, 0.035 + w.affixElapsed * 0.00025) : spec.damage;
       const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
       if (spec.area) {
-        w.addHazard(new Area({ src: null, team: 'enemy', x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
+        w.addHazard(new Area({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
           dmg: p.maxHp * spec.damage, el, fx: spec.fx || el,
           mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
           heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
       } else {
-        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius, delay: spec.warning || 0.9,
+        w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, delay: spec.warning || 0.9,
           dmg: p.maxHp * baseDamage * (w.affixSurgeUntil > w.time && w.affixSurgeId === id ? 1.25 : 1), el, fx: spec.fx || 'explosion',
           o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
       }
@@ -2242,7 +2242,7 @@ export const game = {
       w.affixTimers[id] = (w.affixTimers[id] ?? rand(5, 9)) - dt;
       if (w.affixTimers[id] > 0) continue;
       w.affixTimers[id] = rand(spec.interval[0], spec.interval[1]);
-      if ((w.hazards || []).length >= 28) continue;
+      if ((w.hazards || []).filter((hazard) => hazard.affixCatalog).length >= 12) continue;
       const [x, y] = safePoint(spec.spread || 6);
       const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
       const damage = p.maxHp * spec.damage;
@@ -2399,6 +2399,19 @@ export const game = {
         for (const m of w.creatures) if (m.team === 'enemy' && !m.dead) {
           m.affixShieldT = 3; m.affixShield = 0.2;
           addEffect(new Ring(m.x, m.y, 0.45, 1.0, 0.24, '#8feaff', 2));
+        }
+      }
+    }
+    if (active.has('elemental_resistance')) {
+      w.affixTimers.elemental_resistance = (w.affixTimers.elemental_resistance ?? 4) - dt;
+      if (w.affixTimers.elemental_resistance <= 0) {
+        w.affixTimers.elemental_resistance = 7;
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead && m.affixElementalRes) {
+          m.affixElementalResBonus = Math.min(0.4, (m.affixElementalResBonus || 0.25) + 0.05);
+          m.res ||= {};
+          m.res[m.affixElementalRes] = (m.res[m.affixElementalRes] || 0) + 0.05;
+          const color = { fire: '#ff7040', cold: '#8feaff', light: '#d8e8ff', poison: '#8bd24a' }[m.affixElementalRes] || '#d8b080';
+          addEffect(new Ring(m.x, m.y, 0.35, 0.85, 0.2, color, 2));
         }
       }
     }
