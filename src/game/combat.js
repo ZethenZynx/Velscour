@@ -20,6 +20,7 @@ import { commissionKill } from './commissions.js';
 import { riftKill } from './rifts.js';
 import { SKILLS } from '../data/skills.js';
 import { skillMorphFor } from '../data/talents.js';
+import { EXTRA_AFFIX_DEATHS } from './affixcatalogruntime.js';
 
 const PLAYER_RES = { fire: 'fire', cold: 'cold', light: 'light', poison: 'poison', acid: 'poison' };
 const LEECH_K = 2; // life/mana leech: a whole monster's life taken returns LEECH_K x leech% of the hero's own
@@ -413,6 +414,15 @@ export function kill(tgt, src, info = {}) {
       if (summoner) summoner.affixSummonerPactT = Math.max(summoner.affixSummonerPactT || 0, 10);
     }
     if (worldAffixes.has('vengeful_guardians') && world.boss && !world.boss.dead) world.boss.affixVengefulStacks = Math.min(10, (world.boss.affixVengefulStacks || 0) + 1);
+    for (const [id, [el, fx, radius, status]] of Object.entries(EXTRA_AFFIX_DEATHS)) {
+      if (worldAffixes.has(id)) {
+        const dmg = (world.player?.maxHp || tgt.maxHp) * 0.035;
+        pushField(id, el, radius, dmg, 1.25, 0.35, status);
+        world.affixFields[world.affixFields.length - 1].color = elem(el).glow;
+        const marker = world.hazards && world.hazards[world.hazards.length - 1];
+        if (marker && marker.constructor?.name === 'AffixFieldMarker') marker.fx = fx;
+      }
+    }
   }
   if (tgt.summon) {
     burst(tgt.x, tgt.y, 20, tgt.el || 'arcane', 10, 2);
