@@ -25,26 +25,26 @@ import { UI } from '../ui/ui.js';
 // fly: drifts in the air (z), else scuttles on the floor. w: spawn odds. life: seconds before it gets away.
 export const CRITTERS = Object.freeze({
   // The original four species remain part of the pool; reward and tier are rolled independently.
-  wisp: { name: 'Wisp', artKey: 'wisp', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 12, speed: 1.3, motion: 'drift', accent: 'flame' },
-  moth: { name: 'Treasure Moth', artKey: 'moth', sprite: 'bat', arch: 'bat', fly: true, w: 1, life: 11, speed: 1.6, motion: 'flutter', accent: 'wings' },
-  scarab: { name: 'Treasure Beetle', artKey: 'scarab', sprite: 'beetle', arch: 'beetle', fly: false, w: 1, life: 10, speed: 2.1, motion: 'scuttle', accent: 'shell' },
-  prism: { name: 'Gold Sprite', artKey: 'prism', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 9, speed: 2, motion: 'dart', accent: 'runes' },
-  crystal_scarab: { name: 'Crystal Scarab', sprite: 'knight', arch: 'knight', fly: false, w: 1, life: 10, speed: 1.8, motion: 'skitter', accent: 'crystals' },
-  goldback_spider: { name: 'Goldback Spider', sprite: 'spider', arch: 'spider', fly: false, w: 1, life: 10, speed: 2.5, motion: 'skitter', accent: 'legs' },
-  gem_tortoise: { name: 'Gem Tortoise', sprite: 'golem', arch: 'golem', fly: false, w: 1, life: 13, speed: 1.15, motion: 'steady', accent: 'shell' },
-  coin_crab: { name: 'Coin Crab', sprite: 'abomination', arch: 'abomination', fly: false, w: 1, life: 10, speed: 1.75, motion: 'sidestep', accent: 'claws' },
-  treasure_mimic: { name: 'Treasure Mimic', sprite: 'crate', fly: false, w: 1, life: 10, speed: 1.45, motion: 'hop', accent: 'mimic' },
-  gilded_centipede: { name: 'Gilded Centipede', sprite: 'worm', arch: 'worm', fly: false, w: 1, life: 9, speed: 2.6, motion: 'slither', accent: 'segments' },
-  rune_snail: { name: 'Rune Snail', sprite: 'slime', arch: 'slime', fly: false, w: 1, life: 12, speed: 1.1, motion: 'steady', accent: 'shell' },
-  coin_rat: { name: 'Coin Rat', sprite: 'hound', arch: 'hound', fly: false, w: 1, life: 9, speed: 2.7, motion: 'dart', accent: 'ears' },
-  treasure_imp: { name: 'Treasure Imp', sprite: 'imp', arch: 'imp', fly: false, w: 1, life: 9, speed: 2.4, motion: 'zigzag', accent: 'flame' },
-  crystal_bat: { name: 'Crystal Bat', sprite: 'gargoyle', arch: 'gargoyle', fly: true, w: 1, life: 10, speed: 2.2, motion: 'swoop', accent: 'crystals' },
-  rune_eye: { name: 'Rune Eye', sprite: 'eye', arch: 'eye', fly: true, w: 1, life: 10, speed: 1.7, motion: 'orbit', accent: 'runes' },
-  spectral_jellyfish: { name: 'Spectral Jellyfish', sprite: 'cloud', fly: true, w: 1, life: 13, speed: 1.15, motion: 'bob', accent: 'ghost' },
-  lantern_spirit: { name: 'Lantern Spirit', sprite: 'lantern', fly: true, w: 1, life: 12, speed: 1.3, motion: 'sway', accent: 'flame' },
-  gem_dragonling: { name: 'Gem Dragonling', sprite: 'dragon', arch: 'demon', fly: true, w: 1, life: 10, speed: 2.4, motion: 'glide', accent: 'embers' },
-  floating_skull: { name: 'Floating Skull', sprite: 'skeleton', arch: 'skeleton', fly: true, w: 1, life: 11, speed: 1.65, motion: 'drift', accent: 'ghost' },
-  treasure_fairy: { name: 'Treasure Fairy', sprite: 'cultist', arch: 'cultist', fly: true, w: 1, life: 10, speed: 2.1, motion: 'flutter', accent: 'wings' },
+  wisp: { name: 'Wisp', artIndex: 10, artKey: 'wisp', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 12, speed: 1.3, motion: 'drift', accent: 'flame' },
+  moth: { name: 'Treasure Moth', artIndex: 11, artKey: 'moth', sprite: 'bat', arch: 'bat', fly: true, w: 1, life: 11, speed: 1.6, motion: 'flutter', accent: 'wings' },
+  scarab: { name: 'Treasure Beetle', artIndex: 0, artKey: 'scarab', sprite: 'beetle', arch: 'beetle', fly: false, w: 1, life: 10, speed: 2.1, motion: 'scuttle', accent: 'shell' },
+  prism: { name: 'Gold Sprite', artIndex: 19, artKey: 'prism', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 9, speed: 2, motion: 'dart', accent: 'runes' },
+  crystal_scarab: { name: 'Crystal Scarab', artIndex: 1, sprite: 'knight', arch: 'knight', fly: false, w: 1, life: 10, speed: 1.8, motion: 'skitter', accent: 'crystals' },
+  goldback_spider: { name: 'Goldback Spider', artIndex: 2, sprite: 'spider', arch: 'spider', fly: false, w: 1, life: 10, speed: 2.5, motion: 'skitter', accent: 'legs' },
+  gem_tortoise: { name: 'Gem Tortoise', artIndex: 3, sprite: 'golem', arch: 'golem', fly: false, w: 1, life: 13, speed: 1.15, motion: 'steady', accent: 'shell' },
+  coin_crab: { name: 'Coin Crab', artIndex: 4, sprite: 'abomination', arch: 'abomination', fly: false, w: 1, life: 10, speed: 1.75, motion: 'sidestep', accent: 'claws' },
+  treasure_mimic: { name: 'Treasure Mimic', artIndex: 5, sprite: 'crate', fly: false, w: 1, life: 10, speed: 1.45, motion: 'hop', accent: 'mimic' },
+  gilded_centipede: { name: 'Gilded Centipede', artIndex: 6, sprite: 'worm', arch: 'worm', fly: false, w: 1, life: 9, speed: 2.6, motion: 'slither', accent: 'segments' },
+  rune_snail: { name: 'Rune Snail', artIndex: 7, sprite: 'slime', arch: 'slime', fly: false, w: 1, life: 12, speed: 1.1, motion: 'steady', accent: 'shell' },
+  coin_rat: { name: 'Coin Rat', artIndex: 8, sprite: 'hound', arch: 'hound', fly: false, w: 1, life: 9, speed: 2.7, motion: 'dart', accent: 'ears' },
+  treasure_imp: { name: 'Treasure Imp', artIndex: 9, sprite: 'imp', arch: 'imp', fly: false, w: 1, life: 9, speed: 2.4, motion: 'zigzag', accent: 'flame' },
+  crystal_bat: { name: 'Crystal Bat', artIndex: 12, sprite: 'gargoyle', arch: 'gargoyle', fly: true, w: 1, life: 10, speed: 2.2, motion: 'swoop', accent: 'crystals' },
+  rune_eye: { name: 'Rune Eye', artIndex: 14, sprite: 'eye', arch: 'eye', fly: true, w: 1, life: 10, speed: 1.7, motion: 'orbit', accent: 'runes' },
+  spectral_jellyfish: { name: 'Spectral Jellyfish', artIndex: 15, sprite: 'cloud', fly: true, w: 1, life: 13, speed: 1.15, motion: 'bob', accent: 'ghost' },
+  lantern_spirit: { name: 'Lantern Spirit', artIndex: 16, sprite: 'lantern', fly: true, w: 1, life: 12, speed: 1.3, motion: 'sway', accent: 'flame' },
+  gem_dragonling: { name: 'Gem Dragonling', artIndex: 17, sprite: 'dragon', arch: 'demon', fly: true, w: 1, life: 10, speed: 2.4, motion: 'glide', accent: 'embers' },
+  floating_skull: { name: 'Floating Skull', artIndex: 18, sprite: 'skeleton', arch: 'skeleton', fly: true, w: 1, life: 11, speed: 1.65, motion: 'drift', accent: 'ghost' },
+  treasure_fairy: { name: 'Treasure Fairy', artIndex: 13, sprite: 'cultist', arch: 'cultist', fly: true, w: 1, life: 10, speed: 2.1, motion: 'flutter', accent: 'wings' },
 });
 const KEYS = Object.keys(CRITTERS);
 
@@ -86,13 +86,13 @@ function ensureTintCanvas() {
   }
   return TINT;
 }
-function drawTinted(color, drawSource) {
+function drawTinted(color, drawSource, tintAlpha = 0.58) {
   const { canvas, ctx } = ensureTintCanvas();
   ctx.clearRect(0, 0, 128, 128);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   drawSource(ctx);
   ctx.globalCompositeOperation = 'source-atop';
-  ctx.globalAlpha = 0.58;
+  ctx.globalAlpha = tintAlpha;
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, 128, 128);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -153,12 +153,19 @@ function hideCritterTutorialPopup() {
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
+const CRITTER_SHEET = { img: null };
 function loadArt() {
-  if (ART.img) return;
-  ART.img = new Image(); ART.img.src = 'assets/sprites/critters/critters.webp';
-  fetch('assets/sprites/critters/critters.json').then((r) => r.json()).then((m) => { ART.meta = m; }).catch(() => {});
+  if (!ART.img) {
+    ART.img = new Image(); ART.img.src = 'assets/sprites/critters/critters.webp';
+    fetch('assets/sprites/critters/critters.json').then((r) => r.json()).then((m) => { ART.meta = m; }).catch(() => {});
+  }
+  if (!CRITTER_SHEET.img) {
+    CRITTER_SHEET.img = new Image();
+    CRITTER_SHEET.img.src = 'assets/sprites/critters/gilded-critters.png';
+  }
 }
 const artReady = () => ART.meta && ART.img.complete && ART.img.naturalWidth > 0;
+const critterSheetReady = () => CRITTER_SHEET.img?.complete && CRITTER_SHEET.img.naturalWidth > 0;
 const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#60d8ff' };
 
 class Critter {
@@ -241,7 +248,8 @@ class Critter {
     ctx.strokeStyle = K.color; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(px, py, 16, 8, 0, 0, TAU); ctx.stroke();
     if (tutorialReady) showCritterTutorialPopup(this);
-    if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
+    if (Number.isInteger(K.artIndex) && critterSheetReady()) this.drawSheetSprite(ctx, px, py, fade);
+    else if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
     if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
       const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
@@ -254,6 +262,27 @@ class Critter {
     }
     if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
+  }
+  drawSheetSprite(ctx, px, py, fade) {
+    const K = this.K, img = CRITTER_SHEET.img;
+    const cellW = img.naturalWidth / 5, cellH = img.naturalHeight / 4;
+    const sx = (K.artIndex % 5) * cellW, sy = Math.floor(K.artIndex / 5) * cellH;
+    const size = 76, y = K.fly ? py - this.z : py - 5;
+    const tinted = drawTinted(K.color, (c) => {
+      c.imageSmoothingEnabled = true;
+      c.drawImage(img, sx, sy, cellW, cellH, 0, 0, 128, 128);
+    }, 0.4);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.imageSmoothingEnabled = true;
+    if (K.fly) {
+      ctx.globalAlpha = fade * 0.22;
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.beginPath(); ctx.ellipse(px, py, size * 0.23, size * 0.09, 0, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = fade;
+    ctx.drawImage(tinted, px - size / 2, y - size / 2, size, size);
+    ctx.restore();
   }
   drawSpeciesSprite(ctx, px, py, fade) {
     const K = this.K, y = K.fly ? py - this.z : py - 5;
