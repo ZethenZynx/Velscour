@@ -1694,8 +1694,8 @@ export const game = {
     this.autosave();
     setTimeout(() => {
       deathScreen(depth, killer, () => {
-        // Each death starts a fresh affix climb from the checkpoint.
-        c.depth = blockStart(depth);
+        // Each death starts a fresh affix climb at the same campaign depth.
+        c.depth = Math.max(1, depth || c.depth || 1);
         c.dungeonAffixes = [];
         delete c.nextAffixes;
         c.affixStartDepth = c.depth;
@@ -1707,7 +1707,7 @@ export const game = {
         p.recompute();
         p.hp = p.maxHp; p.mana = p.maxMana;
         this.enterTown();
-        UI.log(`You awaken in Herrington Hollow. The descent begins anew at Depth ${c.depth}.`, '#ff8060');
+        UI.log(`You awaken in Herrington Hollow. Your descent resumes at Depth ${c.depth}.`, '#ff8060');
         UI.log(`<b style="color:#ff6a3a">Defiance ${n}</b>: ${defianceText(n)} until you break past Depth ${c.defiance.block + 4}.`, '#ffb080');
       });
     }, 1700);
