@@ -830,9 +830,9 @@ export function sheetName(item) {
 export const POTION_PRICE = { hp: 25, mp: 25, rejuv: 120, fury: 200 };
 export const POTION_INFO = {
   hp: 'Restores 45% Life over 2 seconds.',
-  mp: 'Restores 50% Mana over 2 seconds.',
+  mp: 'Restores 50% Mana over 2 seconds; Barbarians also restore 50 Rage.',
   rejuv: 'Instantly restores 35% Life and Mana.',
-  fury: '+30% Damage and Attack Speed for 15 seconds.',
+  fury: '+30% Attack and Cast Speed, +18% Movement Speed, and +15% Cooldown Reduction for 15 seconds.',
 };
 
 export const BANNER_KIT_PRICE = 75;

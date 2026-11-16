@@ -174,7 +174,7 @@ export class Player extends Creature {
       summonPct: add.summonPct || 0,
       skillsAll: add.skillsAll || 0,
       skillTree0: add.skillTree0 || 0, skillTree1: add.skillTree1 || 0, skillTree2: add.skillTree2 || 0, skillTree3: add.skillTree3 || 0,
-      dmgPct: (add.dmgPct || 0) + buffDmg + (this.furyT > 0 ? 30 : 0),
+      dmgPct: (add.dmgPct || 0) + buffDmg,
       physPct: (add.physPct || 0) + str,
       elemPct: {},
       primary: { str, dex, vit, int }[C.primary],
@@ -426,11 +426,13 @@ export class Player extends Creature {
     sfx('potion');
     switch (kind) {
       case 'hp': this.potionRegen.push({ hp: this.maxHp * 0.45 / 2, mp: 0, t: 2 }); break;
-      case 'mp': this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 }); break;
+      case 'mp':
+        if (this.classId === 'barbarian') this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, rage: 100 * 0.5 / 2, t: 2 });
+        else this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 });
+        break;
       case 'rejuv': this.heal(this.maxHp * 0.35); this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35); break;
       case 'fury':
-        this.furyT = 15;
-        this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30 }, t: 15, max: 15 });
+        this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
         burst(this.x, this.y, 20, 'fire', 20, 3);
         break;
     }
@@ -658,7 +660,6 @@ export class Player extends Creature {
       this.affixWoundBaseMaxHp = 0;
       this.hp = Math.min(this.hp, this.maxHp);
     }
-    if (this.furyT > 0) this.furyT -= dt;
     if (this.noRageT > 0) this.noRageT -= dt;
     if (this.classId === 'bard' && this.world) bardUpdate(this, dt);
     if (this.classId === ASTRONOMER && this.world) astroUpdate(this, dt);
@@ -683,6 +684,7 @@ export class Player extends Creature {
       const k = Math.min(dt, r.t);
       this.hp = Math.min(this.maxHp, this.hp + r.hp * k * healingMul);
       this.mana = Math.min(this.maxMana, this.mana + r.mp * k);
+      if (r.rage) this.gainRage(r.rage * k);
       r.t -= dt;
       if (r.t <= 0) this.potionRegen.splice(i, 1);
     }
