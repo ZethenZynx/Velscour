@@ -410,6 +410,8 @@ function weighted() {
 
 /** Spawning clock (per level). */
 export function crittersTick(world, dt) {
+  if (G.critterTutorial && G.critterTutorial.world !== world) G.critterTutorial = null;
+  if (!G.critterTutorial) hideCritterTutorialPopup();
   if (!allowed(world)) return;
   if (world.critters) world.critters = world.critters.filter((c) => c.alive || (c.gone && G.world === world && c.t - c.t0 < 0.6));
   if (world.critterT === undefined) { world.critterT = rand(2, 6); loadArt(); }
