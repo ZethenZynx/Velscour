@@ -292,6 +292,7 @@ export class Player extends Creature {
   heal(n, quiet) {
     if (this.dead || n <= 0) return;
     const before = this.hp;
+    if (G.world?.dungeonAffixes?.includes('cursed_fortune')) n *= 0.75;
     this.hp = Math.min(this.maxHp, this.hp + n);
     if (!quiet && this.hp - before > 1) floatText(this.x, this.y, 50, '+' + Math.round(this.hp - before), '#60ff60', 13);
   }
