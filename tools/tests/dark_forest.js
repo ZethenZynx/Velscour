@@ -15,8 +15,10 @@ const SHOTS = process.argv[2] !== 'noshots';
       for (let n = 1; n <= 40; n++) {
         const seed = n * 7717 + 3, g = generateDarkForest(7, biome, tileset, seed), m = g.map;
         if (m.w !== 192 || m.h !== 192) problems.push('wrong map size for seed ' + seed);
-        if (m.walls.length < 1000 || m.doors.length || g.glades || g.labyrinths?.length !== 2) problems.push('expected optional side labyrinths without trials for seed ' + seed);
+        if (m.walls.length < 1000 || m.doors.length || g.glades || g.labyrinths?.length !== 4) problems.push('expected four optional side labyrinths without trials for seed ' + seed);
         if (g.labyrinths?.some((lab) => lab.rect[2] - lab.rect[0] !== 44 || lab.rect[3] - lab.rect[1] !== 44)) problems.push('side labyrinth is not full-size for seed ' + seed);
+        if (g.labyrinths?.some((lab, i) => lab.side !== ['north', 'south', 'north', 'south'][i])) problems.push('side labyrinths do not alternate along the route for seed ' + seed);
+        if (g.landmarks?.length !== 6 || g.props.length < 22) problems.push('six decorative landmark clearings and their props are missing for seed ' + seed);
         if (g.spawns.filter((s) => s.rank === 'boss').length !== 1) problems.push('missing guardian for seed ' + seed);
         const packs = g.spawns.filter((s) => !['boss', 'raid'].includes(s.rank));
         const enemies = packs.reduce((sum, s) => sum + s.n, 0);

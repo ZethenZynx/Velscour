@@ -14,7 +14,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export function generateDarkForest(depth, biome, tileset, seed) {
   if (tileset.pack !== 'dark_forest' || !darkForestTreesReady()) throw new Error('The Dark Forest art must load before generating it.');
   const rng = new RNG(seed >>> 0), map = new TileMap(DF_W, DF_H), N = DF_W * DF_H;
-  map.darkForest = true; map.losBlocks = true; map.t.fill(1); map.seen.fill(0);
+  map.darkForest = true; map.losBlocks = true; map.t.fill(1); map.seen.fill(0); map.kind = new Uint8Array(N);
   const start = [12.5, 179.5], boss = [179.5, 12.5], exit = [185.5, 11.5];
   const dx = boss[0] - start[0], dy = boss[1] - start[1], denom = dx * dx + dy * dy;
   const distToRoute = (x, y) => {
@@ -25,11 +25,22 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const floor = (name) => floors.get(name) ?? 0;
   const forestFloors = ['pine_needles', 'black_loam', 'dead_leaves', 'damp_moss', 'dark_turf', 'root_soil', 'peat'];
   const trailFloors = ['gravel_path', 'packed_mud', 'gravel_wash'];
-  // Optional full-size side mazes sit entirely off the southwest-to-northeast main route.
-  // Their open gates and short spurs make both detours easy to find and enter.
+  // Four full-size optional mazes alternate north and south along the route, with long clear gaps between entrances.
   const mazes = [
-    { id: 'north', side: 'north', x: 48, y: 48, size: 44, family: 'thorn_hedge', gate: [85, 91], spur: [96, 96] },
-    { id: 'south', side: 'south', x: 100, y: 100, size: 44, family: 'tangled_roots', gate: [100, 100], spur: [96, 96] },
+    { id: 'north-west', side: 'north', x: 16, y: 86, size: 44, family: 'thorn_hedge', gate: [54, 129], spur: [63, 129] },
+    { id: 'south-west', side: 'south', x: 86, y: 110, size: 44, family: 'tangled_roots', gate: [87, 110], spur: [85, 107] },
+    { id: 'north-east', side: 'north', x: 62, y: 38, size: 44, family: 'blackwood_trunks', gate: [99, 81], spur: [108, 84] },
+    { id: 'south-east', side: 'south', x: 131, y: 65, size: 44, family: 'mossy_ruins', gate: [131, 65], spur: [128, 64] },
+  ];
+  // Restore the six old decorative landmarks in the gaps between maze entrances. Each has a short walk-in spur,
+  // but remains a non-interactive clearing that does not gate the route.
+  const landmarks = [
+    { what: 'camp', x: 66, y: 110, spur: [74, 118] },
+    { what: 'well', x: 82, y: 126, spur: [74, 118] },
+    { what: 'shrine', x: 88, y: 88, spur: [96, 96] },
+    { what: 'obelisk', x: 104, y: 104, spur: [96, 96] },
+    { what: 'swamp', x: 111, y: 68, spur: [119, 76] },
+    { what: 'webs', x: 127, y: 84, spur: [119, 76] },
   ];
   const distanceToSegment = (x, y, a, b) => {
     const vx = b[0] - a[0], vy = b[1] - a[1], n = vx * vx + vy * vy;
@@ -38,10 +49,12 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   };
   const inMaze = (x, y, margin = 0) => mazes.some((m) => x >= m.x - margin && y >= m.y - margin && x < m.x + m.size + margin && y < m.y + m.size + margin);
   const nearMazeSpur = (x, y, margin = 0) => mazes.some((m) => distanceToSegment(x, y, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5]) < margin);
+  const nearLandmark = (x, y, margin = 0) => landmarks.some((l) => Math.hypot(x - l.x, y - l.y) < margin);
+  const nearLandmarkSpur = (x, y, margin = 0) => landmarks.some((l) => distanceToSegment(x, y, [l.x, l.y], [l.spur[0] + 0.5, l.spur[1] + 0.5]) < margin);
   for (let y = 0; y < DF_H; y++) for (let x = 0; x < DF_W; x++) {
     const d = distToRoute(x + 0.5, y + 0.5);
     const spurDist = Math.min(...mazes.map((m) => distanceToSegment(x + 0.5, y + 0.5, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5])));
-    map.v[map.idx(x, y)] = d < 4.8 && rng.chance(0.65) || spurDist < 2.2 ? floor(rng.pick(trailFloors)) : floor(rng.pick(forestFloors));
+    map.v[map.idx(x, y)] = d < 4.8 && rng.chance(0.65) || spurDist < 2.2 || nearLandmark(x + 0.5, y + 0.5, 4.2) || nearLandmarkSpur(x + 0.5, y + 0.5, 1.8) ? floor(rng.pick(trailFloors)) : floor(rng.pick(forestFloors));
   }
 
   // Tall trees fill the forest at the original map scale, with a clear corridor to the boss.
@@ -71,7 +84,6 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     const p = { kind: 'scatter', x: px, y: py, spr, k: darkTreeK(nearTrail ? rng.range(0.60, 0.72) : rng.range(0.70, 0.86)), flip: rng.chance(0.5), tree: true };
     trees.push(p); treeGrid[i] = trees.length; map.block[i] = 1;
   }
-
   // Only populate the area a player can reach from the entrance. Dense trees create small enclosed pockets;
   // leaving enemies or loot in those pockets would make the restored population unfair and unreachable.
   const connected = new Uint8Array(N), queue = new Int32Array(N), startTile = map.tileIdx(...start);
@@ -111,7 +123,63 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     chests.push({ x:best % DF_W + 0.5, y:((best / DF_W) | 0) + 0.5, rare:false });
   }
 
-  // Carve two optional 10x10-cell labyrinths with broad corridors and full-height pack walls.
+  // Clear the landmarks after enemy placement so decorative collision does not alter the established encounter mix.
+  const retainedTrees = trees.filter((tree) => {
+    if (!nearLandmark(tree.x, tree.y, 4.6) && !nearLandmarkSpur(tree.x, tree.y, 3.2)) return true;
+    map.block[map.idx(Math.floor(tree.x), Math.floor(tree.y))] = 0;
+    return false;
+  });
+  trees.length = 0; trees.push(...retainedTrees);
+  const props = [], scatter = new Map((tileset.scatter || []).map((s) => [s.name, s]));
+  const addProp = (name, x, y, options = {}) => {
+    const spr = scatter.get(name);
+    if (!spr) return;
+    const p = { kind: 'scatter', x, y, spr, k: (tileset.k || 1) * (options.scale || 1), flip: options.flip ?? (props.length % 2 === 0), light: options.light || 0 };
+    props.push(p);
+    if (spr.block && spr.fp >= 0.5) map.block[map.idx(Math.floor(x), Math.floor(y))] = 1;
+  };
+  for (const landmark of landmarks) {
+    const { x: cx, y: cy, spur } = landmark;
+    // An open earthen patch and a two-tile walk-in keep each set piece reachable through the tree line.
+    for (let y = Math.floor(cy - 4); y <= Math.ceil(cy + 4); y++) for (let x = Math.floor(cx - 4); x <= Math.ceil(cx + 4); x++) {
+      if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > 3.8) continue;
+      const i = map.idx(x, y);
+      map.block[i] = 0; map.kind[i] = 0; map.v[i] = floor(trailFloors[0]);
+    }
+    const length = Math.hypot(spur[0] + 0.5 - cx, spur[1] + 0.5 - cy), steps = Math.ceil(length * 2);
+    for (let step = 0; step <= steps; step++) {
+      const t = step / steps, px = cx + (spur[0] + 0.5 - cx) * t, py = cy + (spur[1] + 0.5 - cy) * t;
+      for (let y = Math.floor(py - 1.5); y <= Math.ceil(py + 1.5); y++) for (let x = Math.floor(px - 1.5); x <= Math.ceil(px + 1.5); x++) {
+        if (Math.hypot(x + 0.5 - px, y + 0.5 - py) > 1.45) continue;
+        const i = map.idx(x, y);
+        map.block[i] = 0; map.kind[i] = 0; map.v[i] = floor(trailFloors[0]);
+      }
+    }
+    const put = (name, dx, dy, options) => addProp(name, cx + dx, cy + dy, options);
+    if (landmark.what === 'camp') { put('campfire', 0, 0, { light: 5 }); put('bedroll', 1.3, 0.6); put('bedroll', -1.1, 1); put('firewood', 1, -1.2); put('wooden_crate', -1.6, -0.8); }
+    if (landmark.what === 'well') { put('stone_well', 0, 0); put('rope_post', 1.6, 0.8); put('wooden_crate', -1.4, 1.2); }
+    if (landmark.what === 'shrine') { put('ruined_shrine', 0, -0.4, { light: 3 }); put('vine_altar', 1.8, 1); put('lost_shield', -1.4, 1.1); }
+    if (landmark.what === 'obelisk') { put('forest_obelisk', 0, 0, { light: 3 }); put('stone_cairn', 1.6, 1.2); put('stone_cairn', -1.6, -1); }
+    if (landmark.what === 'swamp') { put('reeds', 1.5, 0.5); put('reeds', -1.4, -0.6); put('bridge_planks', 0, 0); put('hollow_log', 2.2, -1.2); }
+    if (landmark.what === 'webs') { put('spider_eggs', 0.8, 0.2); put('wrapped_corpse', -1.2, 0.8); put('spider_eggs', -0.6, -1.3); put('wrapped_corpse', 1.6, -1); }
+    landmark.center = [cx, cy];
+  }
+  // A rare pack may have rolled into a newly reopened landmark patch. Nudge it to the nearest open tile outside the
+  // landmark dressing so the restored props cannot hide or trap an enemy.
+  for (let si = 0; si < spawns.length - 1; si++) {
+    const spawn = spawns[si];
+    if (!nearLandmark(spawn.x, spawn.y, 4.5) && map.walkable(spawn.x, spawn.y)) continue;
+    let best = null, bestD = Infinity;
+    for (const i of reachable) {
+      const x = i % DF_W, y = (i / DF_W) | 0, px = x + 0.5, py = y + 0.5, d = (px - spawn.x) ** 2 + (py - spawn.y) ** 2;
+      if (d >= bestD || inMaze(px, py) || nearLandmark(px, py, 4.5) || !map.walkableTile(x, y)) continue;
+      if (spawns.some((other, oi) => oi !== si && Math.hypot(other.x - px, other.y - py) < 5)) continue;
+      best = [px, py]; bestD = d;
+    }
+    if (best) [spawn.x, spawn.y] = best;
+  }
+
+  // Carve optional 10x10-cell labyrinths with broad corridors and full-height pack walls.
   // The only route through each outer wall is a three-tile opening directly facing its path spur.
   const mazeWall = new Uint8Array(N), mazeCells = [];
   for (const maze of mazes) {
@@ -193,8 +261,8 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const cells = Array.from({ length: bw * bh }, () => []);
   for (const tree of trees) cells[Math.floor(tree.y / B) * bw + Math.floor(tree.x / B)].push(tree);
   map.treeCells = { B, bw, bh, cells };
-  return { map, props:[], trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells,
-    start, boss, exit, shrine:boss, sites:[], landmarks:[], scenarioId:0, seed, layoutSeed:seed };
+  return { map, props, trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells, landmarks,
+    start, boss, exit, shrine:boss, sites:[], scenarioId:0, seed, layoutSeed:seed };
 }
 
 

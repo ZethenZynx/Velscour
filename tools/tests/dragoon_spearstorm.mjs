@@ -49,7 +49,7 @@ assert.equal(grantedSkillsAt('paladin', 1).some((id) => id.includes('.3.')), fal
 for (let idx = 0; idx < 9; idx++) {
   const sk = SKILLS['dragoon.3.' + idx];
   assert(sk, 'Missing Spearstorm slot ' + idx);
-  assert.equal(sk.reqLevel, [1, 12, 30][Math.floor(idx / 3)]);
+  assert.equal(sk.reqLevel, [1, 15, 30][Math.floor(idx / 3)]);
   assert.equal(sk.prereq, idx < 3 ? null : 'dragoon.3.' + (idx - 3));
 }
 assert.equal(Object.keys(SKILLS).length, 612, 'Expected 36 skills x 17 classes = 612 total');

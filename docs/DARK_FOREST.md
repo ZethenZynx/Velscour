@@ -8,8 +8,10 @@ The Dark Forest is a full-size 192 × 192 forest dungeon. A broad, open route cr
 - One Forest Guardian waits in the opposite corner.
 - Defeating the Guardian opens the normal exit portal.
 - The forest generates about 80–110 regular enemy packs (roughly 220–340 enemies total), with the exact count and composition varying by map seed.
-- Two chests appear along the reachable route.
-- No trial glades, Heartwood objective, maze walls, labyrinth doors, or labyrinth-only rewards are generated.
+- Two chests appear along the reachable route, and each labyrinth contains a bonus chest.
+- Four optional, full-size labyrinths branch off the route. They alternate north, south, north, then south, with clear stretches between entrances.
+- Six decorative landmark clearings sit between the labyrinths, reached by short side paths. Their camp, well, shrine, obelisk, swamp and web props are scenery only; none starts a trial or blocks progression.
+- No trial glades, Heartwood objective, or labyrinth doors are generated.
 - Enemy groups and chests are placed only in the connected area accessible from the entrance.
 
 The map seed remains saved per depth in `darkForestRuns`, so returning from town restores the same layout. Existing character save data is retained; legacy Dark Forest trial records are ignored.

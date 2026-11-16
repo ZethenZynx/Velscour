@@ -5,7 +5,7 @@ import { SUMMONS } from './summons.js';
 import { ELEM } from '../gfx/vfx.js';
 import { NOTES, NOTE_MODS, REGISTERS, registerOf } from './notation.js';
 
-export const ROW_LEVELS = [1, 12, 30];
+export const ROW_LEVELS = [1, 15, 30];
 export const MAX_SKILL_LEVEL = 20;
 export const SKILLS = {};
 export const CLASS_SKILLS = {};

@@ -17,6 +17,7 @@ import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
 import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
+import { RECENT_CHANGES } from '../data/recent-changes.js';
 
 let current = null;
 
@@ -59,6 +60,12 @@ export function titleScreen() {
   fill();
   s.refresh = fill;
   s.appendChild(menu);
+  const changes = el('section', 'title-changes');
+  changes.setAttribute('aria-label', 'Recent changes');
+  changes.innerHTML = `<h2>Recent Changes</h2><ul>${RECENT_CHANGES.map(({ title, summary }) =>
+    `<li><strong>${escapeHtml(title)}</strong><span>${escapeHtml(summary)}</span></li>`
+  ).join('')}</ul>`;
+  s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
   foot.textContent = 'Rough draft · placeholder art · progress saves in this browser';
