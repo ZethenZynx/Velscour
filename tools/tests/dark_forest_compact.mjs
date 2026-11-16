@@ -1,4 +1,4 @@
-// Node-only contract checks for the full-size Dark Forest and its optional side labyrinths.
+// Node-only contract checks for the full-size Dark Forest, on-route landmarks and optional side labyrinths.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -39,12 +39,22 @@ for (let n = 1; n <= seeds; n++) {
   if (!(g.start[0] < m.w/4 && g.start[1] > m.h*3/4 && g.boss[0] > m.w*3/4 && g.boss[1] < m.h/4)) throw Error('start and boss are not on opposite corners');
   const expectedLandmarks = ['camp', 'well', 'shrine', 'obelisk', 'swamp', 'webs'];
   if (g.landmarks?.length !== expectedLandmarks.length || expectedLandmarks.some((name) => !g.landmarks.some((landmark) => landmark.what === name)) || g.props.length < 22) throw Error('expected all six decorative landmarks and their props');
+  const routeDx = g.boss[0] - g.start[0], routeDy = g.boss[1] - g.start[1], routeLen = Math.hypot(routeDx, routeDy);
+  const sideX = -routeDy / routeLen, sideY = routeDx / routeLen;
+  const routeT = (point) => ((point[0] - g.start[0]) * routeDx + (point[1] - g.start[1]) * routeDy) / (routeLen * routeLen);
+  const offsets = [];
+  let previousT = 0;
   for (const landmark of g.landmarks) {
-    if (Math.abs(landmark.center[0] + landmark.center[1] - 192) / Math.SQRT2 < 8) throw Error('a landmark should be a side detour, not clutter the main path');
+    const [lx, ly] = landmark.center, t = routeT([lx, ly]);
+    const lateral = (lx - g.start[0]) * sideX + (ly - g.start[1]) * sideY;
+    if (Math.abs(lateral) > 3.5) throw Error('landmark should sit directly on or beside the main path: ' + landmark.what);
+    if (t - previousT < 0.06) throw Error('landmarks should be staggered along the main path, not clustered in pairs');
+    previousT = t; offsets.push(Math.round(lateral * 10) / 10);
     if (g.labyrinths.some((maze) => { const [x0,y0,x1,y1] = maze.rect; return landmark.center[0] >= x0 && landmark.center[0] < x1 && landmark.center[1] >= y0 && landmark.center[1] < y1; })) throw Error('a landmark overlaps a labyrinth');
     const reachableClearing = Array.from({ length: 81 }, (_, j) => [Math.floor(landmark.center[0]) + j % 9 - 4, Math.floor(landmark.center[1]) + ((j / 9) | 0) - 4]).some(([x,y]) => x >= 0 && y >= 0 && x < m.w && y < m.h && seen[idx(x,y)] && m.walkableTile(x,y) && Math.hypot(x + 0.5 - landmark.center[0], y + 0.5 - landmark.center[1]) <= 4);
     if (!reachableClearing) throw Error('landmark clearing is not reachable: ' + landmark.what);
   }
+  if (new Set(offsets).size < 5 || Math.max(...offsets) - Math.min(...offsets) < 4) throw Error('landmarks should be offset from each other instead of forming parallel rows');
   const expectedSides = ['north', 'south', 'north', 'south'];
   for (let i = 0; i < g.labyrinths.length; i++) {
     const maze = g.labyrinths[i], [x0, y0, x1, y1] = maze.rect;
@@ -66,4 +76,4 @@ const run = createDarkForestRun(world, {}, biome, () => { opened = true; });
 guardian.dead = true;
 run.bossDefeated(guardian);
 if (!run.completed || run.active || !opened) throw Error('guardian defeat did not complete the Forest run');
-console.log('PASS full-size Dark Forest: '+seeds+' seeds, connected boss route, four alternating side labyrinths with reward chests, exit callback verified');
+console.log('PASS full-size Dark Forest: '+seeds+' seeds, connected boss route, six staggered on-route landmarks, four alternating side labyrinths with reward chests, exit callback verified');

@@ -33,7 +33,7 @@ export const ENCOUNTERS = {
   raiders: ["Raiders' Camp", 'Tomb raiders hold the waystone. Kill them and their captain.'],
   obelisks: ['The Singing Obelisks', 'Three obelisks sing the dead back to strength. Break them.'],
   storm: ['Sandstorm', 'A sandstorm rolls over the waystone. Hold out, then kill what rides it.'],
-  dig: ['The Dig', 'Dig up three buried caches (stand on each marker) while the sands fight back.'],
+  dig: ['The Dig', 'Stand still inside each glowing gold circle until its buried cache surfaces.'],
   nest: ['Scarab Nest', 'Scarab egg sacs spill a swarm. Burst every sac.'],
   duel: ['Champion of the Sands', 'A champion of the sands waits at the waystone with its guard.'],
   oasis: ['Hold the Oasis', 'They come for the water. Kill sixteen of them.'],
@@ -229,7 +229,7 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       const c = run.current, p = world.player;
       if (!c || !p) return null;
       const mk = c.marks.find((m) => !m.done);
-      if (mk) return { x: mk.x, y: mk.y, reach: 0.8, hold: true, label: 'Digging up the cache' };
+      if (mk) return { x: mk.x, y: mk.y, reach: 1.1, hold: true, label: 'Stand in the gold circle to dig' };
       const o = alive(c.objs).reduce((a, m) => !a || Math.hypot(m.x - p.x, m.y - p.y) < Math.hypot(a.x - p.x, a.y - p.y) ? m : a, null);
       if (o) return { x: o.x, y: o.y, reach: 1.6, label: 'Breaking the ' + o.name };
       return Math.hypot(p.x - c.x, p.y - c.y) > c.r + 5 ? { x: c.x, y: c.y, reach: c.r * 0.5, label: 'Back to ' + c.name } : null;
@@ -239,7 +239,7 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       const p = world.player, c = run.current;
       if (c) {
         const mk = c.marks.find((m) => !m.done);
-        if (mk) return { x: mk.x, y: mk.y, reach: 0.6 };
+        if (mk) return { x: mk.x, y: mk.y, reach: 1.1 };
         const o = alive(c.objs)[0];
         if (o) return { x: o.x, y: o.y, reach: 1.6 };
         // its own foes, nearest first, else hold its ground for the next wave (never off hunting the far dunes)
@@ -282,6 +282,30 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       dressing(dt);
     },
   };
+
+  // The Dig uses a hold-to-excavate radius. Keep a persistent ground marker on
+  // every cache so the player can see exactly where to stand until each is found.
+  world.addHazard({ keep: true, ground: true, draw(ctx) {
+    const e = run.current;
+    if (!e || e.kind !== 'dig' || e.state !== 'active') return;
+    for (const m of e.marks) {
+      const px = isoX(m.x, m.y), py = isoY(m.x, m.y), done = m.done;
+      const pulse = done ? 0 : 0.88 + Math.sin(G.time * 4.5) * 0.12;
+      const color = done ? '#8caa73' : '#ffd05a';
+      ctx.save(); ctx.translate(px, py); ctx.scale(1, HH / HW);
+      ctx.globalAlpha = done ? 0.46 : 0.78 * pulse;
+      ctx.fillStyle = done ? 'rgba(115,155,90,0.12)' : 'rgba(255,190,55,0.15)';
+      ctx.beginPath(); ctx.arc(0, 0, 1.1 * HW * 1.41, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = done ? 2 : 2.8;
+      ctx.setLineDash(done ? [] : [7, 5]);
+      ctx.beginPath(); ctx.arc(0, 0, 1.1 * HW * 1.41, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = done ? 0.55 : 0.9;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, 0.3 * HW * 1.41, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.moveTo(0, -5); ctx.lineTo(0, 5); ctx.stroke();
+      ctx.restore();
+    }
+  }, update() { return world === G.world; } });
 
   // ---------------------------------------------------------------- spawning
   function spotNear(x0, y0, r0, r1, tries = 40, keep = null) {
