@@ -11,23 +11,103 @@
 // Wiring: game.update -> crittersTick, each critter is a 'top' effect (vfx.js) that moves and draws itself, and
 // spectate.js hit-tests taps against world.critters (catchCritterAt).
 import { G } from '../state.js';
-import { rand, chance, pick, TAU, fmtInt } from '../core/util.js';
+import { rand, chance, pick, randi, TAU, fmtInt } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { camera, isoX, isoY } from '../core/view.js';
 import { addEffect, Ring, glowSprite, sparkle, spawn, floatText, addLight } from '../gfx/vfx.js';
 import { xpToNext } from './player.js';
-import { goldPile } from '../data/items.js';
+import { goldPile, RARITY, qualityAtDepth } from '../data/items.js';
+import { ARCH } from '../data/enemies.js';
+import { pixelSprite } from '../gfx/pixelart.js';
+import { GroundItem, rollGroundGem } from './loot.js';
+import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
 
 // fly: drifts in the air (z), else scuttles on the floor. w: odds. life: seconds before it gets away.
 // pay.xp: experience, as a share of xpToNext(hero level); pay.gold: gold piles (items.js goldPile) at the hero's level.
-export const CRITTERS = {
-  wisp: { name: 'Gilded Wisp', color: '#ffd040', fly: true, w: 45, life: 12, speed: 1.3, pay: { xp: 0.05 } },
-  moth: { name: 'Starmoth', color: '#a8c8ff', fly: true, w: 25, life: 11, speed: 1.6, pay: { xp: 0.06 } },
-  scarab: { name: 'Golden Scarab', color: '#ffb030', fly: false, w: 22, life: 10, speed: 2.1, pay: { gold: 40 } },
-  prism: { name: 'Prismatic Wisp', color: '#ff80e0', fly: true, w: 8, life: 9, speed: 2, pay: { xp: 0.15 } },
-};
+export const CRITTERS = Object.freeze({
+  // The original four species remain part of the pool; reward and tier are rolled independently.
+  wisp: { name: 'Wisp', artKey: 'wisp', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 12, speed: 1.3, motion: 'drift', accent: 'flame' },
+  moth: { name: 'Treasure Moth', artKey: 'moth', sprite: 'bat', arch: 'bat', fly: true, w: 1, life: 11, speed: 1.6, motion: 'flutter', accent: 'wings' },
+  scarab: { name: 'Treasure Beetle', artKey: 'scarab', sprite: 'beetle', arch: 'beetle', fly: false, w: 1, life: 10, speed: 2.1, motion: 'scuttle', accent: 'shell' },
+  prism: { name: 'Gold Sprite', artKey: 'prism', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 9, speed: 2, motion: 'dart', accent: 'runes' },
+  crystal_scarab: { name: 'Crystal Scarab', sprite: 'knight', arch: 'knight', fly: false, w: 1, life: 10, speed: 1.8, motion: 'skitter', accent: 'crystals' },
+  goldback_spider: { name: 'Goldback Spider', sprite: 'spider', arch: 'spider', fly: false, w: 1, life: 10, speed: 2.5, motion: 'skitter', accent: 'legs' },
+  gem_tortoise: { name: 'Gem Tortoise', sprite: 'golem', arch: 'golem', fly: false, w: 1, life: 13, speed: 1.15, motion: 'steady', accent: 'shell' },
+  coin_crab: { name: 'Coin Crab', sprite: 'abomination', arch: 'abomination', fly: false, w: 1, life: 10, speed: 1.75, motion: 'sidestep', accent: 'claws' },
+  treasure_mimic: { name: 'Treasure Mimic', sprite: 'crate', fly: false, w: 1, life: 10, speed: 1.45, motion: 'hop', accent: 'mimic' },
+  gilded_centipede: { name: 'Gilded Centipede', sprite: 'worm', arch: 'worm', fly: false, w: 1, life: 9, speed: 2.6, motion: 'slither', accent: 'segments' },
+  rune_snail: { name: 'Rune Snail', sprite: 'slime', arch: 'slime', fly: false, w: 1, life: 12, speed: 1.1, motion: 'steady', accent: 'shell' },
+  coin_rat: { name: 'Coin Rat', sprite: 'hound', arch: 'hound', fly: false, w: 1, life: 9, speed: 2.7, motion: 'dart', accent: 'ears' },
+  treasure_imp: { name: 'Treasure Imp', sprite: 'imp', arch: 'imp', fly: false, w: 1, life: 9, speed: 2.4, motion: 'zigzag', accent: 'flame' },
+  crystal_bat: { name: 'Crystal Bat', sprite: 'gargoyle', arch: 'gargoyle', fly: true, w: 1, life: 10, speed: 2.2, motion: 'swoop', accent: 'crystals' },
+  rune_eye: { name: 'Rune Eye', sprite: 'eye', arch: 'eye', fly: true, w: 1, life: 10, speed: 1.7, motion: 'orbit', accent: 'runes' },
+  spectral_jellyfish: { name: 'Spectral Jellyfish', sprite: 'cloud', fly: true, w: 1, life: 13, speed: 1.15, motion: 'bob', accent: 'ghost' },
+  lantern_spirit: { name: 'Lantern Spirit', sprite: 'lantern', fly: true, w: 1, life: 12, speed: 1.3, motion: 'sway', accent: 'flame' },
+  gem_dragonling: { name: 'Gem Dragonling', sprite: 'dragon', arch: 'demon', fly: true, w: 1, life: 10, speed: 2.4, motion: 'glide', accent: 'embers' },
+  floating_skull: { name: 'Floating Skull', sprite: 'skeleton', arch: 'skeleton', fly: true, w: 1, life: 11, speed: 1.65, motion: 'drift', accent: 'ghost' },
+  treasure_fairy: { name: 'Treasure Fairy', sprite: 'cultist', arch: 'cultist', fly: true, w: 1, life: 10, speed: 2.1, motion: 'flutter', accent: 'wings' },
+});
 const KEYS = Object.keys(CRITTERS);
+
+export const CRITTER_REWARDS = Object.freeze([
+  { id: 'xp', weight: 65, label: 'bonus experience', color: '#a8c8ff' },
+  { id: 'gold', weight: 18, label: 'gold', color: '#ffd040' },
+  { id: 'resource', weight: 7, label: 'health and mana orbs', color: '#ff6070' },
+  { id: 'gem', weight: 5, label: 'upgrade gems', color: '#c080ff' },
+  { id: 'jackpot', weight: 3, label: 'a gold jackpot', color: '#ffcf40' },
+  { id: 'shrine', weight: 2, label: 'a temporary shrine blessing', color: '#70e8c0' },
+]);
+const TIER_COLORS = RARITY.map((r) => r.color);
+const TINT = { canvas: null, ctx: null };
+const SPRITE_CACHE = new Map();
+
+function weightedChoice(list) {
+  let r = rand(list.reduce((sum, item) => sum + item.weight, 0));
+  for (const item of list) if ((r -= item.weight) <= 0) return item;
+  return list[list.length - 1];
+}
+function rollCritterTier(depth) {
+  const cap = qualityAtDepth(Math.max(1, depth || 1));
+  const mythicCount = RARITY.filter((r) => r.id >= 5 && r.id <= cap).length;
+  const tiers = RARITY.slice(0, cap + 1).map((r) => ({
+    weight: r.dropGroup === 'mythic' ? (mythicCount ? 0.012 / mythicCount : 0) : r.weight,
+    id: r.id,
+  }));
+  let roll = rand(tiers.reduce((sum, t) => sum + t.weight, 0));
+  for (const tier of tiers) if ((roll -= tier.weight) <= 0) return tier.id;
+  return 0;
+}
+function critterReward(key) { return weightedChoice(CRITTER_REWARDS).id; }
+function rewardLabel(id) { return CRITTER_REWARDS.find((r) => r.id === id)?.label || 'a reward'; }
+function ensureTintCanvas() {
+  if (!TINT.canvas) {
+    TINT.canvas = document.createElement('canvas');
+    TINT.canvas.width = TINT.canvas.height = 128;
+    TINT.ctx = TINT.canvas.getContext('2d', { willReadFrequently: false });
+  }
+  return TINT;
+}
+function drawTinted(color, drawSource) {
+  const { canvas, ctx } = ensureTintCanvas();
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  drawSource(ctx);
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.globalAlpha = 0.58;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  return canvas;
+}
+function critterSprite(key, K) {
+  if (!SPRITE_CACHE.has(key)) {
+    const palette = K.arch && ARCH[K.arch] ? ARCH[K.arch].pal : { a: '#b08040', A: '#4a3020', b: '#6a3a20', c: '#d0a040', e: '#fff080', w: '#e8dcc0', k: '#100808' };
+    SPRITE_CACHE.set(key, pixelSprite(K.sprite, palette, 4));
+  }
+  return SPRITE_CACHE.get(key);
+}
+
 // seconds between critters, now on a clock that doesn't wait for the last one to go: twice as many as the old 12-25 s
 // gap after each critter's 9-12 s life (one every ~30 s); at most CRITTER_MAX at once
 export const CRITTER_GAP = [10, 19];
