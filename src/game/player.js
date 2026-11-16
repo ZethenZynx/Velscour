@@ -655,6 +655,9 @@ export class Player extends Creature {
     if (this.affixSunderT > 0) this.affixSunderT -= dt;
     if (this.affixHealPenaltyT > 0) this.affixHealPenaltyT -= dt;
     if (this.affixDamageDownT > 0) this.affixDamageDownT -= dt;
+    if (this.affixNecroticT > 0 && (this.affixNecroticT -= dt) <= 0 && this.affixNecroticBaseMaxHp) {
+      this.recompute(); this.affixNecroticBaseMaxHp = 0; this.hp = Math.min(this.hp, this.maxHp);
+    }
     if (this.affixVulnerabilityT > 0 && (this.affixVulnerabilityT -= dt) <= 0) this.affixVulnerabilityStacks = 0;
     if (this.affixCritVulnerableT > 0) this.affixCritVulnerableT -= dt;
     if (this.affixRemainsT > 0) this.affixRemainsT -= dt;
