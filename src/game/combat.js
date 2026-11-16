@@ -305,7 +305,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   }
 
   // ---- status effects
-  if (!o.dot && !tgt.dead) applyStatus(src, tgt, dmg, el, o);
+  if ((!o.dot || o.affixStatus) && !tgt.dead) applyStatus(src, tgt, dmg, el, o);
 
   // ---- leech: by the share of the target's life the hit took (LEECH_K of the hero's own life a whole life's worth),
   // not raw damage, which runs far ahead of hero life (it healed whole life bars a hit)
@@ -479,7 +479,7 @@ export function kill(tgt, src, info = {}) {
     for (const [id, [el, fx, radius, status]] of Object.entries(EXTRA_AFFIX_DEATHS)) {
       if (worldAffixes.has(id)) {
         const dmg = (world.player?.maxHp || tgt.maxHp) * 0.035;
-        pushField(id, el, radius, dmg, 1.25, 0.35, status, fx);
+        pushField(id, el, radius, dmg, 1.25, 0.35, { ...status, affixStatus: true }, fx);
       }
     }
   }
