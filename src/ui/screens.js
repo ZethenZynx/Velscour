@@ -1,6 +1,7 @@
 // Full-screen menus: title, class select, hero save slots, death, victory, settings, help.
 import { G, saveSettings } from '../state.js';
 import { KEY_BINDING_ACTIONS, getKeyBinding, keyBindingLabel, setKeyBinding, resetKeyBindings } from '../core/input.js';
+import { setMacroKey, MACRO_KEYS } from '../game/macros.js';
 import { camera } from '../core/view.js';
 import { el, escapeHtml, fmtInt } from '../core/util.js';
 import { sfx, applyVolumes, initAudio } from '../core/audio.js';
@@ -459,6 +460,7 @@ export function settingsDialog() {
     <div class="settings-grid">
       <label>Keyboard bindings</label><button type="button" class="btn small" data-reset-keybinds>Reset defaults</button>
       <span data-keybind-rows></span>
+      <span data-macro-bindings></span>
       <label>Mouse buttons</label><span class="dim">LMB and RMB remain assigned to the action bar</span>
     </div>
     <p class="dim" data-keybind-status aria-live="polite"></p>
@@ -497,20 +499,30 @@ export function settingsDialog() {
   const keybindRows = d.box.querySelector("[data-keybind-rows]");
   keybindRows.outerHTML = KEY_BINDING_ACTIONS.map((action) => '<label>' + action.label + '</label><button type="button" class="btn small" data-keybind="' + action.id + '">' + keyBindingLabel(getKeyBinding(action.id)) + '</button>').join("");
   const keybindButtons = [...d.box.querySelectorAll("[data-keybind]")];
+  const macroRows = d.box.querySelector("[data-macro-bindings]");
+  if (G.char && Array.isArray(G.char.macros)) {
+    macroRows.outerHTML = G.char.macros.map((macro, i) => '<label>Macro ' + (i + 1) + '</label><button type="button" class="btn small" data-macro-key="' + i + '">' + keyBindingLabel(macro.key) + '</button>').join('');
+  } else {
+    macroRows.outerHTML = '<label>Macro keys</label><span class="dim">Load a character to set its macro keys.</span>';
+  }
+  const macroKeyButtons = [...d.box.querySelectorAll("[data-macro-key]")];
   const keybindStatus = d.box.querySelector("[data-keybind-status]");
   let capturingKeybind = null;
+  let capturingMacro = null;
+  const refreshMacroButtons = () => macroKeyButtons.forEach((button) => { const macro = G.char.macros[Number(button.dataset.macroKey)]; button.textContent = keyBindingLabel(macro && macro.key); });
   const refreshKeybindButtons = () => keybindButtons.forEach((button) => { button.textContent = keyBindingLabel(getKeyBinding(button.dataset.keybind)); });
   const stopKeyCapture = (message) => {
-    if (capturingKeybind) {
-      const button = keybindButtons.find((item) => item.dataset.keybind === capturingKeybind);
-      if (button) button.classList.remove("keybind-capturing");
-    }
+    const button = capturingKeybind
+      ? keybindButtons.find((item) => item.dataset.keybind === capturingKeybind)
+      : macroKeyButtons.find((item) => Number(item.dataset.macroKey) === capturingMacro);
+    if (button) button.classList.remove("keybind-capturing");
     capturingKeybind = null;
+    capturingMacro = null;
     if (message) keybindStatus.textContent = message;
   };
   keybindButtons.forEach((button) => {
     button.onclick = () => {
-      if (capturingKeybind) stopKeyCapture("");
+      if (capturingKeybind || capturingMacro !== null) stopKeyCapture("");
       capturingKeybind = button.dataset.keybind;
       button.classList.add("keybind-capturing");
       button.textContent = "Press a key…";
@@ -518,12 +530,29 @@ export function settingsDialog() {
       keybindStatus.textContent = "Press a key for " + action.label + ". Escape cancels.";
     };
   });
+  macroKeyButtons.forEach((button) => {
+    button.onclick = () => {
+      if (capturingKeybind || capturingMacro !== null) stopKeyCapture("");
+      capturingMacro = Number(button.dataset.macroKey);
+      button.classList.add("keybind-capturing");
+      button.textContent = "Press a key…";
+      keybindStatus.textContent = "Press a key for Macro " + (capturingMacro + 1) + ". Escape cancels.";
+    };
+  });
   d.box.addEventListener("keydown", (e) => {
-    if (!capturingKeybind) return;
+    if (!capturingKeybind && capturingMacro === null) return;
     e.preventDefault(); e.stopPropagation();
-    if (e.code === "Escape") { stopKeyCapture("Binding cancelled."); refreshKeybindButtons(); return; }
+    if (e.code === "Escape") { stopKeyCapture("Binding cancelled."); refreshKeybindButtons(); refreshMacroButtons(); return; }
     if (["Tab", "Enter", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"].includes(e.code)) {
       keybindStatus.textContent = "Choose a regular key or function key. Tab, Enter, and modifier keys are reserved.";
+      return;
+    }
+    if (capturingMacro !== null) {
+      if (!MACRO_KEYS.includes(e.code)) { keybindStatus.textContent = "Use F1–F12 or one of the existing macro letter keys."; return; }
+      setMacroKey(capturingMacro, e.code);
+      if (G.game && typeof G.game.autosave === "function") G.game.autosave();
+      stopKeyCapture("Macro key saved. Any macro that used that key now uses this macro’s previous key.");
+      refreshMacroButtons();
       return;
     }
     if (setKeyBinding(capturingKeybind, e.code)) {
@@ -535,6 +564,7 @@ export function settingsDialog() {
     resetKeyBindings();
     stopKeyCapture("All keyboard bindings restored to their defaults.");
     refreshKeybindButtons();
+    refreshMacroButtons();
   };
   d.box.querySelector('[data-k=gore]').value = String(st.gore);
   d.box.querySelector('[data-k=fpsCap]').value = String(st.fpsCap || 0);
