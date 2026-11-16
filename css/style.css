@@ -437,7 +437,7 @@ body.at-sea #levelup { top: 31%; } /* the Pirate Seas: the top band is the scena
 @keyframes lu-droop { from { translate: 0 0; opacity: 1; } to { translate: 0 3px; opacity: .75; } }
 @keyframes lu-flicker { 0%, 100% { opacity: 1; } 31% { opacity: .55; } 33% { opacity: 1; } 71% { opacity: .7; } 72% { opacity: 1; } }
 #log { position: absolute; left: 12px; bottom: calc(var(--hud-w) * var(--hud-k) + 10px); width: min(420px, 60vw); pointer-events: none; font-size: 14px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; gap: 2px; }
-#log div { text-shadow: 0 0 3px #000, 0 0 3px #000; animation: logfade 6s forwards; }
+#log div { text-shadow: 0 0 3px #000, 0 0 3px #000; animation: logfade 12s forwards; }
 @keyframes logfade { 0% { opacity: 0; transform: translateX(-10px); } 5% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ------------------------------------------------------------------- panels */
