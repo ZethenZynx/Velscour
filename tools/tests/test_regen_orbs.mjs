@@ -91,14 +91,14 @@ assert.strictEqual(hungerWorld.loot.length, 0, 'Hunger of the Abyss blocks every
 
 const savedRandom = Math.random;
 try {
-  Math.random = () => 0.0005;
-  assert.strictEqual(rollOrbKind(0.01, 0.001), 'orb_fury', 'Fury is the rarest rolled orb');
-  Math.random = () => 0.005;
-  assert.strictEqual(rollOrbKind(0.01, 0.001), 'orb_rejuv', 'Rejuvenation is rarer than ordinary orbs');
+  Math.random = () => 0.01;
+  assert.strictEqual(rollOrbKind(0.05, 0.02), 'orb_fury', 'Fury has a 2% chance');
+  Math.random = () => 0.03;
+  assert.strictEqual(rollOrbKind(0.05, 0.02), 'orb_rejuv', 'Rejuvenation has a 5% chance');
   Math.random = () => 0.1;
-  assert.strictEqual(rollOrbKind(0.01, 0.001), 'orb_hp');
+  assert.strictEqual(rollOrbKind(0.05, 0.02), 'orb_hp');
   Math.random = () => 0.9;
-  assert.strictEqual(rollOrbKind(0.01, 0.001), 'orb_mp');
+  assert.strictEqual(rollOrbKind(0.05, 0.02), 'orb_mp');
 } finally {
   Math.random = savedRandom;
 }
@@ -121,7 +121,7 @@ const normalRate = normalOrbs / runs;
 console.log(`Normal monster orb drop rate (healthy): ${(normalRate * 100).toFixed(1)}% (expected ~30%)`);
 assert.ok(normalRate >= 0.25 && normalRate <= 0.35, `Normal orb rate ${normalRate} out of expected ~30%`);
 
-// Rejuvenation and Fury drops are independent and much rarer than the existing healing orbs.
+// Special-orb drops are independent: 5% Rejuvenation and 2% Fury per normal monster.
 let rejuvDrops = 0, furyDrops = 0;
 for (let i = 0; i < 5000; i++) {
   dungeonWorld.loot = [];
@@ -130,9 +130,9 @@ for (let i = 0; i < 5000; i++) {
   furyDrops += dungeonWorld.loot.filter((l) => l.kind === 'orb_fury').length;
 }
 const rejuvRate = rejuvDrops / 5000, furyRate = furyDrops / 5000;
-console.log(`Rare orb drop rates: Rejuvenation ${(rejuvRate * 100).toFixed(2)}%, Fury ${(furyRate * 100).toFixed(2)}% (expected 1.8% / 0.3%)`);
-assert.ok(rejuvRate >= 0.012 && rejuvRate <= 0.024, `Rejuvenation orb rate ${rejuvRate} outside expected range`);
-assert.ok(furyRate >= 0.001 && furyRate <= 0.006, `Fury orb rate ${furyRate} outside expected range`);
+console.log(`Special orb drop rates: Rejuvenation ${(rejuvRate * 100).toFixed(2)}%, Fury ${(furyRate * 100).toFixed(2)}% (expected 5% / 2%)`);
+assert.ok(rejuvRate >= 0.04 && rejuvRate <= 0.06, `Rejuvenation orb rate ${rejuvRate} outside expected range`);
+assert.ok(furyRate >= 0.015 && furyRate <= 0.025, `Fury orb rate ${furyRate} outside expected range`);
 
 // Normal monster (wounded player < 50% HP)
 p.hp = 300; // 30% HP

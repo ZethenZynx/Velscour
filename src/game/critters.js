@@ -486,7 +486,7 @@ export function catchCritter(cr) {
   } else if (cr.reward === 'resource') {
     const count = 2 + Math.floor(cr.tier / 4);
     for (let i = 0; i < count; i++) {
-      const kind = rollOrbKind(0.01, 0.001);
+      const kind = rollOrbKind(0.05, 0.02);
       world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), kind));
     }
     summary = `${count} resource orbs`;

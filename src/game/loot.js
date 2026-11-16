@@ -25,8 +25,12 @@ import { CHEST_RARITIES } from '../data/treasurechests.js';
 export function groundDropRarityCap(depth) { return qualityAtDepth(Math.max(1, depth || 1)); }
 
 const ORB_COLOR = { orb_hp: '#ff2a2a', orb_mp: '#3a6aff', orb_rejuv: '#c040ff', orb_fury: '#ffa020' };
-/** Roll the special rewards only in a small minority of otherwise ordinary orb spawns. */
-export function rollOrbKind(rejuvenationChance = 0.01, furyChance = 0.001, healthChance = 0.5) {
+const ORB_ICON = {
+  orb_hp: ['orb_hp', null], orb_mp: ['orb_mp', null],
+  orb_rejuv: ['orb_hp', { colorize: [282, 0.95] }], orb_fury: ['orb_hp', { colorize: [35, 0.95] }],
+};
+/** Roll an orb reward, with a 5% Rejuvenation and 2% Fury chance by default. */
+export function rollOrbKind(rejuvenationChance = 0.05, furyChance = 0.02, healthChance = 0.5) {
   if (chance(furyChance)) return 'orb_fury';
   if (chance(rejuvenationChance)) return 'orb_rejuv';
   return chance(healthChance) ? 'orb_hp' : 'orb_mp';
@@ -44,6 +48,51 @@ export function rollGroundItem(ilvl, opts = {}) {
 export function rollGroundGem(ilvl) {
   const level = G.char?.level;
   return rollGem(level == null ? ilvl : Math.min(ilvl, level));
+}
+
+// Breakable dungeon clutter can pay out only small, non-equipment rewards. Keep the gem
+// chance below every other reward; orb chances match the established rare-orb rates.
+export const CLUTTER_DROP_CHANCES = Object.freeze({
+  gold: 0.10,
+  orbHp: 0.08,
+  orbMp: 0.08,
+  orbRejuv: 0.05,
+  orbFury: 0.02,
+  gem: 0.01,
+});
+
+/** Roll the small reward table for a broken dungeon prop. At most one orb can drop. */
+export function dropClutterLoot(world, x, y) {
+  const p = G.player;
+  if (world?.kind !== 'dungeon' || !p || typeof world.addLoot !== 'function') return [];
+
+  const level = depthLevel(world.depth || G.char?.depth || 1);
+  const st = p.st || {};
+  const dropped = [];
+  const add = (kind, data = {}) => {
+    const item = new GroundItem(x + rand(-0.2, 0.2), y + rand(-0.2, 0.2), kind, data);
+    world.addLoot(item);
+    dropped.push(item);
+  };
+
+  if (chance(CLUTTER_DROP_CHANCES.gold)) {
+    add('gold', { amount: Math.max(1, Math.round(goldPile(level) * rand(0.6, 1.0) * (1 + (st.goldFind || 0) / 100) * (world.goldMul || 1))) });
+  }
+
+  if (heresyAllows('orb', p.char || G.char, world)) {
+    const roll = Math.random();
+    if (roll < CLUTTER_DROP_CHANCES.orbHp) add('orb_hp');
+    else if (roll < CLUTTER_DROP_CHANCES.orbHp + CLUTTER_DROP_CHANCES.orbMp) add('orb_mp');
+    else if (roll < CLUTTER_DROP_CHANCES.orbHp + CLUTTER_DROP_CHANCES.orbMp + CLUTTER_DROP_CHANCES.orbRejuv) add('orb_rejuv');
+    else if (roll < CLUTTER_DROP_CHANCES.orbHp + CLUTTER_DROP_CHANCES.orbMp + CLUTTER_DROP_CHANCES.orbRejuv + CLUTTER_DROP_CHANCES.orbFury) add('orb_fury');
+  }
+
+  if (chance(Math.min(1, CLUTTER_DROP_CHANCES.gem * (world.gemDropMul || 1)))) {
+    const item = rollGroundGem(level);
+    add('item', { item, fades: fadeOf(item) });
+  }
+
+  return dropped;
 }
 
 const sigilCache = new Map();
@@ -160,7 +209,8 @@ export class GroundItem {
       ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(glowSprite(c), px - b * 2.2, py - 10 - b * 2.2, b * 4.4, b * 4.4);
       ctx.globalCompositeOperation = 'source-over';
-      const orb = replacementIcon(this.kind, 20);
+      const [art, swap] = ORB_ICON[this.kind];
+      const orb = replacementIcon(art, 20, null, 0.88, swap);
       if (orb) { ctx.drawImage(orb, px - 10, py - 20 - Math.sin(this.t * 4) * 2); return; }
       ctx.fillStyle = c; ctx.beginPath(); ctx.arc(px, py - 10 - Math.sin(this.t * 4) * 2, 4.5, 0, TAU); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.fillRect(px - 2, py - 13 - Math.sin(this.t * 4) * 2, 2, 2);
@@ -324,7 +374,7 @@ export function dropLoot(world, m) {
     for (let i = 0; i < n; i++) add('gold', { amount: Math.max(1, Math.round(goldPile(lvl) * rand(0.6, 1.4) * Math.sqrt(R) * (1 + st.goldFind / 100) * (world.goldMul || 1))) });
   }
   if (!isRiftActive && st.legendary.greed && chance(0.15)) for (let i = 0; i < 4; i++) add('gold', { amount: Math.round((2 + lvl) * goldScale(lvl) * (1 + st.goldFind / 100)) });
-  // Orbs (none under the Hunger of the Abyss Heresy). The two new rewards are intentionally rare.
+  // Orbs (none under the Hunger of the Abyss Heresy).
   if (heresyAllows('orb', p.char, world)) {
     // Health orbs: primary recovery in dungeons with natural HP regen removed outside of town.
     if (rank === 'boss') {
@@ -346,8 +396,8 @@ export function dropLoot(world, m) {
       if (chance(0.12)) add('orb_mp', {});
     }
     const rankScale = Math.sqrt(R);
-    if (chance(0.018 * rankScale)) add('orb_rejuv', {});
-    if (chance(0.003 * rankScale)) add('orb_fury', {});
+    if (chance(0.05 * rankScale)) add('orb_rejuv', {});
+    if (chance(0.02 * rankScale)) add('orb_fury', {});
   }
   // active rifts suppress gear/gold drops until the Guardian piñata
   if (isRiftActive) return;
@@ -406,8 +456,8 @@ export function dropChest(world, chest, depth) {
   if (!goldOnly && !gemsOnly) {
     if (chance(0.5)) add('potion', { item: potionItem(pick(['hp', 'mp', 'rejuv'])) });
     if (heresyAllows('orb', G.player?.char, world) && chance(0.75)) add('orb_hp', {});
-    if (heresyAllows('orb', G.player?.char, world) && chance(0.012)) add('orb_rejuv', {});
-    if (heresyAllows('orb', G.player?.char, world) && chance(0.002)) add('orb_fury', {});
+    if (heresyAllows('orb', G.player?.char, world) && chance(0.05)) add('orb_rejuv', {});
+    if (heresyAllows('orb', G.player?.char, world) && chance(0.02)) add('orb_fury', {});
   }
 }
 

@@ -25,9 +25,23 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const floor = (name) => floors.get(name) ?? 0;
   const forestFloors = ['pine_needles', 'black_loam', 'dead_leaves', 'damp_moss', 'dark_turf', 'root_soil', 'peat'];
   const trailFloors = ['gravel_path', 'packed_mud', 'gravel_wash'];
+  // Optional full-size side mazes sit entirely off the southwest-to-northeast main route.
+  // Their open gates and short spurs make both detours easy to find and enter.
+  const mazes = [
+    { id: 'north', side: 'north', x: 48, y: 48, size: 44, family: 'thorn_hedge', gate: [85, 91], spur: [96, 96] },
+    { id: 'south', side: 'south', x: 100, y: 100, size: 44, family: 'tangled_roots', gate: [100, 100], spur: [96, 96] },
+  ];
+  const distanceToSegment = (x, y, a, b) => {
+    const vx = b[0] - a[0], vy = b[1] - a[1], n = vx * vx + vy * vy;
+    const t = n ? clamp(((x - a[0]) * vx + (y - a[1]) * vy) / n, 0, 1) : 0;
+    return Math.hypot(x - a[0] - t * vx, y - a[1] - t * vy);
+  };
+  const inMaze = (x, y, margin = 0) => mazes.some((m) => x >= m.x - margin && y >= m.y - margin && x < m.x + m.size + margin && y < m.y + m.size + margin);
+  const nearMazeSpur = (x, y, margin = 0) => mazes.some((m) => distanceToSegment(x, y, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5]) < margin);
   for (let y = 0; y < DF_H; y++) for (let x = 0; x < DF_W; x++) {
     const d = distToRoute(x + 0.5, y + 0.5);
-    map.v[map.idx(x, y)] = d < 4.8 && rng.chance(0.65) ? floor(rng.pick(trailFloors)) : floor(rng.pick(forestFloors));
+    const spurDist = Math.min(...mazes.map((m) => distanceToSegment(x + 0.5, y + 0.5, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5])));
+    map.v[map.idx(x, y)] = d < 4.8 && rng.chance(0.65) || spurDist < 2.2 ? floor(rng.pick(trailFloors)) : floor(rng.pick(forestFloors));
   }
 
   // Tall trees fill the forest at the original map scale, with a clear corridor to the boss.
@@ -41,7 +55,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     const routeDist = distToRoute(x + 0.5, y + 0.5);
     const bossDist = Math.hypot(x + 0.5 - boss[0], y + 0.5 - boss[1]);
     const startDist = Math.hypot(x + 0.5 - start[0], y + 0.5 - start[1]);
-    if (routeDist < 9 || bossDist < 16 || startDist < 10) continue;
+    if (routeDist < 9 || bossDist < 16 || startDist < 10 || inMaze(x, y, 1) || nearMazeSpur(x + 0.5, y + 0.5, 3.5)) continue;
     const nearTrail = routeDist < 20, spacing = nearTrail ? 2.6 : 1.55;
     const px = x + 0.5 + rng.range(-0.22, 0.22), py = y + 0.5 + rng.range(-0.22, 0.22);
     let free = true, radius = Math.ceil(spacing);
@@ -76,6 +90,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   for (let tries = 0; spawns.length < targetPacks && tries < maxAttempts; tries++) {
     const i = reachable[rng.int(0, reachable.length - 1)], x = i % DF_W + 0.5, y = ((i / DF_W) | 0) + 0.5;
     if (Math.hypot(x - start[0], y - start[1]) < 18 || Math.hypot(x - boss[0], y - boss[1]) < 24) continue;
+    if (inMaze(x, y) || nearMazeSpur(x, y, 3.5)) continue;
     if (spawns.some(s => Math.hypot(s.x - x, s.y - y) < 5)) continue;
     const arch = rng.pick(roster), n = rng.int(2, 4), champion = spawns.length % 9 === 0;
     spawns.push({ x, y, arch, n, rank:champion ? 'champion' : 'normal', look:looks.pick(arch) });
@@ -96,11 +111,89 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     chests.push({ x:best % DF_W + 0.5, y:((best / DF_W) | 0) + 0.5, rare:false });
   }
 
-  map.walls = []; map.doors = []; map.segments = []; map.kind = new Uint8Array(N);
+  // Carve two optional 10x10-cell labyrinths with broad corridors and full-height pack walls.
+  // The only route through each outer wall is a three-tile opening directly facing its path spur.
+  const mazeWall = new Uint8Array(N), mazeCells = [];
+  for (const maze of mazes) {
+    const cellsWide = 10, cellStep = 4, ox = maze.x, oy = maze.y, size = maze.size;
+    const wall = (x, y) => {
+      const i = y * DF_W + x;
+      mazeWall[i] = 1; map.block[i] = 1; map.kind ??= new Uint8Array(N); map.kind[i] = 7;
+    };
+    for (let y = oy; y < oy + size; y++) for (let x = ox; x < ox + size; x++) wall(x, y);
+    const open = (x, y) => {
+      const i = y * DF_W + x;
+      mazeWall[i] = 0; map.block[i] = 0; map.kind[i] = 0;
+      map.v[i] = floor(rng.pick(trailFloors));
+    };
+    const visited = new Uint8Array(cellsWide * cellsWide), stack = [rng.int(0, cellsWide * cellsWide - 1)];
+    const carveCell = (c) => {
+      const cx = c % cellsWide, cy = (c / cellsWide) | 0, x0 = ox + 1 + cx * cellStep, y0 = oy + 1 + cy * cellStep;
+      for (let y = y0; y < y0 + 3; y++) for (let x = x0; x < x0 + 3; x++) open(x, y);
+    };
+    visited[stack[0]] = 1; carveCell(stack[0]);
+    while (stack.length) {
+      const c = stack[stack.length - 1], cx = c % cellsWide, cy = (c / cellsWide) | 0;
+      const options = [[0,-1],[1,0],[0,1],[-1,0]].filter(([dx,dy]) => {
+        const nx = cx + dx, ny = cy + dy;
+        return nx >= 0 && ny >= 0 && nx < cellsWide && ny < cellsWide && !visited[ny * cellsWide + nx];
+      });
+      if (!options.length) { stack.pop(); continue; }
+      const [dx,dy] = rng.pick(options), nx = cx + dx, ny = cy + dy, next = ny * cellsWide + nx;
+      visited[next] = 1;
+      const x0 = ox + 1 + cx * cellStep, y0 = oy + 1 + cy * cellStep;
+      for (let n = 0; n < 3; n++) open(x0 + (dx > 0 ? 3 : dx < 0 ? -1 : n), y0 + (dy > 0 ? 3 : dy < 0 ? -1 : n));
+      carveCell(next); stack.push(next);
+    }
+    // Add a few loops so exploration has choices instead of a single long corridor.
+    for (let cy = 0; cy < cellsWide; cy++) for (let cx = 0; cx < cellsWide; cx++) {
+      if (!rng.chance(0.12)) continue;
+      const x0 = ox + 1 + cx * cellStep, y0 = oy + 1 + cy * cellStep;
+      if (cx + 1 < cellsWide && mazeWall[y0 * DF_W + x0 + 3]) for (let n = 0; n < 3; n++) open(x0 + 3, y0 + n);
+      if (cy + 1 < cellsWide && mazeWall[(y0 + 3) * DF_W + x0]) for (let n = 0; n < 3; n++) open(x0 + n, y0 + 3);
+    }
+    // Face the gate toward the main route: north maze opens south, south maze opens north.
+    for (let n = 0; n < 3; n++) {
+      const gx = maze.gate[0] + n;
+      const tunnel = maze.side === 'north' ? 4 : 1;
+      for (let d = 0; d < tunnel; d++) open(gx, maze.side === 'north' ? maze.y + maze.size - 1 - d : maze.y + d);
+    }
+    for (let step = 0; step <= 12; step++) {
+      const t = step / 12, x = Math.round(maze.gate[0] + (maze.spur[0] - maze.gate[0]) * t), y = Math.round(maze.gate[1] + (maze.spur[1] - maze.gate[1]) * t);
+      for (let oy2 = -1; oy2 <= 1; oy2++) for (let ox2 = -1; ox2 <= 1; ox2++) {
+        const tx = x + ox2, ty = y + oy2;
+        if (tx > 0 && ty > 0 && tx < DF_W - 1 && ty < DF_H - 1) { map.block[ty * DF_W + tx] = 0; map.v[ty * DF_W + tx] = floor(rng.pick(trailFloors)); }
+      }
+    }
+    maze.center = [ox + size / 2, oy + size / 2];
+    maze.rect = [ox, oy, ox + size, oy + size];
+    mazeCells.push(maze);
+    // Each detour rewards exploration with its own cache, away from the gate.
+    chests.push({ x: maze.center[0] + 0.5, y: maze.center[1] + 0.5, rare: rng.chance(0.25) });
+  }
+
+  map.walls = []; map.doors = []; map.segments = []; map.kind ??= new Uint8Array(N);
+  const wallDirs = [[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]], wallOffsets = { NE:[0,-0.25],SE:[0.25,0],SW:[0,0.25],NW:[-0.25,0] };
+  for (const maze of mazeCells) {
+    const family = tileset.walls[maze.family];
+    for (let y = maze.y; y < maze.y + maze.size; y++) for (let x = maze.x; x < maze.x + maze.size; x++) {
+      const i = y * DF_W + x;
+      if (!mazeWall[i]) continue;
+      let mask = 0;
+      for (const [dx,dy,bit] of wallDirs) if (x + dx >= maze.x && y + dy >= maze.y && x + dx < maze.x + maze.size && y + dy < maze.y + maze.size && mazeWall[(y + dy) * DF_W + x + dx]) mask |= bit;
+      const variants = family?.[mask] || family?.[0] || [];
+      const pieces = variants[rng.int(0, variants.length - 1)] || [];
+      for (const sl of pieces) {
+        const [dx,dy] = wallOffsets[sl.arm] || [0,0];
+        map.walls.push({ kind:'wall', x:x+0.5, y:y+0.5, r:sl, front:false, depth:x+y+1+dx+dy });
+      }
+    }
+  }
+  map.indexWalls();
   const cells = Array.from({ length: bw * bh }, () => []);
   for (const tree of trees) cells[Math.floor(tree.y / B) * bw + Math.floor(tree.x / B)].push(tree);
   map.treeCells = { B, bw, bh, cells };
-  return { map, props:[], trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[],
+  return { map, props:[], trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells,
     start, boss, exit, shrine:boss, sites:[], landmarks:[], scenarioId:0, seed, layoutSeed:seed };
 }
 

@@ -625,7 +625,7 @@ export const game = {
       : biome.id === 'sea_of_sand' ? 'Follow the cliff maze and clear every marked scenario area to open the exit.'
       : biome.id === 'skyship' ? "Step out onto the heroes' airship. Hold the deck against the Air Pirates' boarding waves, their captains and their flagship; victory turns the gate into the exit."
       : biome.sea ? "Step out onto the Dawnwake, the Lampwardens' steam frigate. Hold her deck against the Black Tide's boarders, wave on wave, and their captain; victory opens the bell tower's door onward."
-      : biome.id === 'dark_forest' ? 'Find your way through the woods and labyrinths to the Heart of the Forest. Its trial opens the way on; the glades along the trails hold trials of their own, and their rewards.'
+      : biome.id === 'dark_forest' ? 'Follow the forest path to the guardian. Optional labyrinths to the north and south may hold bonus treasure; defeat the guardian to open the exit.'
       : biome.tower ? 'Climb the spiral stair to the roof. Three waves of bosses hold it, and then their master comes on an airship.'
       : biome.cave ? 'Follow the passages and caverns to the underground lake. At the foot of its waterfall a passage climbs a long, spiralling shaft to the top of the falls, where its masters wait.'
       : biome.id === 'overworld' ? 'Cross the hamlet and defeat the Forsaken Guardian to open the exit.'
@@ -1591,7 +1591,7 @@ export const game = {
     else if (sea) UI.log(`${world.seaRun.variant.name}: ${world.seaRun.variant.blurb} Hold the Dawnwake's deck against the Black Tide's boarders.`, '#ffe2a0');
     else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the stair; things wait on the floors above, and some will not wait.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
-    else if (forest) UI.log('The Dark Forest closes in. Find the Forest Guardian in the clearing across the woods; defeat it to open the exit.', '#c8f0a0');
+    else if (forest) UI.log('The Dark Forest closes in. Follow the path to its guardian, or explore the optional labyrinths to the north and south for bonus treasure.', '#c8f0a0');
     else if (castle) UI.log('The Castle grounds open before you. Cross the courtyard and defeat the Castle Guardian to unlock the exit.', '#e8d0a8');
     else if (biome.id === 'overworld') UI.log('The hamlet lies at the heart of the Forsaken Wilds. Defeat its guardian to open the exit.', '#c8f0a0');
     else if (biome.overworld) {

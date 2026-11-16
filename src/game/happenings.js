@@ -391,7 +391,7 @@ export function onKill(m) {
   H.kills = (H.kills || 0) + 1;
   if (H.ch) H.ch.got++;
   if (H.challengeAt && H.kills >= H.challengeAt) { H.challengeAt = 0; startChallenge(w); }
-  if (w.dungeonAffixes && w.dungeonAffixes.includes('frenzy') && chance(DUNGEON_AFFIX_CONFIG.frenzy.orbChance)) w.addLoot(new GroundItem(m.x, m.y, rollOrbKind(0.015, 0.002, DUNGEON_AFFIX_CONFIG.frenzy.healthOrbChance), {}));
+  if (w.dungeonAffixes && w.dungeonAffixes.includes('frenzy') && chance(DUNGEON_AFFIX_CONFIG.frenzy.orbChance)) w.addLoot(new GroundItem(m.x, m.y, rollOrbKind(0.05, 0.02, DUNGEON_AFFIX_CONFIG.frenzy.healthOrbChance), {}));
   H.streak = H.streakT > 0 ? H.streak + 1 : 1;
   H.streakT = 4; // a few seconds a kill: the next one in time keeps the streak
   const s = STREAKS.find(([n]) => n === H.streak);
