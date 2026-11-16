@@ -194,6 +194,7 @@ export class Player extends Creature {
     const baseHp = C.life + (c.level - 1) * C.lifeLvl + Math.round(Math.pow(c.level - 1, 2) * 0.45) + vit * 6 + (add.life || 0);
     this.maxHp = Math.round(baseHp * (1 + lifePct / 100) * st.fortitude * (1 + mk.life / 100));
     if (this.world && this.world.kind === 'dungeon' && this.world.dungeonAffixes?.includes('frailty')) this.maxHp = Math.round(this.maxHp * 0.8);
+    if (this.world && this.world.kind === 'dungeon' && this.world.dungeonAffixes?.includes('vampiric_blessing')) this.maxHp = Math.round(this.maxHp * 0.8);
     this.maxMana = Math.round(C.mana + (c.level - 1) * C.manaLvl + int * 2 + (add.mana || 0));
     const inTown = this.world && this.world.kind === 'town';
     st.naturalLifeRegen = 1.2 + c.level * 0.35 + vit * 0.08;
@@ -292,6 +293,8 @@ export class Player extends Creature {
   heal(n, quiet) {
     if (this.dead || n <= 0) return;
     const before = this.hp;
+    if (G.world?.dungeonAffixes?.includes('cursed_fortune')) n *= 0.75;
+    if (this.affixHealPenaltyT > 0) n *= 0.75;
     this.hp = Math.min(this.maxHp, this.hp + n);
     if (!quiet && this.hp - before > 1) floatText(this.x, this.y, 50, '+' + Math.round(this.hp - before), '#60ff60', 13);
   }
@@ -649,6 +652,13 @@ export class Player extends Creature {
     if (this.talentCheatCd > 0) this.talentCheatCd -= dt;
     if (this.morphHealCd > 0) this.morphHealCd -= dt;
     if (this.affixArmorShredT > 0) this.affixArmorShredT -= dt;
+    if (this.affixSunderT > 0) this.affixSunderT -= dt;
+    if (this.affixHealPenaltyT > 0) this.affixHealPenaltyT -= dt;
+    if (this.affixDamageDownT > 0) this.affixDamageDownT -= dt;
+    if (this.affixNecroticT > 0 && (this.affixNecroticT -= dt) <= 0 && this.affixNecroticBaseMaxHp) {
+      this.recompute(); this.affixNecroticBaseMaxHp = 0; this.hp = Math.min(this.hp, this.maxHp);
+    }
+    if (this.affixVulnerabilityT > 0 && (this.affixVulnerabilityT -= dt) <= 0) this.affixVulnerabilityStacks = 0;
     if (this.affixCritVulnerableT > 0) this.affixCritVulnerableT -= dt;
     if (this.affixRemainsT > 0) this.affixRemainsT -= dt;
     if (this.affixSlowUntil && this.affixSlowUntil <= (this.world?.time || 0)) this.affixSlowUntil = 0;
@@ -670,11 +680,11 @@ export class Player extends Creature {
     if (this.channel && this.world && !this.world.hazards.includes(this.channel)) { if (this.channel instanceof Leap) this.z = 0; this.channel = null; }
     // regen: natural baseline HP regen only recovers in town; outside town only gear/buff regen applies
     const inTown = this.world && this.world.kind === 'town';
-    const healingMul = this.world && this.world.dungeonAffixes?.includes('healing_suppression') ? 0.7 : 1;
+    const healingMul = this.world && this.world.dungeonAffixes?.includes('healing_suppression') ? 0.7 : this.world && this.world.dungeonAffixes?.includes('cursed_fortune') ? 0.75 : 1;
     const effectiveRegen = (heresyAllows('regen', c) ? ((inTown ? Math.max(st.naturalLifeRegen || 0, this.maxHp * 0.25) : 0) + (st.bonusLifeRegen || 0)) : 0) * healingMul;
     st.lifeRegen = (inTown ? ((st.naturalLifeRegen || 0) + (st.bonusLifeRegen || 0)) : (st.bonusLifeRegen || 0)) * healingMul;
     if (this.hp < this.maxHp && effectiveRegen > 0) this.hp = Math.min(this.maxHp, this.hp + effectiveRegen * dt);
-    const manaRegenMul = this.world && this.world.dungeonAffixes?.includes('mana_drought') ? 0.5 : 1;
+    const manaRegenMul = this.world ? (this.world.dungeonAffixes?.includes('mana_drought') ? 0.5 : 1) * (this.world.dungeonAffixes?.includes('mana_surge') ? 2 : 1) : 1;
     if (this.mana < this.maxMana) this.mana = Math.min(this.maxMana, this.mana + st.manaRegen * manaRegenMul * dt);
     for (let i = this.potionRegen.length - 1; i >= 0; i--) {
       const r = this.potionRegen[i];

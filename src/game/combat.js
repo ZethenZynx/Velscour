@@ -20,6 +20,7 @@ import { commissionKill } from './commissions.js';
 import { riftKill } from './rifts.js';
 import { SKILLS } from '../data/skills.js';
 import { skillMorphFor } from '../data/talents.js';
+import { EXTRA_AFFIX_DEATHS } from './affixcatalogruntime.js';
 
 const PLAYER_RES = { fire: 'fire', cold: 'cold', light: 'light', poison: 'poison', acid: 'poison' };
 const LEECH_K = 2; // life/mana leech: a whole monster's life taken returns LEECH_K x leech% of the hero's own
@@ -55,9 +56,29 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   const fromPlayer = owner && owner.isPlayer;
   if (fromPlayer && !tgt.isPlayer && G.char && G.char.madT > 0) dmg *= 2; // MADNESS (game/mayhem.js)
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
+  if (fromPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
+  if (fromPlayer && worldAffixes.has('blood_sacrifice')) dmg *= 1.25;
+  if (fromPlayer && owner?.affixDamageDownT > 0) dmg *= 0.85;
+  if (tgt.isPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
+  if (tgt.isPlayer && worldAffixes.has('mana_surge') && el !== 'phys') dmg *= 1.2;
+  if (tgt.isPlayer && (tgt.affixSunderT || 0) > 0) dmg *= 1.15;
 
   const sourceAffixes = src && src.team === 'enemy' ? (src.dungeonAffixIds || []) : [];
   const enemyAttack = sourceAffixes.length > 0 && !o.dot;
+  const worldElements = { eternal_winter: 'cold', scorched_earth: 'fire', plague_season: 'poison',
+    arcane_instability: 'arcane', shadow_dominion: 'shadow', thunder_dominion: 'light',
+    cursed_armory: 'shadow', divine_judgment: 'holy' };
+  for (const [id, element] of Object.entries(worldElements)) if (enemyAttack && sourceAffixes.includes(id)) { el = element; break; }
+  if (enemyAttack && sourceAffixes.includes('elemental_weapons')) {
+    const cycle = ['fire', 'cold', 'light'];
+    if ((src.affixElementUntil || 0) <= (world?.time || 0)) {
+      src.affixElementIndex = ((src.affixElementIndex || 0) + 1) % cycle.length;
+      src.affixElement = cycle[src.affixElementIndex];
+      src.affixElementUntil = (world?.time || 0) + 5;
+    }
+    el = src.affixElement || 'fire';
+  }
+  if (enemyAttack && sourceAffixes.includes('unholy_weapons')) { el = 'shadow'; o.poison = true; }
   if (enemyAttack) {
     if (worldAffixes.has('explosive_attacks')) o.explosive = true;
     if (worldAffixes.has('poisonous_strikes')) o.poison = true;
@@ -130,6 +151,8 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     let res = (tgt.res && tgt.res[el === 'astral' ? 'arcane' : el]) || 0;
     if (el === 'arcane' || el === 'astral') res *= 0.5;
     dmg *= 1 - clamp(res, -1, 0.9);
+    if (tgt.affixAdaptiveRes?.[el]) dmg *= 1 - Math.min(0.3, tgt.affixAdaptiveRes[el]);
+    if (tgt.affixLastStand && tgt.hp < tgt.maxHp * 0.35) { dmg *= 0.7; if (!tgt.affixLastStandShown) { tgt.affixLastStandShown = true; addEffect(new Ring(tgt.x, tgt.y, 0.35, 0.9, 0.25, '#ff6262', 2)); floatText(tgt.x, tgt.y, 48, 'LAST STAND', '#ff6262', 9); } }
     if (tgt.dmgReduce) dmg *= 1 - clamp(tgt.dmgReduce, 0, 0.75);
     if (el === 'holy' && (tgt.undead || tgt.demon)) dmg *= 1.5;
     const C = tgt.curses;
@@ -148,6 +171,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (fromPlayer) {
       const st = owner.st;
       if (tgt.rank === 'boss' && st.bossDmg) dmg *= 1 + st.bossDmg / 100;
+      if (worldAffixes.has('cursed_fortune')) dmg *= 1.15;
       if (src.isPlayer && !o.dot && o.crit !== false && chance(st.critChance / 100)) {
         crit = true;
         dmg *= 1 + st.critDmg / 100;
@@ -156,7 +180,13 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
     if (tgt.rank === 'boss' && (o.freeze || o.stun)) { o = { ...o, freeze: false, stun: o.stun && chance(0.15) }; }
   }
-  dmg = tgt.isPlayer && G.godMode ? 0 : Math.max(1, dmg * rand(0.92, 1.08));
+  if (tgt.isPlayer && enemyAttack) {
+    if (worldAffixes.has('bloodthirsty') && tgt.hp < tgt.maxHp * 0.5) dmg *= 1.25;
+    if (worldAffixes.has('executioner') && tgt.hp < tgt.maxHp * 0.25) dmg = Math.min(tgt.maxHp * 0.08, dmg * 2);
+    if (worldAffixes.has('soul_rend')) dmg += (tgt.maxHp - tgt.hp) * 0.025;
+    if (worldAffixes.has('crushing_blows') && chance(0.12)) dmg = Math.min(tgt.maxHp * 0.08, Math.max(dmg, tgt.maxHp * 0.03));
+  }
+    dmg = tgt.isPlayer && G.godMode ? 0 : Math.max(1, dmg * rand(0.92, 1.08));
   if (tgt.vel) dmg = tgt.vel.absorb(dmg); // Velscour's life gates and damage cap (game/velscour.js)
 
   const byHero = !tgt.isPlayer && tgt.team !== 'player' && (fromPlayer || (src && src.team === 'player'));
@@ -180,6 +210,70 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
   }
   tgt.hp -= dmg;
+  if (!tgt.isPlayer && tgt.team === 'enemy' && fromPlayer && !o.dot) {
+    if (worldAffixes.has('adaptive_resistance')) {
+      tgt.affixAdaptiveRes ||= {};
+      tgt.affixAdaptiveRes[el] = Math.min(0.3, (tgt.affixAdaptiveRes[el] || 0) + 0.04);
+      if (!tgt.affixAdaptiveShown) { tgt.affixAdaptiveShown = true; addEffect(new Ring(tgt.x, tgt.y, 0.35, 0.8, 0.22, '#c080ff', 2)); floatText(tgt.x, tgt.y, 42, 'ADAPTING', '#c080ff', 9); }
+    }
+    if (worldAffixes.has('thorns') && el === 'phys' && actualDamage > 0 && owner && !owner.dead) {
+      hit(tgt, owner, Math.min(actualDamage * 0.1, owner.maxHp * 0.04), 'phys', { dot: true, crit: false, noArc: true });
+    }
+    if (worldAffixes.has('shared_health') && !o.sharedTransfer && tgt.world) {
+      const ally = tgt.world.query(tgt.x, tgt.y, 4, (m) => m !== tgt && m.team === 'enemy' && !m.dead)[0];
+      if (ally) { addEffect(new Bolt(tgt.x, tgt.y, 24, ally.x, ally.y, 24, '#b080e8', 0.2, 2)); hit(src, ally, actualDamage * 0.2, el, { dot: true, crit: false, sharedTransfer: true, silent: true }); }
+    }
+    if (worldAffixes.has('blood_sacrifice') && owner?.isPlayer && !o.affixSacrifice) {
+      owner.hp = Math.max(1, owner.hp - owner.maxHp * 0.005);
+    }
+    if (worldAffixes.has('vampiric_blessing') && owner?.isPlayer && actualDamage > 0) owner.heal(actualDamage * 0.04, true);
+  }
+  if (tgt.isPlayer && o.affixId) {
+    const id = o.affixId;
+    if (['arcane_pools', 'soul_pools', 'arcane_explosion', 'soul_explosion'].includes(id)) {
+      tgt.mana = Math.max(0, (tgt.mana || 0) - Math.max(1, (tgt.maxMana || 0) * 0.08));
+      floatText(tgt.x, tgt.y, 28, 'MANA DRAIN', '#a77aff', 9);
+    }
+    if (['shadow_pools', 'shadow_explosion'].includes(id)) tgt.affixHealPenaltyT = Math.max(tgt.affixHealPenaltyT || 0, 4);
+    if (id === 'plague_pools') tgt.affixHealPenaltyT = Math.max(tgt.affixHealPenaltyT || 0, 4);
+    if (id === 'necrotic_pools') {
+      if (!tgt.affixNecroticBaseMaxHp) tgt.affixNecroticBaseMaxHp = tgt.maxHp;
+      tgt.maxHp = Math.max(tgt.affixNecroticBaseMaxHp * 0.75, tgt.maxHp * 0.95);
+      tgt.hp = Math.min(tgt.hp, tgt.maxHp);
+      tgt.affixNecroticT = 6;
+    }
+    if (['corruption_pools', 'corruption_explosion', 'void_pools', 'void_explosion'].includes(id)) {
+      tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
+      tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
+    }
+    if (id === 'venom_pools') {
+      tgt.affixVulnerabilityStacks = Math.min(6, (tgt.affixVulnerabilityStacks || 0) + 1);
+      tgt.affixVulnerabilityT = Math.max(tgt.affixVulnerabilityT || 0, 5);
+    }
+    if (['cursed_pools', 'psychic_pools', 'steam_pools'].includes(id)) tgt.affixDamageDownT = Math.max(tgt.affixDamageDownT || 0, 4);
+    if (['holy_pools', 'acid_explosion'].includes(id)) tgt.affixSunderT = Math.max(tgt.affixSunderT || 0, 4);
+  }
+  if (tgt.isPlayer && enemyAttack) {
+    if (worldAffixes.has('sunder')) tgt.affixSunderT = 5;
+    if (worldAffixes.has('arcane_leech') && src) {
+      const stolen = Math.min(tgt.mana || 0, Math.max(1, (tgt.maxMana || 0) * 0.05));
+      tgt.mana = Math.max(0, (tgt.mana || 0) - stolen);
+      if (src.heal) src.heal(Math.max(1, actualDamage * 0.15));
+      addEffect(new Bolt(src.x, src.y, 25, tgt.x, tgt.y, 25, '#a77aff', 0.2, 2));
+    }
+
+    if (src.rank === 'boss' && worldAffixes.has('legendary_hunt') && chance(0.15) && !o.affixBossEcho) {
+      world.affixEchoes ||= [];
+      world.affixEchoes.push({ t: 0.45, target: tgt, src, damage: amount * 0.3, el, o: { affixBossEcho: true } });
+    }
+    if (worldAffixes.has('triple_strike') && chance(0.12) && !o.affixTriple) {
+      world.affixEchoes ||= [];
+      for (let n = 1; n <= 2; n++) world.affixEchoes.push({ t: 0.28 * n, target: tgt, src, damage: amount * 0.28, el, o: { affixTriple: true } });
+    }
+  }
+  if (tgt.isPlayer && enemyAttack && (worldAffixes.has('plague_season') || worldAffixes.has('cursed_fortune'))) {
+    if (worldAffixes.has('plague_season')) o.poison = true;
+  }
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('armor_shred')) tgt.affixArmorShredT = Math.max(tgt.affixArmorShredT || 0, DUNGEON_AFFIX_CONFIG.enemyAttack.statusDuration);
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('mortal_vulnerability') && crit) tgt.affixCritVulnerableT = 5;
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('mana_burn')) {
@@ -242,13 +336,13 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   }
 
   // ---- status effects
-  if (!o.dot && !tgt.dead) applyStatus(src, tgt, dmg, el, o);
+  if ((!o.dot || o.affixStatus) && !tgt.dead) applyStatus(src, tgt, dmg, el, o);
 
   // ---- leech: by the share of the target's life the hit took (LEECH_K of the hero's own life a whole life's worth),
   // not raw damage, which runs far ahead of hero life (it healed whole life bars a hit)
   if (fromPlayer && src.isPlayer && !tgt.isPlayer) {
     const st = src.st, share = Math.min(1, dmg / Math.max(1, tgt.maxHp)) * LEECH_K;
-    const ls = (st.lifeSteal + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
+    const ls = (st.lifeSteal + (worldAffixes.has('vampiric_blessing') ? 4 : 0) + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
     if (ls > 0) src.heal(share * src.maxHp * ls * (o.dot ? 0.3 : 1), true);
     if (st.manaSteal > 0) src.mana = Math.min(src.maxMana, src.mana + share * src.maxMana * st.manaSteal / 100);
     if (tgt.curses.leech && tgt.curses.leech.t > 0) src.heal(share * src.maxHp * tgt.curses.leech.amt / 100 * 0.3, true);
@@ -359,12 +453,12 @@ export function kill(tgt, src, info = {}) {
   if (tgt.onDeath) tgt.onDeath(src);
 
   if (world && tgt.team === 'enemy' && !tgt.affixNoDeathEffects) {
-    const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}) => {
+    const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}, fxOverride = null) => {
       world.affixFields ||= [];
       world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
         tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
         label: id.replaceAll('_', ' '), color: elem(el).glow, o });
-      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null }));
+      world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: fxOverride || (id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null) }));
     };
     if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
     if (worldAffixes.has('static_discharge')) {
@@ -413,6 +507,12 @@ export function kill(tgt, src, info = {}) {
       if (summoner) summoner.affixSummonerPactT = Math.max(summoner.affixSummonerPactT || 0, 10);
     }
     if (worldAffixes.has('vengeful_guardians') && world.boss && !world.boss.dead) world.boss.affixVengefulStacks = Math.min(10, (world.boss.affixVengefulStacks || 0) + 1);
+    for (const [id, [el, fx, radius, status]] of Object.entries(EXTRA_AFFIX_DEATHS)) {
+      if (worldAffixes.has(id)) {
+        const dmg = (world.player?.maxHp || tgt.maxHp) * 0.035;
+        pushField(id, el, radius, dmg, 1.25, 0.35, { ...status, affixStatus: true, affixId: id }, fx);
+      }
+    }
   }
   if (tgt.summon) {
     burst(tgt.x, tgt.y, 20, tgt.el || 'arcane', 10, 2);

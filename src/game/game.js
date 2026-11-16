@@ -89,7 +89,7 @@ const DUNGEON_ENVIRONMENT_HAZARDS = {
       cursed_totems: { el: 'shadow', radius: 2.2, damage: 0.04, interval: [14, 20], fx: 'void', area: true, duration: 4 },
       explosive_barrels: { el: 'fire', radius: 2.1, damage: 0.1, interval: [13, 20], fx: 'explosion', warning: 1.2 },
       haunted_grounds: { el: 'shadow', radius: 2.2, damage: 0.055, interval: [12, 18], fx: 'void', area: true, duration: 3 },
-      blood_pools: { el: 'blood', radius: 1.9, damage: 0.04, interval: [12, 19], fx: 'blood', area: true, duration: 5, o: { bleed: true } },
+      blood_pools: { el: 'phys', radius: 1.9, damage: 0.04, interval: [12, 19], fx: 'blood', area: true, duration: 5, o: { bleed: true, slow: true } },
       unstable_rifts: { el: 'arcane', radius: 2.4, damage: 0.07, interval: [14, 20], fx: 'nova' },
       gravity_wells: { el: 'arcane', radius: 2.5, damage: 0.035, interval: [15, 22], fx: 'void', area: true, duration: 4 },
       corrupted_shrines: { el: 'shadow', radius: 2.1, damage: 0.05, interval: [16, 23], fx: 'void', area: true, duration: 3 },
@@ -119,6 +119,7 @@ import { World } from './world.js';
 import { Player } from './player.js';
 import { makeMonster, makeElite, Monster } from './monster.js';
 import { Area, Delayed, Projectile } from './hazards.js';
+import { EXTRA_AFFIX_HAZARDS } from './affixcatalogruntime.js';
 import { clearRims } from './creature.js';
 import { applyTrait, rollTrait, ambushTick, madnessTick, unleashMadness, enter } from './mayhem.js';
 import { hit, kill } from './combat.js';
@@ -1279,6 +1280,11 @@ export const game = {
       world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.bloodmoon.darkness);
     }
     if (world.dungeonAffixes.includes('golden')) world.goldMul = (world.goldMul || 1) * DUNGEON_AFFIX_CONFIG.golden.goldMultiplier;
+    if (world.dungeonAffixes.includes('treasure_hoard')) world.goldMul = (world.goldMul || 1) * 1.25;
+    if (world.dungeonAffixes.includes('champions_bounty')) world.lootMul = (world.lootMul || 1) * 1.2;
+    if (world.dungeonAffixes.includes('cursed_fortune')) world.lootMul = (world.lootMul || 1) * 1.2;
+    if (world.dungeonAffixes.includes('legendary_hunt')) world.lootMul = (world.lootMul || 1) * 1.25;
+    if (world.dungeonAffixes.includes('gemstone_infusion')) world.gemDropMul = 1.5;
     delete c.nextAffixes;
     if (world.dungeonAffixes.includes('darkness')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness);
     if (world.dungeonAffixes.includes('dense_fog')) world.darkK = Math.max(world.darkK || 0, DUNGEON_AFFIX_CONFIG.darkness.darkness + 0.2);
@@ -2206,15 +2212,15 @@ export const game = {
       const baseDamage = id === 'inferno' ? Math.min(0.12, 0.035 + w.affixElapsed * 0.00025) : spec.damage;
       const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
       if (spec.area) {
-        w.addHazard(new Area({ src: null, team: 'enemy', x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
-          dmg: p.maxHp * spec.damage, el, fx: spec.fx || el,
+        w.addHazard(new Area({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, dur: spec.duration || 4, tick: 0.6,
+          dmg: [p.maxHp * spec.damage, p.maxHp * spec.damage], el, fx: spec.fx || el,
           mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false } }));
+          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
       } else {
-        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius, delay: spec.warning || 0.9,
+        w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, delay: spec.warning || 0.9,
           dmg: p.maxHp * baseDamage * (w.affixSurgeUntil > w.time && w.affixSurgeId === id ? 1.25 : 1), el, fx: spec.fx || 'explosion',
-          o: { ...(spec.o || {}), team: 'enemy', crit: false } }));
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
       }
       if (spec.log) UI.log(spec.log, spec.color || '#ffc080');
       if (id === 'corrupted_shrines') p.heal(p.maxHp * 0.03);
@@ -2229,6 +2235,31 @@ export const game = {
     for (const id in DUNGEON_ELEMENTAL_HAZARDS) pulse(id, DUNGEON_ELEMENTAL_HAZARDS[id]);
     for (const id in DUNGEON_ENVIRONMENT_HAZARDS) pulse(id, DUNGEON_ENVIRONMENT_HAZARDS[id]);
     for (const id in DUNGEON_CHAOS_HAZARDS) pulse(id, DUNGEON_CHAOS_HAZARDS[id]);
+
+    // New catalog hazards use the same telegraphed area and impact classes as existing affixes.
+    for (const [id, spec] of Object.entries(EXTRA_AFFIX_HAZARDS)) {
+      if (!active.has(id)) continue;
+      w.affixTimers[id] = (w.affixTimers[id] ?? rand(5, 9)) - dt;
+      if (w.affixTimers[id] > 0) continue;
+      w.affixTimers[id] = rand(spec.interval[0], spec.interval[1]);
+      if ((w.hazards || []).filter((hazard) => hazard.affixCatalog).length >= 12) continue;
+      const [x, y] = safePoint(spec.spread || 6);
+      const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
+      const damage = p.maxHp * spec.damage;
+      if (spec.area) {
+        const createArea = () => w.addHazard(new Area({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius,
+          dur: spec.duration || 4, tick: 0.7, dmg: [damage, damage], el, fx: spec.fx,
+          mode: spec.cyclone ? 'cyclone' : 'zone',
+          vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
+          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius,
+          delay: spec.warning || 0.75, dmg: [0, 0], el, fx: spec.fx, o: { team: 'enemy' }, onImpact: createArea }));
+      } else {
+        w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius,
+          delay: spec.warning || 1, dmg: [damage, damage], el, fx: spec.fx,
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
+      }
+    }
 
     if (active.has('arcane_overload')) {
       w.affixOverloadT = (w.affixOverloadT ?? rand(7, 11)) - dt;
@@ -2360,6 +2391,43 @@ export const game = {
         w.add(m);
       }
       if (id === 'demonic_portals' || id === 'infernal_invasion') floatText(p.x, p.y, 68, 'Portal opens', '#e03030', 12);
+    }
+
+    // New defensive affixes reuse the same capped shield and ring feedback as existing guardian affixes.
+    if (active.has('barrier')) {
+      w.affixTimers.barrier = (w.affixTimers.barrier ?? 1) - dt;
+      if (w.affixTimers.barrier <= 0) {
+        w.affixTimers.barrier = 7;
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead) {
+          m.affixShieldT = 3; m.affixShield = 0.2;
+          addEffect(new Ring(m.x, m.y, 0.45, 1.0, 0.24, '#8feaff', 2));
+        }
+      }
+    }
+    if (active.has('elemental_resistance')) {
+      w.affixTimers.elemental_resistance = (w.affixTimers.elemental_resistance ?? 4) - dt;
+      if (w.affixTimers.elemental_resistance <= 0) {
+        w.affixTimers.elemental_resistance = 7;
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead && m.affixElementalRes) {
+          m.affixElementalResBonus = Math.min(0.4, (m.affixElementalResBonus || 0.25) + 0.05);
+          m.res ||= {};
+          m.res[m.affixElementalRes] = (m.res[m.affixElementalRes] || 0) + 0.05;
+          const color = { fire: '#ff7040', cold: '#8feaff', light: '#d8e8ff', poison: '#8bd24a' }[m.affixElementalRes] || '#d8b080';
+          addEffect(new Ring(m.x, m.y, 0.35, 0.85, 0.2, color, 2));
+        }
+      }
+    }
+    if (active.has('protective_aura')) {
+      w.affixTimers.protective_aura = (w.affixTimers.protective_aura ?? 2) - dt;
+      if (w.affixTimers.protective_aura <= 0) {
+        w.affixTimers.protective_aura = 6;
+        for (const elite of w.creatures) if (elite.team === 'enemy' && !elite.dead && ['champion', 'unique', 'elite', 'boss'].includes(elite.rank)) {
+          for (const ally of w.query(elite.x, elite.y, 5, (m) => m.team === 'enemy' && !m.dead)) {
+            ally.affixShieldT = 3; ally.affixShield = Math.max(ally.affixShield || 0, 0.15);
+            addEffect(new Ring(ally.x, ally.y, 0.3, 0.72, 0.2, '#c18dff', 1.8));
+          }
+        }
+      }
     }
 
     // Guardian spirits grant short, periodically refreshed shields to nearby enemies.
