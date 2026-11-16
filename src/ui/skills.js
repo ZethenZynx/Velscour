@@ -82,7 +82,7 @@ export function showFirstSkillTutorial() {
   button.classList.add('first-skill-highlight');
   firstSkillTutorialGuide = document.createElement('div');
   firstSkillTutorialGuide.className = 'first-skill-tutorial-guide';
-  firstSkillTutorialGuide.innerHTML = '<strong>Choose your first skill</strong><div>Open the Skill Tree by clicking the glowing Skills button or pressing <b>K</b>. We strongly recommend a damaging skill first—a strike, ranged shot, or damage-dealing spell—so you can fight enemies right away. You may choose any available starting skill. Spend your point to learn it; it will be assigned to LMB.</div>';
+  firstSkillTutorialGuide.innerHTML = '<strong>Choose your first skill</strong><div>Open the Skill Tree by clicking the glowing Skills button or pressing <b>K</b>. Starting skills are not equally suited to early combat, so we strongly recommend an attack skill first—a strike, ranged shot, or damaging spell. Any available starting skill is still your choice. Spend your point to learn it; it will be assigned to LMB.</div>';
   document.body.appendChild(firstSkillTutorialGuide);
   firstSkillTutorialResizeHandler = positionFirstSkillTutorial;
   window.addEventListener('resize', firstSkillTutorialResizeHandler);
