@@ -2386,6 +2386,30 @@ export const game = {
       if (id === 'demonic_portals' || id === 'infernal_invasion') floatText(p.x, p.y, 68, 'Portal opens', '#e03030', 12);
     }
 
+    // New defensive affixes reuse the same capped shield and ring feedback as existing guardian affixes.
+    if (active.has('barrier')) {
+      w.affixTimers.barrier = (w.affixTimers.barrier ?? 1) - dt;
+      if (w.affixTimers.barrier <= 0) {
+        w.affixTimers.barrier = 7;
+        for (const m of w.creatures) if (m.team === 'enemy' && !m.dead) {
+          m.affixShieldT = 3; m.affixShield = 0.2;
+          addEffect(new Ring(m.x, m.y, 0.45, 1.0, 0.24, '#8feaff', 2));
+        }
+      }
+    }
+    if (active.has('protective_aura')) {
+      w.affixTimers.protective_aura = (w.affixTimers.protective_aura ?? 2) - dt;
+      if (w.affixTimers.protective_aura <= 0) {
+        w.affixTimers.protective_aura = 6;
+        for (const elite of w.creatures) if (elite.team === 'enemy' && !elite.dead && ['champion', 'unique', 'elite', 'boss'].includes(elite.rank)) {
+          for (const ally of w.query(elite.x, elite.y, 5, (m) => m.team === 'enemy' && !m.dead)) {
+            ally.affixShieldT = 3; ally.affixShield = Math.max(ally.affixShield || 0, 0.15);
+            addEffect(new Ring(ally.x, ally.y, 0.3, 0.72, 0.2, '#c18dff', 1.8));
+          }
+        }
+      }
+    }
+
     // Guardian spirits grant short, periodically refreshed shields to nearby enemies.
     if (active.has('guardian_spirits')) {
       w.affixTimers.guardian_spirits = (w.affixTimers.guardian_spirits ?? 0) - dt;
