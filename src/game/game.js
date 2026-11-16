@@ -2216,11 +2216,11 @@ export const game = {
           dmg: p.maxHp * spec.damage, el, fx: spec.fx || el,
           mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true } }));
+          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
       } else {
         w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius, delay: spec.warning || 0.9,
           dmg: p.maxHp * baseDamage * (w.affixSurgeUntil > w.time && w.affixSurgeId === id ? 1.25 : 1), el, fx: spec.fx || 'explosion',
-          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true } }));
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
       }
       if (spec.log) UI.log(spec.log, spec.color || '#ffc080');
       if (id === 'corrupted_shrines') p.heal(p.maxHp * 0.03);
