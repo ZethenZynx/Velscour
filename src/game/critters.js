@@ -15,7 +15,7 @@ import { sfx } from '../core/audio.js';
 import { camera, isoX, isoY } from '../core/view.js';
 import { addEffect, Ring, glowSprite, sparkle, spawn, floatText, addLight } from '../gfx/vfx.js';
 import { xpToNext } from './player.js';
-import { goldPile, RARITY, qualityAtDepth } from '../data/items.js';
+import { goldPile, RARITY } from '../data/items.js';
 import { ARCH } from '../data/enemies.js';
 import { pixelSprite } from '../gfx/pixelart.js';
 import { GroundItem, rollGroundGem } from './loot.js';
@@ -65,11 +65,11 @@ function weightedChoice(list) {
   for (const item of list) if ((r -= item.weight) <= 0) return item;
   return list[list.length - 1];
 }
-function rollCritterTier(depth) {
-  const cap = qualityAtDepth(Math.max(1, depth || 1));
-  const mythicCount = RARITY.filter((r) => r.id >= 5 && r.id <= cap).length;
-  const tiers = RARITY.slice(0, cap + 1).map((r) => ({
-    weight: r.dropGroup === 'mythic' ? (mythicCount ? 0.012 / mythicCount : 0) : r.weight,
+function rollCritterTier() {
+  // Every critter tier is available at every depth. Keep T6's existing first-unlock odds,
+  // then make each higher color progressively rarer.
+  const tiers = RARITY.map((r) => ({
+    weight: r.dropGroup === 'mythic' ? 0.012 * Math.pow(0.9, r.id - 5) : r.weight,
     id: r.id,
   }));
   let roll = rand(tiers.reduce((sum, t) => sum + t.weight, 0));
@@ -126,7 +126,7 @@ const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#6
 
 class Critter {
   constructor(world, key, x, y) {
-    const tier = rollCritterTier(world.depth);
+    const tier = rollCritterTier();
     const K = { ...CRITTERS[key], tier, color: TIER_COLORS[tier] || TIER_COLORS[0] };
     Object.assign(this, { world, key, K, tier, reward: critterReward(key), x, y, originX: x, originY: y,
       z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU),
@@ -427,11 +427,11 @@ export function catchCritter(cr) {
   if (!p || !c || !cr.alive) return;
   cr.caught = true;
   if (G.critterTutorial === cr) G.critterTutorial = null;
-  const tierScale = 1 + cr.tier * 0.045;
+  const tierScale = 1 + cr.tier * 0.075;
   let summary = rewardLabel(cr.reward), textColor = CRITTER_REWARDS.find((r) => r.id === cr.reward)?.color || K.color;
 
   if (cr.reward === 'xp') {
-    const amount = Math.max(5, Math.round(xpToNext(c.level) * (0.052 + cr.tier * 0.0018) * rand(0.9, 1.1)));
+    const amount = Math.max(5, Math.round(xpToNext(c.level) * 0.052 * tierScale * rand(0.9, 1.1)));
     p.gainXp(amount, true);
     floatText(cr.x, cr.y, cr.z + 24, `+${fmtInt(amount)} XP`, textColor, 16, { life: 1.8 });
     summary = `${fmtInt(amount)} bonus experience`;
@@ -440,21 +440,21 @@ export function catchCritter(cr) {
     world.addLoot(new GroundItem(cr.x, cr.y, 'gold', { amount }));
     summary = 'gold dropped nearby';
   } else if (cr.reward === 'resource') {
-    const count = 2 + Math.floor(cr.tier / 7);
+    const count = 2 + Math.floor(cr.tier / 4);
     for (let i = 0; i < count; i++) {
       const kind = chance(0.5) ? 'orb_hp' : 'orb_mp';
       world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), kind));
     }
     summary = `${count} health and mana orbs`;
   } else if (cr.reward === 'gem') {
-    const count = 1 + (cr.tier >= 12 && chance(0.35) ? 1 : 0);
+    const count = 1 + Math.floor(cr.tier / 10);
     for (let i = 0; i < count; i++) {
       const item = rollGroundGem(depthLevel(world.depth || 1) + cr.tier);
       world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), 'item', { item }));
     }
     summary = count === 1 ? 'an upgrade gem dropped nearby' : `${count} upgrade gems dropped nearby`;
   } else if (cr.reward === 'jackpot') {
-    const count = 3 + Math.floor(cr.tier / 5);
+    const count = 3 + Math.floor(cr.tier / 4);
     for (let i = 0; i < count; i++) {
       const amount = Math.max(1, Math.round(goldPile(c.level) * tierScale * rand(0.85, 1.15) * (1 + (p.st.goldFind || 0) / 100)));
       world.addLoot(new GroundItem(cr.x + rand(-0.3, 0.3), cr.y + rand(-0.3, 0.3), 'gold', { amount }));
@@ -468,10 +468,11 @@ export function catchCritter(cr) {
       { name: 'Vitality Blessing', el: 'poison', stats: { regen: 35, armor: 8 } },
       { name: 'Arcane Blessing', el: 'arcane', stats: { cdr: 16, dmg: 8 } },
     ];
-    const blessing = pick(blessings);
-    p.addBuff({ id: 'critter_shrine', name: blessing.name, el: blessing.el, color: CRITTER_REWARDS.find((r) => r.id === 'shrine').color, stats: blessing.stats, t: 20, max: 20 });
+    const blessing = pick(blessings), blessingScale = 1 + cr.tier * 0.045, duration = 20 + Math.floor(cr.tier / 4);
+    const stats = Object.fromEntries(Object.entries(blessing.stats).map(([stat, value]) => [stat, Math.round(value * blessingScale * 10) / 10]));
+    p.addBuff({ id: 'critter_shrine', name: blessing.name, el: blessing.el, color: CRITTER_REWARDS.find((r) => r.id === 'shrine').color, stats, t: duration, max: duration });
     floatText(cr.x, cr.y, cr.z + 24, blessing.name, textColor, 14, { life: 1.8 });
-    summary = `${blessing.name} (20 seconds)`;
+    summary = `${blessing.name} (${duration} seconds)`;
   }
 
   addEffect(new Ring(cr.x, cr.y, 0.1, 1.6, 0.45, K.color, 4, { z: cr.z }));
