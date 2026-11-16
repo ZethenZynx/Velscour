@@ -28,6 +28,7 @@ export const KEY_BINDING_ACTIONS = [
   { id: 'manaPotion', label: 'Mana potion', section: 'Potions', defaultKey: 'KeyX', aliases: ['KeyX'] },
   { id: 'rejuvenationPotion', label: 'Rejuvenation potion', section: 'Potions', defaultKey: 'KeyR', aliases: ['KeyR'] },
   { id: 'furyPotion', label: 'Fury potion', section: 'Potions', defaultKey: 'KeyV', aliases: ['KeyV'] },
+  { id: 'help', label: 'How to Play', section: 'Interface', defaultKey: 'F12', aliases: ['F1'] },
 ];
 const ACTION_BY_ALIAS = new Map(KEY_BINDING_ACTIONS.flatMap((action) => action.aliases.map((code) => [code, action.id])));
 const ACTION_BY_ID = new Map(KEY_BINDING_ACTIONS.map((action) => [action.id, action]));
@@ -103,7 +104,8 @@ export function initInput(canvas) {
   window.addEventListener('keydown', (e) => {
     if (isTyping(e)) return;
     const mapped = KEY_BINDING_ACTIONS.some((action) => currentBinding(action.id) === e.code);
-    if ((GAME_KEYS.has(e.code) || mapped) && G.mode === 'game') e.preventDefault();
+    const macroBound = G.char && G.char.macros && G.char.macros.some((macro) => macro.key === e.code);
+    if ((GAME_KEYS.has(e.code) || mapped || macroBound) && G.mode === 'game') e.preventDefault();
     if (!e.repeat) input.pressed.add(e.code);
     input.keys.add(e.code);
   });
