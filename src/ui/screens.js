@@ -1,5 +1,6 @@
 // Full-screen menus: title, class select, hero save slots, death, victory, settings, help.
 import { G, saveSettings } from '../state.js';
+import { KEY_BINDING_ACTIONS, getKeyBinding, keyBindingLabel, setKeyBinding, resetKeyBindings } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { el, escapeHtml, fmtInt } from '../core/util.js';
 import { sfx, applyVolumes, initAudio } from '../core/audio.js';
@@ -417,6 +418,7 @@ export function settingsDialog() {
     <button type="button" class="settings-tab-btn" data-tab="audio">Audio</button>
     <button type="button" class="settings-tab-btn" data-tab="graphics">Graphics</button>
     <button type="button" class="settings-tab-btn" data-tab="hud">HUD &amp; UI</button>
+    <button type="button" class="settings-tab-btn" data-tab="controls">Controls</button>
   </div>
   <div class="settings-tab-pane" data-pane="general">
     <div class="settings-grid">
@@ -452,6 +454,15 @@ export function settingsDialog() {
       <label title="The Death Knight's flying sword: his equipped sword as a flat 2D object, the same sword as a live 3D model, or the old Runeblade">Death Knight's flying sword</label><select data-k="dkBlade" data-str="1">${[['sprite', 'Equipped sword (2D)'], ['model', 'Equipped sword (3D)'], ['runeblade', 'Runeblade']].map(([v, n]) => `<option value="${v}"${(st.dkBlade || 'sprite') === v ? ' selected' : ''}>${n}</option>`).join('')}</select>
     </div>
   </div>
+  <div class="settings-tab-pane" data-pane="controls">
+    <p class="dim">Click a binding, then press the key you want to use. If another action already uses that key, the two bindings swap. Press Escape to cancel.</p>
+    <div class="settings-grid">
+      <label>Keyboard bindings</label><button type="button" class="btn small" data-reset-keybinds>Reset defaults</button>
+      <span data-keybind-rows></span>
+      <label>Mouse buttons</label><span class="dim">LMB and RMB remain assigned to the action bar</span>
+    </div>
+    <p class="dim" data-keybind-status aria-live="polite"></p>
+  </div>
   <div class="settings-tab-pane" data-pane="hud">
     <div class="settings-grid">
       <label>Damage numbers</label><input type="checkbox" data-k="dmgNumbers" ${st.dmgNumbers ? 'checked' : ''}>
@@ -481,8 +492,50 @@ export function settingsDialog() {
       setTab(btn.dataset.tab);
     };
   });
-  if (!['general', 'audio', 'graphics', 'hud'].includes(activeSettingsTab)) activeSettingsTab = 'general';
+  if (!['general', 'audio', 'graphics', 'hud', 'controls'].includes(activeSettingsTab)) activeSettingsTab = 'general';
   setTab(activeSettingsTab);
+  const keybindRows = d.box.querySelector("[data-keybind-rows]");
+  keybindRows.outerHTML = KEY_BINDING_ACTIONS.map((action) => '<label>' + action.label + '</label><button type="button" class="btn small" data-keybind="' + action.id + '">' + keyBindingLabel(getKeyBinding(action.id)) + '</button>').join("");
+  const keybindButtons = [...d.box.querySelectorAll("[data-keybind]")];
+  const keybindStatus = d.box.querySelector("[data-keybind-status]");
+  let capturingKeybind = null;
+  const refreshKeybindButtons = () => keybindButtons.forEach((button) => { button.textContent = keyBindingLabel(getKeyBinding(button.dataset.keybind)); });
+  const stopKeyCapture = (message) => {
+    if (capturingKeybind) {
+      const button = keybindButtons.find((item) => item.dataset.keybind === capturingKeybind);
+      if (button) button.classList.remove("keybind-capturing");
+    }
+    capturingKeybind = null;
+    if (message) keybindStatus.textContent = message;
+  };
+  keybindButtons.forEach((button) => {
+    button.onclick = () => {
+      if (capturingKeybind) stopKeyCapture("");
+      capturingKeybind = button.dataset.keybind;
+      button.classList.add("keybind-capturing");
+      button.textContent = "Press a key…";
+      const action = KEY_BINDING_ACTIONS.find((item) => item.id === capturingKeybind);
+      keybindStatus.textContent = "Press a key for " + action.label + ". Escape cancels.";
+    };
+  });
+  d.box.addEventListener("keydown", (e) => {
+    if (!capturingKeybind) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.code === "Escape") { stopKeyCapture("Binding cancelled."); refreshKeybindButtons(); return; }
+    if (["Tab", "Enter", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"].includes(e.code)) {
+      keybindStatus.textContent = "Choose a regular key or function key. Tab, Enter, and modifier keys are reserved.";
+      return;
+    }
+    if (setKeyBinding(capturingKeybind, e.code)) {
+      stopKeyCapture("Binding saved. Any action that used that key was moved to the previous key.");
+      refreshKeybindButtons();
+    } else keybindStatus.textContent = "That key could not be assigned.";
+  }, true);
+  d.box.querySelector("[data-reset-keybinds]").onclick = () => {
+    resetKeyBindings();
+    stopKeyCapture("All keyboard bindings restored to their defaults.");
+    refreshKeybindButtons();
+  };
   d.box.querySelector('[data-k=gore]').value = String(st.gore);
   d.box.querySelector('[data-k=fpsCap]').value = String(st.fpsCap || 0);
   d.box.querySelector('[data-backups]').onclick = () => { sfx('ui'); backupsDialog(); };
