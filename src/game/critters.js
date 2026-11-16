@@ -190,7 +190,7 @@ class Critter {
     addLight(this.x, this.y, 1.8, 0.35 + 0.25 * Math.sin(this.t * 4 + this.ph), this.z + 10, LIGHT2[this.key]);
     addLight(this.x, this.y, 2, 0.6, 4);
     // a stream of sparks rising from it, so it reads as something to tap even in a busy fight
-    for (let n = Math.floor(dt * (artReady() ? 14 : 34) + Math.random()); n > 0; n--) {
+    for (let n = Math.floor(dt * (8 + Math.min(8, this.tier * 0.35)) + Math.random()); n > 0; n--) {
       const a = rand(TAU), r = rand(0.05, 0.3);
       spawn({ type: 'glow', x: this.x + Math.cos(a) * r, y: this.y + Math.sin(a) * r, z: this.z + rand(-4, 6), vz: rand(45, 85), drag: 0.6, life: rand(0.7, 1.3), size: rand(1.2, 2.6), size1: 0, color: chance(0.25) ? '#ffffff' : this.key === 'prism' ? pick(['#ff80e0', '#80e0ff', '#ffe060', '#90ff90']) : K.color, add: true });
     }
@@ -293,7 +293,7 @@ class Critter {
     ctx.restore();
   }
   drawTutorial(ctx, px, py) {
-    const K = this.K, gold = !!K.pay.gold;
+    const K = this.K;
     const w = 250, h = 68, x = px - w / 2, y = py - this.z - 22 - h;
     ctx.save();
     ctx.globalAlpha = 1;
@@ -423,21 +423,64 @@ export function catchCritterAt(sx, sy) {
   return true;
 }
 
-/** The catch (only ever from a click or a tap): a share of the hero's next level in experience, straight to the hero. */
+/** Apply one independently rolled critter reward. Dropped rewards use the normal pickup pipeline. */
 export function catchCritter(cr) {
-  const p = G.player, c = G.char, K = cr.K;
+  const p = G.player, c = G.char, K = cr.K, world = cr.world;
   if (!p || !c || !cr.alive) return;
   cr.caught = true;
   if (G.critterTutorial === cr) G.critterTutorial = null;
-  const gold = !!K.pay.gold;
-  const x = gold ? Math.round(goldPile(c.level) * K.pay.gold * rand(0.85, 1.15) * (1 + p.st.goldFind / 100)) : Math.max(5, Math.round(xpToNext(c.level) * K.pay.xp * rand(0.9, 1.1)));
-  if (gold) { c.gold += x; sfx('gold'); } else p.gainXp(x, true);
-  floatText(cr.x, cr.y, cr.z + 24, `+${fmtInt(x)} ${gold ? 'gold' : 'XP'}`, gold ? '#ffd040' : '#a8c8ff', 16, { life: 1.8 });
+  const tierScale = 1 + cr.tier * 0.045;
+  let summary = rewardLabel(cr.reward), textColor = CRITTER_REWARDS.find((r) => r.id === cr.reward)?.color || K.color;
+
+  if (cr.reward === 'xp') {
+    const amount = Math.max(5, Math.round(xpToNext(c.level) * (0.052 + cr.tier * 0.0018) * rand(0.9, 1.1)));
+    p.gainXp(amount, true);
+    floatText(cr.x, cr.y, cr.z + 24, `+${fmtInt(amount)} XP`, textColor, 16, { life: 1.8 });
+    summary = `${fmtInt(amount)} bonus experience`;
+  } else if (cr.reward === 'gold') {
+    const amount = Math.max(1, Math.round(goldPile(c.level) * tierScale * rand(0.9, 1.1) * (1 + (p.st.goldFind || 0) / 100)));
+    world.addLoot(new GroundItem(cr.x, cr.y, 'gold', { amount }));
+    summary = 'gold dropped nearby';
+  } else if (cr.reward === 'resource') {
+    const count = 2 + Math.floor(cr.tier / 7);
+    for (let i = 0; i < count; i++) {
+      const kind = chance(0.5) ? 'orb_hp' : 'orb_mp';
+      world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), kind));
+    }
+    summary = `${count} health and mana orbs`;
+  } else if (cr.reward === 'gem') {
+    const count = 1 + (cr.tier >= 12 && chance(0.35) ? 1 : 0);
+    for (let i = 0; i < count; i++) {
+      const item = rollGroundGem(depthLevel(world.depth || 1) + cr.tier);
+      world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), 'item', { item }));
+    }
+    summary = count === 1 ? 'an upgrade gem dropped nearby' : `${count} upgrade gems dropped nearby`;
+  } else if (cr.reward === 'jackpot') {
+    const count = 3 + Math.floor(cr.tier / 5);
+    for (let i = 0; i < count; i++) {
+      const amount = Math.max(1, Math.round(goldPile(c.level) * tierScale * rand(0.85, 1.15) * (1 + (p.st.goldFind || 0) / 100)));
+      world.addLoot(new GroundItem(cr.x + rand(-0.3, 0.3), cr.y + rand(-0.3, 0.3), 'gold', { amount }));
+    }
+    summary = `a jackpot of ${count} gold piles`;
+  } else if (cr.reward === 'shrine') {
+    const blessings = [
+      { name: 'Quickening Blessing', el: 'lightning', stats: { as: 18, speed: 14, cdr: 10 } },
+      { name: 'Guardian Blessing', el: 'holy', stats: { armor: 18, regen: 20 } },
+      { name: 'Warrior Blessing', el: 'fire', stats: { dmg: 14, crit: 4 } },
+      { name: 'Vitality Blessing', el: 'nature', stats: { regen: 35, armor: 8 } },
+      { name: 'Arcane Blessing', el: 'arcane', stats: { cdr: 16, dmg: 8 } },
+    ];
+    const blessing = pick(blessings);
+    p.addBuff({ id: 'critter_shrine', name: blessing.name, el: blessing.el, color: CRITTER_REWARDS.find((r) => r.id === 'shrine').color, stats: blessing.stats, t: 20, max: 20 });
+    floatText(cr.x, cr.y, cr.z + 24, blessing.name, textColor, 14, { life: 1.8 });
+    summary = `${blessing.name} (20 seconds)`;
+  }
+
   addEffect(new Ring(cr.x, cr.y, 0.1, 1.6, 0.45, K.color, 4, { z: cr.z }));
   sparkle(cr.x, cr.y, cr.z, K.color, 24, 0.5);
   sparkle(cr.x, cr.y, cr.z, '#ffffff', 8, 0.3);
-  sfx('levelup', 0.35);
+  sfx(cr.reward === 'gold' || cr.reward === 'jackpot' ? 'gold' : 'levelup', 0.35);
   c.critters = (c.critters || 0) + 1;
-  UI.log(`Caught a <b style="color:${K.color}">${K.name}</b>: ${fmtInt(x)} ${gold ? 'gold' : 'experience'}.`, '#ffe2a0');
+  UI.log(`Caught a <b style="color:${K.color}">${K.name}</b>: ${summary}.`, '#ffe2a0');
   UI.refresh();
 }
