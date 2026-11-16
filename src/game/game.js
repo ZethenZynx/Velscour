@@ -604,12 +604,14 @@ export const game = {
   /** The one-line "what to do here" blurb for a biome (the town portal's floor picker). */
   biomeBlurb(biome) {
     if (regionOf(biome)) return regionOf(biome).portal;
-    return biome.id === 'sea_of_sand' ? 'Follow the cliff maze and clear every marked scenario area to open the exit.'
+    return biome.id === 'overworld' ? 'Cross the hamlet and defeat the Forsaken Guardian to open the exit.'
+      : biome.id === 'sea_of_sand' ? 'Follow the cliff maze and clear every marked scenario area to open the exit.'
       : biome.id === 'skyship' ? "Step out onto the heroes' airship. Hold the deck against the Air Pirates' boarding waves, their captains and their flagship; victory turns the gate into the exit."
       : biome.sea ? "Step out onto the Dawnwake, the Lampwardens' steam frigate. Hold her deck against the Black Tide's boarders, wave on wave, and their captain; victory opens the bell tower's door onward."
       : biome.id === 'dark_forest' ? 'Find your way through the woods and labyrinths to the Heart of the Forest. Its trial opens the way on; the glades along the trails hold trials of their own, and their rewards.'
       : biome.tower ? 'Climb the spiral stair to the roof. Three waves of bosses hold it, and then their master comes on an airship.'
       : biome.cave ? 'Follow the passages and caverns to the underground lake. At the foot of its waterfall a passage climbs a long, spiralling shaft to the top of the falls, where its masters wait.'
+      : biome.id === 'overworld' ? 'Cross the hamlet and defeat the Forsaken Guardian to open the exit.'
       : biome.overworld ? 'Activate the scenario shrine and complete its trial to open the exit.'
       : 'Find the exit. It is sealed until its guardian is slain.';
   },
@@ -1213,6 +1215,7 @@ export const game = {
     const old = G.world;
     const forest = biome.id === 'dark_forest';
     const castle = biome.id === 'castle';
+    const forsakenWilds = biome.id === 'overworld';
     const tileset = forest ? biomeTileSet(biome) : biome.overworld ? biomeTileSet(TOWN_BIOME) : mix ? mixedTileSet(biome, mix, Math.random() < 0.5) : biomeTileSet(biome);
     keepTileSets(tileset);
     c.seaOfSandRuns ||= {}; c.darkForestRuns ||= {};
@@ -1345,7 +1348,7 @@ export const game = {
       sfx('boss');
     };
     world.onBossKilled = (m) => {
-      if (biome.overworld && !forest && !castle) return;
+      if (biome.overworld && !forest && !castle && !forsakenWilds) return;
       if (world.dungeonAffixes.includes('twin_guardians') && world.creatures.some((enemy) => enemy.team === 'enemy' && enemy.rank === 'boss' && !enemy.dead)) return;
       if (m.raid && m.raid.court) return; // one of Velscour Unbound's court: not the fight's end
       if (forest || castle) world.overworldScenario?.bossDefeated(m);
@@ -1456,7 +1459,7 @@ export const game = {
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
-    else if (biome.overworld) world.overworldScenario = createOverworldScenario(world, gen, biome, () => {
+    else if (biome.overworld && !forsakenWilds) world.overworldScenario = createOverworldScenario(world, gen, biome, () => {
       exit.active = true; exit.color = '#40a0ff'; exit.label = 'Exit — continue';
       const first = !c.cleared[depth];
       c.cleared[depth] = true;
@@ -1489,7 +1492,7 @@ export const game = {
       world.unbound ? 'Velscour Unbound' :
       uFloor ? `Unbound Floor ${uFloor}` :
       `Depth ${depth}${depth > FINAL_DEPTH ? ' — Endless Torment' : ''}`,
-      (biome.overworld ? `${gen.variant ? gen.variant.name : biome.name} · ${world.overworldScenario.title}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''),
+      (biome.overworld ? `${gen.variant ? gen.variant.name : biome.name}${world.overworldScenario?.title ? ` · ${world.overworldScenario.title}` : ''}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''),
       activeAffixNames
     );
     playMusic('wilds', { delay: 4 + Math.random() * 20 }); setAmbience(sky ? world.sky.v.amb : sea ? world.seaRun.variant.amb : reg?.amb || biome.id);
@@ -1509,6 +1512,7 @@ export const game = {
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
     else if (forest) UI.log('The Dark Forest closes in. Find the Forest Guardian in the clearing across the woods; defeat it to open the exit.', '#c8f0a0');
     else if (castle) UI.log('The Castle grounds open before you. Cross the courtyard and defeat the Castle Guardian to unlock the exit.', '#e8d0a8');
+    else if (biome.id === 'overworld') UI.log('The hamlet lies at the heart of the Forsaken Wilds. Defeat its guardian to open the exit.', '#c8f0a0');
     else if (biome.overworld) {
       if (biome.id === 'castle' && gen.variant?.story?.intro) UI.log(gen.variant.story.intro, '#e8d0a8');
       UI.log('Activate the glowing shrine and complete its objective to open the exit.', '#ffe2a0');
