@@ -1,5 +1,9 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - level-name shortcuts in Contact Velscour (local, not published)
+- Sending a campaign or named special-area display name from Contact Velscour now teleports directly to that map. Matching ignores letter case and punctuation; the level-gated Great Hunt is available through this testing shortcut. The Eternal Breach enters its next unlocked floor, and the Velscour's Throne shortcut enters at Depth 500.
+- `node tools/tests/velscour_contact_cheat.mjs`, JavaScript syntax checks and `git diff --check` pass. The game has not yet been manually checked in a browser. No GitHub update was made.
+
 ## November 16, 2026 - Paladin skill sound overhaul (local, not published)
 - Added distinct non-arcade procedural sounds for Holy Bolt, Consecration, Condemn, Lightwell, Judgment Beam, Sanctuary, Blessed Shield's cast, Radiant Cascade, Purifying Nova, Apocalypse of Light and Wings of Judgment. The two falling-light skills also use separate impact sounds. Blessed Shield's existing ricochet and explosion audio is unchanged.
 - `node --check` for the changed JavaScript files and `git diff --check` pass. The effects still need an in-game listening pass; no files were generated and no GitHub update was made.

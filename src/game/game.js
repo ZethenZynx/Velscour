@@ -17,6 +17,7 @@ import { SKILLS } from '../data/skills.js';
 import { setClassItems, setRingContext, SEAL_GAP } from '../data/items.js';
 import { BREACH_BIOME, BREACH_WALLS } from '../data/biomes.js';
 import { BIOMES, BETA_BIOMES, BIOME_BY_ID, TOWN_BIOME, ACT2_TOWN_BIOME, drawBiome, biomeChoices, takeBiome, mixPartner, recordBiomeVisit } from '../data/biomes.js';
+import { resolveLevelCheatName } from './velscourcheats.js';
 import { CLASSES } from '../data/classes.js';
 import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
 import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, ACTS } from '../data/depth.js';
@@ -950,12 +951,22 @@ export const game = {
     const dialog = UI.dialog({
       title: 'WHY ARE YOU TRYING TO CONTACT VELSCOUR',
       cls: 'velscour-contact-dialog',
-      html: `<p class="velscour-taunt">${escapeHtml(taunt)}</p><label class="velscour-message-label" for="velscour-message">Send a message into the abyss</label><div class="velscour-message-row"><input id="velscour-message" class="name-input" type="text" maxlength="50" autocomplete="off" placeholder="50 characters, tops"><span id="velscour-message-count">0 / 50</span></div>`,
+      html: `<p class="velscour-taunt">${escapeHtml(taunt)}</p><label class="velscour-message-label" for="velscour-message">Send a message or enter a level name</label><div class="velscour-message-row"><input id="velscour-message" class="name-input" type="text" maxlength="50" autocomplete="off" placeholder="50 characters, tops"><span id="velscour-message-count">0 / 50</span></div>`,
       buttons: [
         { label: 'Close' },
         { label: 'Send', cls: 'red', keepOpen: true, fn: (close) => {
           const message = document.getElementById('velscour-message')?.value || '';
-          if (['HAIL VELSCOUR!', '13', '65', '69', '666', '6669'].includes(message)) {
+          const namedBiome = resolveLevelCheatName(message, BIOME_BY_ID, BREACH_BIOME);
+          if (namedBiome?.id === 'eternal_breach') {
+            close();
+            this.enterBreach(this.breachOpen());
+          } else if (namedBiome?.id === 'throne') {
+            close();
+            this.finalBoss(FINAL_DEPTH);
+          } else if (namedBiome) {
+            close();
+            this.teleportToBiome(namedBiome, { ignoreLevelGate: true });
+          } else if (['HAIL VELSCOUR!', '13', '65', '69', '666', '6669'].includes(message)) {
             close();
             this.openVelscourTeleport();
           } else if (message === DEATH_PHRASE) { // exact, case sensitive
@@ -1038,8 +1049,8 @@ export const game = {
   },
 
   /** The skull's "final boss": Velscour's throne at the hero's depth, the hero set down inside his arena. */
-  async finalBoss() {
-    await this.teleportToBiome(BIOME_BY_ID.throne);
+  async finalBoss(depth = null) {
+    await this.teleportToBiome(BIOME_BY_ID.throne, { depthOverride: depth });
     const w = G.world, p = G.player;
     if (!w || !w.velscour || !p) return;
     const [x, y] = w.map.nudge(22.5, 26.5, 0.4);
@@ -1050,15 +1061,15 @@ export const game = {
     UI.log(`<b style="color:#ff4020">Velscour answers.</b> ${w.practice ? `This is a practice fight at Depth ${w.depth}: no victory, no relic hoard, but every phase of the real one.` : 'This is the real thing.'}`, '#ffb0a0');
   },
 
-  async teleportToBiome(biome) {
+  async teleportToBiome(biome, { ignoreLevelGate = false, depthOverride = null } = {}) {
     const c = G.char;
     if (!c || !biome) return;
     const need = regionNeeds(biome, c.level); // a region's level gate (game/regions.js)
-    if (need) {
+    if (need && !ignoreLevelGate) {
       UI.dialog({ title: 'VELSCOUR SAYS NO', cls: 'velscour-contact-dialog', html: `<p class="velscour-taunt">LEVEL ${c.level}? ADORABLE. Come back at level ${need}. ${escapeHtml(biome.name)} does not hunt snacks.</p>`, buttons: [{ label: 'Close' }] });
       return;
     }
-    const depth = Math.max(1, G.world?.kind === 'dungeon' ? G.world.depth : c.depth || 1);
+    const depth = Math.max(1, depthOverride || (G.world?.kind === 'dungeon' ? G.world.depth : c.depth || 1));
     c.depth = depth;
     c.nextBiome = biome.id;
     delete c.nextOmen;
