@@ -1,5 +1,9 @@
-// Short title-screen summaries for recent Velscour PC updates.
+// Curated offline fallback for the GitHub feature-commit feed; keep it current for local/unpublished builds too.
 export const RECENT_CHANGES = [
+  { title: 'GitHub-powered recent changes', summary: 'The title screen refreshes its list from major feature updates.' },
+  { title: 'Six campaign acts', summary: 'Depth ranges and finale bosses now guide a reworked six-act descent.' },
+  { title: 'Serpentine Tower descent', summary: 'Enter at the top, fight downward, and defeat the guardian to open the bottom exit.' },
+  { title: 'Scorpion King pyramid separated', summary: 'Sea of Sand surfaces end with a guardian and portal; the pyramid is its own level.' },
   { title: 'Dark Forest overhaul', summary: 'Fight the Guardian, explore four mazes, and find six side clearings.' },
   { title: '257 dungeon affixes', summary: 'A broad pool of active modifiers brings variety to each floor.' },
   { title: 'Guardian boss routes', summary: 'Castle and Forsaken Wilds now end with a guardian fight.' },
