@@ -128,8 +128,11 @@ const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#6
 
 class Critter {
   constructor(world, key, x, y) {
-    const K = CRITTERS[key];
-    Object.assign(this, { world, key, K, x, y, z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU), caught: false, gone: false, showArrow: false, tutorial: false, tutorialRendered: false, layer: 'top' });
+    const tier = rollCritterTier(world.depth);
+    const K = { ...CRITTERS[key], tier, color: TIER_COLORS[tier] || TIER_COLORS[0] };
+    Object.assign(this, { world, key, K, tier, reward: critterReward(key), x, y, originX: x, originY: y,
+      z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU),
+      caught: false, gone: false, showArrow: false, tutorial: false, tutorialRendered: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
   update(dt) {
@@ -143,17 +146,44 @@ class Critter {
       if (chance(dt * 20)) sparkle(this.x, this.y, this.z, K.color, 1, 0.1);
       return k < 0.6;
     }
-    // wander: smooth turns, steer off walls, stay within a screen of the hero
-    if ((this.turn -= dt) <= 0) { this.turn = rand(0.4, 1.4); this.da = rand(-2.2, 2.2); }
-    this.a += this.da * dt;
-    const p = this.world.player;
+    // Species share the same safe movement/collision pipeline but use distinct steering rhythms.
+    const p = this.world.player, motion = K.motion;
     const hd = p ? Math.hypot(p.x - this.x, p.y - this.y) : 0;
-    if (hd > 9) this.a = Math.atan2(p.y - this.y, p.x - this.x) + rand(-0.6, 0.6);
-    else if (p && hd < 2.2 && !((this.bump -= dt) > 0)) { this.a = Math.atan2(this.y - p.y, this.x - p.x) + rand(-0.4, 0.4); this.turn = 0.4; } // shy of the hero
-    const s = K.speed * (K.fly ? 1 : 0.6 + 0.4 * Math.abs(Math.sin(this.t * 7)));
+    const turnEvery = { steady: [1, 2.2], skitter: [0.18, 0.42], dart: [0.25, 0.65], zigzag: [0.3, 0.55], slither: [0.45, 0.85], flutter: [0.35, 0.8], swoop: [0.7, 1.3], orbit: [0.9, 1.6], sidestep: [0.5, 1], hop: [0.45, 0.9], sway: [0.8, 1.4], glide: [0.9, 1.8], bob: [0.7, 1.4], scuttle: [0.3, 0.65], drift: [0.65, 1.4] }[motion] || [0.4, 1];
+    if ((this.turn -= dt) <= 0) {
+      this.turn = rand(...turnEvery);
+      this.da = rand(-2.2, 2.2);
+      if (motion === 'steady') this.da *= 0.5;
+      if (motion === 'skitter' || motion === 'dart' || motion === 'zigzag') this.da *= 1.5;
+    }
+    this.a += this.da * dt;
+    if (motion === 'slither') this.a += Math.sin(this.t * 9 + this.ph) * dt * 0.9;
+    if (motion === 'sway') this.a += Math.sin(this.t * 2.4 + this.ph) * dt * 0.5;
+    if (motion === 'zigzag') this.a += Math.sin(this.t * 13 + this.ph) * dt * 1.4;
+    if (motion === 'sidestep' && p) this.a = Math.atan2(this.y - p.y, this.x - p.x) + Math.sin(this.t * 5 + this.ph) * 1.1;
+    if (motion === 'orbit' && p) {
+      const around = Math.atan2(this.y - p.y, this.x - p.x) + Math.PI / 2;
+      this.a = around + Math.sin(this.t * 2 + this.ph) * 0.55;
+    }
+    if (hd > 9 && p) this.a = Math.atan2(p.y - this.y, p.x - this.x) + rand(-0.6, 0.6);
+    else if (p && hd < 2.2 && !((this.bump -= dt) > 0)) {
+      this.a = Math.atan2(this.y - p.y, this.x - p.x) + rand(-0.4, 0.4);
+      this.turn = 0.4; this.bump = 0.5;
+    }
+    let burst = 1;
+    if (motion === 'dart' || motion === 'zigzag') burst = Math.sin(this.t * 3.3 + this.ph) > 0.35 ? 1.7 : 0.55;
+    if (motion === 'skitter' || motion === 'scuttle') burst = Math.sin(this.t * 11 + this.ph) > 0 ? 1.45 : 0.72;
+    const s = K.speed * burst * (K.fly ? 1 : 0.6 + 0.4 * Math.abs(Math.sin(this.t * 7)));
     const nx = this.x + Math.cos(this.a) * s * dt, ny = this.y + Math.sin(this.a) * s * dt;
-    if (K.fly || m.walkable(nx, ny)) { this.x = nx; this.y = ny; } else { this.a += Math.PI * rand(0.6, 1.4); this.turn = 0.3; this.bump = 0.5; }
-    if (K.fly) this.z += Math.sin(this.t * 3 + this.ph) * dt * 14;
+    if (m.walkable(nx, ny)) { this.x = nx; this.y = ny; }
+    else { this.a += Math.PI * rand(0.6, 1.4); this.turn = 0.3; this.bump = 0.5; }
+    if (K.fly) {
+      const bob = motion === 'swoop' ? Math.sin(this.t * 2.2 + this.ph) * 27 :
+        motion === 'flutter' ? Math.sin(this.t * 5.5 + this.ph) * 18 : Math.sin(this.t * 3 + this.ph) * 12;
+      this.z = Math.max(18, Math.min(75, this.z + bob * dt));
+    } else if (motion === 'hop' || motion === 'sidestep') {
+      this.z = Math.max(0, Math.sin(this.t * (motion === 'hop' ? 7 : 4) + this.ph) * 6);
+    }
     // its lights: a wide one in its colour, a second that breathes in its accent colour, and a plain one that lights
     // the floor round it without washing its colours out
     addLight(this.x, this.y, 2.6, 0.8, this.z, K.color);
