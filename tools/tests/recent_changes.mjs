@@ -20,13 +20,24 @@ globalThis.localStorage = {
   setItem: (key, value) => memory.set(key, value),
 };
 let requests = 0;
-globalThis.fetch = async () => {
+const olderFeatures = Array.from({ length: 15 }, (_, index) => ({
+  commit: { message: `feat: add older feature ${index + 1}` },
+}));
+globalThis.fetch = async (url) => {
   requests++;
-  return { ok: true, json: async () => commits };
+  const page = new URL(url).searchParams.get('page');
+  return {
+    ok: true,
+    headers: { get: () => page === '1' ? '<https://api.github.com/repos/ZethenZynx/Velscour/commits?sha=main&per_page=100&page=2>; rel="next"' : null },
+    json: async () => page === '1' ? commits : olderFeatures,
+  };
 };
-assert.equal((await loadRecentChanges())[0].title, 'Add a curated update feed');
+const loaded = await loadRecentChanges();
+assert.equal(loaded[0].title, 'Add a curated update feed');
+assert.equal(loaded.length, 17, 'the feed should include every feature across all commit pages');
+assert.equal(loaded.at(-1).title, 'Add older feature 15');
 await loadRecentChanges();
-assert.equal(requests, 1, 'the feed should use its short-lived cache');
+assert.equal(requests, 2, 'the feed should fetch every page once and use its short-lived cache');
 
 memory.clear();
 globalThis.fetch = async () => { throw new Error('offline'); };

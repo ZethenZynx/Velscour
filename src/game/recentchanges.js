@@ -1,10 +1,14 @@
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 
-const GITHUB_COMMITS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour/commits?sha=main&per_page=100';
-const CACHE_KEY = 'velscour_recent_feature_commits_v1';
+const GITHUB_COMMITS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour/commits?sha=main&per_page=100&page=1';
+const CACHE_KEY = 'velscour_recent_feature_commits_v2';
 const CACHE_MS = 30 * 60 * 1000;
-const DISPLAY_LIMIT = 12;
 const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?!?:\s*(.+)$/i;
+
+function nextPageUrl(response) {
+  const links = response.headers?.get?.('Link') || '';
+  return links.match(/<([^>]+)>\s*;\s*rel="next"/i)?.[1] || null;
+}
 
 function readCache() {
   try {
@@ -40,30 +44,44 @@ export function featureChangesFromCommits(commits) {
     const title = match[1].trim();
     if (!title) return [];
     return [{ title: title[0].toUpperCase() + title.slice(1), summary: cleanSummary(lines.slice(1)) }];
-  }).slice(0, DISPLAY_LIMIT);
+  });
 }
 
-/** Prefer GitHub's latest feat: commits, using the bundled curated entries if offline or rate-limited. */
+async function fetchAllCommits() {
+  const commits = [];
+  let url = GITHUB_COMMITS_URL;
+  while (url) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/vnd.github+json' },
+        ...(controller ? { signal: controller.signal } : {}),
+        cache: 'no-cache',
+      });
+      if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+      const page = await response.json();
+      if (!Array.isArray(page)) throw new Error('GitHub returned an invalid commit list');
+      commits.push(...page);
+      url = page.length ? nextPageUrl(response) : null;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  }
+  return commits;
+}
+
+/** Load every feature commit from GitHub, falling back to cached or bundled summaries if unavailable. */
 export async function loadRecentChanges() {
   const cached = readCache();
   if (cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
 
-  const controller = typeof AbortController === 'function' ? new AbortController() : null;
-  const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
   try {
-    const response = await fetch(GITHUB_COMMITS_URL, {
-      headers: { Accept: 'application/vnd.github+json' },
-      ...(controller ? { signal: controller.signal } : {}),
-      cache: 'no-cache',
-    });
-    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-    const items = featureChangesFromCommits(await response.json());
+    const items = featureChangesFromCommits(await fetchAllCommits());
     if (!items.length) return cached?.items?.length ? cached.items : RECENT_CHANGES;
     writeCache(items);
     return items;
   } catch (_) {
     return cached?.items?.length ? cached.items : RECENT_CHANGES;
-  } finally {
-    if (timeout) clearTimeout(timeout);
   }
 }
