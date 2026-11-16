@@ -66,12 +66,10 @@ function weightedChoice(list) {
   return list[list.length - 1];
 }
 function rollCritterTier() {
-  // Every critter tier is available at every depth. Preserve the existing small total chance for T6+,
-  // but bias that rare pool toward earlier tiers so each later color is progressively harder to find.
-  const mythicCurve = RARITY.filter((r) => r.dropGroup === 'mythic')
-    .reduce((sum, r) => sum + Math.pow(0.9, r.id - 5), 0);
+  // Every critter tier is available at every depth. Keep T6's existing first-unlock odds,
+  // then make each higher color progressively rarer.
   const tiers = RARITY.map((r) => ({
-    weight: r.dropGroup === 'mythic' ? 0.012 * Math.pow(0.9, r.id - 5) / mythicCurve : r.weight,
+    weight: r.dropGroup === 'mythic' ? 0.012 * Math.pow(0.9, r.id - 5) : r.weight,
     id: r.id,
   }));
   let roll = rand(tiers.reduce((sum, t) => sum + t.weight, 0));
