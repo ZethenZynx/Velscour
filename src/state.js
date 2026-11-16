@@ -43,6 +43,7 @@ export const G = {
     showHeroStats: true, // show/hide the #hero-stats div
     showTargetBox: true, // show/hide the #target-box div
     showTargetSprite: true, // choose if target-box shows the target sprite or not
+    keybinds: {}, // player-configured keyboard actions; absent actions use the PC defaults
   },
 };
 
