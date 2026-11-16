@@ -206,50 +206,9 @@ class Critter {
     ctx.strokeStyle = K.color; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(px, py, 16, 8, 0, 0, TAU); ctx.stroke();
     if (tutorialReady) this.drawTutorial(ctx, px, py);
-    if (artReady()) this.drawModel(ctx, px, py, fade);
-    else if (K.fly) {
-      const y = py - this.z, col = this.key === 'prism' ? `hsl(${(t * 220) % 360},100%,70%)` : K.color;
-      ctx.globalAlpha = fade * 0.3; ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.beginPath(); ctx.ellipse(px, py, 6, 3, 0, 0, TAU); ctx.fill();
-      ctx.globalCompositeOperation = 'lighter';
-      const b = 24 + Math.sin(t * 9) * 4;
-      ctx.globalAlpha = fade;
-      ctx.drawImage(glowSprite(this.key === 'prism' ? '#ff80e0' : K.color), px - b, y - b, b * 2, b * 2);
-      if (this.key === 'moth') { // two fluttering wings
-        const f = Math.abs(Math.sin(t * 16)) * 10 + 3;
-        ctx.fillStyle = col;
-        for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.ellipse(px + sgn * 6, y - 1, f, 6, sgn * 0.5, 0, TAU); ctx.fill(); }
-      }
-      // a four-point twinkle, turning
-      const tw = 9 + Math.sin(t * 6 + this.ph) * 4, ta = t * 1.5;
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      for (let i = 0; i < 4; i++) { const a = ta + i * Math.PI / 2; ctx.moveTo(px, y); ctx.lineTo(px + Math.cos(a) * tw, y + Math.sin(a) * tw); }
-      ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px, y, 3.4, 0, TAU); ctx.fill();
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, y, 6, 0, TAU); ctx.globalAlpha = fade * 0.6; ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
-    } else { // a gold scarab, legs ticking, half sunk once it digs away
-      const sink = this.sink || 0, h = Math.cos(this.a), v = Math.sin(this.a);
-      const fx = (h - v) * 0.5, fy = (h + v) * 0.25; // facing, in screen space
-      ctx.globalAlpha = fade;
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(px, py + 1, 8, 4, 0, 0, TAU); ctx.fill();
-      ctx.strokeStyle = '#3a2408'; ctx.lineWidth = 1.2;
-      for (let i = -1; i <= 1; i++) for (const sgn of [-1, 1]) { // six legs
-        const wig = Math.sin(t * 30 + i + sgn) * 1.5;
-        ctx.beginPath(); ctx.moveTo(px + i * fx * 6, py - 3 + i * fy * 6); ctx.lineTo(px + i * fx * 6 - fy * sgn * 16 + wig, py - 2 + i * fy * 6 + fx * sgn * 5); ctx.stroke();
-      }
-      ctx.save(); ctx.translate(px, py - 3 + sink * 4); ctx.rotate(Math.atan2(fy, fx));
-      ctx.scale(1.4, 1.4 * (1 - sink * 0.7));
-      const g = ctx.createLinearGradient(-7, -5, 7, 5); g.addColorStop(0, '#fff2a0'); g.addColorStop(0.5, K.color); g.addColorStop(1, '#8a5008');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, 7, 5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#5a3008'; ctx.beginPath(); ctx.ellipse(7, 0, 2.6, 2.4, 0, 0, TAU); ctx.fill();
-      ctx.strokeStyle = '#6a3c08'; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.stroke();
-      ctx.restore();
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade * (0.4 + 0.3 * Math.sin(t * 6));
-      ctx.drawImage(glowSprite(K.color), px - 18, py - 21, 36, 36);
-      ctx.globalCompositeOperation = 'source-over';
-    }
+    if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
+    else this.drawSpeciesSprite(ctx, px, py, fade);
+    this.drawRewardBadge(ctx, px, py, fade);
     if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
       const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
       ctx.globalAlpha = fade;
@@ -261,6 +220,77 @@ class Critter {
     }
     if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
+  }
+  drawSpeciesSprite(ctx, px, py, fade) {
+    const K = this.K, y = K.fly ? py - this.z : py - 5;
+    const source = critterSprite(this.key, K);
+    const tinted = drawTinted(K.color, (c) => {
+      const max = Math.max(source.width, source.height) || 1;
+      const w = 82 * source.width / max, h = 82 * source.height / max;
+      c.drawImage(source, (128 - w) / 2, (128 - h) / 2, w, h);
+    });
+    ctx.save();
+    ctx.globalAlpha = fade;
+    // Species cues sit behind or over their reused creature sprites; all remain small pixel silhouettes.
+    if (K.accent === 'wings') {
+      ctx.globalAlpha = fade * (0.45 + 0.25 * Math.abs(Math.sin(this.t * 15)));
+      ctx.fillStyle = K.color;
+      for (const sign of [-1, 1]) {
+        ctx.beginPath(); ctx.ellipse(px + sign * 13, y - 1, 12, 5, sign * 0.45, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = fade;
+    }
+    ctx.drawImage(tinted, px - 32, y - 32, 64, 64);
+    if (K.accent === 'crystals') {
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = K.color; ctx.lineWidth = 1;
+      for (let i = -1; i <= 1; i++) {
+        const x = px + i * 9, h = 7 + (i === 0 ? 4 : 0);
+        ctx.beginPath(); ctx.moveTo(x - 3, y - 9); ctx.lineTo(x, y - 9 - h); ctx.lineTo(x + 3, y - 9); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+    } else if (K.accent === 'shell') {
+      ctx.strokeStyle = '#fff0b0'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(px, y - 1, 11, Math.PI, TAU); ctx.stroke();
+    } else if (K.accent === 'runes') {
+      ctx.strokeStyle = K.color; ctx.lineWidth = 1; ctx.globalAlpha = fade * 0.8;
+      ctx.save(); ctx.translate(px, y); ctx.rotate(this.t * 0.5);
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2, rx = Math.cos(a) * 25, ry = Math.sin(a) * 17;
+        ctx.strokeRect(rx - 2.2, ry - 2.2, 4.4, 4.4);
+      }
+      ctx.restore();
+    } else if (K.accent === 'mimic') {
+      ctx.strokeStyle = '#f5d27a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 11, y - 8); ctx.lineTo(px, y - 14 - Math.abs(Math.sin(this.t * 3)) * 3); ctx.lineTo(px + 11, y - 8); ctx.stroke();
+    } else if (K.accent === 'segments') {
+      ctx.strokeStyle = '#e9c57a'; ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.arc(px + i * 5, y + Math.sin(this.t * 8 + i) * 2, 6, -0.8, 0.8); ctx.stroke(); }
+    } else if (K.accent === 'claws') {
+      ctx.strokeStyle = '#fff0b0'; ctx.lineWidth = 2;
+      for (const sign of [-1, 1]) { ctx.beginPath(); ctx.moveTo(px + sign * 10, y + 5); ctx.lineTo(px + sign * 18, y + 1); ctx.lineTo(px + sign * 21, y + 5); ctx.stroke(); }
+    } else if (K.accent === 'ears') {
+      ctx.fillStyle = K.color;
+      for (const sign of [-1, 1]) { ctx.beginPath(); ctx.moveTo(px + sign * 6, y - 10); ctx.lineTo(px + sign * 13, y - 22); ctx.lineTo(px + sign * 15, y - 8); ctx.closePath(); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+  drawRewardBadge(ctx, px, py, fade) {
+    if (this.gone) return;
+    const reward = CRITTER_REWARDS.find((r) => r.id === this.reward) || CRITTER_REWARDS[0];
+    const x = px + 18, y = py - this.z - 31, r = 7 + Math.min(3, this.tier * 0.15);
+    ctx.save(); ctx.globalAlpha = fade;
+    ctx.fillStyle = 'rgba(17,10,7,0.94)'; ctx.strokeStyle = reward.color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = reward.color; ctx.strokeStyle = reward.color; ctx.lineWidth = 1.7;
+    if (this.reward === 'gem') {
+      ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3.5, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3.5, y); ctx.closePath(); ctx.fill();
+    } else if (this.reward === 'resource') {
+      ctx.beginPath(); ctx.moveTo(x - 3, y); ctx.lineTo(x + 3, y); ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3); ctx.stroke();
+    } else if (this.reward === 'gold' || this.reward === 'jackpot') {
+      ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 2, y); ctx.stroke();
+    } else {
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4); ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(x, y, 1.5, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
   }
   drawTutorial(ctx, px, py) {
     const K = this.K, gold = !!K.pay.gold;
@@ -284,34 +314,35 @@ class Critter {
     ctx.fillStyle = '#e7c778'; ctx.font = '700 13px Cinzel, Georgia, serif';
     ctx.fillText(K.name.toLocaleUpperCase(), px, y + 15);
     ctx.fillStyle = '#e9dcc4'; ctx.font = '13px "Alegreya Sans", "Segoe UI", sans-serif';
-    ctx.fillText(`Carries bonus ${gold ? 'gold' : 'XP'}.`, px, y + 43);
+    ctx.fillText(`Carries ${rewardLabel(this.reward)}.`, px, y + 43);
     ctx.fillStyle = '#d8ad53'; ctx.font = '700 12px Cinzel, Georgia, serif';
     ctx.fillText('Click it to collect the reward!', px, y + 59);
     ctx.restore();
   }
   /** The baked three.js model, wrapped in glows: a wide halo behind, a hot core over it and three orbiting lights. */
+  /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
-    const K = this.K, M = ART.meta, s = M.sets[this.key], t = this.t, cs = M.cell, w = cs / M.S * 1.3;
+    const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 1.3;
     const d = s.dirs > 1 ? ((Math.round(this.a / (TAU / s.dirs)) % s.dirs) + s.dirs) % s.dirs : 0;
-    const i = s.at + d * s.frames + Math.floor(t * (this.key === 'moth' ? 16 : this.key === 'scarab' ? 14 : 10) + this.ph * 3) % s.frames;
-    const sink = this.sink || 0, cy = K.fly ? py - this.z : py - 6;
-    const col = this.key === 'prism' ? `hsl(${(t * 220) % 360},100%,70%)` : K.color;
+    const i = s.at + d * s.frames + Math.floor(t * (K.artKey === 'moth' ? 16 : K.artKey === 'scarab' ? 14 : 10) + this.ph * 3) % s.frames;
+    const cy = K.fly ? py - this.z : py - 6;
     if (K.fly) { ctx.globalAlpha = fade * 0.3; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(px, py, 9, 4.5, 0, 0, TAU); ctx.fill(); }
     ctx.globalCompositeOperation = 'lighter';
-    const b = 24 + Math.sin(t * 5) * 3;
+    const b = 25 + Math.min(10, this.tier * 0.45) + Math.sin(t * 5) * 3;
     ctx.globalAlpha = fade * 0.4; ctx.drawImage(glowSprite(K.color), px - b, cy - b, b * 2, b * 2);
-    ctx.globalAlpha = fade * 0.2; ctx.drawImage(glowSprite(LIGHT2[this.key]), px - b * 1.6, cy - b * 1.6, b * 3.2, b * 3.2);
+    ctx.globalAlpha = fade * 0.2; ctx.drawImage(glowSprite(LIGHT2[this.key] || K.color), px - b * 1.5, cy - b * 1.5, b * 3, b * 3);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = fade;
-    if (sink) { ctx.save(); ctx.beginPath(); ctx.rect(px - w, py - w * 2, w * 2, w * 2 + 2); ctx.clip(); }
-    ctx.drawImage(ART.img, (i % M.cols) * cs, Math.floor(i / M.cols) * cs, cs, cs, px - w / 2, (K.fly ? py - this.z : py + 4) - w / 2 + sink * 16, w, w);
-    if (sink) ctx.restore();
+    if (this.sink) { ctx.save(); ctx.beginPath(); ctx.rect(px - w, py - w * 2, w * 2, w * 2 + 2); ctx.clip(); }
+    const tinted = drawTinted(K.color, (c) => c.drawImage(ART.img, (i % M.cols) * cs, Math.floor(i / M.cols) * cs, cs, cs, 0, 0, 128, 128));
+    ctx.drawImage(tinted, px - w / 2, (K.fly ? py - this.z : py + 4) - w / 2 + (this.sink || 0) * 16, w, w);
+    if (this.sink) ctx.restore();
     ctx.globalCompositeOperation = 'lighter';
     if (K.fly) { ctx.globalAlpha = fade * (0.15 + 0.1 * Math.sin(t * 7 + this.ph)); ctx.drawImage(glowSprite('#ffffff'), px - 7, cy - 7, 14, 14); }
-    for (let k = 0; k < 3; k++) { // lights circling it
-      const a = t * 2.2 + k * TAU / 3 + this.ph, r = 24 + 3 * Math.sin(t * 3 + k);
+    for (let k = 0; k < 3; k++) {
+      const a = t * 2.2 + k * TAU / 3 + this.ph, r = 24 + this.tier * 0.18 + 3 * Math.sin(t * 3 + k);
       const lx = px + Math.cos(a) * r, ly = cy + Math.sin(a) * r * 0.45 - (K.fly ? 0 : 4), fr = Math.sin(a) > 0 ? 1 : 0.55;
-      ctx.globalAlpha = fade * 0.85 * fr; ctx.drawImage(glowSprite(k ? col : '#ffffff'), lx - 4.5, ly - 4.5, 9, 9);
+      ctx.globalAlpha = fade * 0.85 * fr; ctx.drawImage(glowSprite(k ? K.color : '#ffffff'), lx - 4.5, ly - 4.5, 9, 9);
     }
     ctx.globalCompositeOperation = 'source-over';
   }
