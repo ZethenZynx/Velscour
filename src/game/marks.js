@@ -120,7 +120,6 @@ export function resetMarks() {
   for (const k of MARK_CATS) s[k] = 0;
   changed();
 }
-/** Spend every free Mark, each on the category that gains the most of its cap from it (auto-play, the panel's button). */
 export function autoSpend() {
   const s = endgame().marks.spent;
   let n = marksFree(), spent = 0;

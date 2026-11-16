@@ -7,7 +7,6 @@
 // marching in over the walkways, docking rock shards, lowered on chains, coalescing out of motes, bursting out of
 // coffins, and stepping through doorways that open in the air. Only the Breach's own creatures (data/breach.js).
 // The run speaks the overworld scenario API (active/completed/shrine/markers/objective/hud/...) for the HUD, the
-// Quest Log and auto-play.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { RNG, rand, chance, TAU, pick, clamp } from '../core/util.js';

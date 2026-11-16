@@ -1,48 +1,49 @@
-// Auto-play: an AI that plays the hero. It spends skill and attribute points, keeps the skill bar sorted, fights
+// Developer-only simulated player for repeatable gameplay tests. This file lives under tools/tests and is never
+// imported by the playable game. It spends skill and attribute points, keeps the skill bar sorted, fights
 // with every skill on the bar (dodging telegraphed attacks, kiting with ranged builds, drinking potions), loots,
 // equips upgrades and sockets gems, then shops in town (sell, potions, gear, gems, sockets, upgrades, enchants,
 // gambling) and keeps delving. Toggled by the HUD's Auto button or P. Gear, stats and skills are judged by
 // simulation: apply the change, recompute the hero, score the result with charScore(), undo.
-import { G } from '../state.js';
-import { allocateAttrs } from './attrs.js';
-import { input } from '../core/input.js';
-import { sfx } from '../core/audio.js';
-import { dist, clamp, TAU, fmtInt, escapeHtml, angleDiff, angleTo } from '../core/util.js';
-import { MEASURE, NOTES, beatsOf } from '../data/notation.js';
-import { bardNoteFor, bardFitGain, bardPerforming } from './bard.js';
-import { SKILLS, CLASS_SKILLS, MAX_SKILL_LEVEL, manaCost, rageCost, cooldown, useTime, skillRange, spearBarrageAreas, buffAmount, curseAmount, skillDuration, effLevel, ricochetCount } from '../data/skills.js';
-import { SUMMONS } from '../data/summons.js';
-import { SLOTS, RING_SLOTS, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost, addAffix, makeGem, RARITY, POTION_PRICE, GEMS, powerLevel, goldLvl, canEquipItem } from '../data/items.js';
-import { depthLevel, armorDiv, FINAL_DEPTH } from '../data/depth.js';
-import { breachLevel } from '../data/breach.js';
-import { riftLevel } from '../data/rifts.js';
-import { riftOpen } from './rifts.js';
-import { endgameUnlocked } from './endgame.js';
-import { hearthReady, useHearth } from './hearth.js';
-import { isUnboundCheckpointFloor, MAX_UNBOUND_DEPTH, canEnterUnbound } from './unbound.js';
-import { heresyAllows } from './heresies.js';
-import { marksFree, autoSpend } from './marks.js';
-import { drawBiome } from '../data/biomes.js';
-import { augHits } from '../data/rings.js';
-import { canLearn } from '../ui/skills.js';
-import { CLASS_TALENTS, canLearnTalent, learnTalent, talentPointsSpent, skillMorphFor, applySkillMorph } from '../data/talents.js';
-import { equipFromBag, socketGem, dropFromBag, changed } from '../ui/inventory.js';
-import { GLYPHWORDS, glyphOf } from '../data/relics.js';
-import { Vendor, fuseAll } from '../ui/vendor.js';
-import { Stash, addToStash } from '../ui/stash.js';
-import { JewelBox, addToJewelBox } from '../ui/jewelbox.js';
-import { activeFilter, filterPasses, filterKeeps } from './lootfilter.js';
-import { fadeOf } from './loot.js';
-import { addToBag } from './player.js';
-import { nextRowCost, buyBagRow } from '../data/bag.js';
-import { Delayed, Area, Whirl, Fissure } from './hazards.js';
-import { hit } from './combat.js';
-import { bountyGoal } from './wanderers.js';
-import { heroVisit } from './townlife.js';
-import { homunculusChat, isHomunculus } from './homunculus.js';
-import { effects, Telegraph } from '../gfx/vfx.js';
-import { BAR_SIZE, LMB, RMB, FILL_ORDER, SLOT_KEYS, freeSlot } from '../data/bar.js';
-import { macroKeys } from './macros.js';
+import { G } from '../../src/state.js';
+import { allocateAttrs } from '../../src/game/attrs.js';
+import { input } from '../../src/core/input.js';
+import { sfx } from '../../src/core/audio.js';
+import { dist, clamp, TAU, fmtInt, escapeHtml, angleDiff, angleTo } from '../../src/core/util.js';
+import { MEASURE, NOTES, beatsOf } from '../../src/data/notation.js';
+import { bardNoteFor, bardFitGain, bardPerforming } from '../../src/game/bard.js';
+import { SKILLS, CLASS_SKILLS, MAX_SKILL_LEVEL, manaCost, rageCost, cooldown, useTime, skillRange, spearBarrageAreas, buffAmount, curseAmount, skillDuration, effLevel, ricochetCount } from '../../src/data/skills.js';
+import { SUMMONS } from '../../src/data/summons.js';
+import { SLOTS, RING_SLOTS, itemValue, itemName, itemColor, upgradeCost, socketCost, enchantCost, unsocketCost, addAffix, makeGem, RARITY, POTION_PRICE, GEMS, powerLevel, goldLvl, canEquipItem } from '../../src/data/items.js';
+import { depthLevel, armorDiv, FINAL_DEPTH } from '../../src/data/depth.js';
+import { breachLevel } from '../../src/data/breach.js';
+import { riftLevel } from '../../src/data/rifts.js';
+import { riftOpen } from '../../src/game/rifts.js';
+import { endgameUnlocked } from '../../src/game/endgame.js';
+import { hearthReady, useHearth } from '../../src/game/hearth.js';
+import { isUnboundCheckpointFloor, MAX_UNBOUND_DEPTH, canEnterUnbound } from '../../src/game/unbound.js';
+import { heresyAllows } from '../../src/game/heresies.js';
+import { marksFree, autoSpend } from '../../src/game/marks.js';
+import { drawBiome } from '../../src/data/biomes.js';
+import { augHits } from '../../src/data/rings.js';
+import { canLearn } from '../../src/ui/skills.js';
+import { CLASS_TALENTS, canLearnTalent, learnTalent, talentPointsSpent, skillMorphFor, applySkillMorph } from '../../src/data/talents.js';
+import { equipFromBag, socketGem, dropFromBag, changed } from '../../src/ui/inventory.js';
+import { GLYPHWORDS, glyphOf } from '../../src/data/relics.js';
+import { Vendor, fuseAll } from '../../src/ui/vendor.js';
+import { Stash, addToStash } from '../../src/ui/stash.js';
+import { JewelBox, addToJewelBox } from '../../src/ui/jewelbox.js';
+import { activeFilter, filterPasses, filterKeeps } from '../../src/game/lootfilter.js';
+import { fadeOf } from '../../src/game/loot.js';
+import { addToBag } from '../../src/game/player.js';
+import { nextRowCost, buyBagRow } from '../../src/data/bag.js';
+import { Delayed, Area, Whirl, Fissure } from '../../src/game/hazards.js';
+import { hit } from '../../src/game/combat.js';
+import { bountyGoal } from '../../src/game/wanderers.js';
+import { heroVisit } from '../../src/game/townlife.js';
+import { homunculusChat, isHomunculus } from '../../src/game/homunculus.js';
+import { effects, Telegraph } from '../../src/gfx/vfx.js';
+import { BAR_SIZE, LMB, RMB, FILL_ORDER, SLOT_KEYS, freeSlot } from '../../src/data/bar.js';
+import { macroKeys } from '../../src/game/macros.js';
 
 const OFFENSIVE = new Set(['melee', 'proj', 'nova', 'aoe', 'beam', 'chain', 'wall', 'zone', 'orbit', 'cyclone', 'whirl', 'leap', 'dash', 'trap', 'rain', 'strike', 'fissure', 'corpse']);
 const CROWD = 2.2; // enemies a typical cast is expected to reach, for planning

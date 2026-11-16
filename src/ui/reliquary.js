@@ -77,7 +77,6 @@ export const Reliquary = {
     }
     const i = t.findIndex((b) => !b);
     if (i < 0) { UI.log(`Vault ${ROMAN[this.tab]} is full.`, '#ff8080'); sfx('error'); return false; }
-    delete it.autoStash;
     t[i] = it; container[idx] = null;
     saveReliquary(); sfx('pickup'); UI.selected = null; changed(); this.refresh();
     return true;
@@ -138,7 +137,6 @@ export const Reliquary = {
         }
         const emptyIdx = t.findIndex((b) => !b);
         if (emptyIdx < 0) { full = true; continue; }
-        delete it.autoStash;
         t[emptyIdx] = it;
         arr[i] = null;
         moved++;

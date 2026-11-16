@@ -108,7 +108,7 @@ export default {
       if (ph !== 'victory' && (S.sendT += dt) > (ph === 'final' ? 13 : 18) && S.cutters.filter((c) => !c.gaff && c.st !== 'out').length < (ph === 'final' ? 2 : 1) + (taut.length ? 0 : 1)) sendCutter(api);
     },
     holdFinal(api) { const g = api.state.gaff; return !(g && g.st === 'dock'); },   // her cutter on her station first
-    objective(api) {   // the nearest line still taut (auto-play hunts the targets anyway)
+    objective(api) {
       const p = api.p(), live = api.state.lines.filter((L) => L.live && L.m && !L.m.dead);
       if (!p || !live.length) return null;
       const L = live.reduce((a, b) => (Math.hypot(b.m.x - p.x, b.m.y - p.y) < Math.hypot(a.m.x - p.x, a.m.y - p.y) ? b : a));

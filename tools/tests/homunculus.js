@@ -29,7 +29,7 @@ const { openGame, report } = require('./harness');
     await (await import('/src/gfx/varrowaxe.js')).varrowAxeReady();
     G.char.gold = 50000;
     G.townEventForce = null; game.enterTown();
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(true);
     window.__h = { Auto, statuses: new Set(), heroLines: new Set(), hLines: new Set(), poses: new Set(), axe: 0, t: 0, chatT: 0, moved: 0, last: null, town: G.world };
   });

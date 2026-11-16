@@ -118,7 +118,7 @@ const { openGame, report } = require('./harness');
   // are free), stands still while anyone talks to it, then goes back down through the portal
   await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     G.townEventForce = 'royal'; game.enterTown(); G.townEventForce = null;
     Auto.toggle(true);
     window.__aud = { d: G.world.townLife, town: G.world, Auto, statuses: new Set(), heard: new Set(), visited: new Set(), moved: 0, listenFrames: 0, last: null, minHold: 99, holdT: 0, t: 0, shot: false };

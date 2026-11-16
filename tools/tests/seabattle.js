@@ -113,7 +113,7 @@ const cls = ['wizard', 'paladin', 'gunner', 'ranger', 'necromancer', 'bard', 'de
         [...document.querySelectorAll('.velscour-contact-dialog button')].find((b) => b.textContent === 'Send').click();
         for (let t = 0; t < 200 && !(G.world && G.world.seaRun && G.world.seaRun.variant.id === id); t++) await new Promise((r) => setTimeout(r, 100));
       } else { G.char.seaVariant = id; await game.teleportToBiome(BIOME_BY_ID.pirate_seas); }
-      if (auto) { const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(true); }   // the teleport turned it off
+      if (auto) { const { Auto } = await import('/tools/tests/auto_player.js'); Auto.toggle(true); }   // the teleport turned it off
     }, [id, auto, skull]);
     await page.evaluate((m) => { window.__mortal = m; }, mortal);
     let s = await run(0.1);
@@ -188,7 +188,7 @@ const cls = ['wizard', 'paladin', 'gunner', 'ranger', 'necromancer', 'bard', 'de
       // the keepers while the hero is away; a crew wiped is a tender lost (a lighter chest)
       const t1 = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR, api = G.world.seaRun.api, S = api.state, m = G.world.map, p = G.player;
-        const { Auto } = await import('/src/game/autoplay.js'), wasAuto = Auto.on; if (wasAuto) Auto.toggle(false);   // (the walk is the test's)
+        const { Auto } = await import('/tools/tests/auto_player.js'), wasAuto = Auto.on; if (wasAuto) Auto.toggle(false);   // (the walk is the test's)
         const reach = S.t.map((T) => { const q = m.randomNear(T.posts[0][0], T.posts[0][1], 1); return !!(q && m.findPath(p.x, p.y, q[0], q[1], 60000)); });
         const [a, b] = S.gaps[0]; p.x = a[0] - 1.2; p.y = a[1]; let hop = 0;
         for (let i = 0; i < 75; i++) { p.moveTarget = [b[0] + 1.2, b[1]]; p.path = null; G.time += 1 / 30; game.update(1 / 30); hop = Math.max(hop, p.z || 0); }

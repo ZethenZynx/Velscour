@@ -1878,7 +1878,7 @@ export const game = {
   },
   enterRift(tier) {
     const c = G.char;
-    if (!endgameUnlocked() || this.riftLoading) return; // one rift at a time (auto-play may step on the gate again while it loads)
+    if (!endgameUnlocked() || this.riftLoading) return;
     tier = Math.max(1, Math.min(riftOpen(c), tier | 0 || 1));
     const pool = BIOMES.filter((b) => !b.overworld && !b.beta && !b.challenge && !b.tower && !b.cave && b.id !== 'throne' && b.id !== c.lastRift);
     const biome = pick(pool.length ? pool : BIOMES.filter((b) => !b.overworld)) || BIOME_BY_ID.catacombs;

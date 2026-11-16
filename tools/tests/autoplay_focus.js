@@ -8,7 +8,7 @@ const { openGame, report } = require('./harness');
     const result = await page.evaluate(async () => {
       const { G, game } = window.VELSCOUR;
       const { SKILLS, CLASS_SKILLS, rageCost, manaCost, cooldown } = await import('/src/data/skills.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const problems = [], details = {};
       // Non-Paladins have a false hammer candidate, not a null one. Bar setup
       // must fall through to their main attack without throwing on false.sk.id.

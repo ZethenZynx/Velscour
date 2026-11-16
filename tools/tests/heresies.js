@@ -45,7 +45,7 @@ async function helpers(page) {
       mapHash(w = G.world) { let h = w.map.w * 31 + w.map.h; for (let i = 0; i < w.map.block.length; i += 7) h = (h * 33 + w.map.block[i]) | 0; return h; },
       /** Auto-play a fresh level of `depth` for `secs` (god mode or not): kills, the first 25 kills' time, update() cost, death. */
       async play(secs, god, ids, depth = 521) {
-        const X = this, { Auto } = await import('/src/game/autoplay.js'), w2 = X.build(depth, ids), p2 = w2.player, c = G.char; G.godMode = god; p2.hp = p2.maxHp; p2.mana = p2.maxMana; c.potions = { hp: 10, mp: 10, rejuv: 4, fury: 2 };
+        const X = this, { Auto } = await import('/tools/tests/auto_player.js'), w2 = X.build(depth, ids), p2 = w2.player, c = G.char; G.godMode = god; p2.hp = p2.maxHp; p2.mana = p2.maxMana; c.potions = { hp: 10, mp: 10, rejuv: 4, fury: 2 };
         const kills0 = c.kills || 0; Auto.toggle(true);
         let t = 0, t25 = null, um = 0, umax = 0, minHp = 1;
         for (; t < 30 * secs && G.world === w2 && !p2.dead; t++) {
@@ -71,7 +71,7 @@ async function helpers(page) {
 /** A hero geared for depth 521 the way tools/tests/balance.js does it (BAL_GEAR 8): level, stats, skills, gear, gems, mastery. */
 async function gear521(page) {
   await page.evaluate(async () => {
-    const { G } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js'), { rollItem, rollGem } = await import('/src/data/items.js');
+    const { G } = window.VELSCOUR, { Auto } = await import('/tools/tests/auto_player.js'), { rollItem, rollGem } = await import('/src/data/items.js');
     const { depthLevel } = await import('/src/data/depth.js'), { xpToNext } = await import('/src/game/player.js');
     const c = G.char, p = G.player, D = 521, L = depthLevel(D), lvl = L + 1;
     c.level = lvl; c.xp = Math.round(xpToNext(lvl) * 0.3); c.statPoints += (lvl - 1) * 5; c.skillPoints += (lvl - 1) + D - 1;
@@ -492,7 +492,7 @@ async function gear521(page) {
     await page.waitForTimeout(1200);
     await helpers(page);
     const au = await page.evaluate(async () => {
-      const { G, game } = window.VELSCOUR, X = window.HX, { Auto } = await import('/src/game/autoplay.js'), p = G.player, c = G.char, out = {};
+      const { G, game } = window.VELSCOUR, X = window.HX, { Auto } = await import('/tools/tests/auto_player.js'), p = G.player, c = G.char, out = {};
       for (const [k, ids, secs] of [['thirst', ['thirst', 'twins', 'iron'], 120], ['none', [], 30]]) {
         X.build(4, ids); c.potions = { hp: 10, mp: 10, rejuv: 3, fury: 2 }; G.godMode = true;
         let calls = 0; const use = p.usePotion; p.usePotion = function (kind) { calls++; return use.call(this, kind); };
@@ -520,7 +520,7 @@ async function gear521(page) {
     await gear521(page);
     const ALLIDS = JSON.stringify(ALL);
     const bal = await page.evaluate(async (ALL) => {
-      const { G, game } = window.VELSCOUR, X = window.HX, H = await import('/src/game/heresies.js'), { Auto } = await import('/src/game/autoplay.js'), { OMENS } = await import('/src/game/happenings.js');
+      const { G, game } = window.VELSCOUR, X = window.HX, H = await import('/src/game/heresies.js'), { Auto } = await import('/tools/tests/auto_player.js'), { OMENS } = await import('/src/game/happenings.js');
       const out = {};
       for (const [k, ids] of [['none', []], ['twins', ['twins']], ['all', ALL]]) {
         const lv = [];

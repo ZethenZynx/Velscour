@@ -205,7 +205,7 @@ const fail = (m) => { console.log('FAIL ' + m); bad++; };
     const { G, game } = window.VELSCOUR;
     game.update = window.__realUpdate; G.astroStats = {};
     await game.newChar(CLS, 'Autostar');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(true);
     let sim = 0;
     while (sim < minutes * 60) {

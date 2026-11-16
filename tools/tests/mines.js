@@ -250,7 +250,7 @@ const toCart = (page, sid) => page.evaluate((sid) => {
       });
       await waitMine(page);
       const res = await page.evaluate(async () => {
-        const { G, game } = window.VELSCOUR, { Auto } = await import('/src/game/autoplay.js');
+        const { G, game } = window.VELSCOUR, { Auto } = await import('/tools/tests/auto_player.js');
         const w = G.world, run = w.overworldScenario, t0 = performance.now(), log = [];
         Auto.toggle(true);
         let last = '';

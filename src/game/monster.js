@@ -982,7 +982,7 @@ export class Monster extends Creature {
         this.startAction('mv_combo', 0.2, { target: t, n: 3 });
         break;
       case 'quake':
-        tele({ kind: 'line', x: this.x, y: this.y, ang, len: 6.5, w: 1, reach: 0.85, dur: 0.6 }); // reach: the Fissure's hit, for auto-play
+        tele({ kind: 'line', x: this.x, y: this.y, ang, len: 6.5, w: 1, reach: 0.85, dur: 0.6 });
         this.startAction('mv_quake', 0.6, { ang });
         break;
       case 'hook': {

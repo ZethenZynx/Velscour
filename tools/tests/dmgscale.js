@@ -13,7 +13,7 @@ const classes = (process.argv[3] || 'paladin,wizard').split(',');
   for (const cls of classes) for (const D of depths) {
     const r = await page.evaluate(async ({ cls, D }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { depthLevel, dmgScale, shownDmg } = await import('/src/data/depth.js');
       const { rollItem, rollGem } = await import('/src/data/items.js');
       const { texts } = await import('/src/gfx/vfx.js');

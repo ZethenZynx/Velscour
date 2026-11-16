@@ -87,7 +87,7 @@ const E = 6, WALK = 2.4, RUSH = 30, G_FIX = 17, C_G = 1.15;
   // 3-4. heroes
   const gear = (cls, H, L, D) => page.evaluate(async ({ cls, H, L, D, rounds }) => {
     const { G, game } = window.VELSCOUR;
-    const { Auto, heroDamage, buildPower } = await import('/src/game/autoplay.js');
+    const { Auto, heroDamage, buildPower } = await import('/tools/tests/auto_player.js');
     const { rollItem, rollGem } = await import('/src/data/items.js');
     await game.newChar(cls, 'Rift');
     document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.ui.closeAll();

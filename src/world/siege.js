@@ -276,7 +276,6 @@ export function generateSiege(depth, biome, seed, variantId = 'keep') {
   }
   // the ballistae stand in the middle of their towers' tops
   for (const b of BALLISTAE) map.block[I(Math.floor(b.at[0]), Math.floor(b.at[1]))] = 1;
-  // the wall-walk's tiles: the run lends them to auto-play as the Castle's `rampartDeck` for a fighter (game/siege.js)
   map.siegeDeck = new Uint8Array(N);
   for (let i = 0; i < N; i++) if (hgt[i] >= LV.wall && hgt[i] < LV.cliff && !map.block[i] && !ter[i]) map.siegeDeck[i] = 1;
   map.siegeIce = ice;

@@ -360,7 +360,7 @@ const MORTAL = !!process.env.SIEGE_MORTAL;            // auto-play without god m
     if (AUTO) {
       await page.evaluate(async ([d, cls]) => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         // a hero the way one looks arriving at this depth (tools/tests/balance.js): its level, points spent, the best of
         // 200 drops of the last few item levels with +upgrades and gems, skill mastery
         const { depthLevel } = await import('/src/data/depth.js');
@@ -386,7 +386,7 @@ const MORTAL = !!process.env.SIEGE_MORTAL;            // auto-play without god m
       for (const id of VARIANTS) {
         const res = await page.evaluate(async ([d, mortal, id]) => {
           const { G, game } = window.VELSCOUR;
-          const { Auto } = await import('/src/game/autoplay.js');
+          const { Auto } = await import('/tools/tests/auto_player.js');
           const { BIOME_BY_ID } = await import('/src/data/biomes.js');
           const c = G.char, p = G.player;
           c.potions = { hp: 10, mp: 6, rejuv: 3, fury: 2 }; p.hp = p.maxHp; p.mana = p.maxMana;

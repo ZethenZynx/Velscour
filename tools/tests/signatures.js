@@ -181,7 +181,7 @@ const fail = (m) => { console.log('FAIL ' + m); bad++; };
         G.godMode = false; G.sigStats = {};
         await game.newChar(cls, 'Autosig');
         document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         Auto.toggle(true);
         let sim = 0;
         while (sim < secs) {

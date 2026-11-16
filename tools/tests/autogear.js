@@ -20,7 +20,7 @@ const mobile = process.argv[2] === 'mobile';
   // a town round with auto-play on: the statuses it showed (errands only) and where it ended up
   const townRound = async (secs, opts = {}) => page.evaluate(async ({ secs, freeAt }) => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const seen = new Set();
     let waited = false;
     Auto.toggle(true);
@@ -39,7 +39,7 @@ const mobile = process.argv[2] === 'mobile';
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char;
     window.uids = () => JSON.stringify([c.bag.map((b) => b && b.uid), Object.values(c.equip).map((b) => b && b.uid), c.stash.map((b) => b && b.uid)]);
     G.settings.autoGear = false;
@@ -54,7 +54,7 @@ const mobile = process.argv[2] === 'mobile';
   const off2 = await page.evaluate(async () => {
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char, out = { untouched: window.uids() === window.before, pots: c.potions.hp };
     // neither a nearly full bag nor a full one sends it to town (it plays on, leaving gear on the ground); no dropping for room
     for (let i = 0; i < c.bag.length; i++) if (!c.bag[i]) c.bag[i] = items.rollItem(5, { slot: 'feet', rarity: 0 });
@@ -83,7 +83,7 @@ const mobile = process.argv[2] === 'mobile';
   // ---- 2. hands on: what it buys, it wears
   const on = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { Vendor } = await import('/src/ui/vendor.js');
     if (G.world.kind !== 'town') { game.enterTown(); await new Promise((r) => setTimeout(r, 1500)); }
     const c = G.char;
@@ -113,7 +113,7 @@ const mobile = process.argv[2] === 'mobile';
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char, out = {};
     c.bag = c.bag.map(() => null); c.stash = c.stash.map(() => null);
     const ring = window.ring = items.rollItem(8, { slot: 'ring', rarity: 2 }); ring.upg = 8; ring.sealed = false;
@@ -130,7 +130,7 @@ const mobile = process.argv[2] === 'mobile';
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char, ring = window.ring, out = {};
     const where = (it) => (c.stash.some((b) => b && b.uid === it.uid) ? 'chest' : c.bag.some((b) => b && b.uid === it.uid) ? 'bag' : Object.values(c.equip).some((b) => b && b.uid === it.uid) ? 'worn' : 'gone');
     out.ring = where(ring); out.junk = where(window.junk); out.flag = (c.stash.find((b) => b && b.uid === ring.uid) || {}).autoStash;

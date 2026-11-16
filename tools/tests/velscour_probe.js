@@ -12,7 +12,7 @@ const court = (process.argv.find((a) => a.startsWith('court=')) || '').slice(6),
   for (let a = 0; a < attempts; a++) {
     const r = await page.evaluate(async ({ cls, secs, unbound, court, every }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto, charScore } = await import('/src/game/autoplay.js');
+      const { Auto, charScore } = await import('/tools/tests/auto_player.js');
       const { rollItem, rollGem, SLOTS } = await import('/src/data/items.js');
       const { depthLevel } = await import('/src/data/depth.js');
       const depth = unbound ? 600 : 500, ML = depthLevel(depth);

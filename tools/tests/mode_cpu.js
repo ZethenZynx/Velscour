@@ -34,7 +34,7 @@ const secs = +(process.argv[3] || 6), rate = +(process.argv[4] || 4), depth = +(
     const ok = await page.evaluate(async ([mode, depth]) => {
       const { G, game } = window.VELSCOUR;
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       if (Auto.on) Auto.toggle(false);
       G.char.depth = depth;
       const until = (f) => new Promise((res) => { const t0 = performance.now(), k = () => (f() || performance.now() - t0 > 60000 ? res() : setTimeout(k, 100)); setTimeout(k, 200); });

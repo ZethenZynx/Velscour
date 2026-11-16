@@ -36,7 +36,7 @@ const OUT = process.env.OUT_DIR || path.join(__dirname, 'out');
         const { makeMonster } = await import('/src/game/monster.js');
         const { rollItem } = await import('/src/data/items.js');
         const { depthLevel } = await import('/src/data/depth.js');
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const c = G.char, p = G.player;
         c.level = H; c.statPoints = (H - 1) * 5; c.skillPoints = 0;
         Auto.spendStats();
@@ -123,7 +123,7 @@ const OUT = process.env.OUT_DIR || path.join(__dirname, 'out');
     for (const H of process.argv[3] ? levels : [14, 25, 45, 90]) {
       const r = await page.evaluate(async ({ H, secs }) => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { SKILLS } = await import('/src/data/skills.js');
         const { depthLevel } = await import('/src/data/depth.js');
         await game.newChar('paladin', 'Auto' + Math.random());

@@ -10,7 +10,7 @@ const minutes = +(process.argv[2] || 3);
     const r = await page.evaluate(async ([id, minutes]) => {
       const { G, game } = window.VELSCOUR;
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       if (id === 'castle') await (await import('/src/gfx/castle.js')).loadCastlePack();
       if (id === 'sea_of_sand') await (await import('/src/gfx/seaofsand.js')).loadSeaOfSandPack();
       while (G.char.level < 12) G.player.levelUp();

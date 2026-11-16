@@ -25,7 +25,7 @@ const levels = +(process.argv[2] || 24), cls = process.argv[3] || 'wizard', secs
     const { G, game } = window.VELSCOUR;
     await game.newChar(cls, 'Levelmem');
     G.godMode = true; G.autoOpenSeals = true;
-    const { Auto } = await import('/src/game/autoplay.js'); Auto.toggle(true);
+    const { Auto } = await import('/tools/tests/auto_player.js'); Auto.toggle(true);
   }, cls);
   const snap = async () => {
     await cdp.send('HeapProfiler.collectGarbage');

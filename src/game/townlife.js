@@ -12,7 +12,6 @@
 //
 // Speech is rationed so bubbles never swamp the screen: nothing is said for the first seconds of a visit, at most two
 // ambient bubbles (three during an event) show near the hero at once, and ambient talk keeps a gap between lines.
-// A line meant for the hero (heroHears) makes auto-play stand and read it; after its errands auto-play pays its
 // respects to any royalty in town (and now and then a townsperson) through heroVisit.
 import { G } from '../state.js';
 import { dist, rand, randi, pick, chance, RNG, TAU } from '../core/util.js';
@@ -35,10 +34,9 @@ const ADV_NAMES = ['Brannoc', 'Ysra', 'Corvin', 'Talia', 'Mord', 'Elsabet', 'Rur
 const CONFETTI = ['#ff5a5a', '#ffd23c', '#5ab4ff', '#7ae07a', '#ff9ad8', '#ffffff'];
 
 const lineTime = (text) => Math.min(4.6, Math.max(2.3, 1.5 + text.length * 0.055));
-const HEAR = 6;               // tiles: a line this close that is meant for the hero makes auto-play stop and read it
+const HEAR = 6;
 
-/** Someone is talking to the hero: auto-play stands still for the bubble (at least a second) so it can be read.
- *  Back-to-back bubbles from the same speaker keep the hero listening. */
+/** A nearby speaker can keep the hero listening through consecutive bubbles. */
 export function heroHears(who, dur) {
   const p = G.player;
   if (!p || !who || dist(p.x, p.y, who.x, who.y) > HEAR) return;
@@ -443,8 +441,7 @@ function* fan(d, a) {
   yield 1.5;
 }
 
-/** Auto-play's hero walked up to `a` for a word: they turn, say a few bubbles to the hero, then go back to their day.
- *  Returns the scene (done when they have finished talking). */
+/** Returns the scene (done when they have finished talking). */
 export function heroVisit(d, a) {
   if (a.busy && a.busy !== d.event && a.busy !== true) d.release(a.busy);
   const list = AUDIENCES[a.role] || (a.royal ? AUDIENCES.royal : AUDIENCES[a.group] || AUDIENCES.any);

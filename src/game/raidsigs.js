@@ -2,10 +2,7 @@
 // fight-long mechanic each (tethers, polarity, beacons, conduits, the dance floor...) and two signature attacks that no
 // other boss has. SIGS[k](raid, target) starts ability k; PASSIVES[id](raid, dt) runs the boss's mechanic every frame.
 //
-// Auto-play reads what the hazards here publish:
-//   danger(out)     zones to stay out of (circles, lines, cones, rings, as autoplay.js dangers())
 //   autoGoal()      {x, y, r}: where the hero must stand right now (beacons, conduits, the safe quadrant...)
-//   safeAt(x, y)    out of the boss's sight counts as safe (autoplay takeCover)
 //   holdFire        don't strike the boss while it is up (a riposte)      autoStill: stand still     autoMove: keep moving
 // and monsters with `raidPriority` are killed first.
 import { G } from '../state.js';
@@ -29,7 +26,6 @@ const live = (R) => !R.m.dead && R.m.world === G.world;
 const hero = (R) => R.m.world.player;
 const floorAt = (w, x, y) => w.map.walkable(x, y);
 
-/** A circle that blows up after `delay` (an enemy Delayed: auto-play already dodges these). */
 function blast(R, x, y, r, delay, mul, o = {}) {
   const w = R.m.world;
   return w.addHazard(new Delayed({ world: w, src: R.m, x, y, r, delay, fx: o.fx || 'explosion', el: fxEl(o.el || R.tpl.el), dmg: dmgOf(R, mul), o: o.o || {} }));

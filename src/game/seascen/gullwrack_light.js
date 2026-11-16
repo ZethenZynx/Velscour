@@ -72,8 +72,6 @@ export default {
       S.gal = h.worldOf(...h.info.gallery);
       S.route = [[S.head[0] + 0.4, S.head[1]], [bx, by], S.foot];   // the runners' way: the plank head, over, the ladder
       S.lit = true; S.fog = new Set(); S.relT = 0; S.wickT = 9; S.B = null;
-      // auto-play: the lamp out, it goes to the ladder's foot and stands there to relight it; a climber on the ladder
-      // draws it there too (game/autoplay.js `duty`)
       Object.defineProperty(api.run, 'duty', { configurable: true, get: () => {
         if (!S.lit) return S.mark ? { x: S.foot[0], y: S.foot[1], reach: 1.1, hold: true, label: 'Relighting Gullwrack' } : null;
         return [...S.fog].some((m) => !m.dead && m.runner && m.runner.climb != null) ? { x: S.foot[0], y: S.foot[1], reach: 1.3, label: 'To the ladder' } : null;

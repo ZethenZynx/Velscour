@@ -107,9 +107,9 @@ const noauto = process.argv.includes('noauto');
   if (!noauto) {
     const res = await page.evaluate(async () => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { rollItem, rollGem, RING_SLOTS, SLOTS } = await import('/src/data/items.js');
-      const { charScore } = await import('/src/game/autoplay.js');
+      const { charScore } = await import('/tools/tests/auto_player.js');
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       const c = G.char, p = G.player;
       // gear like tools/tests/balance.js: level 259, the best of many drops of item level 260 per slot, +8, gems

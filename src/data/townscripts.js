@@ -91,7 +91,6 @@ export const BARKS = {
   knight: [['Steel and faith, adventurer.', 'proud'], ['The Order salutes you.', 'proud'], ['We hold the town. You hold the depths.', 'point'], ['Spar later?', 'mischief']],
 };
 
-// When the hero (auto-play) walks up to someone for a word: a few bubbles in a row, [text, emotion]. Royalty by role
 // (falls back to `royal`), everyone else by group (falls back to `any`).
 export const AUDIENCES = {
   king: [

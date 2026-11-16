@@ -89,7 +89,7 @@ const MOBILE = process.argv.includes('mobile');
   check(keys.moved < 0.05 || keys.along > 0.7, 'W walks where the view looks (or a wall stopped it)');
   // auto-play still fights in first person
   const ap = await page.evaluate(async () => {
-    const { G } = window.VELSCOUR; const { Auto } = await import('/src/game/autoplay.js');
+    const { G } = window.VELSCOUR; const { Auto } = await import('/tools/tests/auto_player.js');
     const k0 = G.char.kills || 0; Auto.toggle(true);
     for (const c of G.world.creatures) if (c.team === 'enemy') c.awake = true;
     await new Promise((r) => setTimeout(r, 12000));

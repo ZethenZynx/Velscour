@@ -29,7 +29,7 @@ const f = (x) => (x >= 100 ? x.toFixed(0) : x >= 0.1 ? x.toFixed(2) : x.toPrecis
     for (const D of depths) {
       table[cls][D] = await page.evaluate(async ({ cls, D, H, secs }) => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { depthLevel, armorDiv } = await import('/src/data/depth.js');
         const { rollItem, rollGem } = await import('/src/data/items.js');
         const { monsterBase, makeMonster } = await import('/src/game/monster.js');

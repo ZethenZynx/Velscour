@@ -11,7 +11,7 @@ const classes = (process.argv[2] || 'wizard,dragoon,paladin,ranger,necromancer,l
   for (const cls of classes) {
     const res = await page.evaluate(async (cls) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       const { makeMonster } = await import('/src/game/monster.js');
       const { xpToNext } = await import('/src/game/player.js');

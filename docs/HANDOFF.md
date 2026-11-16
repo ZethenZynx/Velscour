@@ -1,5 +1,24 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - Remove auto-play from the game (local, not published)
+- Deleted the former `src/game/autoplay.js` module and cleared its references from playable source, settings cleanup,
+  and item-storage code. No game UI, game entry point, or game module loads an auto-play system.
+- Kept the simulated player only under `tools/tests/auto_player.js` because existing regression scripts use it to
+  exercise gameplay. Those test-only scripts now load it from the tools folder; it is not part of the game.
+- JavaScript syntax checks, the Rejuvenation/Fury Orb tests, and `git diff --check` pass. Browser gameplay was not run.
+- No commit or GitHub update was made.
+
+## November 16, 2026 - Rejuvenation and Fury Orbs (local, not published)
+- Added rare `orb_rejuv` and `orb_fury` drops, colored to match the Rejuvenation Potion (`#c040ff`) and Elixir of Fury (`#ffa020`).
+  Monster kills and treasure chests can drop them; Gilded Critter resource rewards and the Feeding Frenzy affix can roll them
+  as rare alternatives while preserving the prior common Health/Mana Orb rates.
+- Rejuvenation Orbs restore 35% max Life and Mana. Fury Orbs apply the existing Elixir's +30% attack/cast speed, +18% movement
+  speed, and 15% cooldown reduction for 15 seconds. Potion and orb effects now share implementation. Hunger of the Abyss
+  blocks them consistently with other orbs.
+- `node tools/tests/test_regen_orbs.mjs` passes, including effect/color checks and a 5,000-kill rare-drop rate sample. Changed
+  JavaScript files pass `node --check`; `git diff --check` passes. Browser testing was not available (Playwright is missing).
+- No commit or GitHub update was made.
+
 ## November 16, 2026 - Shift-to-compare gear tooltips (local, not published)
 - Hovering an unsealed, identified gear item in the backpack, vendor stock, Storage Chest or Reliquary now advertises
   **Hold Shift to compare equipped gear**. While Shift is held, a second themed tooltip shows the currently equipped
@@ -30,12 +49,14 @@
   pair split evenly. The six rarity weights are Ordinary 83%, Uncommon 10%, Rare 4%, Epic 2%, Legendary 0.8%, and
   Mythic 0.2%; rarity can roll at every depth. Item drops still pass through the existing character-level and depth
   quality caps.
-- Gilded chests add gold; Jeweled chests guarantee a gem; Explosive chests telegraph and damage nearby allies after
-  opening; Mimics reveal a champion and pay their chest rewards when killed. The guaranteed first-depth starter cache
-  is always non-dangerous. Existing Cursed Chest events and special-map caches keep their prior handling.
+- Gilded chests drop only gold, and Jeweled chests drop only gems; chest rarity still scales their reward amounts.
+  Explosive chests telegraph and damage nearby allies before paying their normal mixed rewards; Mimics reveal a champion
+  and pay mixed chest rewards when killed. The guaranteed first-depth starter cache is always non-dangerous. Existing
+  Cursed Chest events and special-map caches keep their prior handling.
 - `dropChest` applies the approved rarity reward table while preserving legacy reward behavior for event/special caches.
   `render.js` uses rarity/type glows and a nearby label; no new art was generated.
-- Checks: changed JavaScript modules pass Node syntax checks; 100,000 seeded rolls match the approved type/rarity
+- Checks: changed JavaScript modules pass Node syntax checks; Gilded/Jeweled chest contents are checked at Ordinary,
+  Epic and Mythic rarities; 100,000 seeded rolls match the approved type/rarity
   distribution within sampling error. `tools/tests/data_check.mjs` still reports its pre-existing biome-order failure
   (“first 41 biomes are not all different”). Interactive browser testing was unavailable (Playwright is not installed
   and Edge is not connected to the computer-use session).

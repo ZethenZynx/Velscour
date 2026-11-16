@@ -106,7 +106,7 @@ export default {
       if (S.grounded) { S.list = (S.list || 0) + dt; listView(api, -2.2 - 0.3 * Math.sin(S.list * 0.9)); slide(api, dt, -0.42, 0.06); if ((S.hullT -= dt) <= 0) { S.hullT = 5.2; rocks(api); } }
     },
     holdFinal(api) { return api.state.chains.some((c) => c.live); },   // Mott hauls from his bow until every chain is cut
-    objective(api) {   // the nearest chain still fast (auto-play hunts the targets anyway)
+    objective(api) {
       const p = api.p(), live = api.state.chains.filter((c) => c.live && c.m && !c.m.dead);
       if (!p || !live.length || api.run.phase === 'final') return null;
       const c = live.reduce((a, b) => (Math.hypot(b.m.x - p.x, b.m.y - p.y) < Math.hypot(a.m.x - p.x, a.m.y - p.y) ? b : a));

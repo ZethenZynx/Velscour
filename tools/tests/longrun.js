@@ -31,7 +31,7 @@ const cls = process.argv[2] || 'wizard', minutes = +(process.argv[3] || 30), eve
   });
   await page.evaluate(async (cls) => {
     await window.VELSCOUR.game.newChar(cls, 'Longrun');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     window.VELSCOUR.G.autoOpenSeals = true;
     Auto.toggle(true);
   }, cls);

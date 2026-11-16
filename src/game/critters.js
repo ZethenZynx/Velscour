@@ -18,7 +18,7 @@ import { xpToNext } from './player.js';
 import { goldPile, RARITY } from '../data/items.js';
 import { ARCH } from '../data/enemies.js';
 import { pixelSprite } from '../gfx/pixelart.js';
-import { GroundItem, rollGroundGem } from './loot.js';
+import { GroundItem, rollGroundGem, rollOrbKind } from './loot.js';
 import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
 
@@ -51,7 +51,7 @@ const KEYS = Object.keys(CRITTERS);
 export const CRITTER_REWARDS = Object.freeze([
   { id: 'xp', weight: 65, label: 'bonus experience', color: '#a8c8ff' },
   { id: 'gold', weight: 18, label: 'gold', color: '#ffd040' },
-  { id: 'resource', weight: 7, label: 'health and mana orbs', color: '#ff6070' },
+  { id: 'resource', weight: 7, label: 'resource orbs', color: '#ff6070' },
   { id: 'gem', weight: 5, label: 'upgrade gems', color: '#c080ff' },
   { id: 'jackpot', weight: 3, label: 'a gold jackpot', color: '#ffcf40' },
   { id: 'shrine', weight: 2, label: 'a temporary shrine blessing', color: '#70e8c0' },
@@ -486,10 +486,10 @@ export function catchCritter(cr) {
   } else if (cr.reward === 'resource') {
     const count = 2 + Math.floor(cr.tier / 4);
     for (let i = 0; i < count; i++) {
-      const kind = chance(0.5) ? 'orb_hp' : 'orb_mp';
+      const kind = rollOrbKind(0.01, 0.001);
       world.addLoot(new GroundItem(cr.x + rand(-0.25, 0.25), cr.y + rand(-0.25, 0.25), kind));
     }
-    summary = `${count} health and mana orbs`;
+    summary = `${count} resource orbs`;
   } else if (cr.reward === 'gem') {
     const count = 1 + Math.floor(cr.tier / 10);
     for (let i = 0; i < count; i++) {

@@ -175,7 +175,7 @@ const MOBILE = process.argv.includes('mobile');
     if (AUTO) {
       const res = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { BIOME_BY_ID } = await import('/src/data/biomes.js');
         // a hero geared for the depth, like tools/tests/breach.js (a level-1 hero spends most of a climb on each pack)
         const { rollItem, rollGem } = await import('/src/data/items.js');

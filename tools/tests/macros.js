@@ -109,7 +109,7 @@ const casts = (page) => page.evaluate(() => window.__casts.slice());
   const auto = await page.evaluate(async () => {
     const { G } = window.VELSCOUR, p = G.player;
     const { Macros } = await import('/src/game/macros.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.on = true; Macros.reset(); p.buffs = [];
     const { controls } = await import('/src/game/controls.js');
     for (let i = 0; i < 20; i++) Macros.tick(0.05);

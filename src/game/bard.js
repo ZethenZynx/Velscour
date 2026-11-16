@@ -131,8 +131,8 @@ function songHeads(sc) {
   }
 }
 /**
- * Auto-play: how much better (+) or worse (-) the bar's best melody fits if glyph g is written next, about -1..1.
- * Rhythms that are some tune's own get pitched as that tune; this lets auto-play lean into them.
+ * How much better (+) or worse (-) the bar's best melody fits if glyph g is written next, about -1..1.
+ * Rhythms that are some tune's own get pitched as that tune.
  */
 export function bardFitGain(p, g) {
   const sc = p.score;
@@ -332,7 +332,7 @@ function cadence(p, sc, mul, perfect, label) {
   floatText(p.x, p.y, 96, label || (sc.harmony > 1 ? `Cadence! Harmony ${sc.harmony}` : 'Cadence!'), TIERS[Math.min(4, sc.harmony)].staff, 13);
   stopVoices(sc.wv || [], 0.05); // the note that completed the bar gives way to its performance
   const q = { notes, mul, perfect, mel: sc.mel, song: sc.song, landEv: sc.song ? songNext(sc.song) : null, clef: sc.key, bar: sc.bar };   // a sheet lands on its own next note
-  sc.rhythm = notes.map((n) => n.g).join();   // auto-play writes a different one next
+  sc.rhythm = notes.map((n) => n.g).join();
   if (playing(sc)) sc.pending = q;   // it begins on the downbeat after the last song's finishing bar
   else perform(p, sc, q, 0);
   nextBar(sc, p);

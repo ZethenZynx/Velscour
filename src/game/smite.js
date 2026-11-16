@@ -1,7 +1,6 @@
 // Class Ultimates: a signature 1-shot power move for each of the 17 hero classes that fills from kills
 // (champions, uniques and guardians count more). When full, pressing F or tapping the HUD button arms it,
 // and the next click/tap on the world unleashes the class's bespoke strike. Only ever fired by the player
-// (auto-play never arms it), and the tap that aims it never moves the hero or takes over from auto-play.
 // Damage scales off each class's primary attribute (STR, DEX, INT, VIT).
 import { G } from '../state.js';
 import { rand, chance, TAU } from '../core/util.js';

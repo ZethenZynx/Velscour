@@ -18,7 +18,7 @@ const TRIALS = +process.argv[2] || 60;
     const { G } = window.VELSCOUR;
     const items = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { CLASS_SKILLS } = await import('/src/data/skills.js');
     const c = G.char, p = G.player;
     G.settings.autoGear = true;

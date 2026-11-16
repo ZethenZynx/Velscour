@@ -102,7 +102,6 @@ export const JewelBox = {
       return false;
     }
 
-    delete it.autoStash;
     container[idx] = null;
     sfx('pickup');
     UI.selected = null;
@@ -137,7 +136,6 @@ export const JewelBox = {
         const it = arr[i];
         if (!it || it.type !== 'gem' || it.locked) continue;
         if (!addToJewelBox(c, it)) { full = true; continue; }
-        delete it.autoStash;
         arr[i] = null;
         moved++;
       }

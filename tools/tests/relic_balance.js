@@ -15,7 +15,7 @@ const samples = +(process.argv[3] || 16);
   for (const cls of classes) {
     const res = await page.evaluate(async ({ cls, samples }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto, charScore } = await import('/src/game/autoplay.js');
+      const { Auto, charScore } = await import('/tools/tests/auto_player.js');
       const { rollItem, RING_SLOTS } = await import('/src/data/items.js');
       const R = await import('/src/data/relics.js');
       const { CLASSES } = await import('/src/data/classes.js');

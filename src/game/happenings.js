@@ -4,7 +4,6 @@
 // depth every tenth gets fireworks, and each town visit can bring a festival, a blessing or a gift.
 // Wiring: game.buildDungeon -> setupHappenings, game.update -> happeningsTick, combat kill -> world.onKill,
 // game.enterTown -> townHappening, loot.dropLoot reads world.lootMul / world.goldMul. Shrines, remains and cursed
-// chests live in world.chests (render.drawChest calls their draw()), so auto-play walks to them like chests.
 import { G } from '../state.js';
 import { rand, randi, chance, pick, TAU, dist } from '../core/util.js';
 import { sfx } from '../core/audio.js';
@@ -14,7 +13,7 @@ import { explosionFx } from '../gfx/shapes.js';
 import { hit, aoe } from './combat.js';
 import { makeMonster, makeElite, monsterBase } from './monster.js';
 import { ambush } from './mayhem.js';
-import { GroundItem, dropChest, rollGroundItem, rollGroundGem } from './loot.js';
+import { GroundItem, dropChest, rollGroundItem, rollGroundGem, rollOrbKind } from './loot.js';
 import { rollItem, rollGem, potionItem, itemName, itemColor, rarityAt, goldScale } from '../data/items.js';
 import { depthLevel, FINAL_DEPTH } from '../data/depth.js';
 import { addToBag } from './player.js';
@@ -392,7 +391,7 @@ export function onKill(m) {
   H.kills = (H.kills || 0) + 1;
   if (H.ch) H.ch.got++;
   if (H.challengeAt && H.kills >= H.challengeAt) { H.challengeAt = 0; startChallenge(w); }
-  if (w.dungeonAffixes && w.dungeonAffixes.includes('frenzy') && chance(DUNGEON_AFFIX_CONFIG.frenzy.orbChance)) w.addLoot(new GroundItem(m.x, m.y, chance(DUNGEON_AFFIX_CONFIG.frenzy.healthOrbChance) ? 'orb_hp' : 'orb_mp', {}));
+  if (w.dungeonAffixes && w.dungeonAffixes.includes('frenzy') && chance(DUNGEON_AFFIX_CONFIG.frenzy.orbChance)) w.addLoot(new GroundItem(m.x, m.y, rollOrbKind(0.015, 0.002, DUNGEON_AFFIX_CONFIG.frenzy.healthOrbChance), {}));
   H.streak = H.streakT > 0 ? H.streak + 1 : 1;
   H.streakT = 4; // a few seconds a kill: the next one in time keeps the streak
   const s = STREAKS.find(([n]) => n === H.streak);

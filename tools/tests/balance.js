@@ -24,7 +24,7 @@ const stances = (process.env.BAL_STANCE || 'balanced').split(',');
   for (const cls of classes) for (const D of depths) for (const stance of stances) {
     await page.evaluate(async ({ cls, D, god, rounds, stance, raidGate, biomeId }) => {
       const { G, game } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const { depthLevel } = await import('/src/data/depth.js');
       const { rollItem, rollGem, RING_SLOTS } = await import('/src/data/items.js');
       const { xpToNext } = await import('/src/game/player.js');
@@ -77,7 +77,7 @@ const stances = (process.env.BAL_STANCE || 'balanced').split(',');
     for (let min = 1; min <= minutes; min++) {
       last = await page.evaluate(async () => {
         const { G, game } = window.VELSCOUR;
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         const { Meter } = await import('/src/game/dpsmeter.js');
         const B = window.__bal, t0 = performance.now();
         let sim = 0, deaths = G.char.deaths;

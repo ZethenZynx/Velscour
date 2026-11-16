@@ -76,7 +76,7 @@ export default {
       });
       api.floatText(alive[0].x, alive[0].y, 80, 'FIRE!', '#ffb070', 16);
     },
-    objective(api) {   // the plank is ours: auto-play goes over to her helm
+    objective(api) {
       return api.run.phase === 'final' && api.run.capM && !api.run.capM.dead ? { x: api.run.capM.x, y: api.run.capM.y, reach: 1.5 } : null;
     },
   },

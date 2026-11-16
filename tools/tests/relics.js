@@ -73,7 +73,7 @@ const { openGame, report } = require('./harness');
     out.prog = Q.codexProgress();
     out.tabs = Q.openTabs();
     // auto-play writes a Glyphword from the bag's Sigils on a plain sword
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const sw = I.rollItem(115, { slot: 'weapon', rarity: 0, base: 'sword', generic: true }); sw.req = 1; sw.sockets = 0; addToBag(c, sw);
     addToBag(c, I.makeGem('sig', 0)); addToBag(c, I.makeGem('sig', 5));
     Auto.glyphwork();
@@ -116,7 +116,7 @@ const { openGame, report } = require('./harness');
   const comm = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR, c = G.char;
     const C = await import('/src/game/commissions.js');
-    const { Auto: Auto0 } = await import('/src/game/autoplay.js');
+    const { Auto: Auto0 } = await import('/tools/tests/auto_player.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');
     c.deepest = 3; c.depth = 3; c.level = 14; c.statPoints = 13 * 5; c.skillPoints = 28; Auto0.spendStats(); Auto0.spendSkills(); Auto0.arrangeBar(); G.player.recompute();
     game.enterTown();
@@ -137,7 +137,7 @@ const { openGame, report } = require('./harness');
   // the bot walks to them
   const bot = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR, c = G.char;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const C = await import('/src/game/commissions.js');
     const e = C.commState(c).open.find((x) => x.id === 'bells');
     Auto.toggle(true);

@@ -21,7 +21,7 @@ const inHunt = () => window.VELSCOUR.G.world?.biome?.id === 'great_hunt';
 async function gearHero(page, cls, D, lvl, rounds) {
   await page.evaluate(async ({ cls, D, lvl, rounds }) => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { depthLevel } = await import('/src/data/depth.js');
     const { rollItem, rollGem } = await import('/src/data/items.js');
     const { xpToNext } = await import('/src/game/player.js');
@@ -319,7 +319,7 @@ const enter = (page, land) => page.evaluate(async (land) => {
         await enter(page, land);
         const res = await page.evaluate(async () => {
           const { G, game } = window.VELSCOUR;
-          const { Auto } = await import('/src/game/autoplay.js');
+          const { Auto } = await import('/tools/tests/auto_player.js');
           Auto.toggle(true);
           const t0 = performance.now();
           let sim = 0, fight = 0, dodge = 0;

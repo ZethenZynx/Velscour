@@ -11,7 +11,7 @@ const mobile = process.argv.includes('mobile');
       const { BIOME_BY_ID } = await import('/src/data/biomes.js');
       const { SKILLS, cooldown, useTime, skillRange, grantedSkillsAt } = await import('/src/data/skills.js');
       const { effects } = await import('/src/gfx/vfx.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       await game.newChar('dragoon', 'Spearstorm QA');
       document.querySelectorAll('.screen').forEach((x) => x.remove());
       G.ui.modalCount = 0; G.godMode = true;

@@ -1,7 +1,6 @@
 // MOUNTAINSIDE (docs/MOUNTAINSIDE.md): the climb (world/mountain.js), drawn in three.js (gfx/alpine3d.js, game/alpine.js).
 // Live from the start: follow the switchback trail up, fighting the packs that hold it all the way, the champions at
 // the top of every way up and the things that leap down off the cliffs onto it; defeat the Summit Warden to open the
-// normal depth exit. Auto-play follows `objective`.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { camera } from '../core/view.js';

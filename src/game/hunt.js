@@ -8,7 +8,6 @@
 //   mire (the Drowned Fen): green poison pools beside the trail and round the hunting grounds;
 //   burrow (the Red Badlands): it lies under the sand, surfaces beneath you at its signs, and burrows when it flees;
 //   wings (the Storm Crags): it flees by air, straight over the rock, to the next ground and at last its peak.
-// The run speaks the overworld scenario API for game.js, the Quest Log and auto-play (`objective`).
 import { makeMonster } from './monster.js';
 import { depthLevel } from '../data/depth.js';
 import { ART_BY_ID } from '../data/bestiary.js';
@@ -57,7 +56,6 @@ export function createHuntRun(world, gen, biome, depth, onWin) {
   m.affixes = (m.affixes || []).filter((k) => !['regen', 'teleport', 'fast'].includes(k));
   // a beast's blows: stomp, charge, spines, boulders. No summons (its brood is its help), no nova or spiral (fired
   // from inside a body this big, every shot hit a melee hero: 300 life in a blink), no beam, and none of a boss's
-  // 50% enrage (it cut the gaps between blows under 2 s and auto-play dodged all third fight); it angers by fight
   m.patterns = ['slam', 'charge', 'volley', 'meteor'];
   m.phase = 0; m.patternQ = [];
   m.home = [g0[0], g0[1]];
@@ -90,7 +88,6 @@ export function createHuntRun(world, gen, biome, depth, onWin) {
       if (run.storm?.on) return 'The blizzard hides the trail. Push on.';
       return run.stage === 3 ? (twist === 'wings' ? 'Its lair is the peak.' : 'The blood leads to its lair.') : 'Read its signs. They lead to it.';
     },
-    /** Where auto-play goes next (autoplay.js): the next sign, then the beast; while it flees, down the trail. */
     get objective() {
       if (run.completed) return undefined;
       if (run.phase === 'fight') return { x: m.x, y: m.y, reach: 3 };

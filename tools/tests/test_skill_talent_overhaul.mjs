@@ -294,7 +294,7 @@ console.log('3. Testing specific live gameplay morphs (sumSwap, el conversion, w
   assert.equal(activeKnights.length, 6, 'Grand Commander allowed 6 simultaneous Knight summons');
 
   // 3f. Elemental Conversion + Wave Projectiles + Auto.spendTalents()
-  const { Auto } = await import('../../src/game/autoplay.js');
+  const { Auto } = await import('./auto_player.js');
   const wpNode = Object.values(TALENTS).find((n) => n.morph && n.morph.waveProj);
   assert(wpNode, 'Found waveProj talent morph');
   const wc = newCharData(wpNode.classId, 'WaveHero');

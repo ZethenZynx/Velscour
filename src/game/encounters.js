@@ -4,7 +4,6 @@
 // merchant camped by a fire (potions for the road), Zebulon the Purple testing a ward (survive his three waves for a
 // blessing), Nan Bramble's cauldron (a brew: a blessing, mostly) and a Greener who jumps out at you and then leads
 // you to a hidden cache. Rats scurry about on some depths and bolt from the hero.
-// Wiring: happenings.setupHappenings -> addEncounters. Each encounter is a world.chests entry (auto-play walks to and
 // uses those) whose person is a world.npcs entry from game/folk.js.
 import { G } from '../state.js';
 import { rand, randi, pick, chance, dist, TAU } from '../core/util.js';
@@ -51,7 +50,6 @@ const pack = (world, at, n, rank = 'normal') => {
   }
   return out;
 };
-// a spot for the encounter's marker on the minimap and for auto-play to walk to
 const site = (world, e, label, dot, use) => {
   const ch = { x: e.x, y: e.y, opened: false, reach: 1.6, far: 30, label, dot, encounter: e, draw() {}, use };
   world.chests.push(ch); e.chest = ch;

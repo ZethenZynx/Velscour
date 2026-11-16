@@ -109,7 +109,7 @@ const arg = process.argv[2] || 'all', mobile = process.argv.includes('mobile'), 
     if (AUTO) {
       const res = await page.evaluate(async (id) => {
         const { G, game } = window.VELSCOUR, { DUNE_VARIANTS } = await import('/src/data/dunes.js'), { BIOME_BY_ID } = await import('/src/data/biomes.js');
-        const { Auto } = await import('/src/game/autoplay.js');
+        const { Auto } = await import('/tools/tests/auto_player.js');
         await game.newChar('paladin', 'Dune Walker');   // as in caverns.js: a level-1 paladin at depth 3, never dying
         document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.ui.closeAll();
         G.char.depth = 3; G.godMode = true; if (G.world) G.world.depth = 3;

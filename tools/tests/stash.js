@@ -9,7 +9,7 @@ const { openGame, report } = require('./harness');
     const { Stash } = await import('/src/ui/stash.js');
     const { rollItem, makeGem } = await import('/src/data/items.js');
     const { addToBag } = await import('/src/game/player.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const c = G.char, npc = G.world.npcs.find((n) => n.stash);
     const out = { size: c.stash.length, npc: !!npc, walkable: npc && G.world.map.walkable(npc.x, npc.y) };
     G.player.x = npc.x + 1; G.player.y = npc.y;

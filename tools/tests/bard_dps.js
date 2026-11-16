@@ -37,7 +37,7 @@ const BAR = ['bard.0.0', 'bard.1.0', 'bard.2.0', 'bard.2.1', 'bard.1.4', 'bard.1
         const a = (k / 6) * Math.PI * 2, m = makeMonster(w, 'skeleton', w.biome, 30, 'normal', p.x + Math.cos(a) * 3.5, p.y + Math.sin(a) * 3.5);
         m.maxHp = m.hp = 1e12; m.awake = true; m.speed = 0; m.dmg = [0, 0]; w.add(m); dummies.push(m);
       }
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       Auto.toggle(true);
       const sc0 = p.score ? p.score.cadences : 0;
       let sim = 0;

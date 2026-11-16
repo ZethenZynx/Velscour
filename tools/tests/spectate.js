@@ -31,7 +31,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     const pos = await page.evaluate(async (key) => {
       const { G } = window.VELSCOUR;
       const { spawnCritter } = await import('/src/game/critters.js');
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       if (!Auto.on) Auto.toggle(true);
       for (const c of G.world.critters || []) c.caught = true;
       const cr = spawnCritter(G.world, key);
@@ -65,7 +65,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     await page.waitForTimeout(120);
     const r = await page.evaluate(async () => {
       const { G } = window.VELSCOUR;
-      const { Auto } = await import('/src/game/autoplay.js');
+      const { Auto } = await import('/tools/tests/auto_player.js');
       const b = window._before;
       return { caught: (G.char.critters || 0) - b.n, gold: G.char.gold - b.gold, xp: G.char.level > b.lvl || G.char.xp > b.xp, override: Auto.overrideT, status: Auto.status };
     });
@@ -105,7 +105,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // the spawning clock
   const clock = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(false);
     G.world.critterT = 0.5; G.world.critters = [];
     for (let i = 0; i < 30; i++) game.update(1 / 30);
@@ -137,7 +137,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   const pack = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
     const { makeMonster } = await import('/src/game/monster.js');
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(true);
     G.char.smite = 1;
     const p = G.player, w = G.world, made = [];
@@ -167,7 +167,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   await page.waitForTimeout(600);
   const hitR = await page.evaluate(async () => {
     const { G } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     return { dead: window._pack.filter((m) => m.dead || m.hp < m.maxHp * 0.2).length, smite: G.char.smite, armed: !!G.smiteArmed, override: Auto.overrideT, smites: G.char.smites };
   });
   check(hitR.dead >= 4, `SMITE flattened the pack (${hitR.dead}/5)`);
@@ -191,7 +191,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
     G.char.bag.fill(null);
     addToBag(G.char, myth); addToBag(G.char, epic);
     window._myth = myth;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     Auto.toggle(false);
     window.VELSCOUR.game.update(1 / 30);
     out.chip = !document.querySelector('#sealed-btn').classList.contains('hidden') && document.querySelector('#sealed-text').textContent;
@@ -223,7 +223,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // ---------------------------------------------------------------- 7. stance
   const st = await page.evaluate(async () => {
     const { G } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const out = {};
     for (const k of ['cautious', 'balanced', 'reckless']) { G.char.stance = k; Auto.hurt = 0; out[k] = Auto.boldness(); }
     G.char.stance = 'balanced';
@@ -234,7 +234,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // ---------------------------------------------------------------- 9. portal choice, auto-play's countdown
   const pc = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { kill } = await import('/src/game/combat.js');
     Auto.toggle(true);
     G.char.stance = 'reckless';
@@ -263,7 +263,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // ---------------------------------------------------------------- 6b. auto-play waits in town while seals fill the bag
   const wait = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { rollItem } = await import('/src/data/items.js');
     const { GroundItem } = await import('/src/game/loot.js');
     Auto.toggle(false);
@@ -291,7 +291,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // ---------------------------------------------------------------- 11. Greed
   const gr = await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');
     const { setGreed, greedCleared, greedDeath, hoardOf } = await import('/src/game/greed.js');
     Auto.toggle(false);
@@ -324,7 +324,7 @@ const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (
   // the HUD dials, raised
   await page.evaluate(async () => {
     const { G, game } = window.VELSCOUR;
-    const { Auto } = await import('/src/game/autoplay.js');
+    const { Auto } = await import('/tools/tests/auto_player.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');
     G.char.greed = 3; G.char.hoard = 12; G.char.smite = 0.6; G.char.madness = 0.4; G.char.stance = 'cautious';
     game.buildDungeon(5, BIOME_BY_ID.catacombs);

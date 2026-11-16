@@ -515,7 +515,6 @@ export function createSeaBattle(world, gen, biome, depth, opts, onSuccess) {
     },
     get objective() { return run.completed ? { x: OX + 0.5, y: OY + GATE.z + 0.6, reach: 1.4 } : (H_.objective && H_.objective(api)) || { x: OX + 0.5, y: OY + 0.5, reach: 7 }; },
     rewardK: 1, meter: null,
-    /** Auto-play pushes through to the objective while the scenario holds the captain back for it (game/autoplay.js). */
     get pushObjective() { return !!(H_.holdFinal && H_.holdFinal(api)); },
     update(dt) { tick(dt); },
   };
@@ -1036,7 +1035,6 @@ export function createSeaBattle(world, gen, biome, depth, opts, onSuccess) {
         }, hide() { if (run.meter === M) run.meter = null; } };
       return M;
     },
-    /** An interactive mark on a deck (a lever, a lamp to douse): the player or auto-play uses it (run.objective). */
     mark(x, y, label, use, color = '#ffd060') { const o = { x, y, type: 'objective', active: true, color, reach: 1.4, label, use: () => use(o) }; world.portals.push(o); return o; },
     unmark(o) { const i = world.portals.indexOf(o); if (i >= 0) world.portals.splice(i, 1); },
     /**
