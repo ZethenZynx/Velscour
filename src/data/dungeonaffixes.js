@@ -2103,7 +2103,11 @@ export function applyDungeonAffix(monster, id) {
     case 'shared_health': case 'protective_aura': case 'last_stand':
       monster.affixRuntime = true;
       if (id === 'thorns') monster.affixThorns = true;
-      if (id === 'elemental_resistance') monster.affixElementalRes = ['fire', 'cold', 'light', 'poison'][Math.floor(Math.random() * 4)];
+      if (id === 'last_stand') monster.affixLastStand = true;
+      if (id === 'elemental_resistance') {
+        monster.affixElementalRes = ['fire', 'cold', 'light', 'poison'][Math.floor(Math.random() * 4)];
+        addResistance(monster, monster.affixElementalRes, 0.25);
+      }
       break;
     case 'bloodthirsty': case 'executioner': case 'sunder': case 'soul_rend':
     case 'arcane_leech': case 'triple_strike': case 'crushing_blows': case 'unholy_weapons':
