@@ -4,7 +4,7 @@ import { G } from '../state.js';
 import { el, escapeHtml } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
-import { itemCell, itemTooltip, rarityClass } from './itemui.js';
+import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import { changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { reliquary, saveReliquary, openTabs, codexProgress, codexEntries, MILESTONES, VAULT_TABS, codexTitle, noteFind } from '../game/reliquary.js';
@@ -276,7 +276,7 @@ export const Reliquary = {
         const cur = t[i];
         if (!cur) return '';
         const acts = [{ label: 'Take', fn: () => this.take(i) }];
-        return { html: itemTooltip(cur, { hint: 'Right-click or double-tap to take', actions: acts }), actions: acts };
+        return { ...itemGearTip(cur, { hint: 'Right-click or double-tap to take', actions: acts }), actions: acts };
       });
       grid.appendChild(d);
     });

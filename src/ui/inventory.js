@@ -4,7 +4,7 @@ import { el, fmtInt, fmtDmg, escapeHtml } from '../core/util.js';
 import { shownWeapon, heroDmgLevel, MAX_LEVEL } from '../data/depth.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
-import { itemCell, itemTooltip, rarityClass } from './itemui.js';
+import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import {
   SLOTS, SLOT_NAMES, VANITY_SLOTS, shownEquip, itemName, itemColor, GEMS, gemName,
   itemValue, fitsSlot, slotFor, unsocketCost, makeGem, canWearVanity, itemBaseDisplayName,
@@ -337,8 +337,7 @@ function bagTip(idx) {
   if (!it) return '';
   const acts = getBagActions(idx);
   return {
-    html: itemTooltip(it, {
-      compare: it.slot ? c.equip[slotFor(c.equip, it, c.classId)] : null,
+    ...itemGearTip(it, {
       price: G.ui.vendor && G.ui.vendor.active ? Math.max(1, Math.floor(itemValue(it) / 4)) : 0,
       priceLabel: 'Sells for',
       hint: G.ui.vendor && G.ui.vendor.active

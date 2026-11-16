@@ -567,6 +567,9 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 
 /* tooltip */
 #tooltip { position: fixed; z-index: 100; pointer-events: none; max-width: 320px; background: rgba(14,9,7,.96); border: 1px solid var(--gold-dim); border-radius: 6px; padding: 10px 12px; font-size: 14px; box-shadow: 0 6px 24px #000c, inset 0 0 20px rgba(0,0,0,.6); user-select: none; }
+#tooltip-compare { position: fixed; z-index: 101; pointer-events: none; max-width: 320px; background: rgba(14,9,7,.96); border: 1px solid var(--gold-dim); border-radius: 6px; padding: 10px 12px; font-size: 14px; box-shadow: 0 6px 24px #000c, inset 0 0 20px rgba(0,0,0,.6); user-select: none; }
+.tt-compare-heading { color: var(--gold-bright); font: 700 13px var(--font-head); border-bottom: 1px solid var(--line); margin-bottom: 6px; padding-bottom: 4px; }
+.tt-compare-hint { color: var(--text-dim); border-top: 1px solid var(--line); font-size: 11px; margin-top: 7px; padding-top: 5px; }
 #tooltip.touch-open, #tooltip.interactive { pointer-events: auto; }
 .tt-skill-tag { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 8px; background: #2a1a0e; border: 1px solid var(--line); margin-right: 4px; color: var(--text-dim); }
 .tt-skill-up { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }

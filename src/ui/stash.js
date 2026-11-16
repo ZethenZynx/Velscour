@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { el, fmtInt } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
-import { itemCell, itemTooltip, rarityClass } from './itemui.js';
+import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import { changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { itemName } from '../data/items.js';
@@ -244,7 +244,7 @@ export const Stash = {
         const cur = c.stash[i];
         if (!cur) return '';
         const acts = [{ label: 'Take', fn: () => self.take(i) }];
-        return { html: itemTooltip(cur, { hint: 'Right-click or double-tap to take', actions: acts }), actions: acts };
+        return { ...itemGearTip(cur, { hint: 'Right-click or double-tap to take', actions: acts }), actions: acts };
       });
       grid.appendChild(d);
     });

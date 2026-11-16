@@ -1,5 +1,16 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - Shift-to-compare gear tooltips (local, not published)
+- Hovering an unsealed, identified gear item in the backpack, vendor stock, Storage Chest or Reliquary now advertises
+  **Hold Shift to compare equipped gear**. While Shift is held, a second themed tooltip shows the currently equipped
+  item for that slot; releasing Shift hides it. Ring comparisons use the first occupied ring slot, and unknown/sealed
+  items do not offer a comparison. Touch tooltips stay unchanged.
+- Implemented in `src/ui/itemui.js` and `src/ui/ui.js`, with a second tooltip layer in `index.html` / `css/style.css`.
+- All changed JavaScript modules pass `node --check` and `git diff --check`. The local copy opened in Edge and reached
+  the title menu. The existing interactive `tools/tests/ui.js` could not run because Playwright is not installed in
+  this Windows copy; a live gear-hover comparison still needs in-game confirmation.
+- No commit or GitHub update was made.
+
 ## November 16, 2026 - remove Google account cloud saves (local, not published)
 - Removed Google authentication, hero and Endgame synchronization, conflict resolution, cloud-save UI, and rift-board posting. Local browser saves and local recovery backups remain available.
 - The rift Honour Board remains read-only for entries already posted. Remote records are not deleted. Firebase Auth is no longer loaded by the game.

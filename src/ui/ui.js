@@ -14,6 +14,8 @@ export const UI = {
   selected: null,
   windowOrder: 30,
   windowPositions: new Map(),
+  tipCompareHtml: '',
+  shiftDown: false,
   get modal() { return this.modalCount > 0; },
 
   init() {
@@ -30,6 +32,7 @@ export const UI = {
     this.panelsEl = $('#panels');
     this.screensEl = $('#screens');
     this.tipEl = $('#tooltip');
+    this.compareTipEl = $('#tooltip-compare');
     this.logEl = $('#log');
     this.msgEl = $('#center-msg');
     this.ghost = $('#drag-ghost');
@@ -44,9 +47,23 @@ export const UI = {
       }
     });
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Shift' && !this.shiftDown) {
+        this.shiftDown = true;
+        this.updateCompareTip();
+      }
       if (e.key === 'Escape' && this.tipEl && !this.tipEl.classList.contains('hidden') && this.isTouchTip) {
         this.hideTip();
       }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'Shift') {
+        this.shiftDown = false;
+        this.updateCompareTip();
+      }
+    });
+    window.addEventListener('blur', () => {
+      this.shiftDown = false;
+      this.updateCompareTip();
     });
     document.addEventListener('pointermove', (e) => {
       if (!this.tipEl.classList.contains('hidden') && e.pointerType === 'mouse' && !this.isTouchTip && !this.isInteractiveTip) {
@@ -290,9 +307,10 @@ export const UI = {
     this.tipHideT = setTimeout(() => { this.tipHideT = 0; this.hideTip(); }, ms);
   },
   showTip(content, x, y, isTouch = false, anchorEl = null, opts = {}) {
-    let html = '', actions = null, interactive = !!opts.interactive;
+    let html = '', compareHtml = '', actions = null, interactive = !!opts.interactive;
     if (content && typeof content === 'object') {
       html = content.html || '';
+      compareHtml = content.compareHtml || '';
       actions = content.actions || null;
       if (content.interactive) interactive = true;
     } else {
@@ -312,6 +330,8 @@ export const UI = {
     this.tipEl.classList.toggle('touch-open', isTouch);
     this.tipEl.classList.toggle('interactive', interactive);
     this.tipEl.classList.remove('hidden');
+    this.tipCompareHtml = compareHtml;
+    this.updateCompareTip();
     if (actions && actions.length) {
       this.tipEl.querySelectorAll('[data-tt-act]').forEach((btn) => {
         const idx = +btn.dataset.ttAct;
@@ -350,6 +370,7 @@ export const UI = {
     ny = Math.max(8, Math.min(ny, innerHeight - r.height - 8));
     t.style.left = Math.round(nx) + 'px';
     t.style.top = Math.round(ny) + 'px';
+    this.placeCompareTip();
   },
   placeTip(x, y) {
     const t = this.tipEl;
@@ -364,10 +385,55 @@ export const UI = {
     ny = Math.max(8, Math.min(ny, innerHeight - r.height - 8));
     t.style.left = Math.round(nx) + 'px';
     t.style.top = Math.round(ny) + 'px';
+    this.placeCompareTip();
+  },
+  updateCompareTip() {
+    const tip = this.compareTipEl;
+    if (!tip) return;
+    const show = !!this.shiftDown && !!this.tipCompareHtml && !this.isTouchTip && this.tipEl && !this.tipEl.classList.contains('hidden');
+    tip.classList.toggle('hidden', !show);
+    tip.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (show) {
+      tip.innerHTML = this.tipCompareHtml;
+      this.placeCompareTip();
+    } else {
+      tip.innerHTML = '';
+    }
+  },
+  placeCompareTip() {
+    const tip = this.compareTipEl, main = this.tipEl;
+    if (!tip || tip.classList.contains('hidden') || !main || main.classList.contains('hidden')) return;
+    tip.style.maxWidth = 'min(340px, calc(100vw - 16px))';
+    tip.style.maxHeight = 'calc(100vh - 24px)';
+    tip.style.overflowY = 'auto';
+    const mainRect = main.getBoundingClientRect();
+    const rect = tip.getBoundingClientRect();
+    const gap = 8;
+    let x = mainRect.right + gap;
+    let y = mainRect.top;
+    if (x + rect.width > innerWidth - 8) {
+      x = mainRect.left - rect.width - gap;
+      if (x < 8) {
+        x = Math.max(8, Math.min(mainRect.left, innerWidth - rect.width - 8));
+        y = mainRect.bottom + gap + rect.height <= innerHeight - 8
+          ? mainRect.bottom + gap
+          : Math.max(8, mainRect.top - rect.height - gap);
+      }
+    }
+    x = Math.max(8, Math.min(x, innerWidth - rect.width - 8));
+    y = Math.max(8, Math.min(y, innerHeight - rect.height - 8));
+    tip.style.left = Math.round(x) + 'px';
+    tip.style.top = Math.round(y) + 'px';
   },
   hideTip() {
     if (this.tipHideT) { clearTimeout(this.tipHideT); this.tipHideT = 0; }
     this.tipEl.classList.add('hidden');
+    this.tipCompareHtml = '';
+    if (this.compareTipEl) {
+      this.compareTipEl.innerHTML = '';
+      this.compareTipEl.classList.add('hidden');
+      this.compareTipEl.setAttribute('aria-hidden', 'true');
+    }
     this.tipEl.classList.remove('touch-open', 'interactive');
     this.isTouchTip = false;
     this.isInteractiveTip = false;

@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { el, escapeHtml, fmtInt, fmtDmg } from '../core/util.js';
 import { shownWeapon, shownDmg, heroDmgLevel } from '../data/depth.js';
 import { SKILLS, effLevel } from '../data/skills.js';
-import { itemName, itemBaseLine, itemColor, itemStats, itemDmg, itemArmor, statLabel, RARITY, GEMS, gemStats, gemName, LEGENDARY, legendaryDesc, powerLevel, itemSellValue, SLOT_NAMES, POTION_INFO, MAX_GEM_TIER, augTarget, itemReqStat, charEffectiveStat, STAT_NAMES } from '../data/items.js';
+import { itemName, itemBaseLine, itemColor, itemStats, itemDmg, itemArmor, statLabel, RARITY, GEMS, gemStats, gemName, LEGENDARY, legendaryDesc, powerLevel, itemSellValue, SLOT_NAMES, POTION_INFO, MAX_GEM_TIER, augTarget, itemReqStat, charEffectiveStat, STAT_NAMES, slotFor, RING_SLOTS } from '../data/items.js';
 import { AUGMENTS } from '../data/rings.js';
 import { elem } from '../gfx/vfx.js';
 import { CLASSES } from '../data/classes.js';
@@ -158,6 +158,30 @@ export function itemTooltip(item, opts = {}) {
     h += '</div>';
   }
   return h;
+}
+
+/** Build a hover tooltip with the matching currently equipped gear available as a Shift comparison. */
+export function itemGearTip(item, opts = {}) {
+  if (!item) return { html: '' };
+  const c = G.char;
+  const canCompare = item.type === 'gear' && !item.sealed && !item.unid;
+  const equippedSlot = canCompare && item.slot === 'ring' && c?.equip
+    ? RING_SLOTS.find((slot) => c.equip[slot])
+    : canCompare && item.slot && c?.equip
+      ? slotFor(c.equip, item, c.classId)
+      : null;
+  const equipped = equippedSlot ? c.equip[equippedSlot] : null;
+  const compare = opts.compare !== undefined ? opts.compare : equipped;
+  const tooltipOpts = { ...opts };
+  delete tooltipOpts.compare;
+  return {
+    html: itemTooltip(item, { ...tooltipOpts, compare }) + (compare && compare !== item && compare.type === 'gear'
+      ? '<div class="tt-compare-hint">Hold Shift to compare equipped gear</div>'
+      : ''),
+    compareHtml: compare && compare !== item && compare.type === 'gear'
+      ? `<div class="tt-compare-heading">Currently Equipped</div>${itemTooltip(compare)}`
+      : '',
+  };
 }
 
 function cmp(other, item, kind) {
