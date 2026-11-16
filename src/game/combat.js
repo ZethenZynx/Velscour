@@ -149,7 +149,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
     let res = (tgt.res && tgt.res[el === 'astral' ? 'arcane' : el]) || 0;
     if (el === 'arcane' || el === 'astral') res *= 0.5;
-    dmg *= 1 - clamp(res + (tgt.affixAdaptiveRes?.[el] || 0), -1, 0.9);
+    dmg *= 1 - clamp(res, -1, 0.9);
     if (tgt.affixAdaptiveRes?.[el]) dmg *= 1 - Math.min(0.3, tgt.affixAdaptiveRes[el]);
     if (tgt.affixLastStand && tgt.hp < tgt.maxHp * 0.35) dmg *= 0.7;
     if (tgt.dmgReduce) dmg *= 1 - clamp(tgt.dmgReduce, 0, 0.75);
@@ -235,6 +235,10 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       addEffect(new Bolt(src.x, src.y, 25, tgt.x, tgt.y, 25, '#a77aff', 0.2, 2));
     }
 
+    if (src.rank === 'boss' && worldAffixes.has('legendary_hunt') && chance(0.15) && !o.affixBossEcho) {
+      world.affixEchoes ||= [];
+      world.affixEchoes.push({ t: 0.45, target: tgt, src, damage: amount * 0.3, el, o: { affixBossEcho: true } });
+    }
     if (worldAffixes.has('triple_strike') && chance(0.12) && !o.affixTriple) {
       world.affixEchoes ||= [];
       for (let n = 1; n <= 2; n++) world.affixEchoes.push({ t: 0.28 * n, target: tgt, src, damage: amount * 0.28, el, o: { affixTriple: true } });
