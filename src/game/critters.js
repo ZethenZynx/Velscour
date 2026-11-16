@@ -370,18 +370,22 @@ export function spawnCritter(world, key = null) {
     const ch = G.char;
     if (ch) {
       ch.tips ||= {};
-      if (!ch.critterTutorialSeen && !ch.tips.critter) {
+      if (!Array.isArray(ch.critterSpeciesSeen)) ch.critterSpeciesSeen = [];
+      const seenSpecies = ch.critterSpeciesSeen.includes(key);
+      if (!seenSpecies && !G.critterTutorial) {
+        // Show the existing pause-and-collect tutorial once for each species on this character.
+        ch.critterSpeciesSeen.push(key);
         ch.critterTutorialSeen = true;
-        ch.tips.critter = true;
+        ch.tips.critter = true; // keep the legacy first-critter tip flag for older UI/save code
         c.tutorial = true;
         G.critterTutorial = c;
         G.game?.autosave?.();
-      } else {
-        // The old tip flag means this hero has encountered critters before this tutorial existed.
+      } else if (seenSpecies) {
         ch.critterTutorialSeen = true;
         ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
         c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
       }
+      // If another species' tutorial is already open, leave this species unrecorded so it can be taught next time.
     }
     return c;
   }
