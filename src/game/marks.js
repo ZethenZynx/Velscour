@@ -5,8 +5,7 @@
 // 1000th ~30%). It used to approach a cap (97% of it by 500 points), and a player's 454th Vitality point read +0.00.
 // Vitality multiplies the whole life pool (after gear's life % and Fortitude) and Fortune is more drops (gear, gems and
 // Sigils, like the Greed lever): as plain life % and magic find they were lost beside gear's hundreds and thousands.
-// The points live in the shared record (game/endgame.js), which the cloud merges three ways (game/cloud.js), so Marks
-// earned on two devices add up.
+// The points live in the local shared record (game/endgame.js).
 import { G } from '../state.js';
 import { endgame, saveEndgame, MARK_CATS } from './endgame.js';
 import { xpToNext, MAX_LEVEL } from './player.js';

@@ -15,8 +15,7 @@ import { savedGearPreview } from '../core/gearart.js';
 import { attachTitleFx } from './titlefx.js';
 import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
-import { FILTER_ROWS, lootFilter, lootLabelFilter } from '../game/lootfilter.js';
-import { Cloud } from '../game/cloud.js';
+import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
 
 let current = null;
@@ -43,13 +42,12 @@ export function titleScreen() {
   s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
   const menu = el('div', 'title-menu');
   const add = (label, fn, cls = 'btn big') => { const b = el('button', cls, label); b.onclick = () => { if (!s.classList.contains('title-ready')) return; initAudio(); sfx('ui'); goFullscreen(); fn(); }; menu.appendChild(b); return b; };
-  // rebuilt when the cloud brings heroes in while the title is up
+  // Rebuild from local browser saves whenever the title is shown.
   const fill = () => {
     menu.textContent = '';
     const last = listSaves()[0];
     const used = Object.keys(heroesByClass()).length;
-    if (last) add(`Continue<br><span style="font-size:13px;color:#a8977c">${escapeHtml(last.name)} · Lv ${last.level} ${CLASSES[last.classId].name} · Depth ${last.depth}</span>`, async () => {
-      await Cloud.settle();
+    if (last) add(`Continue<br><span style="font-size:13px;color:#a8977c">${escapeHtml(last.name)} · Lv ${last.level} ${CLASSES[last.classId].name} · Depth ${last.depth}</span>`, () => {
       const c = listSaves()[0];
       if (c) G.game.loadChar(c);
     });
@@ -63,8 +61,7 @@ export function titleScreen() {
   s.appendChild(menu);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
-  s.cloudFoot = () => { foot.textContent = 'Rough draft · placeholder art · ' + cloudLine(); };
-  s.cloudFoot();
+  foot.textContent = 'Rough draft · placeholder art · progress saves in this browser';
   const gate = el('div', 'title-gate', G.touch ? 'Tap to awaken' : 'Click to awaken');
   s.appendChild(gate);
   show(s);
@@ -74,12 +71,9 @@ export function titleScreen() {
     gate,
     onAwaken: (proceed) => showSeizureWarningSplash(proceed),
   });
-  Cloud.flush();
-  Cloud.sync();
-  if (Cloud.conflicts.size) conflictDialogs();
   if (!unreadableNoted && !savesReadable()) {
     unreadableNoted = true;
-    UI.dialog({ title: 'Saved heroes unreadable', html: `<p>The heroes saved in this browser could not be read. VELSCOUR will not write over them: before anything new is saved, the old data is set aside.</p><p class="dim">Settings &gt; Hero backups can download it, so it can be recovered.${Cloud.signedIn ? ' Heroes in your Google cloud save come back on their own once the next save is made.' : ''}</p>`, buttons: [{ label: 'OK' }] });
+    UI.dialog({ title: 'Saved heroes unreadable', html: '<p>The heroes saved in this browser could not be read. VELSCOUR will not write over them: before anything new is saved, the old data is set aside.</p><p class="dim">Settings &gt; Hero backups can download it, so it can be recovered.</p>', buttons: [{ label: 'OK' }] });
   }
 }
 
@@ -152,51 +146,9 @@ if (typeof addEventListener === 'function') addEventListener('velscour-save-bloc
   UI.dialog({ title: 'Not saving', html: '<p>The heroes saved in this browser could not be read, and there was no room to set them aside, so the game is not saving over them. Free some browser storage (or use another browser) and reload.</p>', buttons: [{ label: 'OK' }] });
 });
 
-// ------------------------------------------------------------ cloud saves (game/cloud.js)
-const ago = (t) => {
-  const m = Math.round((Date.now() - t) / 60000);
-  return !t ? 'never' : m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
-};
-function cloudLine() {
-  if (!Cloud.signedIn) return 'progress saves in this browser';
-  return { loading: 'connecting to Google…', syncing: 'syncing with Google…', ok: 'saves sync with your Google account', conflict: 'a hero needs a choice of copies', offline: 'offline: saving in this browser', error: 'cloud save problem (see Settings)' }[Cloud.status] || 'saves sync with your Google account';
-}
-const heroLine = (h, cls) => h
-  ? `<b>${escapeHtml(h.name)}</b><br>Level ${h.level} · Depth ${h.depth} · ${fmtInt(h.gold || 0)} gold<br><span class="dim">played ${ago(h.lastPlayed)}</span>`
-  : `<span class="dim">No ${CLASSES[cls] ? CLASSES[cls].name : 'hero'} (deleted)</span>`;
-let asking = false;
-/** Both this device and the cloud changed a class's hero since they last synced: the player keeps one of them. */
-export function conflictDialogs(onDone) {
-  if (asking) return;
-  const c = [...Cloud.conflicts.values()].find((x) => !x.later && !(G.mode === 'game' && G.char && G.char.classId === x.cls));
-  if (!c) { onDone && onDone(); return; }
-  asking = true;
-  const name = CLASSES[c.cls] ? CLASSES[c.cls].name : c.cls;
-  const html = `<p>Your ${name} changed both here and on another device since they last synced. Which copy do you keep?</p>
-    <div class="cloud-pick"><div><h3>This device</h3>${heroLine(c.local, c.cls)}</div><div><h3>Google cloud</h3>${heroLine(c.cloud, c.cls)}</div></div>
-    <p class="dim" style="font-size:12px">The other copy is replaced. Later keeps both apart for now (this hero won't sync until you choose).</p>`;
-  const next = () => { asking = false; setTimeout(() => conflictDialogs(onDone), 0); };
-  UI.dialog({
-    title: 'Two copies of a hero', html, closable: false, cls: 'cloud-conflict',
-    buttons: [
-      { label: 'Later', fn: () => { c.later = true; next(); } },
-      { label: 'Keep this device', fn: () => Cloud.resolve(c.cls, 'local').then(next) },
-      { label: 'Keep the cloud', cls: 'red', fn: () => Cloud.resolve(c.cls, 'cloud').then(next) },
-    ],
-  });
-}
-Cloud.on((what) => {
-  if (what === 'change' && current && current.refresh) current.refresh();
-  if (what === 'status' && current && current.cloudFoot) current.cloudFoot();
-  if (what === 'status' && cloudRow) cloudRow();
-  if (what !== 'conflict') return;
-  if (G.mode !== 'game') { conflictDialogs(); return; }
-  const cls = G.char && G.char.classId;
-  if (Cloud.conflicts.has(cls) && Cloud.warnOnce(cls)) UI.log(`This hero was also played on another device. Its cloud save is paused: you will choose which copy to keep on the title screen.`, '#ffb060');
-});
-
-const WHY = { cloud: 'replaced by the cloud copy', deleted: 'deleted on another device', cloudcopy: 'cloud copy, replaced by this device', restore: 'replaced by a restored backup' };
-/** Settings > Hero backups: every hero cloud sync replaced or deleted, newest first; Restore puts one back. */
+// ------------------------------------------------------------ local hero backups
+const WHY = { restore: 'replaced by a restored backup' };
+/** Settings > Hero backups: local restore points and unreadable save recovery copies. */
 export function backupsDialog() {
   const d = UI.dialog({ title: 'Hero Backups', html: '<p class="dim">Loading…</p>', buttons: [{ label: 'Done' }], cls: 'backups-dialog' });
   const body = d.box.querySelector('.dlg-body');
@@ -204,7 +156,7 @@ export function backupsDialog() {
     if (!d.box.isConnected) return;
     if (!list && !raws.length) { body.innerHTML = '<p>Backups can\'t be opened in this browser.</p>'; return; }
     list = list || [];
-    if (!list.length && !raws.length) { body.innerHTML = '<p>No backups yet. Whenever cloud sync replaces or deletes a hero on this device, the old one is kept here.</p>'; return; }
+    if (!list.length && !raws.length) { body.innerHTML = '<p>No local hero backups yet. Recovery copies are kept here when you restore an older backup or when saved data cannot be read.</p>'; return; }
     body.innerHTML = `<p class="dim" style="font-size:12px">${G.mode === 'game' ? 'Return to the title screen to restore a hero.' : 'Restoring makes that copy the class\'s hero; the one it replaces is backed up too.'}</p><div class="backup-list"></div>`;
     const box = body.querySelector('.backup-list');
     for (const r of raws) {   // unreadable save data set aside by save.js: download it for recovery
@@ -242,38 +194,6 @@ export function backupsDialog() {
   }).catch((e) => { console.warn(e); if (d.box.isConnected) body.innerHTML = '<p>Backups can\'t be opened in this browser.</p>'; });
   return d;
 }
-
-let cloudRow = null;
-/** Settings > Cloud save: sign in with Google, or the account, last sync, Sync now and Sign out. */
-export function cloudDialog(onDone) {
-  const u = Cloud.user;
-  const html = `<p>Signed in with Google as <b>${escapeHtml(u.name || u.email)}</b>${u.name && u.email ? `<br><span class="dim">${escapeHtml(u.email)}</span>` : ''}</p>
-    <p>Your heroes are saved in this browser and copied to your Google account, so you can play them on any device where you sign in.</p>
-    <p class="dim" data-cloud-status></p>`;
-  const d = UI.dialog({
-    title: 'Cloud Save', html,
-    buttons: [
-      { label: 'Sign out', cls: 'red', fn: () => Cloud.signOut().then(() => onDone && onDone()) },
-      { label: 'Sync now', keepOpen: true, fn: () => Cloud.sync(true).then(() => { stat(); if (Cloud.conflicts.size && G.mode !== 'game') conflictDialogs(); }) },
-      { label: 'Done', fn: () => onDone && onDone() },
-    ],
-  });
-  const stat = () => {
-    const p = d.box.querySelector('[data-cloud-status]');
-    if (p) p.textContent = (Cloud.error || ({ syncing: 'Syncing…', loading: 'Connecting…', conflict: 'A hero has two copies to choose from.' }[Cloud.status] || '')) + ` Last synced ${ago(Cloud.lastSync)}.`;
-  };
-  stat();
-  Cloud.on((w) => { if (w === 'status' && d.box.isConnected) stat(); });
-  return d;
-}
-const cloudErr = (e) => {
-  const c = String(e && e.code || '');
-  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return '';
-  if (c === 'auth/popup-blocked') return 'Your browser blocked the Google sign-in window. Allow pop-ups for this site, then try again.';
-  if (c === 'auth/unauthorized-domain') return 'Google sign-in is not set up for this web address yet.';
-  if (c === 'auth/network-request-failed' || !navigator.onLine) return 'Could not reach Google. Check your connection and try again.';
-  return 'Google sign-in failed: ' + escapeHtml(String(e && (e.message || e)));
-};
 
 const plaque = (name) => `<div class="plaque"><span>${escapeHtml(name)}</span></div>`;
 
@@ -364,8 +284,7 @@ export function classSelect(sel = 'paladin', back = titleScreen) {
   };
   const start = async () => {
     sfx('ui');
-    await Cloud.settle();
-    const h = heroesByClass()[sel];   // fresh: the cloud may have brought this class's hero in
+    const h = heroesByClass()[sel];
     if (h) {
       G.game.loadChar(h);
     } else {
@@ -423,7 +342,6 @@ export function settingsDialog() {
   </div>
   <div class="settings-tab-pane" data-pane="general">
     <div class="settings-grid">
-      <label>Cloud save (Google account)</label><button class="btn small" data-cloud></button>
       <label>Hero backups</label><button class="btn small" data-backups>View</button>
       <label>Pause while menus open</label><input type="checkbox" data-k="pauseMenus" ${st.pauseMenus !== false ? 'checked' : ''}>
       <label title="Keep previously seen cutscenes at normal speed">Don't fast-forward seen cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
@@ -583,27 +501,6 @@ export function settingsDialog() {
   d.box.querySelector('[data-k=gore]').value = String(st.gore);
   d.box.querySelector('[data-k=fpsCap]').value = String(st.fpsCap || 0);
   d.box.querySelector('[data-backups]').onclick = () => { sfx('ui'); backupsDialog(); };
-  const cb = d.box.querySelector('[data-cloud]');
-  cloudRow = () => {
-    if (!cb.isConnected) { cloudRow = null; return; }
-    const u = Cloud.user;
-    cb.textContent = u ? `${u.name || u.email || 'Signed in'} · ${{ syncing: 'syncing…', loading: 'connecting…', offline: 'offline', error: 'problem', conflict: 'choose a copy' }[Cloud.status] || 'synced'}` : 'Sign in with Google';
-  };
-  cloudRow();
-  // the SDK loads as the pointer reaches the button, so the popup can open inside the tap (only sign-ins load it)
-  const warm = () => { if (!Cloud.signedIn) Cloud.preload().catch(() => {}); };
-  cb.onpointerenter = cb.onpointerdown = cb.onfocus = warm;
-  cb.onclick = () => {
-    sfx('ui');
-    if (Cloud.signedIn) { cloudDialog(() => cloudRow && cloudRow()); return; }
-    cb.textContent = 'Signing in…';
-    Cloud.signIn().then(() => { if (cloudRow) cloudRow(); if (G.mode !== 'game') conflictDialogs(); }).catch((e) => {
-      if (cloudRow) cloudRow();
-      if (String(e && e.code) === 'auth/popup-blocked' && !cb.dataset.again) { cb.dataset.again = 1; cb.textContent = 'Tap again to sign in'; return; }
-      const msg = cloudErr(e);
-      if (msg) UI.dialog({ title: 'Cloud Save', html: `<p>${msg}</p>`, buttons: [{ label: 'OK' }] });
-    });
-  };
   const lf = d.box.querySelector('[data-loot-filter]');
   lf.onclick = () => { sfx('ui'); lootFilterDialog(() => { lf.textContent = `${lootFilter().on ? 'On' : 'Off'} · Set up`; }); };
   const labelFilterButton = d.box.querySelector('[data-label-filter]');
@@ -629,10 +526,10 @@ function itemFilterDialog(title, f, enabledLabel, help, onDone) {
     ${(FILTER_ROWS || []).map((r) => `<label>${r.name}</label><select data-f="${r.k}">${opts}</select>`).join('')}
     <label>Gems &amp; Runes</label><select data-f="gems">${gemOpts}</select>
   </div><p class="dim" style="font-size:12px;max-width:520px">${help}</p>`;
-  const d = UI.dialog({ title, html, buttons: [{ label: 'Done', fn: () => { saveSettings(); onDone && onDone(); } }] });
+  const d = UI.dialog({ title, html, buttons: [{ label: 'Done', fn: () => { saveLootFilterSettings(); onDone && onDone(); } }] });
   d.box.querySelectorAll('[data-f]').forEach((inp) => {
     if (inp.tagName === 'SELECT') inp.value = String(f[inp.dataset.f] ?? 0);
-    inp.onchange = () => { f[inp.dataset.f] = inp.type === 'checkbox' ? inp.checked : Number(inp.value); saveSettings(); onDone && onDone(); };
+    inp.onchange = () => { f[inp.dataset.f] = inp.type === 'checkbox' ? inp.checked : Number(inp.value); saveLootFilterSettings(); onDone && onDone(); };
   });
   return d;
 }

@@ -178,19 +178,25 @@ function hideCritterTutorialPopup() {
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
-const CRITTER_SHEET = { img: null };
+const CRITTER_SHEET = { rows: [] };
 function loadArt() {
   if (!ART.img) {
     ART.img = new Image(); ART.img.src = 'assets/sprites/critters/critters.webp';
     fetch('assets/sprites/critters/critters.json').then((r) => r.json()).then((m) => { ART.meta = m; }).catch(() => {});
   }
-  if (!CRITTER_SHEET.img) {
-    CRITTER_SHEET.img = new Image();
-    CRITTER_SHEET.img.src = 'assets/sprites/critters/gilded-critters.png';
+  if (!CRITTER_SHEET.rows.length) {
+    CRITTER_SHEET.rows = Array.from({ length: 4 }, (_, row) => {
+      const img = new Image();
+      img.src = `assets/sprites/critters/gilded-critters-row-${row + 1}.png`;
+      return img;
+    });
   }
 }
 const artReady = () => ART.meta && ART.img.complete && ART.img.naturalWidth > 0;
-const critterSheetReady = () => CRITTER_SHEET.img?.complete && CRITTER_SHEET.img.naturalWidth > 0;
+const critterSheetReady = (artIndex) => {
+  const img = CRITTER_SHEET.rows[Math.floor(artIndex / 5)];
+  return img?.complete && img.naturalWidth > 0;
+};
 const LIGHT2 = { wisp: '#ff9a20', moth: '#b080ff', scarab: '#40ffe8', prism: '#60d8ff' };
 
 class Critter {
@@ -273,26 +279,26 @@ class Critter {
     ctx.strokeStyle = K.color; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(px, py, 16, 8, 0, 0, TAU); ctx.stroke();
     if (tutorialReady) showCritterTutorialPopup(this);
-    if (Number.isInteger(K.artIndex) && critterSheetReady()) this.drawSheetSprite(ctx, px, py, fade);
+    if (Number.isInteger(K.artIndex) && critterSheetReady(K.artIndex)) this.drawSheetSprite(ctx, px, py, fade);
     else if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
     if (tutorialReady) this.tutorialRendered = true;
     ctx.globalAlpha = 1;
   }
   drawSheetSprite(ctx, px, py, fade) {
-    const K = this.K, img = CRITTER_SHEET.img;
-    const cellW = img.naturalWidth / 5, cellH = img.naturalHeight / 4;
-    const sx = (K.artIndex % 5) * cellW, sy = Math.floor(K.artIndex / 5) * cellH;
+    const K = this.K, row = Math.floor(K.artIndex / 5), img = CRITTER_SHEET.rows[row];
+    const col = K.artIndex % 5;
+    // Each image contains only one row, so vertical cell edges cannot sample a neighboring creature.
+    // Use integer column edges and a small transparent gutter to prevent horizontal sampling bleed.
+    const sx = Math.floor(col * img.naturalWidth / 5);
+    const ex = Math.floor((col + 1) * img.naturalWidth / 5);
+    const gutter = 2;
+    const sourceX = sx + gutter, sourceY = gutter;
+    const sourceW = ex - sx - gutter * 2, sourceH = img.naturalHeight - gutter * 2;
     const size = 48, y = K.fly ? py - this.z : py - 5;
-    // The fairy cell sits close to neighboring bat, rune-eye, and skull art. Crop only the nearby edges,
-    // then preserve the original scale inside the canvas so the neighboring silhouettes cannot leak through.
-    const inset = K.artIndex === 13 ? { left: 18, top: 6, right: 12, bottom: 8 } : { left: 0, top: 0, right: 0, bottom: 0 };
-    const sourceW = cellW - inset.left - inset.right, sourceH = cellH - inset.top - inset.bottom;
-    const dx = 128 * inset.left / cellW, dy = 128 * inset.top / cellH;
-    const dw = 128 * sourceW / cellW, dh = 128 * sourceH / cellH;
     const tinted = drawTinted(K.color, (c) => {
       c.imageSmoothingEnabled = true;
-      c.drawImage(img, sx + inset.left, sy + inset.top, sourceW, sourceH, dx, dy, dw, dh);
+      c.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, 128, 128);
     }, 0.4);
     ctx.save();
     ctx.globalAlpha = fade;

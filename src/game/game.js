@@ -1,6 +1,7 @@
 // Game flow: characters, town, dungeon depths, death, victory.
 import { G } from '../state.js';
 import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG, rollDungeonAffixesForDepth, normalizeDungeonAffixIds, applyDungeonAffix } from '../data/dungeonaffixes.js';
+import { rollTreasureChest } from '../data/treasurechests.js';
 import { input } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { sfx, playMusic, stopMusic, setAmbience, stopAmbience, footsteps } from '../core/audio.js';
@@ -125,6 +126,7 @@ import { applyTrait, rollTrait, ambushTick, madnessTick, unleashMadness, enter }
 import { hit, kill } from './combat.js';
 import { makeRaidBoss, RAID_BOSSES } from './raid.js';
 import { dropChest, GroundItem } from './loot.js';
+import { initializeCharacterLootFilters } from './lootfilter.js';
 import { renderWorld, drawMinimap, preloadTownSheets, releaseTownSheets, propReach } from './render.js';
 import { controls } from './controls.js';
 import { writeSave, newCharData, migrate } from './save.js';
@@ -147,7 +149,7 @@ import { offerCommissions, setupCommissions, commissionClear, wantedBiomes, LINE
 import { titleScreen, hide as hideScreen, deathScreen, victoryScreen, pauseMenu, helpDialog } from '../ui/screens.js';
 import { LoadingScreen } from '../ui/loading.js';
 // the Endgame (docs/ENDGAME.md): Heresies, Abyssal Rifts, Velscour Unbound, Infernal Marks
-import { endgameUnlocked, unlockEndgame, endgame, adoptEndgame } from './endgame.js';
+import { endgameUnlocked, unlockEndgame, endgame } from './endgame.js';
 import { heresySpawns, heresyWorld, heresyBegin, heresyTick, heresiesOf, heresyRank, worldRank, MARKS_RANK } from './heresies.js';
 import { createRiftRun, riftTick, riftOpen, riftDepth, riftLevel, fmtTime, riftLeave, activatePylon, riftDeathPenalty, RIFT_QUOTA, RIFT_DENSITY } from './rifts.js';
 import { PYLONS } from '../data/rifts.js';
@@ -306,6 +308,7 @@ export const game = {
     Macros.reset();
     G.critterTutorial = null;
     hideScreen();
+    initializeCharacterLootFilters(c);
     G.char = c;
     preloadSkillSheets(c.classId);
     setRingContext(c.classId, c.skills);
@@ -1291,16 +1294,56 @@ export const game = {
     for (const monster of world.creatures) for (const id of world.dungeonAffixes) applyDungeonAffix(monster, id);
     if (gen.layoutId) { world.layoutId = gen.layoutId; world.layoutName = gen.layoutName; }
     world.rooms = gen.rooms || [];
-    world.chests = gen.chests.map((ch) => ({
-      ...ch, opened: false, reach: 1.3,
-      use() {
-        if (this.opened) return;
-        this.opened = true;
-        sfx('chest'); sfx('gold');
-        dropChest(world, this, depth);
-        sparkle(this.x, this.y, 20, '#ffd060', 20, 0.5);
-      },
-    }));
+    const chestRng = new RNG((seed ^ 0x7a3ea51d) >>> 0);
+    world.chests = gen.chests.map((ch, index) => {
+      // Keep the guaranteed first-dungeon cache safe and recognizable for new characters.
+      const rolled = rollTreasureChest(chestRng);
+      if (isStarterDepth && index === gen.chests.length - 1) {
+        rolled.chestType = 'standard'; rolled.tint = null;
+        rolled.label = `${rolled.label.split(' ')[0]} Starter Chest`;
+      }
+      return {
+        ...ch, ...rolled, opened: false, reach: 1.3,
+        use() {
+          if (this.opened) return;
+          this.opened = true;
+          sfx('chest');
+          if (this.chestType === 'mimic') {
+            const arch = pick(world.roster || biome.roster || []);
+            const mimic = arch && makeMonster(world, arch, biome, depthLevel(depth), 'champion', this.x, this.y, 0);
+            if (mimic) {
+              mimic.name = 'Mimic';
+              mimic.chestMimic = true;
+              mimic.aura = '#d8ad53';
+              mimic.onDeath = () => {
+                sfx('gold');
+                dropChest(world, this, depth);
+                sparkle(this.x, this.y, 20, '#ffd060', 24, 0.6);
+              };
+              world.add(mimic);
+              floatText(this.x, this.y, 38, 'MIMIC!', '#ffd060', 12);
+              sfx('boss');
+              return;
+            }
+            // If this biome has no usable monster roster, open it as a normal cache.
+          }
+          if (this.chestType === 'explosive') {
+            floatText(this.x, this.y, 34, 'TRAP!', '#ff7040', 11);
+            const source = world.creatures.find((creature) => creature.team === 'enemy') || {
+              team: 'enemy', world, level: depthLevel(depth), dmg: 0, rank: 'normal',
+            };
+            world.addHazard(new Delayed({
+              world, src: source, team: 'enemy', x: this.x, y: this.y, r: 1.45,
+              delay: 1.15, dmg: [G.player.maxHp * 0.08, G.player.maxHp * 0.12],
+              el: 'fire', fx: 'explosion', o: { falloff: true },
+            }));
+          }
+          sfx('gold');
+          dropChest(world, this, depth);
+          sparkle(this.x, this.y, 20, this.tint || '#ffd060', 20, 0.5);
+        },
+      };
+    });
     const [sx, sy] = gen.start;
     let tp = gen.townPortal || [sx + 1.6, sy - 0.6];
     if (!gen.map.walkable(tp[0], tp[1])) tp = gen.map.randomNear(sx, sy, 2);

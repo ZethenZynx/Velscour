@@ -1,7 +1,7 @@
 // "DEATH IS THE ONLY WAY OUT, MY KIND SIR." sent to Velscour: level 100, the best gear of the hero's class (Mythic,
 // +10, perfect rolls and an extra enchanted line, Eternal gems, max-power ring augments), every skill and mastery
 // maxed, a full potion belt, a fortune in gold, and the way down opened to Depth 500. It is a cheat: the hero is marked
-// for good (c.cheated) and never listed on the Honour Board (game/leaderboard.js).
+// for good (c.cheated) for local rift result tracking.
 import { G } from '../state.js';
 import { sfx, levelUpFanfare } from '../core/audio.js';
 import { CLASSES } from '../data/classes.js';
@@ -11,7 +11,6 @@ import { AUGMENTS, SCOPE_MUL, augPower } from '../data/rings.js';
 import { FINAL_DEPTH, MAX_LEVEL } from '../data/depth.js';
 import { MAX_MASTERY } from './augments.js';
 import { addToBag } from './player.js';
-import { Board } from './leaderboard.js';
 
 export const DEATH_PHRASE = 'DEATH IS THE ONLY WAY OUT, MY KIND SIR.';
 const GIFT_LEVEL = MAX_LEVEL, MYTHIC = 5;
@@ -66,8 +65,7 @@ export function grantDeathGift() {
   const c = G.char, p = G.player;
   if (!c || !p) return;
   const C = CLASSES[c.classId];
-  c.cheated = true; // for good: never listed on the Honour Board, and its class's entry there comes off now (or at the next sign-in)
-  Board.withdraw(c.classId).catch((e) => console.warn('Honour board:', e));
+  c.cheated = true; // retained locally for gameplay and rift result messaging
   const ilvl = Math.max(c.level, GIFT_LEVEL); // items of the hero's own level are the best they can wear
   // level 100, its attribute points spent on required weapon/offhand stats, the class's attribute and vitality
   const prevLevel = c.level;

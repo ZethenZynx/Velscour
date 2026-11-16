@@ -182,12 +182,12 @@ async function runPart(page, shot, step) {
   await shot('rift_hud_urgent');
   // the board's reader: entries as the real SDK returns them (`at` a Timestamp) are sorted tier, time, then the first post
   const top = await page.evaluate(async () => {
-    const { Cloud } = await import('/src/game/cloud.js');
+    const { useHonourBoardReader } = await import('/src/game/leaderboard-cloud.js');
     const { Board, atMs } = await import('/src/game/leaderboard.js');
     const ts = (ms) => ({ toMillis: () => ms, seconds: ms / 1000 });
-    Cloud.useBackend({ init: async () => {}, board: async () => [{ uid: 'a', name: 'Late', tier: 9, time: 200, at: ts(5000) }, { uid: 'b', name: 'Early', tier: 9, time: 200, at: ts(1000) }, { uid: 'c', name: 'Deep', tier: 12, time: 400, at: ts(9000) }, { uid: 'd', name: 'Broken', tier: 'x', time: 1 }, { uid: 'e', name: 'Fast', tier: 9, time: 150, at: 7000 }] });
+    useHonourBoardReader(async () => [{ uid: 'a', name: 'Late', tier: 9, time: 200, at: ts(5000) }, { uid: 'b', name: 'Early', tier: 9, time: 200, at: ts(1000) }, { uid: 'c', name: 'Deep', tier: 12, time: 400, at: ts(9000) }, { uid: 'd', name: 'Broken', tier: 'x', time: 1 }, { uid: 'e', name: 'Fast', tier: 9, time: 150, at: 7000 }]);
     const rows = await Board.top('wizard');
-    Cloud.useBackend(null);
+    useHonourBoardReader(null);
     return { names: rows.map((r) => r.name).join(), at: rows.map((r) => r.at).join(), ms: [atMs(ts(42)), atMs(42), atMs(undefined)].join() };
   });
   check(top.names === 'Deep,Fast,Early,Late' && top.at === '9000,7000,1000,5000' && top.ms === '42,42,0', `Board.top sorts tier, time, first post, drops malformed rows and turns Timestamps into numbers (${top.names}; ${top.at})`);

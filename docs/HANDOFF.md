@@ -1,5 +1,36 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - remove Google account cloud saves (local, not published)
+- Removed Google authentication, hero and Endgame synchronization, conflict resolution, cloud-save UI, and rift-board posting. Local browser saves and local recovery backups remain available.
+- The rift Honour Board remains read-only for entries already posted. Remote records are not deleted. Firebase Auth is no longer loaded by the game.
+- Validation: changed JavaScript files pass Node syntax checks. Browser tests could not run because Playwright is not installed; Edge was not available for a local gameplay check.
+- No commit or GitHub update was made.
+
+## November 16, 2026 - per-character loot filters (local, not published)
+- The auto-pickup loot filter and ground loot-label filter now live on each character save (`lootFilter` and
+  `lootLabelFilter`). `lootfilter.js` initializes/migrates old shared settings at character start, normalizes legacy
+  gem booleans, and sends in-game edits through the character autosave. Title-screen edits remain shared defaults.
+- Test: `node tools/tests/lootfilter_profiles.mjs` covers migration, independent profiles, autosave, and JSON save/restore.
+- No commit or GitHub update was made.
+
+## November 16, 2026 - campaign treasure chest expansion (local, not published)
+- Regular generated campaign chests now roll an independent chest type and rarity from `src/data/treasurechests.js`.
+  Type groups are 61% ordinary, 22% valuable (Gilded / Jeweled), and 17% dangerous (Explosive / Mimic), with each
+  pair split evenly. The six rarity weights are Ordinary 83%, Uncommon 10%, Rare 4%, Epic 2%, Legendary 0.8%, and
+  Mythic 0.2%; rarity can roll at every depth. Item drops still pass through the existing character-level and depth
+  quality caps.
+- Gilded chests add gold; Jeweled chests guarantee a gem; Explosive chests telegraph and damage nearby allies after
+  opening; Mimics reveal a champion and pay their chest rewards when killed. The guaranteed first-depth starter cache
+  is always non-dangerous. Existing Cursed Chest events and special-map caches keep their prior handling.
+- `dropChest` applies the approved rarity reward table while preserving legacy reward behavior for event/special caches.
+  `render.js` uses rarity/type glows and a nearby label; no new art was generated.
+- Checks: changed JavaScript modules pass Node syntax checks; 100,000 seeded rolls match the approved type/rarity
+  distribution within sampling error. `tools/tests/data_check.mjs` still reports its pre-existing biome-order failure
+  (“first 41 biomes are not all different”). Interactive browser testing was unavailable (Playwright is not installed
+  and Edge is not connected to the computer-use session).
+- This work has not been committed, pushed, or published. Next chest-expansion stage (interactive/jackpot chests,
+  additional modifiers or treasure chambers) awaits the user's direction.
+
 These notes let a new session with no memory of earlier ones pick up the work immediately.
 **Keep them current**: when you finish a chunk of work, update *Status*, *Open issues* and *Next steps*.
 
