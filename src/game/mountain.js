@@ -105,6 +105,7 @@ export function createMountainRun(world, gen, biome, depth, win) {
       }
       if (!run.won && world.boss && world.boss.dead) {
         run.won = true;
+        run.completed = true;
         win();
         UI.centerMsg('MOUNTAINSIDE CLEARED', 'The exit is open', 3.5);
         UI.log('The Summit Warden falls, and the exit portal opens.', '#cfe8ff');
