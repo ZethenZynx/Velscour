@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { el, fmtInt, escapeHtml, randi, pick, chance } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
-import { itemCell, itemTooltip, rarityClass } from './itemui.js';
+import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import { getItem, changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { emptyEquipSlot } from '../game/autoequip.js';
@@ -126,9 +126,8 @@ export const Vendor = {
             cls: G.char.gold >= itemValue(cur) ? 'small' : 'small disabled',
           }];
           return {
-            html: itemTooltip(cur, {
+            ...itemGearTip(cur, {
               price: itemValue(cur),
-              compare: cur.slot ? G.char.equip[slotFor(G.char.equip, cur)] : null,
               hint: 'Right-click or double-tap to buy',
               actions: acts,
             }),
