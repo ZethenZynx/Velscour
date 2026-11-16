@@ -1,9 +1,9 @@
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 
-const GITHUB_COMMITS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour/commits?sha=main&per_page=100&page=1';
-const CACHE_KEY = 'velscour_recent_feature_commits_v2';
+const GITHUB_FEATURE_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour/pulls?state=closed&per_page=100&page=1&sort=created&direction=desc';
+const CACHE_KEY = 'velscour_recent_feature_pulls_v3';
 const CACHE_MS = 30 * 60 * 1000;
-const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?!?:\s*(.+)$/i;
+const FEATURE_BRANCH = /^(?:feat|feature)\//i;
 
 function nextPageUrl(response) {
   const links = response.headers?.get?.('Link') || '';
@@ -22,34 +22,39 @@ function writeCache(items) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), items })); } catch (_) { /* storage is optional */ }
 }
 
-function cleanSummary(lines) {
-  const text = lines.join(' ')
-    .replace(/^\s*#+\s*/gm, '')
-    .replace(/^\s*[-*]\s*/gm, '')
-    .replace(/[`*_>#]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+function cleanSummary(markdown) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  const summaryHeading = lines.findIndex((line) => /^#{1,4}\s+summary\s*$/i.test(line.trim()));
+  let summaryLines = lines;
+  if (summaryHeading >= 0) {
+    summaryLines = lines.slice(summaryHeading + 1);
+    const nextHeading = summaryLines.findIndex((line) => /^#{1,4}\s+/.test(line.trim()));
+    if (nextHeading >= 0) summaryLines = summaryLines.slice(0, nextHeading);
+  }
+  const text = summaryLines
+    .map((line) => line.replace(/^\s*[-*]\s*/, '').replace(/^\s*#+\s*/, '').replace(/^\s*>+\s*/, '').trim())
+    .find(Boolean);
   if (!text) return '';
-  const firstSentence = text.match(/^.{1,180}?(?:[.!?](?=\s|$)|$)/);
-  return firstSentence ? firstSentence[0].trim() : text.slice(0, 180).trim();
+  const normalized = text.replace(/[`*_>#]/g, '').replace(/\s+/g, ' ').trim();
+  const firstSentence = normalized.match(/^.{1,180}?(?:[.!?](?=\s|$)|$)/);
+  return firstSentence ? firstSentence[0].trim() : normalized.slice(0, 180).trim();
 }
 
-/** Read concise, user-facing feature summaries from the fork's conventional feature commits. */
-export function featureChangesFromCommits(commits) {
-  if (!Array.isArray(commits)) return [];
-  return commits.flatMap((entry) => {
-    const lines = String(entry?.commit?.message || '').split(/\r?\n/);
-    const match = lines[0].trim().match(FEATURE_TITLE);
-    if (!match) return [];
-    const title = match[1].trim();
-    if (!title) return [];
-    return [{ title: title[0].toUpperCase() + title.slice(1), summary: cleanSummary(lines.slice(1)) }];
+/** Use titles and short summaries from merged feature pull requests in the fork. */
+export function featureChangesFromPullRequests(pullRequests) {
+  if (!Array.isArray(pullRequests)) return [];
+  return pullRequests.flatMap((pullRequest) => {
+    const branch = String(pullRequest?.head?.ref || '');
+    const sourceRepo = pullRequest?.head?.repo?.full_name;
+    const title = String(pullRequest?.title || '').trim();
+    if (!pullRequest?.merged_at || !FEATURE_BRANCH.test(branch) || sourceRepo !== 'ZethenZynx/Velscour' || !title) return [];
+    return [{ title, summary: cleanSummary(pullRequest.body) }];
   });
 }
 
-async function fetchAllCommits() {
-  const commits = [];
-  let url = GITHUB_COMMITS_URL;
+async function fetchAllFeaturePullRequests() {
+  const pullRequests = [];
+  let url = GITHUB_FEATURE_PULLS_URL;
   while (url) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
@@ -61,23 +66,23 @@ async function fetchAllCommits() {
       });
       if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
       const page = await response.json();
-      if (!Array.isArray(page)) throw new Error('GitHub returned an invalid commit list');
-      commits.push(...page);
+      if (!Array.isArray(page)) throw new Error('GitHub returned an invalid pull request list');
+      pullRequests.push(...page);
       url = page.length ? nextPageUrl(response) : null;
     } finally {
       if (timeout) clearTimeout(timeout);
     }
   }
-  return commits;
+  return pullRequests;
 }
 
-/** Load every feature commit from GitHub, falling back to cached or bundled summaries if unavailable. */
+/** Load every merged feature PR, falling back to cached or bundled summaries if unavailable. */
 export async function loadRecentChanges() {
   const cached = readCache();
   if (cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
 
   try {
-    const items = featureChangesFromCommits(await fetchAllCommits());
+    const items = featureChangesFromPullRequests(await fetchAllFeaturePullRequests());
     if (!items.length) return cached?.items?.length ? cached.items : RECENT_CHANGES;
     writeCache(items);
     return items;

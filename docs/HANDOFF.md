@@ -1,7 +1,7 @@
 # VELSCOUR: hand-off notes
 
 ## November 16, 2026 - refresh title-screen changes from GitHub
-- The title screen now loads all `feat:` commits from every page of the public fork's history, without a display cap, and shows concise commit titles plus the first summary sentence when present. It starts with the bundled curated list, caches successful results for 30 minutes, and keeps that list if GitHub is unavailable or rate-limited.
+- The title screen now loads every merged PR from the fork's `feat/` and `feature/` branches across all API pages, without a display cap. It uses curated PR titles and the first summary sentence; the bundled offline list covers the full curated history too. Results cache for 30 minutes.
 - `node tools/tests/recent_changes.mjs`, JavaScript syntax checks, and `git diff --check` pass. Keep major user-visible additions on `feat:` commits; bug fixes stay out of this feed. No GitHub update was made.
 
 ## November 16, 2026 - six-act campaign schedule and finale bosses (local, not published)
