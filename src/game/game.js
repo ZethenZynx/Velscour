@@ -209,12 +209,8 @@ function yieldForLoadingPaint() {
 // Build the level's monster sprites (palette swap, hit flash, corpse shade) behind the loading screen: each swap reads
 // pixels back from the GPU, and doing that on a monster's first hit or death stalled the frame (worst on phones).
 // Yields every ~40 ms so the loading screen keeps painting (not while hidden: a hidden page's chained timers can wait a minute).
-async function warmLevelArt(w) {
+async function warmEnemyArt(w) {
   const seen = new Set();
-  if (w.map.hgt) terrainOf(w.map); // a height map's draw order and occluders (the Castle's 100k columns): behind the loading screen, not the first frame
-  warmSky(w); // the Sky Battle's clouds
-  if (w.seaState && w.seaState.warm) w.seaState.warm(); // the Pirate Seas' Lampwardens (recoloured townsfolk sheets)
-  if (w.map.c3struct || w.sky) warmBaked(G.ctx); // the baked 3D pages (the Castle's masonry, the airships)
   let t = performance.now();
   markArtCaches();
   for (const c of w.creatures) {
@@ -237,6 +233,14 @@ async function warmLevelArt(w) {
   }
   // what earlier levels built and this one never asked for goes (a long run carried every level's sprites)
   if (G.world === w) { trimArtCaches(); clearRims(); }
+}
+
+async function warmLevelArt(w) {
+  if (w.map.hgt) terrainOf(w.map); // a height map's draw order and occluders (the Castle's 100k columns): behind the loading screen, not the first frame
+  warmSky(w); // the Sky Battle's clouds
+  if (w.seaState && w.seaState.warm) w.seaState.warm(); // the Pirate Seas' Lampwardens (recoloured townsfolk sheets)
+  if (w.map.c3struct || w.sky) warmBaked(G.ctx); // the baked 3D pages (the Castle's masonry, the airships)
+  await warmEnemyArt(w);
 }
 
 // Let go of the art the level being built doesn't use: the Castle (~120 MB decoded) and Sea of Sand packs,
@@ -1211,12 +1215,25 @@ export const game = {
         const w = G.world;
         LoadingScreen.setProgress(75, 'Loading inhabitants…');
         await yieldForLoadingPaint();
-        await loadArtFor([...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])], true).catch((e) => console.warn(e));
+        const levelArt = [...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])];
+        // Monster atlases have a pixel-art fallback. Keep the world paused through setup, then let it start while
+        // larger optional sheets finish downloading; detailed sprites replace the fallback as they arrive.
+        const artReady = loadArtFor(levelArt, true).catch((e) => { console.warn(e); });
         LoadingScreen.setProgress(90, 'Preparing the veil…');
         await yieldForLoadingPaint();
         await warmLevelArt(w);
         releaseLevelArt(biome);
         LoadingScreen.setProgress(100, 'Arriving…');
+        void artReady.then(async () => {
+          let active = G.world;
+          if (!active) return;
+          if (active !== w) {
+            const activeArt = [...active.creatures.map((m) => m.art), ...(active.looks ? active.looks.ids() : [])];
+            await loadArtFor(activeArt, true).catch((e) => console.warn(e));
+            active = G.world;
+          }
+          if (active && G.world === active) await warmEnemyArt(active);
+        }).catch((e) => console.warn(e));
       } finally { await LoadingScreen.hide(); }
     }, 40);
   },

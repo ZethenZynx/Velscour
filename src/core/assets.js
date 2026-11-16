@@ -86,11 +86,13 @@ const ready = (v) => v && !(v instanceof Promise);
  * more props from `morePacks` and more floors from `moreFloors` ([[pack, 1-based ranges], ...]). */
 const biomePacks = (b) => [...new Set([b.pack || DEFAULT_PACK, b.wallPack, ...[...(b.morePacks || []), ...(b.moreFloors || [])].map((m) => m[0])].filter(Boolean))];
 
-/** Fetch a biome's pack and the monster art. Safe to call repeatedly. */
+/** Fetch a biome's pack and start monster-art loading alongside it without blocking terrain setup. */
 export function loadBiomeArt(biome) {
   const dungeon = biome && (!biome.overworld || biome.packArt) && biome.id !== 'town'; // packArt: an overworld drawn from a biome pack
+  // loadArtFor awaits this shared promise before custom sprites are needed. Let the packs and enemy atlases download
+  // together instead of making the 25% biome-art stage wait on unrelated monster sheets.
+  void loadEnemyArt().catch((e) => console.warn(e));
   return Promise.all([
-    loadEnemyArt().catch((e) => console.warn(e)), // monsters fall back to their pixel sprites
     ...(dungeon ? biomePacks(biome).map(loadPack) : []),
     dungeon ? preloadApprovedBiomeArt(biome.id) : Promise.resolve(null),
     biome?.id === 'heavenly' ? preloadApprovedHeavenlyArtwork() : Promise.resolve(null),
