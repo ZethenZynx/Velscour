@@ -308,7 +308,7 @@ export function spawnImp(world) {
   const lvl = depthLevel(world.depth);
   const m = makeMonster(world, 'imp', world.biome, lvl + 1, 'normal', at[0], at[1], 0, null);
   Object.assign(m, { name: 'Treasure Imp', goblin: true, aura: '#ffd040', scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [] });
-  m.maxHp *= 9; m.hp = m.maxHp; m.speed = 3.5; // the hero runs 4.2: it can be caught m.res = { phys: 0.1 };
+  m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5; // tougher to mow down; its fear run is near the hero's pace.
   m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
   const base = m.onDamaged.bind(m);
   m.onDamaged = (src, d) => {

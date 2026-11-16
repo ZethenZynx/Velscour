@@ -273,7 +273,14 @@ export class Monster extends Creature {
     // fear: run away
     if (this.status.fear && this.status.fear.t > 0) {
       const t = w.nearestHostile(this.team, this.x, this.y, 10);
-      if (t) { const a = angleTo(t.x, t.y, this.x, this.y); this.moveToward(this.x + Math.cos(a) * 2, this.y + Math.sin(a) * 2, dt, this.speed * 0.8); }
+      if (t) {
+        const a = angleTo(t.x, t.y, this.x, this.y);
+        if (this.goblin) {
+          // Treasure Imps need to keep fleeing around walls instead of walking directly into corners.
+          const fleeDistance = 6;
+          this.navTo(this.x + Math.cos(a) * fleeDistance, this.y + Math.sin(a) * fleeDistance, dt, Math.max(this.speed, 4.0));
+        } else this.moveToward(this.x + Math.cos(a) * 2, this.y + Math.sin(a) * 2, dt, this.speed * 0.8);
+      }
       return;
     }
     if (this.state === 'windup' || this.state === 'act') { this.runAction(dt); return; }
