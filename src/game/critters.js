@@ -133,7 +133,7 @@ function showCritterTutorialPopup(cr) {
     document.body.appendChild(root);
     Object.assign(popup, { root, title, reward, action });
   }
-  const title = cr.K.name.toLocaleUpperCase(), reward = `Carries ${rewardLabel(cr.reward)}.`;
+  const title = cr.K.name.toLocaleUpperCase(), reward = 'Critters can offer different rewards, including experience, gold, health/mana orbs, gems, jackpots, and temporary blessings.';
   if (popup.title.textContent !== title) popup.title.textContent = title;
   if (popup.reward.textContent !== reward) popup.reward.textContent = reward;
   popup.root.style.display = 'block';
@@ -358,22 +358,18 @@ export function spawnCritter(world, key = null) {
     const ch = G.char;
     if (ch) {
       ch.tips ||= {};
-      if (!Array.isArray(ch.critterSpeciesSeen)) ch.critterSpeciesSeen = [];
-      const seenSpecies = ch.critterSpeciesSeen.includes(key);
-      if (!seenSpecies && !G.critterTutorial) {
-        // Show the existing pause-and-collect tutorial once for each species on this character.
-        ch.critterSpeciesSeen.push(key);
+      if (!ch.critterTutorialSeen && !ch.tips.critter && !G.critterTutorial) {
+        // The first critter tutorial explains that rewards can vary between critters.
         ch.critterTutorialSeen = true;
-        ch.tips.critter = true; // keep the legacy first-critter tip flag for older UI/save code
+        ch.tips.critter = true; // retain the legacy first-critter tip flag
         c.tutorial = true;
         G.critterTutorial = c;
         G.game?.autosave?.();
-      } else if (seenSpecies) {
+      } else {
         ch.critterTutorialSeen = true;
         ch.critterArrowEncounters = Math.min(CRITTER_ARROW_ENCOUNTERS + 1, Math.max(0, ch.critterArrowEncounters | 0) + 1);
         c.showArrow = ch.critterArrowEncounters <= CRITTER_ARROW_ENCOUNTERS;
       }
-      // If another species' tutorial is already open, leave this species unrecorded so it can be taught next time.
     }
     return c;
   }
