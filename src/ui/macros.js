@@ -7,7 +7,7 @@ import { UI } from './ui.js';
 import { skillIconURL } from './icons.js';
 import { SKILLS, CLASS_SKILLS } from '../data/skills.js';
 import { SLOT_LABELS } from '../data/bar.js';
-import { Macros, MACRO_KEYS, MACRO_LEN, keyLabel, setMacroKey } from '../game/macros.js';
+import { Macros, MACRO_LEN, keyLabel } from '../game/macros.js';
 
 /** The skills a macro can hold: every learned skill of the class, then any other on the bar. */
 function castable(c) {
@@ -31,7 +31,7 @@ export const MacrosUI = {
     const a = document.activeElement;
     if (a && body.contains(a) && a.tagName === 'INPUT' && a.type === 'text') return; // don't re-render under a name being typed
     body.innerHTML = '';
-    body.appendChild(el('div', 'dim mc-why', `A macro casts its skills one after another with one key${G.touch ? ' (or its button by the skills)' : ''}: a skill on cooldown or short of mana is skipped. <b>Keep up</b> recasts its buffs as they wear off and its cooldown skills as they come back, while a foe is near.`));
+    body.appendChild(el('div', 'dim mc-why', `A macro casts its skills one after another with one key${G.touch ? ' (or its button by the skills)' : ''}: a skill on cooldown or short of mana is skipped. Set each macro key in <b>Settings → Controls</b>. <b>Keep up</b> recasts its buffs as they wear off and its cooldown skills as they come back, while a foe is near.`));
     const all = castable(c);
     c.macros.forEach((m, i) => {
       const row = el('div', 'mc-row');
@@ -40,10 +40,9 @@ export const MacrosUI = {
       const name = el('input', 'name-input mc-name');
       name.type = 'text'; name.maxLength = 24; name.value = m.name;
       name.onchange = () => { m.name = name.value.trim().slice(0, 24) || `Macro ${i + 1}`; changed(); };
-      const key = el('select', 'mc-key');
-      key.title = 'Its key';
-      key.innerHTML = [null, ...MACRO_KEYS].map((k) => `<option value="${k || ''}"${m.key === k ? ' selected' : ''}>${k ? 'Key ' + keyLabel(k) : 'No key'}</option>`).join('');
-      key.onchange = () => { setMacroKey(i, key.value || null); sfx('ui'); changed(); };
+      const key = el('span', 'mc-key', keyLabel(m.key));
+      key.title = 'Change this binding in Settings → Controls';
+      key.setAttribute('aria-label', `Macro key: ${keyLabel(m.key)}`);
       const keep = el('label', 'mc-keep', `<input type="checkbox"${m.keep ? ' checked' : ''}> Keep up`);
       keep.title = 'Recast its buffs as they wear off and its cooldown skills as they come back, while a foe is near';
       keep.querySelector('input').onchange = (e) => { m.keep = e.target.checked; sfx('ui'); changed(); };
