@@ -480,7 +480,8 @@ export function settingsDialog() {
     </div>
   </div>
 `;
-  const d = UI.dialog({ title: 'Settings', html, cls: 'settings-dialog', buttons: [{ label: 'Done', fn: () => { camera.computeZoom(); if (UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings(); saveSettings(); } }] });
+  let stopKeyCaptureListener = () => {};
+  const d = UI.dialog({ title: 'Settings', html, cls: 'settings-dialog', buttons: [{ label: 'Done', fn: () => { stopKeyCaptureListener(); camera.computeZoom(); if (UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings(); saveSettings(); } }] });
   const tabBtns = d.box.querySelectorAll('.settings-tab-btn');
   const tabPanes = d.box.querySelectorAll('.settings-tab-pane');
   const setTab = (name) => {
@@ -522,7 +523,7 @@ export function settingsDialog() {
   };
   keybindButtons.forEach((button) => {
     button.onclick = () => {
-      if (capturingKeybind || capturingMacro !== null) stopKeyCapture("");
+      if (capturingKeybind || capturingMacro !== null) { stopKeyCapture(""); refreshKeybindButtons(); refreshMacroButtons(); }
       capturingKeybind = button.dataset.keybind;
       button.classList.add("keybind-capturing");
       button.textContent = "Press a key…";
@@ -532,14 +533,15 @@ export function settingsDialog() {
   });
   macroKeyButtons.forEach((button) => {
     button.onclick = () => {
-      if (capturingKeybind || capturingMacro !== null) stopKeyCapture("");
+      if (capturingKeybind || capturingMacro !== null) { stopKeyCapture(""); refreshKeybindButtons(); refreshMacroButtons(); }
       capturingMacro = Number(button.dataset.macroKey);
       button.classList.add("keybind-capturing");
       button.textContent = "Press a key…";
       keybindStatus.textContent = "Press a key for Macro " + (capturingMacro + 1) + ". Escape cancels.";
     };
   });
-  d.box.addEventListener("keydown", (e) => {
+  const captureKeydown = (e) => {
+    if (!d.box.isConnected) { window.removeEventListener("keydown", captureKeydown, true); return; }
     if (!capturingKeybind && capturingMacro === null) return;
     e.preventDefault(); e.stopPropagation();
     if (e.code === "Escape") { stopKeyCapture("Binding cancelled."); refreshKeybindButtons(); refreshMacroButtons(); return; }
@@ -568,7 +570,10 @@ export function settingsDialog() {
       stopKeyCapture("Binding saved. Any action that used that key was moved to the previous key.");
       refreshKeybindButtons();
     } else keybindStatus.textContent = "That key could not be assigned.";
-  }, true);
+  };
+  window.addEventListener("keydown", captureKeydown, true);
+  stopKeyCaptureListener = () => window.removeEventListener("keydown", captureKeydown, true);
+  d.wrap.addEventListener("pointerdown", (e) => { if (e.target === d.wrap) stopKeyCaptureListener(); }, true);
   d.box.querySelector("[data-reset-keybinds]").onclick = () => {
     resetKeyBindings();
     stopKeyCapture("All keyboard bindings restored to their defaults.");
