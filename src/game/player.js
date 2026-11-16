@@ -174,7 +174,7 @@ export class Player extends Creature {
       summonPct: add.summonPct || 0,
       skillsAll: add.skillsAll || 0,
       skillTree0: add.skillTree0 || 0, skillTree1: add.skillTree1 || 0, skillTree2: add.skillTree2 || 0, skillTree3: add.skillTree3 || 0,
-      dmgPct: (add.dmgPct || 0) + buffDmg + (this.furyT > 0 ? 30 : 0),
+      dmgPct: (add.dmgPct || 0) + buffDmg,
       physPct: (add.physPct || 0) + str,
       elemPct: {},
       primary: { str, dex, vit, int }[C.primary],
@@ -429,8 +429,7 @@ export class Player extends Creature {
       case 'mp': this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 }); break;
       case 'rejuv': this.heal(this.maxHp * 0.35); this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35); break;
       case 'fury':
-        this.furyT = 15;
-        this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30 }, t: 15, max: 15 });
+        this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
         burst(this.x, this.y, 20, 'fire', 20, 3);
         break;
     }
@@ -658,7 +657,6 @@ export class Player extends Creature {
       this.affixWoundBaseMaxHp = 0;
       this.hp = Math.min(this.hp, this.maxHp);
     }
-    if (this.furyT > 0) this.furyT -= dt;
     if (this.noRageT > 0) this.noRageT -= dt;
     if (this.classId === 'bard' && this.world) bardUpdate(this, dt);
     if (this.classId === ASTRONOMER && this.world) astroUpdate(this, dt);
