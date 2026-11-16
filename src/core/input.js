@@ -79,6 +79,10 @@ export const input = {
     if (this.pressed.has(resolved)) { this.pressed.delete(resolved); return true; }
     return false;
   },
+  consumeRaw(code) {
+    if (this.pressed.has(code)) { this.pressed.delete(code); return true; }
+    return false;
+  },
   endFrame() {
     this.pressed.clear();
     this.mouse.leftPressed = false;
