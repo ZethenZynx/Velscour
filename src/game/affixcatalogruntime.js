@@ -29,7 +29,7 @@ export const EXTRA_AFFIX_HAZARDS = Object.freeze({
   steam_pools: pool('fire', 'smoke', { damage: 0.025 }),
   toxic_sludge: pool('poison', 'slime', { o: { poison: true, slow: true } }),
   psychic_pools: pool('arcane', 'nova', { o: { slow: true } }),
-  life_draining_pools: pool('shadow', 'blood', { damage: 0.025 }),
+  life_draining_pools: pool('shadow', 'blood', { damage: 0.025, heal: true }),
 
   fire_walls: strike('fire', 'fire', { radius: 2.1, damage: 0.04 }),
   ice_walls: strike('cold', 'frost', { radius: 2.1, o: { slow: true } }),
