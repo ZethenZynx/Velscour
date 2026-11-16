@@ -426,7 +426,10 @@ export class Player extends Creature {
     sfx('potion');
     switch (kind) {
       case 'hp': this.potionRegen.push({ hp: this.maxHp * 0.45 / 2, mp: 0, t: 2 }); break;
-      case 'mp': this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 }); break;
+      case 'mp':
+        if (this.classId === 'barbarian') this.potionRegen.push({ hp: 0, mp: 0, rage: 100 * 0.5 / 2, t: 2 });
+        else this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 });
+        break;
       case 'rejuv': this.heal(this.maxHp * 0.35); this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35); break;
       case 'fury':
         this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
@@ -681,6 +684,7 @@ export class Player extends Creature {
       const k = Math.min(dt, r.t);
       this.hp = Math.min(this.maxHp, this.hp + r.hp * k * healingMul);
       this.mana = Math.min(this.maxMana, this.mana + r.mp * k);
+      if (r.rage) this.gainRage(r.rage * k);
       r.t -= dt;
       if (r.t <= 0) this.potionRegen.splice(i, 1);
     }
