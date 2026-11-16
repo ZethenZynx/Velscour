@@ -257,7 +257,7 @@ export const UI = {
     if (color) d.style.color = color;
     this.logEl.appendChild(d);
     while (this.logEl.children.length > 6) this.logEl.firstChild.remove();
-    const sea = !!(G.world && G.world.seaRun), life = sea ? 4000 : 6200; // at sea the deck's left edge is where the boats come from
+    const sea = !!(G.world && G.world.seaRun), life = sea ? 8000 : 12400; // keep messages visible twice as long
     if (sea) { d.style.transition = 'opacity .6s'; setTimeout(() => { d.style.opacity = '0'; }, life - 600); }
     setTimeout(() => d.remove(), life);
   },
