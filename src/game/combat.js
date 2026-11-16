@@ -152,7 +152,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (el === 'arcane' || el === 'astral') res *= 0.5;
     dmg *= 1 - clamp(res, -1, 0.9);
     if (tgt.affixAdaptiveRes?.[el]) dmg *= 1 - Math.min(0.3, tgt.affixAdaptiveRes[el]);
-    if (tgt.affixLastStand && tgt.hp < tgt.maxHp * 0.35) dmg *= 0.7;
+    if (tgt.affixLastStand && tgt.hp < tgt.maxHp * 0.35) { dmg *= 0.7; if (!tgt.affixLastStandShown) { tgt.affixLastStandShown = true; addEffect(new Ring(tgt.x, tgt.y, 0.35, 0.9, 0.25, '#ff6262', 2)); floatText(tgt.x, tgt.y, 48, 'LAST STAND', '#ff6262', 9); } }
     if (tgt.dmgReduce) dmg *= 1 - clamp(tgt.dmgReduce, 0, 0.75);
     if (el === 'holy' && (tgt.undead || tgt.demon)) dmg *= 1.5;
     const C = tgt.curses;
@@ -214,13 +214,14 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (worldAffixes.has('adaptive_resistance')) {
       tgt.affixAdaptiveRes ||= {};
       tgt.affixAdaptiveRes[el] = Math.min(0.3, (tgt.affixAdaptiveRes[el] || 0) + 0.04);
+      if (!tgt.affixAdaptiveShown) { tgt.affixAdaptiveShown = true; addEffect(new Ring(tgt.x, tgt.y, 0.35, 0.8, 0.22, '#c080ff', 2)); floatText(tgt.x, tgt.y, 42, 'ADAPTING', '#c080ff', 9); }
     }
     if (worldAffixes.has('thorns') && el === 'phys' && actualDamage > 0 && owner && !owner.dead) {
       hit(tgt, owner, Math.min(actualDamage * 0.1, owner.maxHp * 0.04), 'phys', { dot: true, crit: false, noArc: true });
     }
     if (worldAffixes.has('shared_health') && !o.sharedTransfer && tgt.world) {
       const ally = tgt.world.query(tgt.x, tgt.y, 4, (m) => m !== tgt && m.team === 'enemy' && !m.dead)[0];
-      if (ally) hit(src, ally, actualDamage * 0.2, el, { dot: true, crit: false, sharedTransfer: true, silent: true });
+      if (ally) { addEffect(new Bolt(tgt.x, tgt.y, 24, ally.x, ally.y, 24, '#b080e8', 0.2, 2)); hit(src, ally, actualDamage * 0.2, el, { dot: true, crit: false, sharedTransfer: true, silent: true }); }
     }
     if (worldAffixes.has('blood_sacrifice') && owner?.isPlayer && !o.affixSacrifice) {
       owner.hp = Math.max(1, owner.hp - owner.maxHp * 0.005);
