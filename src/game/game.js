@@ -2247,15 +2247,17 @@ export const game = {
       const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
       const damage = p.maxHp * spec.damage;
       if (spec.area) {
-        w.addHazard(new Area({ src: null, team: 'enemy', x, y, r: spec.radius,
+        const createArea = () => w.addHazard(new Area({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius,
           dur: spec.duration || 4, tick: 0.7, dmg: [damage, damage], el, fx: spec.fx,
           mode: spec.cyclone ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true } }));
-      } else {
+          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
         w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius,
+          delay: spec.warning || 0.75, dmg: [0, 0], el, fx: spec.fx, o: { team: 'enemy' }, onImpact: createArea }));
+      } else {
+        w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius,
           delay: spec.warning || 1, dmg: [damage, damage], el, fx: spec.fx,
-          o: { ...(spec.o || {}), team: 'enemy', crit: false } }));
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
       }
     }
 
