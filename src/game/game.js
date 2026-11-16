@@ -1211,12 +1211,25 @@ export const game = {
         const w = G.world;
         LoadingScreen.setProgress(75, 'Loading inhabitants…');
         await yieldForLoadingPaint();
-        await loadArtFor([...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])], true).catch((e) => console.warn(e));
+        const levelArt = [...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])];
+        // Monster atlases have a pixel-art fallback. Keep the world paused through setup, then let it start while
+        // larger optional sheets finish downloading; detailed sprites replace the fallback as they arrive.
+        const artReady = loadArtFor(levelArt, true).catch((e) => { console.warn(e); });
         LoadingScreen.setProgress(90, 'Preparing the veil…');
         await yieldForLoadingPaint();
         await warmLevelArt(w);
         releaseLevelArt(biome);
         LoadingScreen.setProgress(100, 'Arriving…');
+        void artReady.then(async () => {
+          let active = G.world;
+          if (!active) return;
+          if (active !== w) {
+            const activeArt = [...active.creatures.map((m) => m.art), ...(active.looks ? active.looks.ids() : [])];
+            await loadArtFor(activeArt, true).catch((e) => console.warn(e));
+            active = G.world;
+          }
+          if (active && G.world === active) await warmLevelArt(active);
+        }).catch((e) => console.warn(e));
       } finally { await LoadingScreen.hide(); }
     }, 40);
   },
