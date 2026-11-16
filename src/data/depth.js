@@ -39,7 +39,7 @@ export const depthLevel = (d) => {
 };
 /** Every fifth depth but the last ends in a BOSS ROOM. */
 export const isRaidDepth = (d) => d % 5 === 0 && d !== FINAL_DEPTH;
-/** First depth of d's five-depth block (the block ends in its BOSS ROOM): where a death sends the hero back to. */
+/** First depth of d's five-depth block (the block ends in its BOSS ROOM), used to group Defiance and affix progression. */
 export const blockStart = (d) => Math.floor((Math.max(1, d) - 1) / 5) * 5 + 1;
 /**
  * Armor's divisor against an attacker of level `lvl`: armor / (armor + armorDiv) of physical damage is mitigated.
