@@ -1281,6 +1281,7 @@ export const game = {
     }
     if (world.dungeonAffixes.includes('golden')) world.goldMul = (world.goldMul || 1) * DUNGEON_AFFIX_CONFIG.golden.goldMultiplier;
     if (world.dungeonAffixes.includes('treasure_hoard')) world.goldMul = (world.goldMul || 1) * 1.25;
+    if (world.dungeonAffixes.includes('champions_bounty')) world.lootMul = (world.lootMul || 1) * 1.2;
     if (world.dungeonAffixes.includes('cursed_fortune')) world.lootMul = (world.lootMul || 1) * 1.2;
     if (world.dungeonAffixes.includes('legendary_hunt')) world.lootMul = (world.lootMul || 1) * 1.25;
     if (world.dungeonAffixes.includes('gemstone_infusion')) world.gemDropMul = 1.5;
