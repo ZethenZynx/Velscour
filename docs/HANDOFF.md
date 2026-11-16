@@ -1,5 +1,9 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - place Dark Forest landmark clearings on the route
+- Moved the camp, well, shrine, obelisk, swamp and web clearings from side spurs onto the main trail, with varied lateral offsets and spacing so they do not line up in repetitive opposing rows. Their props remain scenery, the route can pass through, and the four optional mazes stay off the trail.
+- Route chests avoid the clearings' props. `node tools/tests/dark_forest_compact.mjs` passes across 100 seeds, including reachability for spawns/objectives, landmarks and chests; syntax and whitespace checks pass. No GitHub update was made.
+
 ## November 16, 2026 - level-name shortcuts in Contact Velscour (local, not published)
 - Sending a campaign or named special-area display name from Contact Velscour now teleports directly to that map. Matching ignores letter case and punctuation; the level-gated Great Hunt is available through this testing shortcut. The Eternal Breach enters its next unlocked floor, and the Velscour's Throne shortcut enters at Depth 500.
 - `node tools/tests/velscour_contact_cheat.mjs`, JavaScript syntax checks and `git diff --check` pass. The game has not yet been manually checked in a browser. No GitHub update was made.
