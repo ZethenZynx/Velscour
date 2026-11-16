@@ -113,6 +113,43 @@ export const CRITTER_MAX = 3;
 export const CRITTER_ARROW_ENCOUNTERS = 7;
 // Let the entrance animation and spawn sparks finish before showing the first-time tutorial.
 const CRITTER_TUTORIAL_SPAWN_DELAY = 1;
+const CRITTER_TUTORIAL_POPUP = { root: null, title: null, reward: null, action: null };
+function showCritterTutorialPopup(cr) {
+  if (typeof document === 'undefined' || !document.body) return;
+  const popup = CRITTER_TUTORIAL_POPUP;
+  if (!popup.root) {
+    const root = document.createElement('div');
+    root.setAttribute('role', 'status');
+    root.setAttribute('aria-live', 'polite');
+    root.style.cssText = 'position:fixed;z-index:2147483647;display:none;box-sizing:border-box;width:min(250px,calc(100vw - 16px));min-height:68px;padding:0 10px 7px;border:1px solid #5c4424;border-radius:5px;background:linear-gradient(180deg,rgba(37,23,15,.98),rgba(14,9,7,.98));box-shadow:0 5px 18px #000c,inset 0 1px rgba(255,225,165,.06);color:#e9dcc4;text-align:center;pointer-events:none;user-select:none;font-family:"Alegreya Sans","Segoe UI",sans-serif;';
+    const title = document.createElement('div');
+    title.style.cssText = 'height:27px;margin:0 -9px 6px;border-bottom:1px solid #5c4424;background:linear-gradient(#2a1a10,#140c08);color:#e7c778;font:700 13px/27px Cinzel,Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    const reward = document.createElement('div');
+    reward.style.cssText = 'font:13px/17px "Alegreya Sans","Segoe UI",sans-serif;';
+    const action = document.createElement('div');
+    action.style.cssText = 'margin-top:2px;color:#d8ad53;font:700 12px/16px Cinzel,Georgia,serif;';
+    action.textContent = 'Click it to collect the reward!';
+    root.append(title, reward, action);
+    document.body.appendChild(root);
+    Object.assign(popup, { root, title, reward, action });
+  }
+  const title = cr.K.name.toLocaleUpperCase(), reward = `Carries ${rewardLabel(cr.reward)}.`;
+  if (popup.title.textContent !== title) popup.title.textContent = title;
+  if (popup.reward.textContent !== reward) popup.reward.textContent = reward;
+  popup.root.style.display = 'block';
+  const [sx, sy] = cr.screen(), rect = popup.root.getBoundingClientRect();
+  const left = Math.max(8, Math.min(window.innerWidth - rect.width - 8, sx - rect.width / 2));
+  let top = sy - rect.height - 22;
+  if (top < 8) top = sy + 22;
+  top = Math.max(8, Math.min(window.innerHeight - rect.height - 8, top));
+  popup.root.style.left = `${left}px`;
+  popup.root.style.top = `${top}px`;
+}
+function hideCritterTutorialPopup() {
+  const root = CRITTER_TUTORIAL_POPUP.root;
+  if (root) root.style.display = 'none';
+}
+
 
 // the baked models; until they load (or if they fail) the hand-drawn critters below stand in
 const ART = { img: null, meta: null };
@@ -203,7 +240,7 @@ class Critter {
     ctx.globalAlpha = fade * (0.35 + 0.25 * Math.sin(t * (late ? 14 : 5)));
     ctx.strokeStyle = K.color; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(px, py, 16, 8, 0, 0, TAU); ctx.stroke();
-    if (tutorialReady) this.drawTutorial(ctx, px, py);
+    if (tutorialReady) showCritterTutorialPopup(this);
     if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
     this.drawRewardBadge(ctx, px, py, fade);
@@ -289,33 +326,7 @@ class Critter {
     }
     ctx.restore();
   }
-  drawTutorial(ctx, px, py) {
-    const K = this.K;
-    const w = 250, h = 68, x = px - w / 2, y = py - this.z - 22 - h;
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
-    ctx.fillStyle = 'rgba(14, 9, 7, 0.96)';
-    ctx.strokeStyle = '#5c4424'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6); else ctx.rect(x, y, w, h);
-    ctx.fill(); ctx.stroke();
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-    const head = ctx.createLinearGradient(x, y, x, y + 26);
-    head.addColorStop(0, '#2a1a10'); head.addColorStop(1, '#140c08');
-    ctx.fillStyle = head; ctx.fillRect(x + 2, y + 2, w - 4, 25);
-    ctx.strokeStyle = '#5c4424'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x + 2, y + 27); ctx.lineTo(x + w - 2, y + 27); ctx.stroke();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#e7c778'; ctx.font = '700 13px Cinzel, Georgia, serif';
-    ctx.fillText(K.name.toLocaleUpperCase(), px, y + 15);
-    ctx.fillStyle = '#e9dcc4'; ctx.font = '13px "Alegreya Sans", "Segoe UI", sans-serif';
-    ctx.fillText(`Carries ${rewardLabel(this.reward)}.`, px, y + 43);
-    ctx.fillStyle = '#d8ad53'; ctx.font = '700 12px Cinzel, Georgia, serif';
-    ctx.fillText('Click it to collect the reward!', px, y + 59);
-    ctx.restore();
-  }
+
   /** The baked three.js model, wrapped in glows: a wide halo behind, a hot core over it and three orbiting lights. */
   /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
@@ -429,7 +440,7 @@ export function catchCritter(cr) {
   const p = G.player, c = G.char, K = cr.K, world = cr.world;
   if (!p || !c || !cr.alive) return;
   cr.caught = true;
-  if (G.critterTutorial === cr) G.critterTutorial = null;
+  if (G.critterTutorial === cr) { G.critterTutorial = null; hideCritterTutorialPopup(); }
   const tierScale = 1 + cr.tier * 0.075;
   let summary = rewardLabel(cr.reward), textColor = CRITTER_REWARDS.find((r) => r.id === cr.reward)?.color || K.color;
 
