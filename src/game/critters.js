@@ -243,7 +243,6 @@ class Critter {
     if (tutorialReady) showCritterTutorialPopup(this);
     if (K.artKey && artReady() && ART.meta.sets[K.artKey]) this.drawModel(ctx, px, py, fade);
     else this.drawSpeciesSprite(ctx, px, py, fade);
-    this.drawRewardBadge(ctx, px, py, fade);
     if (!this.gone && this.showArrow) { // a small red arrow bobbing over it, pointing down at it
       const tip = py - this.z - (K.fly ? 20 : 18) - Math.abs(Math.sin(t * 5)) * 6;
       ctx.globalAlpha = fade;
@@ -307,27 +306,7 @@ class Critter {
     ctx.restore();
   }
   drawRewardBadge(ctx, px, py, fade) {
-    // Resource rewards are identifiable from the tutorial; omit the floating plus badge to reduce clutter.
-    if (this.gone || this.reward === 'resource') return;
-    const reward = CRITTER_REWARDS.find((r) => r.id === this.reward) || CRITTER_REWARDS[0];
-    const x = px + 18, y = py - this.z - 31, r = 7 + Math.min(3, this.tier * 0.15);
-    ctx.save(); ctx.globalAlpha = fade;
-    ctx.fillStyle = 'rgba(17,10,7,0.94)'; ctx.strokeStyle = reward.color; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = reward.color; ctx.strokeStyle = reward.color; ctx.lineWidth = 1.7;
-    if (this.reward === 'gem') {
-      ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3.5, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3.5, y); ctx.closePath(); ctx.fill();
-    } else if (this.reward === 'gold' || this.reward === 'jackpot') {
-      ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 2, y); ctx.stroke();
-    } else {
-      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4); ctx.stroke(); }
-      ctx.beginPath(); ctx.arc(x, y, 1.5, 0, TAU); ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  /** The baked three.js model, wrapped in glows: a wide halo behind, a hot core over it and three orbiting lights. */
+    //lows: a wide halo behind, a hot core over it and three orbiting lights. */
   /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
     const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 1.3;
