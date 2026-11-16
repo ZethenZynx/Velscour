@@ -16,11 +16,11 @@ import { preloadBarFx } from '../gfx/artfx.js';
 import { SKILLS } from '../data/skills.js';
 import { setClassItems, setRingContext, SEAL_GAP } from '../data/items.js';
 import { BREACH_BIOME, BREACH_WALLS } from '../data/biomes.js';
-import { BIOMES, BETA_BIOMES, BIOME_BY_ID, TOWN_BIOME, ACT2_TOWN_BIOME, drawBiome, biomeChoices, takeBiome, mixPartner, recordBiomeVisit } from '../data/biomes.js';
+import { BIOMES, BETA_BIOMES, BIOME_BY_ID, TOWN_BIOME, ACT2_TOWN_BIOME, drawBiome, biomeChoices, biomesForDepth, takeBiome, mixPartner, recordBiomeVisit } from '../data/biomes.js';
 import { resolveLevelCheatName } from './velscourcheats.js';
 import { CLASSES } from '../data/classes.js';
 import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
-import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, ACTS } from '../data/depth.js';
+import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, isActFinaleDepth, ACTS } from '../data/depth.js';
 import { addDefiance, clearDefiance, defianceText, tickBlessing } from './defiance.js';
 import { setupHappenings, announceDungeonAffixes, happeningsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
@@ -257,7 +257,7 @@ async function warmLevelArt(w) {
 function releaseLevelArt(biome) {
   if (biome?.id !== 'castle' && !regionOf(biome)?.castleArt) releaseCastlePack(); // (a region drawn with its masonry keeps it)
   if (biome?.id !== 'castle' && biome?.id !== 'skyship') releaseCastle3D();
-  if (biome?.id !== 'sea_of_sand') releaseSeaOfSandPack(); // loadArtFor fetches it again for ss_ monsters elsewhere
+  if (biome?.id !== 'sea_of_sand' && biome?.id !== 'scorpion_king_pyramid') releaseSeaOfSandPack(); // loadArtFor fetches it again for ss_ monsters elsewhere
   if (!biome?.overworld && biome?.id !== 'town') releaseTownSheets();
 }
 
@@ -625,10 +625,12 @@ export const game = {
     return biome.id === 'dark_forest' ? 'Follow the main forest path to the Forest Guardian. Optional full-size labyrinths north and south of the path hold bonus treasure; defeat the guardian to open the exit.'
       : biome.id === 'castle' ? 'Find your way through the castle grounds and buildings to the throne room, where the Castle Guardian waits. Defeat the guardian to open the exit.'
       : biome.id === 'overworld' ? 'Explore the hamlet and defeat the Forsaken Guardian at its center to open the exit.'
-      : biome.id === 'sea_of_sand' ? 'Follow the cliff maze and clear every marked scenario area to open the exit.'
+      : biome.id === 'sea_of_sand' ? 'Cross the sands and obelisk trials, then defeat the guardian to open the exit. The Scorpion King pyramid is a separate destination.'
+      : biome.id === 'scorpion_king_pyramid' ? 'Descend through the Pyramid of the Scorpion King, defeat its guardians, and face the master in the burial chamber.'
+      : biome.id === 'throne' ? 'Cross the throne gauntlet and defeat its guardian. Velscour waits here only at Depth 500.'
       : biome.id === 'skyship' ? "Step out onto the heroes' airship. Hold the deck against the Air Pirates' boarding waves, their captains and their flagship; victory turns the gate into the exit."
       : biome.sea ? "Step out onto the Dawnwake, the Lampwardens' steam frigate. Hold her deck against the Black Tide's boarders, wave on wave, and their captain; victory opens the bell tower's door onward."
-      : biome.tower ? 'Climb the spiral stair to the roof. Three waves of bosses hold it, and then their master comes on an airship.'
+      : biome.tower ? 'Enter at the tower stairhead and descend the spiral steps. A guardian waits at the ground-floor landing; defeat it to open the exit.'
       : biome.cave ? 'Follow the passages and caverns to the underground lake. At the foot of its waterfall a passage climbs a long, spiralling shaft to the top of the falls, where its masters wait.'
       : biome.overworld ? 'Activate the scenario shrine and complete its trial to open the exit.'
       : 'Find the exit. It is sealed until its guardian is slain.';
@@ -690,8 +692,8 @@ export const game = {
         const sId = superbossForDepth(d);
         const sTpl = sId ? RAID_BOSSES.find((b) => b.id === sId) : null;
         const sName = sTpl ? `${sTpl.name}, ${sTpl.title}` : 'A Legendary Superboss';
-        tail = `<br><b style="color:#ff4020">${d % 100 === 0 ? 'ACT FINALE SUPERBOSS' : 'SUPERBOSS'}: ${escapeHtml(sName)} awaits.</b>`;
-      } else if (isRaidDepth(d)) {
+        tail = `<br><b style="color:#ff4020">${isActFinaleDepth(d) ? 'ACT FINALE SUPERBOSS' : 'SUPERBOSS'}: ${escapeHtml(sName)} awaits.</b>`;
+      } else if (isRaidDepth(d) && !(d === current && currentBiome.id === 'throne')) {
         tail = '<br><b style="color:#ff6030">A BOSS ROOM lies at the end of this depth.</b>';
       }
 
@@ -1050,7 +1052,7 @@ export const game = {
 
   /** The skull's "final boss": Velscour's throne at the hero's depth, the hero set down inside his arena. */
   async finalBoss(depth = null) {
-    await this.teleportToBiome(BIOME_BY_ID.throne, { depthOverride: depth });
+    await this.teleportToBiome(BIOME_BY_ID.throne, { depthOverride: depth, practiceFinalBoss: true });
     const w = G.world, p = G.player;
     if (!w || !w.velscour || !p) return;
     const [x, y] = w.map.nudge(22.5, 26.5, 0.4);
@@ -1061,7 +1063,7 @@ export const game = {
     UI.log(`<b style="color:#ff4020">Velscour answers.</b> ${w.practice ? `This is a practice fight at Depth ${w.depth}: no victory, no relic hoard, but every phase of the real one.` : 'This is the real thing.'}`, '#ffb0a0');
   },
 
-  async teleportToBiome(biome, { ignoreLevelGate = false, depthOverride = null } = {}) {
+  async teleportToBiome(biome, { ignoreLevelGate = false, depthOverride = null, practiceFinalBoss = false } = {}) {
     const c = G.char;
     if (!c || !biome) return;
     const need = regionNeeds(biome, c.level); // a region's level gate (game/regions.js)
@@ -1091,7 +1093,7 @@ export const game = {
       LoadingScreen.setProgress(30, `Summoning ${biome.name}…`);
       await this.loadLevelArt(biome, mix);
       LoadingScreen.setProgress(55, 'Forging realm…');
-      this.buildDungeon(depth, biome, mix);
+      this.buildDungeon(depth, biome, mix, false, { practiceFinalBoss });
       const w = G.world;
       LoadingScreen.setProgress(75, 'Awakening inhabitants…');
       await loadArtFor([...w.creatures.map((m) => m.art), ...(w.looks ? w.looks.ids() : [])], true).catch((e) => console.warn(e));
@@ -1155,6 +1157,7 @@ export const game = {
   // the art a level of this biome needs before it can be generated (the portal and Velscour's level select share it)
   loadLevelArt(biome, mix = null) {
     if (regionOf(biome)) { rollRegionVariant(regionOf(biome)); return regionOf(biome).load(biome); } // a new region and its variant (game/regions.js)
+    if (biome.id === 'scorpion_king_pyramid') return Promise.all([loadDunes3D(), loadSeaOfSandPack()]);
     if (biome.id === 'sea_of_sand') { // the flat cliff maze (0) or one of the ten dune variants with their pyramids (src/data/dunes.js), never the one seen last
       const c = G.char, kept = c?.seaOfSandRuns?.[c.depth], n = DUNE_VARIANTS.length + 1, last = c?.lastSand ?? -1;
       const k = Math.floor(Math.random() * (n - (last >= 0 ? 1 : 0)));
@@ -1200,7 +1203,7 @@ export const game = {
     }
     const isStarterDepth = depth === 1;
     if (isStarterDepth) c.nextBiome = 'catacombs';
-    else if (depth !== FINAL_DEPTH && (!c.nextBiome || c.nextBiome === 'throne' || regionNeeds(BIOME_BY_ID[c.nextBiome], c.level))) c.nextBiome = drawBiome(c, depth);
+    else if (depth !== FINAL_DEPTH && (!c.nextBiome || !biomesForDepth(depth).includes(c.nextBiome) || regionNeeds(BIOME_BY_ID[c.nextBiome], c.level))) c.nextBiome = drawBiome(c, depth);
     const biome = BIOME_BY_ID[depth === FINAL_DEPTH ? 'throne' : c.nextBiome] || BIOME_BY_ID.catacombs;
     const mix = mixPartner(biome); // a like-coloured biome whose tiles this level borrows, or null
     LoadingScreen.show({
@@ -1253,7 +1256,7 @@ export const game = {
     }, 40);
   },
 
-  buildDungeon(depth, biome, mix = null, isStarterDepth = false) {
+  buildDungeon(depth, biome, mix = null, isStarterDepth = false, { practiceFinalBoss = false } = {}) {
     const c = G.char;
     if (biome.tower && !tower3dReady()) { UI.log('Clouds hide the Serpentine Tower today (three.js could not be loaded).', '#a0a0a0'); biome = BIOME_BY_ID.overworld; }
     if (regionOf(biome) && regionOf(biome).ready && !regionOf(biome).ready()) { UI.log(`The way to ${biome.name} is closed today (its art could not be loaded).`, '#a0a0a0'); biome = BIOME_BY_ID.overworld; }
@@ -1276,8 +1279,9 @@ export const game = {
       : sea ? generateSeaship(depth, biome, seed, SEA_VARIANTS.find((q) => q.id === (G.seaNext || c.seaVariant))?.size)
       : biome.tower ? generateTower(depth, biome, seed, G.towerVariant)
       : biome.cave ? generateCaverns(depth, biome, seed, G.caveVariant ?? G.caveNext)
+      : biome.id === 'scorpion_king_pyramid' && dunes3dReady() ? generateDunes(depth, biome, seed, DUNE_VARIANTS.findIndex((v) => v.id === 'red'))
       : biome.id === 'sea_of_sand' && (G.sandVariant ?? G.sandNext) > 0 && dunes3dReady() ? generateDunes(depth, biome, seed, (G.sandVariant ?? G.sandNext) - 1)
-      : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed);
+      : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed, { practiceVelscour: practiceFinalBoss });
     if (isStarterDepth) {
       const [sx, sy] = gen.start;
       let [cx, cy] = [sx - 1.25, sy];
@@ -1385,7 +1389,7 @@ export const game = {
     // monsters
     const lvl = depthLevel(depth);
     world.unbound = biome.id === 'throne' && !!G.unboundNext; G.unboundNext = false; // Velscour Unbound (game/unbound.js)
-    world.practice = biome.id === 'throne' && depth !== FINAL_DEPTH && !world.unbound; // "final boss" from the skull: Velscour at this depth
+    world.practice = biome.id === 'throne' && depth !== FINAL_DEPTH && practiceFinalBoss && !world.unbound; // Skull-only Velscour practice; ordinary Throne depths use a regular guardian
     const heresies = heresyBegin(world, c); // the Heresies (game/heresies.js): twinned packs now, BOSS ROOM phases, the rest as monsters appear
     for (const s of heresySpawns(greedPacks(gen.spawns, greedOf(c)), heresies)) { // the Greed lever: bigger packs, champion leaders (game/greed.js)
       if (s.rank === 'raid') {
@@ -1584,7 +1588,7 @@ export const game = {
       world.unbound ? 'Velscour Unbound' :
       uFloor ? `Unbound Floor ${uFloor}` :
       `Depth ${depth}${depth > FINAL_DEPTH ? ' — Endless Torment' : ''}`,
-      (biome.overworld ? `${gen.variant ? gen.variant.name : biome.name}${world.overworldScenario?.title ? ` · ${world.overworldScenario.title}` : ''}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''),
+      (biome.overworld ? `${biome.id === 'scorpion_king_pyramid' ? biome.name : gen.variant ? gen.variant.name : biome.name}${world.overworldScenario?.title ? ` · ${world.overworldScenario.title}` : ''}` : gen.raid ? `${biome.name} · Boss Room` : biome.name) + (worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''),
       activeAffixNames
     );
     playMusic('wilds', { delay: 4 + Math.random() * 20 }); setAmbience(sky ? world.sky.v.amb : sea ? world.seaRun.variant.amb : reg?.amb || biome.id);
@@ -1592,15 +1596,16 @@ export const game = {
     if (uFloor) {
       UI.centerMsg(`UNBOUND FLOOR ${uFloor}`, isUnboundCheckpointFloor(uFloor) ? 'CHECKPOINT MILESTONE' : `Direct Descent · Hardmode Depth ${depth}`, 2.6);
     } else if (!sky && !sea) {
-      UI.centerMsg((gen.variant ? gen.variant.name : biome.name).toUpperCase(), `Depth ${depth}${kin ? ` · bleeding into the ${kin.name}` : ''}`, 2.4);
+      UI.centerMsg((biome.id === 'scorpion_king_pyramid' ? biome.name : gen.variant ? gen.variant.name : biome.name).toUpperCase(), `Depth ${depth}${kin ? ` · bleeding into the ${kin.name}` : ''}`, 2.4);
     }
     if (world.night) UI.log(world.raining ? 'Night has fallen, and the rain with it.' : 'Night has fallen over the land.', '#a0b0d0');
     if (reg) { const t = reg.intro && reg.intro(world, gen); if (t) UI.log(t, '#ffe2a0'); }
-    else if (gen.dunes) UI.log(`${gen.variant.name}: ${gen.variant.intro} ${gen.dunes.camps.length} waystones stand between you and its door.`, '#ffe2a0');
+    else if (gen.dunes && biome.id === 'scorpion_king_pyramid') UI.log(`${gen.variant.name}: Descend through the pyramid's sealed halls and defeat its guardians to reach the burial chamber.`, '#ffe2a0');
+    else if (gen.dunes) UI.log(`${gen.variant.name}: Cross the dunes and win all ${gen.dunes.camps.length} obelisk trials, then defeat the guardian at the plaza to open the exit.`, '#ffe2a0');
     else if (biome.id === 'sea_of_sand') UI.log(`Secure ${gen.scenarioCount} marked scenario area${gen.scenarioCount===1?'':'s'} to open the exit. Rewards improve with each clear.`, '#ffe2a0');
     else if (sky) UI.log(`${world.sky.v.name}: ${world.sky.v.story ? world.sky.v.blurb + ' Hold the deck.' : 'hold the deck against the Air Pirates\' boarding waves.'} ${world.sky.v.hazardText || ''}`, '#ffe2a0');
     else if (sea) UI.log(`${world.seaRun.variant.name}: ${world.seaRun.variant.blurb} Hold the Dawnwake's deck against the Black Tide's boarders.`, '#ffe2a0');
-    else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the stair; things wait on the floors above, and some will not wait.`, '#ffe2a0');
+    else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Descend the spiral stair; enemies wait along the way, and a guardian holds the ground-floor exit.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
     else if (forest) UI.log('The Dark Forest closes in. Follow the main path to its guardian, or explore the optional full-size labyrinths north and south for bonus treasure.', '#c8f0a0');
     else if (castle) UI.log('The Castle walls and buildings form the route ahead. Find your way through them to the throne room, where the Castle Guardian waits; defeating it opens the exit.', '#e8d0a8');
@@ -1672,7 +1677,8 @@ export const game = {
     }
     const ids = biomeChoices(c, next, 3);
     // a Town Commission waiting for a biome: its portal turns up among the three more often (game/commissions.js)
-    const want = wantedBiomes(c).filter((id) => BIOME_BY_ID[id] && !ids.includes(id) && id !== c.lastBiome);
+    const eligible = new Set(biomesForDepth(next));
+    const want = wantedBiomes(c).filter((id) => eligible.has(id) && BIOME_BY_ID[id] && !ids.includes(id) && id !== c.lastBiome);
     if (want.length && ids.length && next !== FINAL_DEPTH && Math.random() < 0.4) ids[ids.length - 1] = want[Math.floor(Math.random() * want.length)];
     const cards = ids.map((id) => {
       const biome = BIOME_BY_ID[id] || BIOME_BY_ID.catacombs;
@@ -1680,7 +1686,7 @@ export const game = {
       return { id: biome.id, biome, affixes: rollDungeonAffixesForDepth(next, Math.random, c && c.affixStartDepth || 1, heresiesOf(c).includes('omens')), comm: comm && LINE_BY_ID[comm.id].name }; // Black Omens: always one
     });
     let sel = 0;
-    const tag = (cd) => (cd.biome.id === 'throne' ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.id === 'dark_forest' ? 'Guardian · Optional labyrinths' : cd.biome.id === 'castle' ? 'Castle Guardian' : cd.biome.id === 'overworld' ? 'Forsaken Guardian' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
+    const tag = (cd) => (cd.biome.id === 'throne' ? (next === FINAL_DEPTH ? '<b style="color:#ff4020">Demon Lord Velscour awaits</b>' : 'Guardian') : cd.biome.id === 'skyship' ? 'Sky battle' : cd.biome.sea ? 'Sea battle' : cd.biome.id === 'dark_forest' ? 'Guardian · Optional labyrinths' : cd.biome.id === 'castle' ? 'Castle Guardian' : cd.biome.id === 'overworld' ? 'Forsaken Guardian' : cd.biome.overworld ? 'Overworld trial' : isRaidDepth(next) ? '<b style="color:#ff6030">BOSS ROOM</b>' : 'Dungeon');
     const affixLine = (cd) => `<span class="pc-affixes"><b>Affixes</b>${cd.affixes.length ? cd.affixes.map((id) => {
       const affix = DUNGEON_AFFIX_BY_ID[id];
       return affix ? `<span title="${escapeHtml(affix.description)}"><b>${escapeHtml(affix.name)}</b><small class="pc-affix-description">${escapeHtml(String(affix.description || '').trim())}</small></span>` : '';
@@ -1692,7 +1698,7 @@ export const game = {
       const cd = cards[sel];
       c.cleared[world.depth] = true;
       c.deepest = Math.max(c.deepest || 0, world.depth);
-      c.depth = next; c.nextBiome = cd.id; takeBiome(c, cd.id);
+      c.depth = next; c.nextBiome = cd.id; takeBiome(c, cd.id, next);
       c.dungeonAffixes = normalizeDungeonAffixIds(cd.affixes);
       c.nextAffixes = [...c.dungeonAffixes];
       this.autosave();

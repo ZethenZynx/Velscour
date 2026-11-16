@@ -34,7 +34,7 @@ const { BESTIARY, SUMMON_ART, FAMILIAR_ART, ART_BY_ID, artPool, rollLooks } = aw
 const { ARCH } = await import(new URL('../../src/data/enemies.js', import.meta.url));
 const { HEAVENLY_MONSTERS } = await import(new URL('../../src/data/heavenly.js', import.meta.url));
 if (HEAVENLY_MONSTERS.length !== 60 || new Set(HEAVENLY_MONSTERS.map(m=>m.id)).size !== 60) bad.push('Expected 60 distinct Heavenly monsters');
-const { BIOMES, drawBiome, mixPartner } = await import(new URL('../../src/data/biomes.js', import.meta.url));
+const { BIOMES, drawBiome, biomeChoices, biomesForDepth, mixPartner } = await import(new URL('../../src/data/biomes.js', import.meta.url));
 const { SET3 } = await import(new URL('../../src/data/bestiary3.js', import.meta.url));
 if (SET3.length !== 260) bad.push('Expected the 260 monsters of enemy set 3');
 if (BESTIARY.some((a) => a.sourceArt || a.id.startsWith('bn_'))) bad.push('Generated overlay monsters (bn_) must not return');
@@ -157,13 +157,21 @@ for (const id of Object.keys(packs)) {
 }
 const chests = JSON.parse(readFileSync(asset('props/chests.json')));
 for (const k of ['closed', 'open', 'rareClosed', 'rareOpen']) if (!chests[k]) bad.push(`chest art: no ${k}`);
-// shuffle bag: every biome but the throne, each once per cycle, never twice in a row
-const NB = BIOMES.length - 1, hero = { biomeBag: [] }, seq = [];
-for (let i = 0; i < NB * 4; i++) { const id = drawBiome(hero, 2); if (id === hero.lastBiome) bad.push('biome repeated back to back'); hero.lastBiome = id; seq.push(id); }
-if (new Set(seq.slice(0, NB)).size !== NB) bad.push(`first ${NB} biomes are not all different`);
+// Campaign destinations stay within their configured depth bands, and portal choices use the same pool.
+const hero = { biomeBag: [], lastBiome: null, overworldMisses: 0 };
+for (let depth = 1; depth <= 500; depth++) {
+  const eligible = biomesForDepth(depth), id = drawBiome(hero, depth), choices = biomeChoices(hero, depth);
+  if (!eligible.includes(id)) bad.push(`depth ${depth}: drew ineligible biome ${id}`);
+  if (!choices.length || choices.some((x) => !eligible.includes(x))) bad.push(`depth ${depth}: portal offered an ineligible biome`);
+  if (depth === 500 && (id !== 'throne' || choices.join() !== 'throne')) bad.push('Depth 500 must always be Velscour’s Throne');
+  hero.lastBiome = id;
+}
+if (!biomesForDepth(23).includes('overworld') || biomesForDepth(23).includes('dark_forest')) bad.push('Forsaken Wilds depth band is wrong');
+if (!biomesForDepth(24).includes('overworld') || !biomesForDepth(24).includes('dark_forest')) bad.push('shared depth 24 endpoint is wrong');
+if (!biomesForDepth(457).includes('throne') || biomesForDepth(457).includes('void')) bad.push('Throne depth band is wrong');
 let mixes = 0;
 for (let i = 0; i < 200; i++) { const m = mixPartner(BIOMES[0]); if (m) { mixes++; if (m.family !== BIOMES[0].family || m.id === BIOMES[0].id) bad.push('bad mix partner ' + m.id); } }
-console.log('monster art', BESTIARY.length, 'looks; biome order sample', seq.slice(0, 6).join(' '), '; mixed levels', mixes, '/ 200');
+console.log('monster art', BESTIARY.length, 'looks; depth-band biome checks passed; mixed levels', mixes, '/ 200');
 
 // ---- Velscour's level-up lines (src/data/taunts.js): 2,000 unique two-line taunts that fit the banner, a mood never twice in a row
 const { TAUNTS, CLASS_TAUNTS, MILESTONES, pickTaunt } = await import(new URL('../../src/data/taunts.js', import.meta.url));

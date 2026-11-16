@@ -536,6 +536,7 @@ export function generateDunes(depth, biome, seed, force = null) {
     return false;
   };
   const arrive = [rooms[0].cx, rooms[0].y0 + 2.5];
+  const pyramidOnly = biome.id === 'scorpion_king_pyramid';
   const cut = [doorStep, ...camps.map((c) => [c.x, c.y])].filter((p) => !reach(start, p)).map((p) => p.map((q) => q.toFixed(1)).join(','));
   const okTrek = !cut.length, okTomb = reach(arrive, [chamber.cx + 4, chamber.cy + 4]);
 
@@ -546,5 +547,10 @@ export function generateDunes(depth, biome, seed, force = null) {
     rooms, chamber, treasury, corridors, seals, arrive, torches, okTrek, okTomb, cut,
   };
   map.dunes = dv;
-  return { map, props, buildings: [], wallHangings: [], torches: [], spawns, chests, looks, start, exit: [chamber.cx, chamber.cy + 6], dunes: dv, variant: v, seed };
+  // The standalone Scorpion King pyramid reuses the existing tomb layout, but enters at its
+  // proper interior arrival point and does not populate the disconnected desert surface.
+  const levelSpawns = spawns.filter((s) => (s.zone === 'tomb') === pyramidOnly);
+  const levelChests = chests.filter((c) => (c.x >= OXI - 2) === pyramidOnly);
+  return { map, props, buildings: [], wallHangings: [], torches: [], spawns: levelSpawns, chests: levelChests, looks,
+    start: pyramidOnly ? arrive : start, exit: [chamber.cx, chamber.cy + 6], dunes: dv, variant: v, seed };
 }

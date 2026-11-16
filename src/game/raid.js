@@ -1,5 +1,5 @@
 import { hexToRgb } from '../core/util.js';
-// Raid bosses. Every fifth depth (but 100) ends in a BOSS ROOM (world/dungeon.js carveArena): a pillared arena
+// Raid bosses. Every fifth depth and every act finale ends in a BOSS ROOM (world/dungeon.js carveArena): a pillared arena
 // holding one of RAID_BOSSES, picked at random. A raid boss is huge and fights in 3 phases (4 from depth 25). Each
 // phase plays a randomly rolled rotation of its ability pool, now and then chaining a quick follow-up. At each
 // phase change it retreats to the middle of the arena behind warding crystals (it takes 90% less damage until they
@@ -17,7 +17,7 @@ import { ARCH } from '../data/enemies.js';
 import { ART_BY_ID } from '../data/bestiary.js';
 import { bodyR } from '../world/map.js';
 import { makeMonster, monsterBase, Monster } from './monster.js';
-import { riftHold, isSuperbossDepth } from '../data/depth.js';
+import { riftHold, isSuperbossDepth, isActFinaleDepth } from '../data/depth.js';
 import { dropLoot } from './loot.js';
 import { UI } from '../ui/ui.js';
 import { madnessReady } from './mayhem.js';
@@ -637,7 +637,7 @@ class Raid {
     if (!this.announced && dist(p.x, p.y, g.x, (g.y0 + g.y1 + 1) / 2) < 9) {
       this.announced = true;
       const isSuper = isSuperbossDepth(this.depth);
-      const label = isSuper ? (this.depth % 100 === 0 ? 'ACT FINALE SUPERBOSS' : 'SUPERBOSS') : 'BOSS ROOM';
+      const label = isSuper ? (isActFinaleDepth(this.depth) ? 'ACT FINALE SUPERBOSS' : 'SUPERBOSS') : 'BOSS ROOM';
       UI.centerMsg(label, `${this.tpl.name}, ${this.tpl.title}, awaits`, 3.2);
       UI.log(`<b style="color:#ff8050">${label}</b> ahead: ${this.tpl.name}. ${this.mods.map((k) => `<b>${RAID_MODS[k].name}</b> (${RAID_MODS[k].desc})`).join(', ')}.`, '#ffc0a0');
       sfx('roar', 0.6);
@@ -727,11 +727,12 @@ class Raid {
     const w = this.m.world, map = w.map, g = this.arena.gate;
     this.sealed = true;
     this.gateTiles = [];
-    for (let x = g.x - 2; x <= g.x - 1; x++) {
-      for (let y = g.y0; y <= g.y1; y++) {
+    const tiles = g.axis === 'horizontal'
+      ? Array.from({ length: g.x1 - g.x0 + 1 }, (_, i) => [g.x0 + i, g.y])
+      : Array.from({ length: (g.y1 - g.y0 + 1) * 2 }, (_, i) => [g.x - 2 + Math.floor(i / (g.y1 - g.y0 + 1)), g.y0 + (i % (g.y1 - g.y0 + 1))]);
+    for (const [x, y] of tiles) {
         const i = y * map.w + x;
         if (map.t[i] === 1 && !map.block[i]) { map.block[i] = 1; this.gateTiles.push(i); }
-      }
     }
     map.flowFrom = [-9, -9];
     w.addHazard((this.barrier = new Barrier(g, this.E)));
@@ -1286,7 +1287,10 @@ class Barrier {
   update(dt) { this.t += dt; if (chance(dt * 12)) sparkle(this.g.x - 0.1, rand(this.g.y0, this.g.y1 + 1), rand(5, 90), this.E.glow, 1, 0.1); return !this.dead; }
   draw(ctx) {
     const g = this.g, H = 100;
-    const ax = isoX(g.x, g.y0), ay = isoY(g.x, g.y0), bx = isoX(g.x, g.y1 + 1), by = isoY(g.x, g.y1 + 1);
+    const ax = g.axis === 'horizontal' ? isoX(g.x0, g.y) : isoX(g.x, g.y0);
+    const ay = g.axis === 'horizontal' ? isoY(g.x0, g.y) : isoY(g.x, g.y0);
+    const bx = g.axis === 'horizontal' ? isoX(g.x1 + 1, g.y) : isoX(g.x, g.y1 + 1);
+    const by = g.axis === 'horizontal' ? isoY(g.x1 + 1, g.y) : isoY(g.x, g.y1 + 1);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const grd = ctx.createLinearGradient(0, ay, 0, ay - H);

@@ -6,27 +6,29 @@ export const FINAL_DEPTH = 500;
 /** The hero level cap (game/player.js re-exports it): no item asks for more (data/items.js rollItem). */
 export const MAX_LEVEL = 100;
 
-/** The 5 Thematic Acts of the campaign descent */
+/** The 6 Thematic Acts of the campaign descent. Shared boundary depths belong to the act that starts there. */
 export const ACTS = [
-  { act: 1, name: 'The Fallen Realms', start: 1, end: 100, midBoss: 'valdric', finaleBoss: 'colossus' },
-  { act: 2, name: 'The Scorched Wastes', start: 101, end: 200, midBoss: 'ambrecoil', finaleBoss: 'sekhmun' },
-  { act: 3, name: 'The Frozen Peaks', start: 201, end: 300, midBoss: 'kaela', finaleBoss: 'hollowmere' },
-  { act: 4, name: 'The Empyrean Heights', start: 301, end: 400, midBoss: 'ophaniel', finaleBoss: 'aurion' },
-  { act: 5, name: 'The Infernal Dominion', start: 401, end: 500, midBoss: 'kragmaul', finaleBoss: 'velscour' },
+  { act: 1, name: 'The Fallen Realms', start: 1, end: 95, finaleDepth: 96, midBoss: 'valdric', finaleBoss: 'colossus' },
+  { act: 2, name: 'The Scorched Wastes', start: 96, end: 191, finaleDepth: 192, midBoss: 'ambrecoil', finaleBoss: 'sekhmun' },
+  { act: 3, name: 'The Frozen Peaks', start: 192, end: 287, finaleDepth: 288, midBoss: 'kaela', finaleBoss: 'hollowmere' },
+  { act: 4, name: 'The Empyrean Heights', start: 288, end: 359, finaleDepth: 360, midBoss: 'ophaniel', finaleBoss: 'aurion' },
+  { act: 5, name: 'The Infernal Dominion', start: 360, end: 455, finaleDepth: 456, finaleBoss: 'kragmaul' },
+  { act: 6, name: "Velscour's Throne", start: 456, end: 500, finaleDepth: 500, finaleBoss: 'velscour' },
 ];
 
 export const getActForDepth = (d) => ACTS.find((a) => d >= a.start && d <= a.end) || ACTS[0];
+export const isActFinaleDepth = (d) => ACTS.some((a) => a.finaleDepth === d);
 
 export const SUPERBOSS_DEPTHS = {
   50: 'valdric',
-  100: 'colossus',
+  96: 'colossus',
   150: 'ambrecoil',
-  200: 'sekhmun',
+  192: 'sekhmun',
   250: 'kaela',
-  300: 'hollowmere',
+  288: 'hollowmere',
   350: 'ophaniel',
-  400: 'aurion',
-  450: 'kragmaul',
+  360: 'aurion',
+  456: 'kragmaul',
 };
 
 export const isSuperbossDepth = (d) => !!SUPERBOSS_DEPTHS[d] || d === FINAL_DEPTH;
@@ -37,8 +39,8 @@ export const depthLevel = (d) => {
   if (d <= FINAL_DEPTH) return Math.min(MAX_LEVEL, Math.round(30 + 70 * Math.pow((d - 30) / (FINAL_DEPTH - 30), 0.85)));
   return Math.min(120, MAX_LEVEL + Math.floor((d - FINAL_DEPTH) / 25));
 };
-/** Every fifth depth but the last ends in a BOSS ROOM. */
-export const isRaidDepth = (d) => d % 5 === 0 && d !== FINAL_DEPTH;
+/** Every fifth depth, plus act finales, ends in a BOSS ROOM (Depth 500 is Velscour's throne). */
+export const isRaidDepth = (d) => (d % 5 === 0 || isActFinaleDepth(d)) && d !== FINAL_DEPTH;
 /** First depth of d's five-depth block (the block ends in its BOSS ROOM), used to group Defiance and affix progression. */
 export const blockStart = (d) => Math.floor((Math.max(1, d) - 1) / 5) * 5 + 1;
 /**

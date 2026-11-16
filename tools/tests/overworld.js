@@ -30,7 +30,7 @@ const { openGame, report } = require('./harness');
     await shot('overworld_wide_layout');
     const stats=await page.evaluate(async()=>{
       const {G}=window.VELSCOUR;
-      const {BIOME_BY_ID,drawBiome,recordBiomeVisit}=await import('/src/data/biomes.js');
+      const {BIOME_BY_ID,drawBiome,biomesForDepth,recordBiomeVisit}=await import('/src/data/biomes.js');
       const {generateOverworld}=await import('/src/world/overworld.js');
       const {createOverworldScenario,SCENARIOS,WILD_SCENARIOS}=await import('/src/game/overworld.js');
       const {World}=await import('/src/game/world.js');
@@ -67,7 +67,7 @@ const { openGame, report } = require('./harness');
         let count=0;
         for(let d=1;d<=100;d++){
           const biomeId=drawBiome(hero,d),pick=BIOME_BY_ID[biomeId];
-          if(count>=3&&!pick.overworld)errors.push('missed forced visit at '+d);
+          if(count>=3&&biomesForDepth(d).some(id=>BIOME_BY_ID[id]?.overworld)&&!pick.overworld)errors.push('missed forced visit at '+d);
           if(biomeId===hero.lastBiome)errors.push('back-to-back biome repeat');
           recordBiomeVisit(hero,pick,d);
           count=pick.overworld?0:count+1;

@@ -100,5 +100,12 @@ for (const id of ids) {
   fs.writeFileSync(path.join(OUT, `dunes_map_${id}.png`), png(W * PX, H * PX, img));
   console.log(`${id.padEnd(9)} ${dv.E} + tomb ${dv.IS}: grid ${W}x${H}, camps ${dv.camps.length}, oases ${dv.oases.length}, rooms ${dv.rooms.filter((r) => r.room).length}, seals ${dv.seals.length}, depth ${(dv.rooms[0].h - dv.chamber.h).toFixed(1)} tiles, props ${last.props.length}, spawns ${last.spawns.length}, torches ${dv.torches.length}, worst steps ${worst}, ${Math.round(ms)} ms`);
 }
+const pyramidBiome = BIOME_BY_ID.scorpion_king_pyramid;
+const pyramid = generateDunes(12, pyramidBiome, 24681357, DUNE_VARIANTS.findIndex((v) => v.id === 'red'));
+if (!pyramidBiome || pyramid.variant.id !== 'red') fail('the standalone pyramid did not force the Scorpion King variant');
+if (!pyramid.dunes.inside(pyramid.start[0]) || !pyramid.map.walkable(...pyramid.start)) fail('the standalone pyramid does not start at a walkable interior arrival point');
+if (!pyramid.spawns.length || pyramid.spawns.some((s) => s.zone !== 'tomb')) fail('the standalone pyramid contains outdoor spawns or no tomb spawns');
+if (!pyramid.chests.length || pyramid.chests.some((c) => c.x < pyramid.dunes.OXI - 2)) fail('the standalone pyramid contains outdoor chests or no tomb chests');
+console.log(`Scorpion King pyramid starts inside ${pyramid.variant.name}; ${pyramid.spawns.length} tomb spawns and ${pyramid.chests.length} tomb chests`);
 function v_(id) { return DUNE_VARIANTS.find((v) => v.id === id); }
 console.log(process.exitCode ? 'DUNES MAP FAILED' : 'DUNES MAP OK');

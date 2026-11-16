@@ -13,7 +13,7 @@ const {openGame,report,OUT_DIR}=require('./harness');
       document.querySelectorAll('.screen').forEach(s=>s.remove());
       G.ui.modalCount=0;G.godMode=true;
       const {HEAVENLY_MONSTERS,HEAVENLY_FAMILIES}=await import('/src/data/heavenly.js');
-      const {BIOME_BY_ID,drawBiome,recordBiomeVisit}=await import('/src/data/biomes.js');
+      const {BIOME_BY_ID,drawBiome,biomesForDepth,recordBiomeVisit}=await import('/src/data/biomes.js');
       const {rollLooks,ART_BY_ID}=await import('/src/data/bestiary.js');
       const {loadBiomeArt,A,biomeTileSet}=await import('/src/core/assets.js');
       const {enemyImage}=await import('/src/core/enemyart.js');
@@ -77,9 +77,9 @@ const {openGame,report,OUT_DIR}=require('./harness');
       let hasHeaven=false;
       for(let run=0;run<50;run++){
         let c={biomeBag:[],lastBiome:null,overworldMisses:0};
-        for(let depth=1;depth<=80;depth++){
+        for(let depth=1;depth<=360;depth++){
           const selected=drawBiome(c,depth);
-          if(c.overworldMisses>=3&&!BIOME_BY_ID[selected]?.overworld)issues.push('Missed forced overworld');
+          if(c.overworldMisses>=3&&biomesForDepth(depth).some(id=>BIOME_BY_ID[id]?.overworld)&&!BIOME_BY_ID[selected]?.overworld)issues.push('Missed forced overworld');
           if(selected==='heavenly')hasHeaven=true;
           recordBiomeVisit(c,BIOME_BY_ID[selected],depth);c.lastBiome=selected;
         }

@@ -39,7 +39,7 @@ const place = (page, x, y, clear = 10) => page.evaluate(({ x, y, clear }) => {
     const draw = await page.evaluate(async () => {
       const { drawBiome, OVERWORLD_BIOME_IDS } = await import('/src/data/biomes.js');
       const c = { biomeBag: [], overworldMisses: 0 }; let n = 0;
-      for (let i = 0; i < 4000; i++) { c.overworldMisses = i % 4; const id = drawBiome(c, 10 + (i % 30)); if (id === 'depths_edge') n++; c.lastBiome = id; }
+      for (let i = 0; i < 4000; i++) { c.overworldMisses = i % 4; const id = drawBiome(c, 216 + (i % 25)); if (id === 'depths_edge') n++; c.lastBiome = id; }
       return { drawn: n, overworld: OVERWORLD_BIOME_IDS.includes('depths_edge') };
     });
     console.log('draw', JSON.stringify(draw));

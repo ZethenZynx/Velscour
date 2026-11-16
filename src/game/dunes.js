@@ -3,9 +3,8 @@
 // stands behind higher ground, and keeps creatures, props and the mouse to the region the hero is in (the dunes, or the
 // tomb inside the pyramid; they share screen space). It directs the level:
 //  - the trek: a checkpoint (camp) at each waystone along the caravan route, each its own fight (ENCOUNTERS);
-//  - the door: the pyramid's door is sealed by a slab until every camp is won; it sinks, and the party walks in;
-//  - the tomb: room after room, each a step down, its way on sealed by a slab until its fight is won; a boss halfway;
-//  - the burial chamber: the pyramid's master rises from the sarcophagus; its fall opens a portal there.
+//  - the surface: each obelisk waystone is a fight; after the last, a plaza guardian opens the surface exit;
+//  - the separate pyramid level: room after room, each a step down, with sealed ways and a burial-chamber master.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { HUD } from '../ui/hud.js';
@@ -58,9 +57,10 @@ export function useDunes(world) {
 
 export function createDuneRun(world, gen, biome, onSuccess) {
   const dv = gen.dunes, v = gen.variant, map = world.map, depth = world.depth || 1, lvl = depthLevel(depth), W = map.w, H = map.h;
+  const pyramidOnly = biome.id === 'scorpion_king_pyramid';
   world.ambushT = Infinity;   // the dunes direct their own fights
   const exit = world.portals.find((q) => q.type === 'exit');
-  if (exit) { exit.x = exit.y = -100; }   // the portal opens in the burial chamber when its master falls
+  if (exit) { exit.x = exit.y = -100; }   // each route places its exit only after its guardian falls
   const floorLo = map.minLevel / (VZ / 4) - 1.5, floorHi = map.maxLevel / (VZ / 4) + 8;
   const surfAt = (x, y) => { const i = map.tileIdx(x, y); return map.t[i] ? null : Number.isNaN(dv.lvl[i]) ? null : dv.lvl[i]; };
   const groundT = (x, y) => { const s = surfAt(x, y), h = dv.H2(x, y); return s != null && s > h ? s : h; };
@@ -178,6 +178,7 @@ export function createDuneRun(world, gen, biome, onSuccess) {
   const order = (list, n) => { const s = shuffle(list.slice()), out = []; for (let i = 0; i < n; i++) out.push(s[i % s.length]); return out; };
   const campKinds = order(CAMP_KINDS, dv.camps.length);
   const camps = dv.camps.map((c, i) => ({ kind: campKinds[i], label: ENCOUNTERS[campKinds[i]][0], name: c.name, x: c.x, y: c.y, r: c.r, h: c.h, marker: c.marker, i, state: 'idle', t: 0, foes: [], objs: [], marks: [], wave: 0, got: 0, camp: true }));
+  if (pyramidOnly) camps.forEach((e) => { e.state = 'done'; });
   const roomKinds = order(ROOM_KINDS, 5);
   const rooms = dv.rooms.map((rm) => {
     if (!rm.room) return null;
@@ -186,6 +187,11 @@ export function createDuneRun(world, gen, biome, onSuccess) {
   }).filter(Boolean);
   const chamber = dv.chamber;
   for (const s of dv.seals) for (const i of s.tiles) map.block[i] = 1;   // every way on is sealed until its room is won
+  if (pyramidOnly) {
+    openSeal(0);
+    const entranceSeal = dv.seals.find((s) => s.k === 0);
+    if (entranceSeal) for (const i of entranceSeal.tiles) map.block[i] = 0;
+  }
   if (world.looks) { const ids = world.looks.ids.bind(world.looks); world.looks.ids = () => [...ids(), 'va_crystal', 'eb_m105', 'gold_chalice']; }   // the things to break
   const inRoom = (e, x, y) => x >= e.rm.x0 - 0.2 && x <= e.rm.x1 + 1.2 && y >= e.rm.y0 - 0.2 && y <= e.rm.y1 + 1.2;
   const deepIn = (e, x, y) => x >= e.rm.x0 + 1 && x < e.rm.x1 && y >= e.rm.y0 + 1 && y < e.rm.y1;   // a tile in: clear of the slab's tiles
@@ -195,30 +201,31 @@ export function createDuneRun(world, gen, biome, onSuccess) {
 
   const run = {
     id: 'sea_of_sand_dunes', type: 'dunes', completed: false, failed: false, active: true, markers: [], route: [], stage: 0, escort: null, routeIndex: 0,
-    shrine: { x: dv.start[0], y: dv.start[1], reach: 2, label: v.pyramid.name, use() {} },
-    variant: v, phase: 'trek', camps, rooms, top: null, fade: null, doorOpen: false, warnT: 0, nextDoorMsg: 0,
+    shrine: { x: gen.start[0], y: gen.start[1], reach: 2, label: pyramidOnly ? v.pyramid.name : biome.name, use() {} },
+    variant: v, phase: pyramidOnly ? 'tomb' : 'trek', camps, rooms, top: null, surfaceBoss: null, warnT: 0,
     get campsDone() { return camps.filter((e) => e.state === 'done').length; },
     get roomsDone() { return rooms.filter((e) => e.kind && e.state === 'done').length; },
     get current() { return [...camps, ...rooms].find((e) => e.state === 'active') || null; },
     get title() {
-      if (run.completed) return 'The Tomb Is Won';
+      if (run.completed) return pyramidOnly ? 'The Tomb Is Won' : 'The Sea of Sand Is Won';
       const c = run.current;
       if (c) return c.name + ' — ' + ENCOUNTERS[c.kind][0];
-      return run.phase === 'trek' ? 'Win the Waystones' : run.phase === 'door' ? 'The Pyramid\'s Door' : run.phase === 'chamber' ? 'The Burial Chamber' : 'Down Into the Tomb';
+      return run.phase === 'trek' ? 'Win the Waystones' : run.phase === 'surface_boss' ? 'The Sand Guardian' : run.phase === 'chamber' ? 'The Burial Chamber' : 'Down Into the Tomb';
     },
     get description() {
-      if (run.completed) return 'A portal burns in the burial chamber. The way on is open.';
+      if (run.completed) return pyramidOnly ? 'A portal burns in the burial chamber. The way on is open.' : 'The Sea of Sand guardian is slain. A portal has opened across the dunes.';
       const c = run.current;
       if (c) return ENCOUNTERS[c.kind][1];
-      if (run.phase === 'trek') return `Win every waystone across the dunes (${run.campsDone} of ${camps.length}); then the door of ${v.pyramid.name} opens.`;
-      if (run.phase === 'door') return `The door of ${v.pyramid.name} stands open. Go in.`;
+      if (run.phase === 'trek') return `Win every waystone across the dunes (${run.campsDone} of ${camps.length}); then defeat the guardian to open the exit.`;
+      if (run.phase === 'surface_boss') return 'Defeat the guardian in the plaza to open the exit portal.';
       if (run.phase === 'chamber') return run.top && run.top.boss ? 'The master of the pyramid has risen.' : 'The burial chamber lies ahead, at the heart of the pyramid.';
       return `Go down through the tomb, room by room (${run.roomsDone} of ${rooms.filter((e) => e.kind).length} won), to the burial chamber.`;
     },
     get hud() {
       const c = run.current, enc = c && ENCOUNTERS[c.kind];
-      const total = cr.inside ? rooms.filter((e) => e.kind).length + 1 : camps.length, beat = cr.inside ? Math.min(total, run.roomsDone + 1) : Math.min(total, run.campsDone + 1);
-      let progress = c ? progressOf(c) : run.phase === 'trek' ? `Waystones ${run.campsDone}/${camps.length}` : run.phase === 'door' ? 'The door is open' : run.completed ? 'The way on is open' : `Rooms ${run.roomsDone}/${total - 1}`;
+      const total = pyramidOnly ? rooms.filter((e) => e.kind).length + 1 : camps.length + 1;
+      const beat = pyramidOnly ? Math.min(total, run.roomsDone + 1) : Math.min(total, run.campsDone + 1);
+      let progress = c ? progressOf(c) : run.phase === 'trek' ? `Waystones ${run.campsDone}/${camps.length}` : run.phase === 'surface_boss' ? (run.surfaceBoss?.dead ? 'Guardian defeated' : 'Defeat the guardian') : run.completed ? 'The way on is open' : `Rooms ${run.roomsDone}/${total - 1}`;
       const timer = c && c.limit ? `${Math.max(0, Math.ceil(c.limit - c.t))}s` : '';
       return { title: enc ? c.name : run.title, beat, total, timer, progress };
     },
@@ -247,7 +254,7 @@ export function createDuneRun(world, gen, biome, onSuccess) {
         return f ? { x: f.x, y: f.y, reach: 1.5 } : { x: c.x, y: c.y, reach: Math.max(1.5, c.r * 0.4) };
       }
       if (run.phase === 'trek') { const e = camps.find((q) => q.state !== 'done'); return e ? { x: e.x, y: e.y, reach: 2.5 } : null; }
-      if (run.phase === 'door') return { x: dv.pyramid.doorStep[0], y: dv.pyramid.doorStep[1], reach: 0.8, use: () => toTomb() };
+      if (run.phase === 'surface_boss') { const b = run.surfaceBoss; return b && !b.dead ? { x: b.x, y: b.y, reach: 1.5 } : null; }
       if (run.phase === 'tomb') {
         const e = rooms.find((q) => q.kind && q.state !== 'done');
         if (e) return { x: e.x, y: e.y, reach: 2 };
@@ -261,23 +268,18 @@ export function createDuneRun(world, gen, biome, onSuccess) {
       if (!p) return;
       cr.frame(dt);
       tickDunes3D(dt, cr);
-      if (run.fade) tickFade(dt);
       if (p.dead) return;
       for (const e of [...camps, ...rooms]) if (e.state === 'active') tickEnc(e, dt);
       if (run.phase === 'trek') {
         for (const e of camps) if (e.state === 'idle' && Math.hypot(p.x - e.x, p.y - e.y) < e.r - 1) startEnc(e);
-        if (run.campsDone === camps.length) openDoor();
-        else if (Math.hypot(p.x - dv.pyramid.doorStep[0], p.y - dv.pyramid.doorStep[1]) < 3 && world.time > run.nextDoorMsg) {
-          run.nextDoorMsg = world.time + 6;
-          floatText(p.x, p.y, 90, `Sealed — ${camps.length - run.campsDone} waystones still stand against it`, '#ffd080', 13, { life: 2.2 });
-        }
-      } else if (run.phase === 'door') {
-        if (Math.hypot(p.x - dv.pyramid.doorStep[0], p.y - dv.pyramid.doorStep[1]) < 1.3) toTomb();
+        if (run.campsDone === camps.length) startSurfaceBoss();
       } else if (run.phase === 'tomb') {
         for (const e of rooms) if (e.state === 'idle' && deepIn(e, p.x, p.y)) startEnc(e);
         const reg = dv.reg[map.tileIdx(p.x, p.y)];
         if (reg === DREG.chamber) startChamber();
         if (!run.treasury && p.x >= dv.treasury.x0 && p.x <= dv.treasury.x1 + 1 && p.y >= dv.treasury.y0 && p.y <= dv.treasury.y1 + 1) treasury();
+      } else if (run.phase === 'surface_boss') {
+        if (run.surfaceBoss?.dead && !run.completed) winSurface();
       } else if (run.phase === 'chamber') chamberTick(dt);
       dressing(dt);
     },
@@ -562,46 +564,20 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     sfx('wind', 0.6);
   }
 
-  // ---------------------------------------------------------------- the door and the tomb
-  function openDoor() {
-    if (run.doorOpen) return;
-    run.doorOpen = true; run.phase = 'door';
-    openSeal('door');
-    const [dx, dy] = dv.pyramid.doorStep;
-    UI.centerMsg(v.pyramid.name.toUpperCase(), 'The last waystone falls silent. The door slab sinks into the sand.', 3.4);
-    UI.log(`Every waystone is won. The door of <b style="color:#ffd060">${v.pyramid.name}</b> opens.`, '#ffe2a0');
-    cr.look = [dx, dy, dv.pyramid.top * 0.3]; cr.lookT = cr.lookDur = 3.2;
-    sfx('gate', 0.8); camera.shake(4);
-    area();
+  // ---------------------------------------------------------------- the surface guardian and the tomb
+  function startSurfaceBoss() {
+    if (run.phase !== 'trek') return;
+    run.phase = 'surface_boss';
+    UI.centerMsg('THE LAST WAYSTONE FALLS SILENT', 'A guardian rises in the plaza', 3.2);
+    UI.log('The obelisk trials are complete. Defeat the guardian at the pyramid plaza to open the exit.', '#ffe2a0');
+    const x0 = dv.pyramid.plaza.x0, y0 = dv.pyramid.plaza.y0, x1 = dv.pyramid.plaza.x1, y1 = dv.pyramid.plaza.y1;
+    const arena = { cx: dv.pyramid.plazaC[0], cy: dv.pyramid.plazaC[1], x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, gate: { x: -40, y0: -40, y1: -39 } };
+    const [artId, tplId, title] = v.bosses[1] || v.bosses[0];
+    run.surfaceBoss = boss(arena, artId, tplId, title, 1, 2.1);
+    [run.surfaceBoss.x, run.surfaceBoss.y] = map.randomNear(arena.cx, arena.cy + 1.5, 2);
+    area(); UI.refresh();
   }
-  function fadeTo(mid) { run.fade = { t: 0, mid, done: false }; }
-  function tickFade(dt) { const f = run.fade; f.t += dt; if (!f.done && f.t >= 0.45) { f.done = true; f.mid(); } if (f.t >= 1.2) run.fade = null; }
-  world.addHazard({ keep: true, draw(ctx) {
-    const f = run.fade;
-    if (!f) return;
-    const a = f.t < 0.45 ? f.t / 0.45 : 1 - (f.t - 0.45) / 0.75, vr = camera.viewRect(200);
-    ctx.fillStyle = `rgba(0,0,0,${clamp(a, 0, 1)})`; ctx.fillRect(vr.x0, vr.y0, vr.x1 - vr.x0, vr.y1 - vr.y0);
-  }, update() { return world === G.world; } });
-  function toTomb() {
-    if (run.phase !== 'door' || run.fade) return;
-    sfx('door', 0.7);
-    fadeTo(() => {
-      const p = world.player, pets = world.creatures.filter((c) => c !== p && c.team === 'player' && !c.dead);
-      [p.x, p.y] = dv.arrive; p.path = null; p.moveTarget = null; p.attackTarget = null; p.interact = null; p.lootTarget = null;
-      for (const s of pets) { [s.x, s.y] = map.randomNear(p.x, p.y, 1.6); s.aggro = null; s.foe = null; s.nav = null; s.fol = null; }
-      for (const c of world.creatures) if (c.team === 'enemy' && !tomb(c.x)) { c.awake = false; c.aggro = null; c.hunter = false; }
-      world.hazards = world.hazards.filter((h) => h.keep || !h.o);
-      map.flowFrom = [-9, -9];
-      run.phase = 'tomb';
-      cr.frame(0, true); lighting();
-      camera.follow(p.x, p.y, 0, true);
-      map.reveal(p.x, p.y, 16);
-      openSeal(0); const s0 = dv.seals.find((s) => s.k === 0); if (s0) for (const i of s0.tiles) map.block[i] = 0;
-      UI.centerMsg(v.pyramid.name.toUpperCase(), 'Inside. The way goes down, and round, and down.', 3.2);
-      UI.log(`The door closes behind you. Somewhere far below, at the heart of the pyramid, the burial chamber waits.`, '#ffe2a0');
-      area();
-    });
-  }
+
   function treasury() {
     run.treasury = true;
     const T = dv.treasury;
@@ -669,7 +645,19 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     area();
     UI.refresh();
   }
-  const area = () => HUD.setArea(`Depth ${depth}`, `${v.name} · ${run.title}`);
+  function winSurface() {
+    run.completed = true; run.phase = 'done';
+    world.raid = null; world.boss = null;
+    UI.centerMsg('THE SEA OF SAND IS WON', 'A portal opens beside the plaza', 3.5);
+    sfx('gate');
+    let [x, y] = [dv.pyramid.plaza.x0 + 3, dv.pyramid.plazaC[1] + 2];
+    if (!map.walkable(x, y)) [x, y] = map.randomNear(dv.pyramid.plazaC[0], dv.pyramid.plazaC[1], 5);
+    if (exit) { exit.x = x; exit.y = y; addEffect(new Column(x, y, '#40a0ff', 1.2, 40, 400)); burst(x, y, 30, 'arcane', 30, 5); }
+    const [cx, cy] = map.randomNear(dv.pyramid.plazaC[0], dv.pyramid.plazaC[1], 4);
+    world.chests.push({ x: cx, y: cy, opened: false, reach: 1.3, rich: true, use() { if (this.opened) return; this.opened = true; sfx('chest'); sfx('gold'); dropChest(world, this, depth); sparkle(this.x, this.y, 20, '#ffd060', 20, 0.5); } });
+    onSuccess(); area(); UI.refresh();
+  }
+  const area = () => HUD.setArea(`Depth ${depth}`, `${pyramidOnly ? biome.name : v.name} · ${run.title}`);
 
   // ---------------------------------------------------------------- light, dust, sound
   let ambKey = '';

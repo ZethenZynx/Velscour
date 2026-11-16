@@ -1,9 +1,9 @@
-// THE SERPENTINE TOWER (docs/SERPENTINE_TOWER.md): a wide stone tower climbed by a spiral stair that hugs its wall,
+// THE SERPENTINE TOWER (docs/SERPENTINE_TOWER.md): a wide stone tower traversed down a spiral stair that hugs its wall,
 // drawn live in three.js (gfx/tower3d.js). The game plays on the stair unrolled: a strip `w` tiles wide whose -x end
 // is the top, so the climb runs up-left on screen (+y is the inner, railing side). game/tower.js warps every tile
 // position onto the helix (view.js setWarp) and turns the camera with the hero, so the tower turns beneath him. The
-// roof is a disk of its own at the -x end of the same grid, reached through the stairhead door; nothing joins the two
-// in the grid. Lengths and heights are tiles; a tile of height is VZ world px. Five variants (TOWER_VARIANTS).
+// hero enters at the upper stairhead and descends to a guardian at the lower landing. Lengths and heights are tiles;
+// a tile of height is VZ world px. Five variants (TOWER_VARIANTS).
 import { TileMap } from './map.js';
 import { RNG } from '../core/util.js';
 import { HW } from '../core/view.js';
@@ -128,7 +128,7 @@ export function generateTower(depth, biome, seed, force = null) {
     for (const a of [0, Math.PI / 2, Math.PI]) if (Math.hypot(dx - Math.cos(a) * g.RT * 0.68, dy - Math.sin(a) * g.RT * 0.68) < 1.0) map.block[i] = 1;   // braziers
   }
   map.tower = g;
-  const start = [g.XB - 3.5, g.YR + g.w / 2];
+  const start = [g.XT + 2.5, g.YR + g.w / 2];
   // packs all the way up: asleep on the floors above until the hero comes, some to drop down on him (game/tower.js)
   const looks = rollLooks(biome, rng.fn()), spawns = [], archs = biome.roster;
   for (let s = rng.range(12, 18), n = 0; s < g.L - 4; s += rng.range(13, 19), n++) {
@@ -139,9 +139,9 @@ export function generateTower(depth, biome, seed, force = null) {
   // a chest on every other turn's landing nook (by the wall) and two at the stairhead
   const chests = [];
   for (let k = 1; k < v.turns; k += 2) chests.push({ x: g.X1 - k * g.C - 2, y: g.YR + 0.9 });
-  chests.push({ x: g.XT + 2.4, y: g.YR + 0.9 }, { x: g.XT + 2.4, y: g.YR + g.w - 0.9 });
+  chests.push({ x: g.XT + 4.5, y: g.YR + 0.9 }, { x: g.XT + 4.5, y: g.YR + g.w - 0.9 });
   return {
     map, props: [], buildings: [], wallHangings: [], torches: [], looks, spawns, chests,
-    start, exit: [g.AX, g.AY], tower: g, variant: v, seed,
+    start, exit: [g.XB - 2.4, g.YR + g.w / 2], tower: g, variant: v, seed,
   };
 }

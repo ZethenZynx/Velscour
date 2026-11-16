@@ -33,7 +33,7 @@ export function renderQuest(body) {
     else if (b?.id === 'skyship') h += step(false, "The Sky Lanes lie beyond: the Air Pirates board the heroes' airship in waves, then their flagship comes.");
     else if (b?.sea) h += step(false, "The Pirate Seas lie beyond: the Black Tide's boats come up from astern to board the Lampwardens' Dawnwake, wave on wave.");
     else if (b?.id === 'dark_forest') h += step(false, 'The Dark Forest lies beyond: cross the open woods, defeat the Forest Guardian, and take the portal it leaves behind.');
-    else if (b?.tower) h += step(false, 'The Serpentine Tower lies beyond: a spiral stair to a roof where bosses and sky pirates wait.');
+    else if (b?.tower) h += step(false, 'The Serpentine Tower lies beyond: descend the spiral stair and defeat its ground-floor guardian to open the exit.');
     else if (b?.cave) h += step(false, "The Depth's Edge Caverns lie beyond: passages and caverns, a lake under a waterfall, and a long climb to the top of the falls.");
     else if (b?.overworld) h += step(false, 'A Forsaken Wilds scenario shrine guards the way forward.');
     h += step(false, `Or take the <b style="color:#c080ff">purple portal</b> into <b>THE ETERNAL BREACH</b>: Floor ${((c.breach && c.breach.best) || 0) + 1} awaits (each floor as deadly as ten depths).`);
@@ -72,12 +72,10 @@ export function renderQuest(body) {
         h += step(sc.completed, "Defeat the Black Tide's captain when he comes aboard.");
         h += step(sc.completed, sc.completed ? "The bell tower's door is the way on, and a chest waits on the hatch." : escapeHtml(sc.description));
       } else if (w.biome?.tower) {
-        const top = sc.phase !== 'climb';
-        h += step(top, `Climb ${escapeHtml(sc.variant.name)} to the stairhead door <span class="dim">— ${sc.altitude}% of the way up</span>.`);
-        h += step(false, '<span class="dim">Packs wait on the floors above; some drop down, some charge up from behind, and pirates come over the railing on hooks.</span>');
-        h += step(sc.completed || !!sc.top?.final, `Hold the roof: <b>${escapeHtml(sc.scenario.name)}</b> — three waves of bosses${top ? ` (wave ${Math.min(3, sc.wave)} of 3)` : ''}.`);
-        h += step(sc.completed, 'Defeat the captain who comes on the airship.');
-        h += step(sc.completed, sc.completed ? 'A portal burns on the roof — descend or return to town.' : 'The portal opens on the roof when the last boss falls.');
+        const atGuardian = sc.phase === 'boss' || sc.completed;
+        h += step(sc.altitude >= 100, `Descend ${escapeHtml(sc.variant.name)} to the ground-floor landing <span class="dim">- ${sc.altitude}% of the way down</span>.`);
+        h += step(atGuardian, sc.guardian ? `Defeat <b>${escapeHtml(sc.guardian.name)}</b> at the foot of the stairs.` : 'Defeat the guardian at the foot of the stairs.');
+        h += step(sc.completed, sc.completed ? 'The exit is open - continue or return to town.' : 'The portal opens at the foot of the stairs when the guardian falls.');
       } else if (w.biome?.cave) {
         const up = sc.phase === 'climb' || sc.phase === 'summit' || sc.completed, top = sc.phase === 'summit' || sc.completed;
         h += step(sc.lakeSeen || up, `Follow the passages and caverns of ${escapeHtml(sc.variant.name)} down to the underground lake.`);
@@ -91,12 +89,16 @@ export function renderQuest(body) {
         h += step(!!guardian?.dead, 'Cross the forest and defeat ' + guardianName + '.');
         h += step(sc.completed, sc.completed ? 'The exit is open — descend or return to town.' : 'The exit opens when the guardian falls.');
       } else if (sc.type === 'dunes') {
-        h += step(sc.campsDone >= sc.camps.length, `Win the waystones across ${escapeHtml(sc.variant.name)}: <b>${sc.campsDone}/${sc.camps.length}</b>.`);
-        for (const e of sc.camps) h += step(e.state === 'done', `${escapeHtml(e.name)} <span class="dim">— ${escapeHtml(e.label)}</span>`);
-        h += step(sc.phase !== 'trek', `Enter ${escapeHtml(sc.variant.pyramid.name)} once its door opens.`);
-        h += step(sc.phase === 'chamber' || sc.completed, `Go down through the tomb, room by room: <b>${sc.roomsDone}/${sc.rooms.filter((e) => e.kind).length}</b> won.`);
-        h += step(sc.completed, 'Defeat the master of the pyramid in the burial chamber.');
-        h += step(sc.completed, sc.completed ? 'A portal burns in the burial chamber — descend or return to town.' : 'The portal opens in the burial chamber when its master falls.');
+        if (w.biome?.id === 'scorpion_king_pyramid') {
+          h += step(sc.phase === 'chamber' || sc.completed, `Go down through the tomb, room by room: <b>${sc.roomsDone}/${sc.rooms.filter((e) => e.kind).length}</b> won.`);
+          h += step(sc.completed, 'Defeat the master of the pyramid in the burial chamber.');
+          h += step(sc.completed, sc.completed ? 'A portal burns in the burial chamber - descend or return to town.' : 'The portal opens in the burial chamber when its master falls.');
+        } else {
+          h += step(sc.campsDone >= sc.camps.length, `Win the waystones across ${escapeHtml(sc.variant.name)}: <b>${sc.campsDone}/${sc.camps.length}</b>.`);
+          for (const e of sc.camps) h += step(e.state === 'done', `${escapeHtml(e.name)} <span class="dim">- ${escapeHtml(e.label)}</span>`);
+          h += step(sc.phase === 'surface_boss' || sc.completed, 'Defeat the guardian at the plaza.');
+          h += step(sc.completed, sc.completed ? 'The exit is open - descend or return to town.' : 'The exit opens when the plaza guardian falls.');
+        }
       } else if (w.biome?.id === 'sea_of_sand') {
         const beat=sc.current, total=sc.total||1, done=sc.beat||0;
         h += step(done>0, `Secure the marked Sea of Sand areas: <b>${Math.min(done+1,total)}/${total}</b> current · ${done}/${total} complete.`);
@@ -105,7 +107,8 @@ export function renderQuest(body) {
           const progress=beat.failed?'Failed — return to the shrine to retry.':beat.goal>0?`${beat.kills||0}/${beat.goal} objective progress.`:beat.description||'Scenario in progress.';
           h += step(beat.completed, `${escapeHtml(beat.title)} — ${escapeHtml(progress)}${timer}`);
         }
-        h += step(sc.completed, sc.completed ? 'The exit is open — descend or return to town.' : 'Clear each scenario shrine to unseal the exit. Every area grants fine gear (Epic or better once deep enough).');
+        h += step(sc.phase === 'guardian' || sc.completed, 'Defeat the final guardian.');
+        h += step(sc.completed, sc.completed ? 'The exit is open - descend or return to town.' : 'Clear each scenario shrine, then defeat the final guardian to open the exit. Every area grants fine gear (Epic or better once deep enough).');
       } else {
       h += step(sc.active || sc.completed, `Activate the glowing scenario shrine: <b>${escapeHtml(sc.title)}</b>.`);
       let progress = sc.description;

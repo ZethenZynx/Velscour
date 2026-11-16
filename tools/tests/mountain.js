@@ -28,7 +28,7 @@ const SEEDS = +(process.argv[4] || 30);
       if (OVERWORLD_BIOME_IDS.includes('snowy_summit')) bad.push('the Snowy Summit is drawn on its own');
       let seen = 0;
       const c = { biomeBag: [], overworldMisses: 0 };
-      for (let i = 0; i < 2000; i++) { c.overworldMisses = i % 4; const id = drawBiome(c, 10 + (i % 30)); if (id === 'mountainside') seen++; if (id === 'snowy_summit') { bad.push('snowy_summit drawn'); break; } c.lastBiome = id; }
+      for (let i = 0; i < 2000; i++) { c.overworldMisses = i % 4; const id = drawBiome(c, 192 + (i % 25)); if (id === 'mountainside') seen++; if (id === 'snowy_summit') { bad.push('snowy_summit drawn before Depth 240'); break; } c.lastBiome = id; }
       if (!seen) bad.push('never drawn in 2000 draws');
       const m = G.world.map;
       if (m.w !== 72 || m.h !== 104) bad.push(`map is ${m.w} x ${m.h}`);

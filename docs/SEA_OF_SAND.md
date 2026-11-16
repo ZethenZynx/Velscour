@@ -1,9 +1,8 @@
 # Sea of Sand — desert overworld
 
-Sea of Sand is a second outdoor scenario biome alongside the Forsaken Wilds. It keeps the 72×72 outdoor map contract, uses a native desert floor atlas, and builds walkable routes between one and five objective areas. Sandstone cliffs form the map edge and internal maze walls; map collision and line of sight block passage through intact cliff tiles.
+Sea of Sand is an outdoor scenario biome alongside the Forsaken Wilds. It keeps the 72×72 outdoor map contract, uses a native desert floor atlas, and builds walkable routes between one and five objective areas. Sandstone cliffs form the map edge and internal maze walls; map collision and line of sight block passage through intact cliff tiles. Clear the marked areas, defeat the final guardian, then leave through the opened portal.
 
-This flat maze is now variant 0 of 11: the other ten are rolling three.js dunes with a big pyramid to go down
-through, picked at random on entry (never the last one seen). See [SEA_OF_SAND_DUNES.md](SEA_OF_SAND_DUNES.md).
+This flat maze is now variant 0 of 11: the other ten are rolling three.js dunes. All eleven surface layouts end with a guardian and an opened exit portal. The Pyramid of the Scorpion King is a separate level that reuses the Red Erg's existing tomb and is currently available only through Contact Velscour. See [SEA_OF_SAND_DUNES.md](SEA_OF_SAND_DUNES.md).
 
 ## Runtime integration
 

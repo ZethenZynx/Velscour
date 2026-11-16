@@ -168,7 +168,7 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
 
 /** opts.raid: a BOSS ROOM arena whatever the depth; opts.small: a 4 x 4 chunk maze (Abyssal Rifts, docs/ENDGAME.md). */
 export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
-  if (!opts.rift && (depth === FINAL_DEPTH || biome.id === 'throne')) return generateThrone(biome, tileset, seed); // the throne at any depth: "final boss" practice
+  if (!opts.rift && (depth === FINAL_DEPTH || biome.id === 'throne')) return generateThrone(biome, tileset, seed, depth, !!opts.practiceVelscour); // campaign throne depths use a regular guardian until Depth 500
   const raid = opts.raid ?? isRaidDepth(depth);
   if (biome.id === 'castle_keep' && !raid) {
     const layout = CASTLE_KEEP_LAYOUTS[Math.abs((depth - 1) % CASTLE_KEEP_LAYOUTS.length)];
@@ -741,8 +741,8 @@ function finishMap(map, tileset, rng, region = null, rooms = [], extra = []) {
   map.buildWalls(tileset, () => rng.next(), [...findOpenings(map, rooms, tileset, rng), ...extra.filter((o) => o.design)], families);
 }
 
-/** Depth FINAL_DEPTH (500): a gauntlet that ends in the demon lord's arena. */
-function generateThrone(biome, tileset, seed) {
+/** The Throne gauntlet ends in a regular guardian before Depth 500, and Velscour on the final depth (or practice). */
+function generateThrone(biome, tileset, seed, depth = FINAL_DEPTH, practiceVelscour = false) {
   const rng = new RNG(seed);
   const W = 44, H = 80;
   const map = new TileMap(W, H);
@@ -763,18 +763,17 @@ function generateThrone(biome, tileset, seed) {
     if (((x + 0.5 - cx) / (ar.w / 2)) ** 2 + ((y + 0.5 - cy) / (ar.h / 2)) ** 2 <= 1) map.t[y * W + x] = 1;
   }
   finishMap(map, tileset, rng);
+  const actFinale = depth === 456;
   const spawns = [
     { x: 14, y: 54, arch: 'demon', n: 3, rank: 'champion' },
     { x: 30, y: 54, arch: 'knight', n: 4, rank: 'normal' },
     { x: 10, y: 45, arch: 'imp', n: 6, rank: 'normal' },
     { x: 33, y: 45, arch: 'gargoyle', n: 4, rank: 'normal' },
     { x: 22, y: 38, arch: 'abomination', n: 2, rank: 'unique' },
-    { x: 22, y: 14, arch: 'velscour', n: 1, rank: 'boss' },
+    { x: 22, y: 14, arch: (depth === FINAL_DEPTH || practiceVelscour) ? 'velscour' : rng.pick((biome.roster || []).filter((a) => a !== 'velscour')), n: 1, rank: actFinale ? 'raid' : 'boss' },
   ];
-  // The throne remains Velscour's scripted boss arena, but its corridors
-  // now also draw gauntlet guards from the FULL biome roster. This allows
-  // all 50 registered throne-native look variants (and the existing global
-  // bestiary) to be encountered across differently seeded final levels.
+  // The throne corridors draw gauntlet guards from the full biome roster. Depth 456 is Act 5's Kragmaul finale;
+  // other pre-final campaign depths have an ordinary guardian, and Velscour appears at Depth 500 or in practice.
   const throneGuards=(biome.roster||[]).filter(a=>a!=='velscour');
   if(throneGuards.length){
     for(const [x,y] of [[22,61],[10,48],[32,48],[12,38],[22,34]]){
@@ -791,8 +790,13 @@ function generateThrone(biome, tileset, seed) {
   // (23, 12); he sits on it until the fight begins (game/velscour.js SEAT)
   for (let y = 10; y <= 11; y++) for (let x = 21; x <= 22; x++) map.block[y * W + x] = 1;
   props.push({ kind: 'scatter', x: 23, y: 12, spr: throneSprite(), k: 1 / THRONE_ART.over, throne: true });
+  const raid = actFinale ? {
+    ...ar, cx: 22, cy: 17.5,
+    // The Throne's entrance is at the south of its arena, so its raid barrier runs horizontally across that mouth.
+    gate: { axis: 'horizontal', x0: 20, x1: 23, y: 31, x: 22, y0: 31, y1: 31 },
+  } : null;
   return {
     map, rooms: [{ x: ar.x, y: ar.y, w: ar.w, h: ar.h, mx: 22, my: 17 }], spawns, props, chests: [{ x: 22.5, y: 72.5, rare: true }], torches, wallHangings,
-    start: [22, 73], exit: [22, 7], bossRoom: { x: ar.x, y: ar.y, w: ar.w, h: ar.h, mx: 22, my: 17 }, throne: true,
+    start: [22, 73], exit: [22, 7], bossRoom: { x: ar.x, y: ar.y, w: ar.w, h: ar.h, mx: 22, my: 17 }, throne: true, raid,
   };
 }
