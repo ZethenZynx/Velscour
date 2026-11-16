@@ -119,6 +119,7 @@ import { World } from './world.js';
 import { Player } from './player.js';
 import { makeMonster, makeElite, Monster } from './monster.js';
 import { Area, Delayed, Projectile } from './hazards.js';
+import { EXTRA_AFFIX_HAZARDS } from './affixcatalogruntime.js';
 import { clearRims } from './creature.js';
 import { applyTrait, rollTrait, ambushTick, madnessTick, unleashMadness, enter } from './mayhem.js';
 import { hit, kill } from './combat.js';
@@ -2229,6 +2230,29 @@ export const game = {
     for (const id in DUNGEON_ELEMENTAL_HAZARDS) pulse(id, DUNGEON_ELEMENTAL_HAZARDS[id]);
     for (const id in DUNGEON_ENVIRONMENT_HAZARDS) pulse(id, DUNGEON_ENVIRONMENT_HAZARDS[id]);
     for (const id in DUNGEON_CHAOS_HAZARDS) pulse(id, DUNGEON_CHAOS_HAZARDS[id]);
+
+    // New catalog hazards use the same telegraphed area and impact classes as existing affixes.
+    for (const [id, spec] of Object.entries(EXTRA_AFFIX_HAZARDS)) {
+      if (!active.has(id)) continue;
+      w.affixTimers[id] = (w.affixTimers[id] ?? rand(5, 9)) - dt;
+      if (w.affixTimers[id] > 0) continue;
+      w.affixTimers[id] = rand(spec.interval[0], spec.interval[1]);
+      if ((w.hazards || []).length >= 28) continue;
+      const [x, y] = safePoint(spec.spread || 6);
+      const el = spec.randomElement ? pick(['fire', 'cold', 'light', 'poison', 'arcane', 'shadow']) : spec.el;
+      const damage = p.maxHp * spec.damage;
+      if (spec.area) {
+        w.addHazard(new Area({ src: null, team: 'enemy', x, y, r: spec.radius,
+          dur: spec.duration || 4, tick: 0.7, dmg: [damage, damage], el, fx: spec.fx,
+          mode: spec.cyclone ? 'cyclone' : 'zone',
+          vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
+          o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false } }));
+      } else {
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius,
+          delay: spec.warning || 1, dmg: [damage, damage], el, fx: spec.fx,
+          o: { ...(spec.o || {}), team: 'enemy', crit: false } }));
+      }
+    }
 
     if (active.has('arcane_overload')) {
       w.affixOverloadT = (w.affixOverloadT ?? rand(7, 11)) - dt;
