@@ -294,6 +294,7 @@ export class Player extends Creature {
     if (this.dead || n <= 0) return;
     const before = this.hp;
     if (G.world?.dungeonAffixes?.includes('cursed_fortune')) n *= 0.75;
+    if (this.affixHealPenaltyT > 0) n *= 0.75;
     this.hp = Math.min(this.maxHp, this.hp + n);
     if (!quiet && this.hp - before > 1) floatText(this.x, this.y, 50, '+' + Math.round(this.hp - before), '#60ff60', 13);
   }
@@ -652,6 +653,9 @@ export class Player extends Creature {
     if (this.morphHealCd > 0) this.morphHealCd -= dt;
     if (this.affixArmorShredT > 0) this.affixArmorShredT -= dt;
     if (this.affixSunderT > 0) this.affixSunderT -= dt;
+    if (this.affixHealPenaltyT > 0) this.affixHealPenaltyT -= dt;
+    if (this.affixDamageDownT > 0) this.affixDamageDownT -= dt;
+    if (this.affixVulnerabilityT > 0 && (this.affixVulnerabilityT -= dt) <= 0) this.affixVulnerabilityStacks = 0;
     if (this.affixCritVulnerableT > 0) this.affixCritVulnerableT -= dt;
     if (this.affixRemainsT > 0) this.affixRemainsT -= dt;
     if (this.affixSlowUntil && this.affixSlowUntil <= (this.world?.time || 0)) this.affixSlowUntil = 0;
