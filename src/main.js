@@ -199,6 +199,14 @@ let last = performance.now(), lastFrame = 0;   // last: how far the game clock h
 function loop(now) {
   requestAnimationFrame(loop);
   lastFrame = now;   // frames the cap skips count too, or tick() would keep moving `last` and the cap would skip them all
+  // The loading screen owns the frame while assets and the new world are prepared. In particular, don't let the old
+  // or newly built world fight, advance ambushes, render expensive maps, or consume input behind the overlay.
+  if (G.loading) {
+    last = now;
+    input.reset();
+    input.endFrame();
+    return;
+  }
   // Settings › frame rate cap: a phone drawing 30 frames a second instead of 60 does half the work and heats up less
   // (a hot phone slows itself down after a long session); 2 ms slack so a 60 Hz display shows every other frame
   const cap = G.mode === 'game' ? G.settings.fpsCap || 0 : 0;
@@ -233,6 +241,8 @@ let lastTick = 0;
 function tick() {
   const now = performance.now(), gap = now - lastTick;
   lastTick = now;
+  // A hidden-page worker must respect the same loading pause as the visible animation loop.
+  if (G.loading) { last = now; input.reset(); input.endFrame(); return; }
   // a short gap means the ticks arrive on time: frames stopped, not one long frame holding up this thread
   if (!document.hidden && !(now - lastFrame > 500 && gap < 100)) return;
   let left = Math.min(now - last, gap, 1000) / 1000;
