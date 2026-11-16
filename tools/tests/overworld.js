@@ -11,15 +11,16 @@ const { openGame, report } = require('./harness');
       G.godMode=true;
       const {BIOME_BY_ID}=await import('/src/data/biomes.js');
       game.buildDungeon(13,BIOME_BY_ID.overworld);
-      const s=G.world.overworldScenario;
-      if(!s||G.world.map.w!==72||G.world.map.h!==72)throw Error('Overworld not built');
+      const boss=G.world.boss,exit=G.world.portals.find(p=>p.type==='exit');
+      if(G.world.overworldScenario||!boss||boss.name!=='Forsaken Guardian'||G.world.map.w!==72||G.world.map.h!==72)throw Error('Forsaken Wilds guardian run not built');
+      if(!exit||exit.x!==63.5||exit.y!==9.5||G.world.portals.some(p=>p.type==='objective'))throw Error('Forsaken Wilds objective or exit placement is wrong');
       G.world.creatures.length=0;G.world.rebuildGrid(); // keep visual captures free of stacked spawn labels
-      G.player.x=s.shrine.x-2;G.player.y=s.shrine.y+2;
+      G.player.x=boss.x-2;G.player.y=boss.y+2;
       const {camera}=await import('/src/core/view.js');
       camera.zoom=1.2;camera.follow(G.player.x,G.player.y,0,true);
     });
     await page.waitForTimeout(4000); // clear the depth intro before visual review
-    await shot('overworld_shrine_and_forest');
+    await shot('forsaken_guardian_and_forest');
     await page.evaluate(async()=>{
       const {G}=window.VELSCOUR; G.player.x=36.5;G.player.y=35.5;
       const {camera}=await import('/src/core/view.js');
@@ -53,6 +54,8 @@ const { openGame, report } = require('./harness');
         if(m.v.some(v=>v>=126))errors.push('out-of-place floor accents at '+seed);
         if(gen.props.some(p=>oddMonuments.has(p.spr.name)))errors.push('random monument scatter at '+seed);
         if(!WILD_SCENARIOS.includes(gen.scenarioId))errors.push('invalid scenario id at '+seed);
+        const guardians=gen.spawns.filter(s=>s.rank==='boss');
+        if(guardians.length!==1||guardians[0].name!=='Forsaken Guardian'||guardians[0].x!==36.5||guardians[0].y!==35.5)errors.push('invalid central guardian at '+seed);
       }
       if(minTrees<150)errors.push('too few forest wall trees');
       if(minClear<1800)errors.push('too little free combat space');
@@ -102,9 +105,15 @@ const { openGame, report } = require('./harness');
     });
     console.log('overworld QA',JSON.stringify(stats));
     if(stats.errors.length||stats.successfulScenarios!==stats.wilds) errors.push('[overworld] '+JSON.stringify(stats));
-    await page.evaluate(()=>{const {G}=window.VELSCOUR;G.world.overworldScenario.start();G.world.creatures.length=0;G.world.rebuildGrid();});
+    await page.evaluate(()=>{
+      const {G}=window.VELSCOUR;
+      G.world.onBossKilled(G.world.boss);
+      const exit=G.world.portals.find(p=>p.type==='exit');
+      if(!exit?.active||!G.char.cleared[13])throw Error('Guardian did not clear the depth and unlock the exit');
+      G.world.creatures.length=0;G.world.rebuildGrid();
+    });
     await page.waitForTimeout(400);
-    await shot('overworld_active_scenario');
+    await shot('forsaken_guardian_defeated_exit_open');
   }catch(e){errors.push('[overworld] '+(e.stack||e));}
   report(errors);
   await browser.close();
