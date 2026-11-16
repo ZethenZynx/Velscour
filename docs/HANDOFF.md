@@ -1,5 +1,9 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - refresh title-screen changes from GitHub
+- The title screen now loads recent `feat:` commits from the public fork and displays concise commit titles plus the first summary sentence when present. It starts with the bundled curated list, caches successful results for 30 minutes, and keeps that list if GitHub is unavailable or rate-limited.
+- `node tools/tests/recent_changes.mjs`, JavaScript syntax checks, and `git diff --check` pass. Keep major user-visible additions on `feat:` commits; bug fixes stay out of this feed. No GitHub update was made.
+
 ## November 16, 2026 - six-act campaign schedule and finale bosses (local, not published)
 - Reworked the acts to Act 1: 1–95, Act 2: 96–191, Act 3: 192–287, Act 4: 288–359, Act 5: 360–455, and Act 6: 456–500. Boundary depths belong to the new act.
 - Moved finale superbosses to Depths 96 (Colossus), 192 (Sekhmun), 288 (Hollowmere), 360 (Aurion), and 456 (Kragmaul). Velscour remains at Depth 500; the established mid-act bosses remain at 50, 150, 250 and 350. Non-finale Throne floors keep regular guardians.

@@ -18,6 +18,7 @@ import { RARITY, shownEquip } from '../data/items.js';
 import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
 import { RECENT_CHANGES } from '../data/recent-changes.js';
+import { loadRecentChanges } from '../game/recentchanges.js';
 
 let current = null;
 
@@ -62,9 +63,13 @@ export function titleScreen() {
   s.appendChild(menu);
   const changes = el('section', 'title-changes');
   changes.setAttribute('aria-label', 'Recent changes');
-  changes.innerHTML = `<h2>Recent Changes</h2><ul>${RECENT_CHANGES.map(({ title, summary }) =>
-    `<li><strong>${escapeHtml(title)}</strong><span>${escapeHtml(summary)}</span></li>`
-  ).join('')}</ul>`;
+  const renderChanges = (items) => {
+    changes.innerHTML = `<h2>Recent Changes</h2><ul>${items.map(({ title, summary }) =>
+      `<li><strong>${escapeHtml(title)}</strong>${summary ? `<span>${escapeHtml(summary)}</span>` : ''}</li>`
+    ).join('')}</ul>`;
+  };
+  renderChanges(RECENT_CHANGES);
+  loadRecentChanges().then((items) => { if (current === s) renderChanges(items); });
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
