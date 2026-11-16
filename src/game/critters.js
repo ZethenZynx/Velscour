@@ -1,8 +1,7 @@
 // Gilded critters: little treasures that cross the screen now and then (a gilded wisp drifting through the air, a
 // starmoth, a golden scarab scuttling over the floor, now and then a prismatic wisp).
 // they are the player's to tap (or click) before they get away. They aren't creatures, so nothing fights them.
-// Each pays one thing: a big sum of experience, a share of the hero's next level (pay.xp), or, the Golden Scarab, a
-// heap of gold (pay.gold: that many gold piles of the hero's level, gold find counted). A red arrow bobs over
+// Each critter rolls a separate reward and gear tier; the species only determines its appearance and movement. A red arrow bobs over
 // each one and sparks stream up from it so players know to tap.
 // Only a click or a tap catches one: the hero never does (they shy away from the hero, and nothing but
 // catchCritterAt calls catchCritter).
@@ -23,8 +22,7 @@ import { GroundItem, rollGroundGem } from './loot.js';
 import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
 
-// fly: drifts in the air (z), else scuttles on the floor. w: odds. life: seconds before it gets away.
-// pay.xp: experience, as a share of xpToNext(hero level); pay.gold: gold piles (items.js goldPile) at the hero's level.
+// fly: drifts in the air (z), else scuttles on the floor. w: spawn odds. life: seconds before it gets away.
 export const CRITTERS = Object.freeze({
   // The original four species remain part of the pool; reward and tier are rolled independently.
   wisp: { name: 'Wisp', artKey: 'wisp', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 12, speed: 1.3, motion: 'drift', accent: 'flame' },
@@ -464,10 +462,10 @@ export function catchCritter(cr) {
     summary = `a jackpot of ${count} gold piles`;
   } else if (cr.reward === 'shrine') {
     const blessings = [
-      { name: 'Quickening Blessing', el: 'lightning', stats: { as: 18, speed: 14, cdr: 10 } },
+      { name: 'Quickening Blessing', el: 'light', stats: { as: 18, speed: 14, cdr: 10 } },
       { name: 'Guardian Blessing', el: 'holy', stats: { armor: 18, regen: 20 } },
       { name: 'Warrior Blessing', el: 'fire', stats: { dmg: 14, crit: 4 } },
-      { name: 'Vitality Blessing', el: 'nature', stats: { regen: 35, armor: 8 } },
+      { name: 'Vitality Blessing', el: 'poison', stats: { regen: 35, armor: 8 } },
       { name: 'Arcane Blessing', el: 'arcane', stats: { cdr: 16, dmg: 8 } },
     ];
     const blessing = pick(blessings);
