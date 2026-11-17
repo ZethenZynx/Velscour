@@ -1,5 +1,7 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - add optional Dark Forest side clearings
+- Keep the six existing landmark clearings on the main path and add six more landmark areas branching off it: three north and three south. They reuse the camp, well, shrine, obelisk, swamp and web props, with open walk-in spurs and tree-free clearings; maze footprints and the guardian route remain separate.
 ## November 17, 2026 - refresh recent changes on every title-screen visit
 - The title screen now forces a fresh GitHub check whenever it opens, while immediately showing the cached or bundled list during the request. HTTP caching is disabled for the request, and stale cached data remains the fallback when GitHub is unavailable.
 - Merged major-feature PRs are also recognized by feature-like titles when their branch name is `fix/`, so the random-events update can appear after merge. Open and unmerged PRs remain excluded.

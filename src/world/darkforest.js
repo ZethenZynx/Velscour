@@ -47,6 +47,19 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     const [x, y] = routePoint(landmark.t, landmark.offset);
     return { ...landmark, x, y };
   });
+  // Keep the six recognizable route clearings, and add optional satellite clearings
+  // on both sides of the trail. Each gets a short, tree-cleared walk-in spur.
+  const sideAreas = [
+    { what: 'camp', t: 0.15, offset: -16, side: 'north', sideArea: true },
+    { what: 'well', t: 0.23, offset: 16, side: 'south', sideArea: true },
+    { what: 'shrine', t: 0.48, offset: -12, side: 'north', sideArea: true },
+    { what: 'obelisk', t: 0.58, offset: 16, side: 'south', sideArea: true },
+    { what: 'swamp', t: 0.89, offset: -16, side: 'north', sideArea: true },
+    { what: 'webs', t: 0.84, offset: 16, side: 'south', sideArea: true },
+  ].map((area) => {
+    const [x, y] = routePoint(area.t, area.offset), approach = routePoint(area.t, 0);
+    return { ...area, x, y, approach };
+  });
   const distanceToSegment = (x, y, a, b) => {
     const vx = b[0] - a[0], vy = b[1] - a[1], n = vx * vx + vy * vy;
     const t = n ? clamp(((x - a[0]) * vx + (y - a[1]) * vy) / n, 0, 1) : 0;
@@ -54,7 +67,8 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   };
   const inMaze = (x, y, margin = 0) => mazes.some((m) => x >= m.x - margin && y >= m.y - margin && x < m.x + m.size + margin && y < m.y + m.size + margin);
   const nearMazeSpur = (x, y, margin = 0) => mazes.some((m) => distanceToSegment(x, y, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5]) < margin);
-  const nearLandmark = (x, y, margin = 0) => landmarks.some((l) => Math.hypot(x - l.x, y - l.y) < margin);
+  const nearLandmark = (x, y, margin = 0) => [...landmarks, ...sideAreas].some((l) => Math.hypot(x - l.x, y - l.y) < margin);
+  const nearSideSpur = (x, y, margin = 0) => sideAreas.some((area) => distanceToSegment(x, y, area.approach, [area.x, area.y]) < margin);
   for (let y = 0; y < DF_H; y++) for (let x = 0; x < DF_W; x++) {
     const d = distToRoute(x + 0.5, y + 0.5);
     const spurDist = Math.min(...mazes.map((m) => distanceToSegment(x + 0.5, y + 0.5, [m.gate[0] + 0.5, m.gate[1] + 0.5], [m.spur[0] + 0.5, m.spur[1] + 0.5])));
@@ -130,7 +144,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
 
   // Clear the landmarks after enemy placement so decorative collision does not alter the established encounter mix.
   const retainedTrees = trees.filter((tree) => {
-    if (!nearLandmark(tree.x, tree.y, 4.6)) return true;
+    if (!nearLandmark(tree.x, tree.y, 4.6) && !nearSideSpur(tree.x, tree.y, 2.6)) return true;
     map.block[map.idx(Math.floor(tree.x), Math.floor(tree.y))] = 0;
     return false;
   });
@@ -143,13 +157,24 @@ export function generateDarkForest(depth, biome, tileset, seed) {
     props.push(p);
     if (spr.block && spr.fp >= 0.5) map.block[map.idx(Math.floor(x), Math.floor(y))] = 1;
   };
-  for (const landmark of landmarks) {
+  for (const landmark of [...landmarks, ...sideAreas]) {
     const { x: cx, y: cy } = landmark;
-    // An open earthen patch centered on the main route makes each set piece visible and safely pass-through.
+    // Open earthen patches make each set piece visible and safely pass-through.
     for (let y = Math.floor(cy - 4); y <= Math.ceil(cy + 4); y++) for (let x = Math.floor(cx - 4); x <= Math.ceil(cx + 4); x++) {
       if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > 3.8) continue;
       const i = map.idx(x, y);
       map.block[i] = 0; map.kind[i] = 0; map.v[i] = floor(trailFloors[0]);
+    }
+    if (landmark.sideArea) {
+      const [ax, ay] = landmark.approach, length = Math.hypot(cx - ax, cy - ay), steps = Math.ceil(length * 3);
+      for (let step = 0; step <= steps; step++) {
+        const t = step / steps, px = ax + (cx - ax) * t, py = ay + (cy - ay) * t;
+        for (let y = Math.floor(py - 2.5); y <= Math.ceil(py + 2.5); y++) for (let x = Math.floor(px - 2.5); x <= Math.ceil(px + 2.5); x++) {
+          if (Math.hypot(x + 0.5 - px, y + 0.5 - py) > 2.35 || x < 0 || y < 0 || x >= DF_W || y >= DF_H) continue;
+          const i = map.idx(x, y);
+          map.block[i] = 0; map.kind[i] = 0; map.v[i] = floor(trailFloors[0]);
+        }
+      }
     }
     const put = (name, dx, dy, options) => addProp(name, cx + dx, cy + dy, options);
     if (landmark.what === 'camp') { put('campfire', 0, 0, { light: 5 }); put('bedroll', 1.3, 0.6); put('bedroll', -1.1, 1); put('firewood', 1, -1.2); put('wooden_crate', -1.6, -0.8); }
@@ -256,7 +281,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const cells = Array.from({ length: bw * bh }, () => []);
   for (const tree of trees) cells[Math.floor(tree.y / B) * bw + Math.floor(tree.x / B)].push(tree);
   map.treeCells = { B, bw, bh, cells };
-  return { map, props, trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells, landmarks,
+  return { map, props, trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells, landmarks, sideAreas,
     start, boss, exit, shrine:boss, sites:[], scenarioId:0, seed, layoutSeed:seed };
 }
 
