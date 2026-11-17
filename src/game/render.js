@@ -538,7 +538,7 @@ function drawNpc(ctx, n) {
     const heresyAltarSprite = A.heresyAltar;
     const ready = heresyAltarSprite && heresyAltarSprite.complete && heresyAltarSprite.naturalWidth > 0;
     if (ready) {
-      const h = 226, w = h * heresyAltarSprite.naturalWidth / heresyAltarSprite.naturalHeight;
+      const h = 170, w = h * heresyAltarSprite.naturalWidth / heresyAltarSprite.naturalHeight;
       if (open) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = lit ? 0.24 + Math.sin(G.time * 2.5) * 0.08 : 0.12;
