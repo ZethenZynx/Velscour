@@ -1,5 +1,8 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - start random events when entering their area
+- Removed the clickable pylon-style event marker. Events now begin automatically when the player enters the event room or special-map event area. The existing per-floor claim still prevents replay farming, and event-specific choices or portals remain part of the event after it starts.
+
 ## November 17, 2026 - add optional Dark Forest side clearings
 - Keep the six existing landmark clearings on the main path and add six more landmark areas branching off it: three north and three south. They reuse the camp, well, shrine, obelisk, swamp and web props, with open walk-in spurs and tree-free clearings; maze footprints and the guardian route remain separate.
 ## November 17, 2026 - refresh recent changes on every title-screen visit
@@ -7,8 +10,8 @@
 - Merged major-feature PRs are also recognized by feature-like titles when their branch name is `fix/`, so the random-events update can appear after merge. Open and unmerged PRs remain excluded.
 
 ## November 16, 2026 - 50 random events across playable maps (local, not published)
-- Added all 50 proposed events in seven categories, with the approved rarity distribution (45/25/15/10/4/1). Ordinary campaign dungeon floors receive a separate, reachable Omen Chamber in addition to the shrine room. Overworlds and roomless special maps receive a reachable event site chosen from walkable floor; events also run in the Sky, Sea, Breach and Rift. Raid arenas, town hubs and the final throne stay excluded. The dungeon chamber has its own octagonal outline, concentric floor sigils, altar/light scatter, existing wall hangings, and a bright interactable event marker that stays off the minimap.
-- Events use existing enemy, loot, hazard, portal, cache, buff, particle, and sound systems. Hazards are telegraphed, temporary, and never seal paths. Events are optional until interacted with, and floor claims prevent rebuilding a depth to farm its event. Multiple fleeing treasure imps now work together without multiplying the regular imp's large reward burst.
+- Added all 50 proposed events in seven categories, with the approved rarity distribution (45/25/15/10/4/1). Ordinary campaign dungeon floors receive a separate, reachable Omen Chamber in addition to the shrine room. Overworlds and roomless special maps receive a reachable event site chosen from walkable floor; events also run in the Sky, Sea, Breach and Rift. Raid arenas, town hubs and the final throne stay excluded. The dungeon chamber has its own octagonal outline, concentric floor sigils, altar/light scatter, and existing wall hangings.
+- Events use existing enemy, loot, hazard, portal, cache, buff, particle, and sound systems. Hazards are telegraphed, temporary, and never seal paths. Floor claims prevent rebuilding a depth to farm its event. Multiple fleeing treasure imps now work together without multiplying the regular imp's large reward burst.
 - The existing 50-object shrine/world-object system remains active across these non-town maps. Roomless placements choose reachable floor and stay clear of portals, existing objects and the entrance.
 - `node tools/tests/dungeonevents.mjs`, `node tools/tests/data_check.mjs`, JavaScript syntax checks, and `git diff --check` pass. The room reachability/visual test could not run because Playwright is not installed in this local copy. No GitHub update was made.
 
