@@ -444,12 +444,12 @@ function drawCorpse(ctx, c) {
 }
 
 function drawHeresyAltar(ctx, x, y, open, lit) {
-  // A horn-crowned ritual arch over an inlaid floor seal, scaled up so it reads
-  // as a destination in town instead of another narrow marker.
+  // A compact horn-crowned ritual arch over an inlaid floor seal, used only
+  // while the reference sprite is still loading.
   const red = open ? '#ff3020' : '#b52a35';
   const pulse = 0.72 + Math.sin(G.time * 2.6) * 0.12;
   ctx.save();
-  ctx.translate(x, y); ctx.scale(1.48, 1.42); ctx.translate(-x, -y);
+  ctx.translate(x, y); ctx.scale(0.95, 0.95); ctx.translate(-x, -y);
 
   // The sigil sits flat on the ground plane, so it reads as a ritual site rather
   // than another upright town marker.
@@ -538,7 +538,7 @@ function drawNpc(ctx, n) {
     const heresyAltarSprite = A.heresyAltar;
     const ready = heresyAltarSprite && heresyAltarSprite.complete && heresyAltarSprite.naturalWidth > 0;
     if (ready) {
-      const h = 170, w = h * heresyAltarSprite.naturalWidth / heresyAltarSprite.naturalHeight;
+      const h = 112, w = h * heresyAltarSprite.naturalWidth / heresyAltarSprite.naturalHeight;
       if (open) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = lit ? 0.24 + Math.sin(G.time * 2.5) * 0.08 : 0.12;
@@ -551,7 +551,7 @@ function drawNpc(ctx, n) {
       n.sbox = [x - w / 2 - 8, y - h - 8, x + w / 2 + 8, y + 12];
     } else {
       drawHeresyAltar(ctx, x, y, open, lit);
-      n.sbox = [x - 60, y - 150, x + 60, y + 20];
+      n.sbox = [x - 42, y - 108, x + 42, y + 12];
     }
     if (open) addLight(n.x, n.y, 3.4, lit ? 1.15 : 0.7, 36, '#ff3020');
     return;
