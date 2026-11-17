@@ -576,9 +576,9 @@ function rollAct2Town(tileset, seed, isLastTry) {
     addProp('carved_standing_stone', altar.x - 1.5, altar.y - 0.5, { solid: true });
     addProp('bronze_brazier', altar.x + 1.5, altar.y - 0.5, { solid: true, light: 5.0 });
   }
-  // The sprite's bottom edge is the front tip of its ritual circle. Place
-  // collision one diagonal step behind it, beneath the altar's stone base.
-  const altarBlockX = Math.floor(altar.x) - 1, altarBlockY = Math.floor(altar.y) - 1;
+  // The sprite's bottom edge is the front tip of its ritual circle. The marked
+  // base point is about 0.64 map tiles back on both axes; block the tile under it.
+  const altarBlockX = Math.floor(altar.x - 0.64), altarBlockY = Math.floor(altar.y - 0.64);
   if (inb(altarBlockX, altarBlockY)) {
     map.block[I(altarBlockX, altarBlockY)] = 1;
     mat[I(altarBlockX, altarBlockY)] = 32;
