@@ -1,12 +1,9 @@
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 
-const GITHUB_FEATURE_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/pulls?state=closed&per_page=100&page=1&sort=created&direction=desc';
-const CACHE_KEY = 'velscour_recent_feature_pulls_v4';
+const GITHUB_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/pulls?state=closed&per_page=100&page=1&sort=created&direction=desc';
+const CACHE_KEY = 'velscour_recent_changes_v5';
 const CACHE_MS = 30 * 60 * 1000;
-const FEATURE_BRANCH = /^(?:feat|feature)\//i;
-// A major feature can live on a fix-named branch (for example, when its work
-// started as a focused fix). Keep the feed limited to feature-like titles.
-const FEATURE_TITLE = /^(?:add|allow|bring|build|create|enable|expand|implement|improve|introduce|make|move|replace|restore|revise|rework|show|support|update|upgrade)\b/i;
+const REPOSITORY = 'ZethenZynx/Velscour-PC';
 
 function nextPageUrl(response) {
   const links = response.headers?.get?.('Link') || '';
@@ -25,40 +22,56 @@ function writeCache(items) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), items })); } catch (_) { /* storage is optional */ }
 }
 
+function cleanTitle(title) {
+  return String(title || '')
+    .trim()
+    .replace(/^(?:(?:feat|feature|fix|bugfix|balance|ui|copy|perf)(?:\([^)]*\))?:\s*)/i, '')
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
 function cleanSummary(markdown) {
   const lines = String(markdown || '').split(/\r?\n/);
-  const summaryHeading = lines.findIndex((line) => /^#{1,4}\s+summary\s*$/i.test(line.trim()));
-  let summaryLines = lines;
-  if (summaryHeading >= 0) {
-    summaryLines = lines.slice(summaryHeading + 1);
-    const nextHeading = summaryLines.findIndex((line) => /^#{1,4}\s+/.test(line.trim()));
-    if (nextHeading >= 0) summaryLines = summaryLines.slice(0, nextHeading);
-  }
-  const text = summaryLines
-    .map((line) => line.replace(/^\s*[-*]\s*/, '').replace(/^\s*#+\s*/, '').replace(/^\s*>+\s*/, '').trim())
+  const summaryHeading = lines.findIndex((line) => /^#{1,4}\s+(?:summary|what changed|changes|overview)\s*$/i.test(line.trim()));
+  const summaryLines = summaryHeading >= 0 ? lines.slice(summaryHeading + 1) : lines;
+  const nextHeading = summaryLines.findIndex((line) => /^#{1,4}\s+/.test(line.trim()));
+  const section = nextHeading >= 0 ? summaryLines.slice(0, nextHeading) : summaryLines;
+  const text = section
+    .map((line) => line.replace(/<!--.*?-->/g, '').replace(/^\s*[-*]\s*/, '').replace(/^\s*>+\s*/, '').trim())
+    .filter((line) => line && !/^\[[ xX]\]\s*/.test(line))
     .find(Boolean);
   if (!text) return '';
-  const normalized = text.replace(/[`*_>#]/g, '').replace(/\s+/g, ' ').trim();
-  const firstSentence = normalized.match(/^.{1,180}?(?:[.!?](?=\s|$)|$)/);
-  return firstSentence ? firstSentence[0].trim() : normalized.slice(0, 180).trim();
+  const normalized = text
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const firstSentence = normalized.match(/^.{1,190}?(?:[.!?](?=\s|$)|$)/);
+  return firstSentence ? firstSentence[0].trim() : normalized.slice(0, 190).trim();
 }
 
-/** Use titles and short summaries from merged feature pull requests in the fork. */
-export function featureChangesFromPullRequests(pullRequests) {
+/** Include every merged PR into the fork's main branch, including fixes and balance updates. */
+export function mergedChangesFromPullRequests(pullRequests) {
   if (!Array.isArray(pullRequests)) return [];
-  return pullRequests.flatMap((pullRequest) => {
-    const branch = String(pullRequest?.head?.ref || '');
-    const sourceRepo = pullRequest?.head?.repo?.full_name;
-    const title = String(pullRequest?.title || '').trim().replace(/^(?:feat|feature):\s*/i, '').replace(/^./, (letter) => letter.toUpperCase());
-    const ownFork = sourceRepo === 'ZethenZynx/Velscour-PC' || sourceRepo === 'ZethenZynx/Velscour';
-    if (!pullRequest?.merged_at || (!FEATURE_BRANCH.test(branch) && !FEATURE_TITLE.test(title)) || !ownFork || !title) return [];
-    return [{ title, summary: cleanSummary(pullRequest.body) }];
-  });
+  return pullRequests
+    .filter((pullRequest) => pullRequest?.merged_at
+      && pullRequest.base?.ref === 'main'
+      && pullRequest.base?.repo?.full_name === REPOSITORY)
+    .map((pullRequest) => ({
+      title: cleanTitle(pullRequest.title),
+      summary: cleanSummary(pullRequest.body),
+      date: String(pullRequest.merged_at).slice(0, 10),
+      mergedAt: String(pullRequest.merged_at),
+      number: pullRequest.number,
+    }))
+    .filter((item) => item.title)
+    .sort((a, b) => Date.parse(b.mergedAt) - Date.parse(a.mergedAt) || b.number - a.number)
+    .map(({ mergedAt, number, ...item }) => item);
 }
 
-async function fetchAllFeaturePullRequests() {
+async function fetchAllMergedPullRequests() {
   const pullRequests = [];
-  let url = GITHUB_FEATURE_PULLS_URL;
+  let url = GITHUB_PULLS_URL;
   while (url) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
@@ -80,13 +93,13 @@ async function fetchAllFeaturePullRequests() {
   return pullRequests;
 }
 
-/** Load merged feature PRs, falling back to cached or bundled summaries if unavailable. */
+/** Fetch the full merged-PR history, falling back to cached or bundled history offline. */
 export async function loadRecentChanges({ forceRefresh = false } = {}) {
   const cached = readCache();
   if (!forceRefresh && cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
 
   try {
-    const items = featureChangesFromPullRequests(await fetchAllFeaturePullRequests());
+    const items = mergedChangesFromPullRequests(await fetchAllMergedPullRequests());
     if (!items.length) return cached?.items?.length ? cached.items : RECENT_CHANGES;
     writeCache(items);
     return items;

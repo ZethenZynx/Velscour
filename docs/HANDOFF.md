@@ -1,5 +1,9 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - complete title-screen change history
+- Recent Changes now includes every merged pull request targeting this fork's `main` branch, including bug fixes, balance work, gameplay changes and visual updates. Entries are sorted by merge time, grouped by date, and remain in a scrollable list without a display cap. The title screen requests the latest GitHub history whenever it opens; the bundled offline snapshot contains all 111 merged fork PRs available at this update.
+- The GitHub pull-request history is the automatic source of truth for future updates, so merged work appears on the next title-screen visit without editing the bundled snapshot. The snapshot remains the offline fallback. Open, closed-unmerged, and PRs targeting other branches are excluded.
+
 ## November 17, 2026 - start random events when entering their area
 - Removed the clickable pylon-style event marker. Events now begin automatically when the player enters the event room or special-map event area. The existing per-floor claim still prevents replay farming, and event-specific choices or portals remain part of the event after it starts.
 - In the Dark Forest, select one of the six new north/south landmark clearings for the event site rather than placing the area near the guardian at the end of the route.
