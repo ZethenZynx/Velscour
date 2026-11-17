@@ -8,7 +8,7 @@ import { hit } from './combat.js';
 import { ambush } from './mayhem.js';
 import { makeMonster } from './monster.js';
 import { GroundItem, dropChest, rollGroundItem, rollGroundGem } from './loot.js';
-import { goldPile, goldScale, itemName, rarityAt } from '../data/items.js';
+import { GEMS, goldPile, goldScale, itemName, rarityAt } from '../data/items.js';
 import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
 
@@ -87,6 +87,16 @@ function makeClaimKey(world) {
   return `${world.biome?.id || 'special'}:${area}`;
 }
 function rewardScale(o) { return rar(o.rarity).scale; }
+export function reliquaryEquipmentChance(rarity) {
+  return rarity >= 4 ? 1 : Math.min(1, 0.65 * (RARITIES[rarity]?.scale || 1));
+}
+export function eligibleReliquaryGems(gemBag) {
+  return (Array.isArray(gemBag) ? gemBag : []).flatMap((item, index) =>
+    item?.type === 'gem' && !item.locked ? [{ item, index }] : []);
+}
+export function rollReliquaryEquipment(world) {
+  return rollGroundItem(level(world)+3,{mf:G.player?.st?.magicFind||0});
+}
 function level(world) { return depthLevel(world.depth || G.char?.depth || 1); }
 function addBuff(p, o, name, color, stats, duration = 180, extra = {}) {
   const s = rewardScale(o), scaled = Object.fromEntries(Object.entries(stats).map(([k,v]) => [k, v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([a,n]) => [a, Math.round(n*s*10)/10])) : Math.round(v*s*10)/10]));
@@ -238,16 +248,38 @@ function sacrificeEquipment(world,o) {
   }})),{label:'Leave'}]});
 }
 function sacrificeGem(world,o,cost) {
-  const c=G.char, gems=(c.gemBag||[]).map((item,index)=>({item,index})).filter(v=>v.item&&v.item.type==='gem');
+  const c=G.char, gems=eligibleReliquaryGems(c.gemBag);
   if(!gems.length){UI.log('The reliquary requires a gem offering.','#d8c080');return;}
-  UI.dialog({title:o.name,html:'<p>Choose one gem to offer. Its reward obeys current depth and character-level limits.</p>',buttons:[...gems.slice(0,18).map(({item,index})=>({label:itemName(item),fn:()=>{
-    if(o.opened||!c.gemBag[index])return;
-    UI.confirm('Confirm offering',`Offer ${itemName(item)} for a chance at depth-appropriate equipment?`,()=>{
-      if(G.world!==world||o.opened||!c.gemBag[index])return;c.gemBag[index]=null;used(world,o);
-      if(chance(.65*rewardScale(o)))world.addLoot(new GroundItem(o.x,o.y+.3,'item',{item:rollGroundItem(level(world)+3,{rarity:rarityAt(level(world)+3,Math.min(19,4+o.rarity)),mf:G.player.st.magicFind})}));
-      else goldReward(world,o,2);
-    },'Offer gem','Keep gem');
-  }})),{label:'Leave'}]});
+  const options=gems.map(({item,index})=>{
+    const gem=GEMS[item.gem]||{},count=Math.max(1,item.count||1);
+    const detail=gem.sigil?`Sigil rank ${item.tier}`:`${gem.special?'Special gem':'Gem'} · Tier ${item.tier+1}${gem.desc?` · ${gem.desc}`:''}`;
+    return `<button type="button" class="btn reliquary-gem-option" data-gem-slot="${index}"><span><strong>${esc(itemName(item))}</strong><small>${esc(detail)}${count>1?` · Stack of ${count}`:''}</small></span><span class="reliquary-gem-offer">Offer one</span></button>`;
+  }).join('');
+  const pickDialog=UI.dialog({
+    title:o.name,
+    html:`<p>Choose one unlocked gem. Its type and tier do not change the reward. Equipment quality follows normal loot rules and is limited by your character level and this floor's depth.</p><div class="reliquary-gem-list" role="group" aria-label="Eligible gems">${options}</div>`,
+    buttons:[{label:'Cancel'}],
+    cls:'ancestral-reliquary-gem-picker',
+  });
+  pickDialog.box.querySelectorAll('[data-gem-slot]').forEach((button)=>button.addEventListener('click',()=>{
+    const index=Number(button.dataset.gemSlot),item=c.gemBag[index];
+    if(o.opened||item?.type!=='gem'||item.locked)return;
+    pickDialog.close();
+    const equipmentChance=reliquaryEquipmentChance(o.rarity),chanceLabel=`${(equipmentChance*100).toFixed(1).replace(/\.0$/,'')}%`;
+    const outcome=equipmentChance>=1
+      ? 'This reliquary guarantees one equipment item.'
+      : `This reliquary has a ${chanceLabel} chance to yield equipment; otherwise it yields depth-scaled gold.`;
+    UI.confirm('Confirm offering',`Offer one ${itemName(item)}? ${outcome} The gem's type and tier do not affect equipment quality.`,()=>{
+      if(G.world!==world||o.opened||c.gemBag[index]!==item||item.locked)return;
+      if((item.count||1)>1)item.count--;
+      else c.gemBag[index]=null;
+      used(world,o);
+      if(o.rarity>=4||chance(equipmentChance)){
+        const equipment=rollReliquaryEquipment(world);
+        world.addLoot(new GroundItem(o.x,o.y+.3,'item',{item:equipment}));
+      }else goldReward(world,o,2);
+    },'Offer one gem','Keep gem');
+  }));
 }
 function resolveMystery(world,o) {
   const p=G.player, out=randi(0,4);
