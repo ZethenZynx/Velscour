@@ -7,7 +7,7 @@ import { orbitShieldDepth } from '../gfx/lancershields.js';
 import { drawWallTorch, wallTorchRect } from '../gfx/walltorches.js';
 import { drawWallHanging, wallHangingRect } from '../gfx/wallhangings.js';
 import { replacementImage } from '../core/replacementart.js';
-import { classSprite } from '../core/assets.js';
+import { A, classSprite } from '../core/assets.js';
 import { pixelSprite } from '../gfx/pixelart.js';
 import { gritAt } from '../gfx/grit.js';
 import { townFrame, townFrameOf, townMotion, isLying, TOWN_FRAME_W, TOWN_FRAME_H, TOWN_BASELINE } from './townsfolkvisuals.js';
@@ -533,11 +533,27 @@ function drawHeresyAltar(ctx, x, y, open, lit) {
 }
 
 function drawNpc(ctx, n) {
-  if (n.altar) { // the Altar of Heresy: a small, unmistakable crimson ritual shrine in the town plaza
+  if (n.altar) { // the Altar of Heresy: the reference-based crimson shrine landmark in the town plaza
     const x = isoX(n.x, n.y), y = isoY(n.x, n.y), open = endgameUnlocked(), lit = open && heresyRankOf() > 0;
-    drawHeresyAltar(ctx, x, y, open, lit);
-    if (open) addLight(n.x, n.y, 3.2, lit ? 1.05 : 0.65, 34, '#ff3020');
-    n.sbox = [x - 60, y - 150, x + 60, y + 20];
+    const heresyAltarSprite = A.heresyAltar;
+    const ready = heresyAltarSprite && heresyAltarSprite.complete && heresyAltarSprite.naturalWidth > 0;
+    if (ready) {
+      const h = 226, w = h * heresyAltarSprite.naturalWidth / heresyAltarSprite.naturalHeight;
+      if (open) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = lit ? 0.24 + Math.sin(G.time * 2.5) * 0.08 : 0.12;
+        ctx.drawImage(glowSprite('#ff3020'), x - w * 0.45, y - h * 0.78, w * 0.9, h * 0.72);
+        ctx.restore();
+      }
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(heresyAltarSprite, x - w / 2, y - h + 6, w, h);
+      ctx.restore();
+      n.sbox = [x - w / 2 - 8, y - h - 8, x + w / 2 + 8, y + 12];
+    } else {
+      drawHeresyAltar(ctx, x, y, open, lit);
+      n.sbox = [x - 60, y - 150, x + 60, y + 20];
+    }
+    if (open) addLight(n.x, n.y, 3.4, lit ? 1.15 : 0.7, 36, '#ff3020');
     return;
   }
   if (n.stash) {
