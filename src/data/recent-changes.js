@@ -1,5 +1,6 @@
 // Curated offline fallback from merged feature PRs; keep this complete for disconnected play.
 export const RECENT_CHANGES = [
+  { title: "Add 50 shrine and world objects", summary: "Add a dedicated shrine chamber to each ordinary dungeon, with interactive objects and distinctive existing-art dressing." },
   { title: "Refresh title screen recent changes", summary: "The title-screen list refreshes from merged feature updates." },
   { title: "Revise campaign acts, level ranges, and finales", summary: "Rework the six-act depth schedule, named level pools, and act finale bosses." },
   { title: "Clarify The Dig and place Dark Forest landmarks on route", summary: "Make Dig markers clear and place optional Dark Forest landmarks along the main route." },

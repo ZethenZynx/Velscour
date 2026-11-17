@@ -7,7 +7,7 @@
 - `node --check` for changed modules, `node tools/tests/data_check.mjs`, `git diff --check`, and a mocked special-map placement check pass. The existing browser happenings test could not run because Playwright is not installed in this local copy. No GitHub update was made.
 
 ## November 16, 2026 - refresh title-screen changes from GitHub
-- The title screen now loads every merged PR from the fork's `feat/` and `feature/` branches across all API pages, without a display cap. It uses curated PR titles and the first summary sentence; the bundled offline list covers the full curated history too. Results cache for 30 minutes.
+- The title screen now loads merged PRs only from the fork's `feat/` and `feature/` branches across all API pages, without a display cap. It uses the PR title and first summary sentence; the bundled offline list covers the full curated history too. Results cache for 30 minutes, keyed to the canonical `Velscour-PC` repository and feed version.
 - `node tools/tests/recent_changes.mjs`, JavaScript syntax checks, and `git diff --check` pass. Keep major user-visible additions on `feat:` commits; bug fixes stay out of this feed. No GitHub update was made.
 
 ## November 16, 2026 - six-act campaign schedule and finale bosses (local, not published)
