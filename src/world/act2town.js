@@ -573,10 +573,15 @@ function rollAct2Town(tileset, seed, isLastTry) {
   const altar = { x: C.x - 8.5, y: wellPos.y - 5.5 };
   if (inb(Math.floor(altar.x), Math.floor(altar.y))) {
     keep[I(Math.floor(altar.x), Math.floor(altar.y))] = 1;
-    map.block[I(Math.floor(altar.x), Math.floor(altar.y))] = 1;
-    mat[I(Math.floor(altar.x), Math.floor(altar.y))] = 32;
     addProp('carved_standing_stone', altar.x - 1.5, altar.y - 0.5, { solid: true });
     addProp('bronze_brazier', altar.x + 1.5, altar.y - 0.5, { solid: true, light: 5.0 });
+  }
+  // The sprite's bottom edge is the front tip of its ritual circle. Place
+  // collision one diagonal step behind it, beneath the altar's stone base.
+  const altarBlockX = Math.floor(altar.x) - 1, altarBlockY = Math.floor(altar.y) - 1;
+  if (inb(altarBlockX, altarBlockY)) {
+    map.block[I(altarBlockX, altarBlockY)] = 1;
+    mat[I(altarBlockX, altarBlockY)] = 32;
   }
 
   // Abyssal Rift Gate (for endgame): on the breach approach road

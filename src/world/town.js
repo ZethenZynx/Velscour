@@ -522,7 +522,12 @@ function rollTown(tileset, seed, last) {
   const toC = Math.atan2(C.y + 0.5 - breach.y, C.x + 0.5 - breach.x);
   const rift = spot(breach.x + Math.cos(toC) * 3.6, breach.y + Math.sin(toC) * 3.6, 0, 2.5) || spot(breach.x, breach.y, 2.7, 4.5);
   const altar = spot(C.x + 0.5 + Math.cos(aB + 1.3) * 5.5, C.y + 0.5 + Math.sin(aB + 1.3) * 5.5, 0, 3) || spot(C.x + 0.5, C.y + 0.5, 4, 7);
-  if (altar && inb(Math.floor(altar.x), Math.floor(altar.y))) map.block[I(Math.floor(altar.x), Math.floor(altar.y))] = 1;
+  // The sprite's bottom edge is the front tip of its ritual circle. Put the
+  // solid tile one diagonal step behind that anchor, under the stone base.
+  if (altar) {
+    const altarBlockX = Math.floor(altar.x) - 1, altarBlockY = Math.floor(altar.y) - 1;
+    if (inb(altarBlockX, altarBlockY)) map.block[I(altarBlockX, altarBlockY)] = 1;
+  }
   return { map, buildings, npcs, props, torches, wallHangings, portal, breach, rift, altar, center: { x: C.x + 0.5, y: C.y + 0.5 }, start };
 }
 
