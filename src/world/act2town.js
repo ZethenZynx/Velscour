@@ -573,7 +573,7 @@ function rollAct2Town(tileset, seed, isLastTry) {
   const altar = { x: C.x - 8.5, y: wellPos.y - 5.5 };
   if (inb(Math.floor(altar.x), Math.floor(altar.y))) {
     keep[I(Math.floor(altar.x), Math.floor(altar.y))] = 1;
-    map.block[I(Math.floor(altar.x), Math.floor(altar.y))] = 0;
+    map.block[I(Math.floor(altar.x), Math.floor(altar.y))] = 1;
     mat[I(Math.floor(altar.x), Math.floor(altar.y))] = 32;
     addProp('carved_standing_stone', altar.x - 1.5, altar.y - 0.5, { solid: true });
     addProp('bronze_brazier', altar.x + 1.5, altar.y - 0.5, { solid: true, light: 5.0 });
@@ -641,9 +641,10 @@ function rollAct2Town(tileset, seed, isLastTry) {
   const portalOk = reach(portal.x, portal.y);
   const act1Ok = reach(act1Portal.x, act1Portal.y);
   const breachOk = reach(breach.x, breach.y);
+  const altarOk = reach(altar.x, altar.y);
   const npcsOk = npcs.every((n) => reach(n.x, n.y));
 
-  if (!isLastTry && (!portalOk || !act1Ok || !breachOk || !npcsOk)) {
+  if (!isLastTry && (!portalOk || !act1Ok || !breachOk || !altarOk || !npcsOk)) {
     return null; // Retry with next seed
   }
 
