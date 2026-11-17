@@ -24,7 +24,6 @@ import { drawNebula } from '../gfx/breach.js';
 import { drawWyrm } from '../gfx/breachdragon.js';
 import { skyBack, skyWorld, skyFx, skyFront, drawSkyGate } from '../gfx/skyship.js';
 import { drawCine } from './cinema.js';
-import { obelisk } from './happenings.js';
 import { endgameUnlocked } from './endgame.js';
 import { heresyRankOf } from './heresies.js';
 import { addLight } from '../gfx/vfx.js';
@@ -444,13 +443,100 @@ function drawCorpse(ctx, c) {
   ctx.restore();
 }
 
+function drawHeresyAltar(ctx, x, y, open, lit) {
+  // A dark, horn-crowned ritual arch over an inlaid floor seal. Keep the palette
+  // muted before the Endgame opens, then let the familiar Velscour red take over.
+  const red = open ? '#ff3020' : '#7c252c';
+  const pulse = 0.72 + Math.sin(G.time * 2.6) * 0.12;
+  ctx.save();
+
+  // The sigil sits flat on the ground plane, so it reads as a ritual site rather
+  // than another upright town marker.
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = open ? (lit ? 0.28 + pulse * 0.12 : 0.16) : 0.10;
+  ctx.drawImage(glowSprite(red), x - 54, y - 34, 108, 54);
+  ctx.globalAlpha = open ? (lit ? pulse : 0.5) : 0.38;
+  ctx.strokeStyle = red;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.ellipse(x, y - 2, 42, 15, 0, 0, TAU); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x, y - 2, 32, 11, 0, 0, TAU); ctx.stroke();
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    const sx = x + Math.cos(a) * 37, sy = y - 2 + Math.sin(a) * 13;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a) * 30, y - 2 + Math.sin(a) * 10);
+    ctx.lineTo(sx, sy);
+    ctx.lineTo(x + Math.cos(a + 0.16) * 34, y - 2 + Math.sin(a + 0.16) * 12);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Three broad, faceted steps give the shrine a clear silhouette at town scale.
+  ctx.fillStyle = 'rgba(0,0,0,0.48)';
+  ctx.beginPath(); ctx.ellipse(x, y + 2, 28, 11, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#28242a';
+  ctx.beginPath(); ctx.moveTo(x - 25, y - 1); ctx.lineTo(x, y + 9); ctx.lineTo(x + 25, y - 1); ctx.lineTo(x, y - 11); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#51444a';
+  ctx.beginPath(); ctx.moveTo(x - 21, y - 5); ctx.lineTo(x, y + 3); ctx.lineTo(x + 21, y - 5); ctx.lineTo(x, y - 13); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#34252c';
+  ctx.beginPath(); ctx.moveTo(x - 17, y - 9); ctx.lineTo(x, y - 2); ctx.lineTo(x + 17, y - 9); ctx.lineTo(x, y - 16); ctx.closePath(); ctx.fill();
+
+  // Stone uprights and a pointed arch frame the bright central seal.
+  ctx.fillStyle = '#211d25';
+  ctx.beginPath(); ctx.moveTo(x - 22, y - 13); ctx.lineTo(x - 19, y - 73); ctx.lineTo(x - 11, y - 85); ctx.lineTo(x - 7, y - 16); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + 22, y - 13); ctx.lineTo(x + 19, y - 73); ctx.lineTo(x + 11, y - 85); ctx.lineTo(x + 7, y - 16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#63515a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - 20, y - 19); ctx.lineTo(x - 18, y - 72); ctx.lineTo(x - 10, y - 83); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 20, y - 19); ctx.lineTo(x + 18, y - 72); ctx.lineTo(x + 10, y - 83); ctx.stroke();
+  ctx.fillStyle = '#373039';
+  ctx.beginPath(); ctx.moveTo(x - 21, y - 73); ctx.lineTo(x - 14, y - 85); ctx.lineTo(x - 7, y - 78); ctx.lineTo(x - 5, y - 71); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + 21, y - 73); ctx.lineTo(x + 14, y - 85); ctx.lineTo(x + 7, y - 78); ctx.lineTo(x + 5, y - 71); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#53414c'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(x, y - 68, 17, Math.PI, 0); ctx.stroke();
+  ctx.strokeStyle = '#211d25'; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.arc(x, y - 68, 14, Math.PI, 0); ctx.stroke();
+
+  // Inset blood-red seal and a simple horned skull crest, drawn in the same
+  // limited stone palette as the existing obelisk artwork.
+  ctx.fillStyle = open ? 'rgba(116,12,25,0.82)' : 'rgba(55,35,43,0.88)';
+  ctx.beginPath(); ctx.ellipse(x, y - 66, 11, 18, 0, Math.PI, 0); ctx.lineTo(x + 11, y - 18); ctx.lineTo(x - 11, y - 18); ctx.closePath(); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = open ? (lit ? pulse : 0.72) : 0.32;
+  ctx.drawImage(glowSprite(red), x - 25, y - 102, 50, 58);
+  ctx.strokeStyle = red; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x, y - 81); ctx.lineTo(x, y - 49); ctx.moveTo(x - 8, y - 65); ctx.lineTo(x + 8, y - 65); ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+
+  // Horns and skull: deliberately graphic and readable, not a realistic new asset.
+  ctx.fillStyle = '#827078';
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 91); ctx.lineTo(x - 16, y - 101); ctx.lineTo(x - 13, y - 88); ctx.lineTo(x - 8, y - 84); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + 7, y - 91); ctx.lineTo(x + 16, y - 101); ctx.lineTo(x + 13, y - 88); ctx.lineTo(x + 8, y - 84); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#b19b9b';
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 91); ctx.lineTo(x - 5, y - 84); ctx.lineTo(x, y - 81); ctx.lineTo(x + 5, y - 84); ctx.lineTo(x + 7, y - 91); ctx.lineTo(x, y - 94); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#261b22';
+  ctx.fillRect(x - 4, y - 89, 2, 2); ctx.fillRect(x + 2, y - 89, 2, 2);
+  ctx.fillStyle = '#5b3438'; ctx.fillRect(x - 1, y - 86, 2, 4);
+
+  // Paired candle clusters echo the reference while keeping the town's warm light.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 2; i++) {
+      const cx = x + side * (25 + i * 3), cy = y - 14 + i * 2, h = 8 + (i % 2) * 3;
+      ctx.fillStyle = '#c6b59a'; ctx.fillRect(cx - 1.4, cy - h, 2.8, h);
+      ctx.fillStyle = '#f2b34e'; ctx.fillRect(cx - 1, cy - h - 3, 2, 3);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3;
+      ctx.drawImage(glowSprite('#ff9a40'), cx - 8, cy - h - 12, 16, 16);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+}
+
 function drawNpc(ctx, n) {
-  if (n.altar) { // the Altar of Heresy (docs/ENDGAME.md): a dark obelisk, lit in Velscour's red once the Endgame is open, a skull glow while a Heresy is on
+  if (n.altar) { // the Altar of Heresy: a small, unmistakable crimson ritual shrine in the town plaza
     const x = isoX(n.x, n.y), y = isoY(n.x, n.y), open = endgameUnlocked(), lit = open && heresyRankOf() > 0;
-    if (lit) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + Math.sin(G.time * 2.5) * 0.12; ctx.drawImage(glowSprite('#ff3020'), x - 48, y - 70, 96, 80); ctx.restore(); }
-    obelisk(ctx, x, y, open ? '#ff3020' : '#606070', open, 44);
-    if (open) addLight(n.x, n.y, 2.6, lit ? 0.9 : 0.5, 30, '#ff3020');
-    n.sbox = [x - 18, y - 56, x + 18, y + 6];
+    drawHeresyAltar(ctx, x, y, open, lit);
+    if (open) addLight(n.x, n.y, 3.2, lit ? 1.05 : 0.65, 34, '#ff3020');
+    n.sbox = [x - 38, y - 112, x + 38, y + 10];
     return;
   }
   if (n.stash) {
