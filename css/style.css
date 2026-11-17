@@ -657,6 +657,7 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 }
 .title-changes h2 { flex: 0 0 auto; margin: 0; padding: 11px 14px 9px; border-bottom: 1px solid rgba(176, 126, 49, .55); color: var(--gold-bright); font: 700 17px var(--font-head); letter-spacing: 1.5px; text-transform: uppercase; }
 .title-changes ul { overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; scrollbar-color: #805d2b rgba(0, 0, 0, .24); margin: 0; padding: 4px 14px 10px; list-style: none; }
+.title-changes li.change-date { padding: 7px 0 3px; border-bottom: 1px solid rgba(176, 126, 49, .34); color: #b99b62; font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
 .title-changes li { padding: 8px 0; border-bottom: 1px solid rgba(176, 126, 49, .2); }
 .title-changes li:last-child { border-bottom: 0; }
 .title-changes li strong { display: block; margin-bottom: 3px; color: #e4c47c; font: 600 14px var(--font-head); }

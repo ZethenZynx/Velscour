@@ -64,8 +64,21 @@ export function titleScreen() {
   const changes = el('section', 'title-changes');
   changes.setAttribute('aria-label', 'Recent changes');
   const renderChanges = (items) => {
-    changes.innerHTML = `<h2>Recent Changes</h2><ul>${items.map(({ title, summary }) =>
-      `<li><strong>${escapeHtml(title)}</strong>${summary ? `<span>${escapeHtml(summary)}</span>` : ''}</li>`
+    const groups = [];
+    for (const item of items) {
+      const date = item.date || '';
+      let group = groups[groups.length - 1];
+      if (!group || group.date !== date) groups.push(group = { date, items: [] });
+      group.items.push(item);
+    }
+    const formatDate = (date) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'Earlier updates';
+      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+    };
+    changes.innerHTML = `<h2>Recent Changes</h2><ul>${groups.map(({ date, items: entries }) =>
+      `<li class="change-date"><time${date ? ` datetime="${escapeHtml(date)}"` : ''}>${escapeHtml(formatDate(date))}</time></li>${entries.map(({ title, summary }) =>
+        `<li><strong>${escapeHtml(title)}</strong>${summary ? `<span>${escapeHtml(summary)}</span>` : ''}</li>`
+      ).join('')}`
     ).join('')}</ul>`;
   };
   renderChanges(RECENT_CHANGES);
