@@ -1,5 +1,5 @@
-// One optional, major event is housed in a separate authored chamber on each campaign dungeon floor.
-// The encounters reuse existing monster, loot, hazard, particle and interaction systems; no new art is required.
+// One major event is housed in a separate authored chamber on each campaign dungeon floor.
+// Events begin when the player enters their room or map area; encounters reuse existing systems and art.
 import { G } from '../state.js';
 import { chance, pick, rand, randi, TAU } from '../core/util.js';
 import { isoX, isoY } from '../core/view.js';
@@ -215,7 +215,7 @@ function startRun(world, def, room) {
   const p = world.player, col = def.color;
   addEffect(new Column(cx,cy,col,1,38,360)); addEffect(new Ring(cx,cy,0.3,5,1.2,col,6,{fill:true}));
   sfx('gate',0.7); UI.centerMsg(def.name.toUpperCase(), 'A major dungeon event has begun', 2.8);
-  UI.log(`<b style="color:${col}">${def.name}</b> begins in the Omen Chamber.`, col);
+  UI.log(`<b style="color:${col}">${def.name}</b> begins as you enter the event area.`, col);
 
   switch(def.mode) {
     case 'goblin': {
@@ -298,7 +298,7 @@ function finish(world, run, success) {
   run.active=false;run.paid=true;
   if(success&&run.reward)loot(world,run.x,run.y,run.reward);
   addEffect(new Column(run.x,run.y,success?'#ffd66b':'#765c70',0.75,30,320));
-  UI.centerMsg(success?'EVENT COMPLETE':'EVENT ENDED',success?'The chamber yields its reward':'The disturbance fades',2.2);
+  UI.centerMsg(success?'EVENT COMPLETE':'EVENT ENDED',success?'The event area yields its reward':'The disturbance fades',2.2);
   UI.log(success?`The ${run.def.name} event is complete.`:`The ${run.def.name} event has ended.`,success?'#ffd66b':'#a99aaa');
   sfx(success?'levelup':'gate',0.55);
 }
@@ -308,16 +308,26 @@ export function setupDungeonEvent(world, room, { id = null, start = null } = {})
   room ||= reachableEventRoom(world,start,world.chests||[]);
   if(!room)return null;
   const def=(id&&EVENT_BY_ID.get(id))||rollDungeonEvent(),cx=room.mx??room.x+room.w/2,cy=room.my??room.y+room.h/2;
-  world.eventRoom=room; world.dungeonEvent={id:def.id,rarity:def.rarity};
-  const marker={x:cx,y:cy,opened:false,reach:1.65,far:40,label:`${def.rarity[0].toUpperCase()+def.rarity.slice(1)} Event: ${def.name}`,dot:def.color,isDungeonEvent:true,event:def,
-    draw(ctx,sx,sy){const pulse=.72+.22*Math.sin(G.time*3);ctx.fillStyle='rgba(0,0,0,.48)';ctx.beginPath();ctx.ellipse(sx,sy,23,9,0,0,TAU);ctx.fill();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.35*pulse;ctx.drawImage(glowSprite(def.color),sx-38,sy-66,76,76);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.strokeStyle=def.color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sx,sy,17,7,0,0,TAU);ctx.stroke();ctx.fillStyle='#393342';ctx.beginPath();ctx.moveTo(sx-12,sy-3);ctx.lineTo(sx,sy+3);ctx.lineTo(sx+12,sy-3);ctx.lineTo(sx,sy-9);ctx.fill();ctx.fillStyle=def.color;ctx.beginPath();ctx.moveTo(sx,sy-55);ctx.lineTo(sx+7,sy-24);ctx.lineTo(sx,sy-17);ctx.lineTo(sx-7,sy-24);ctx.closePath();ctx.fill();addLight(this.x,this.y,2.8,.65,40,def.color);if(!this.opened&&Math.random()<.16)spawn({type:'glow',x:this.x+rand(-.4,.4),y:this.y+rand(-.4,.4),z:rand(20,48),vz:18,life:.8,size:3,size1:0,color:def.color,add:true});},
-    use(){if(this.opened||G.world!==world)return;this.opened=true;if(G.char?.dungeonEventClaims?.[eventClaimKey(world)]){UI.log(`The Omen Chamber at this depth has already yielded its reward.`, '#c5b7a0');return;}startRun(world,def,room);}
-  };
-  world.chests.push(marker); return marker;
+  const claimed=!!G.char?.dungeonEventClaims?.[eventClaimKey(world)];
+  world.eventRoom=room;
+  world.dungeonEvent={id:def.id,rarity:def.rarity,triggered:claimed};
+  return world.dungeonEvent;
 }
 
 export function dungeonEventTick(world,dt) {
-  const run=world?.happen?.event;if(!run?.active)return;
+  if(!world)return;
+  let run=world.happen?.event;
+  if(!run?.active){
+    const event=world.dungeonEvent,room=world.eventRoom,p=world.player;
+    if(!event||event.triggered||!room||!p)return;
+    const inside=p.x>=room.x&&p.x<room.x+room.w&&p.y>=room.y&&p.y<room.y+room.h;
+    if(!inside)return;
+    event.triggered=true;
+    const def=EVENT_BY_ID.get(event.id);
+    if(def)startRun(world,def,room);
+    run=world.happen?.event;
+    if(!run?.active)return;
+  }
   const p=world.player;run.t+=dt;
   if(run.kind==='kill'){
     run.foes=run.foes.filter(m=>m&&!m.dead&&world.creatures.includes(m));
