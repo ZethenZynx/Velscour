@@ -69,7 +69,9 @@ export function titleScreen() {
     ).join('')}</ul>`;
   };
   renderChanges(RECENT_CHANGES);
-  loadRecentChanges().then((items) => { if (current === s) renderChanges(items); });
+  // Always revalidate when the title screen is entered. A cached/bundled list
+  // is already visible while GitHub responds and remains the offline fallback.
+  loadRecentChanges({ forceRefresh: true }).then((items) => { if (current === s) renderChanges(items); });
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);

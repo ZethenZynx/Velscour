@@ -4,6 +4,9 @@ const GITHUB_FEATURE_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velsco
 const CACHE_KEY = 'velscour_recent_feature_pulls_v4';
 const CACHE_MS = 30 * 60 * 1000;
 const FEATURE_BRANCH = /^(?:feat|feature)\//i;
+// A major feature can live on a fix-named branch (for example, when its work
+// started as a focused fix). Keep the feed limited to feature-like titles.
+const FEATURE_TITLE = /^(?:add|allow|bring|build|create|enable|expand|implement|improve|introduce|make|move|replace|restore|revise|rework|show|support|update|upgrade)\b/i;
 
 function nextPageUrl(response) {
   const links = response.headers?.get?.('Link') || '';
@@ -48,7 +51,7 @@ export function featureChangesFromPullRequests(pullRequests) {
     const sourceRepo = pullRequest?.head?.repo?.full_name;
     const title = String(pullRequest?.title || '').trim().replace(/^(?:feat|feature):\s*/i, '').replace(/^./, (letter) => letter.toUpperCase());
     const ownFork = sourceRepo === 'ZethenZynx/Velscour-PC' || sourceRepo === 'ZethenZynx/Velscour';
-    if (!pullRequest?.merged_at || !FEATURE_BRANCH.test(branch) || !ownFork || !title) return [];
+    if (!pullRequest?.merged_at || (!FEATURE_BRANCH.test(branch) && !FEATURE_TITLE.test(title)) || !ownFork || !title) return [];
     return [{ title, summary: cleanSummary(pullRequest.body) }];
   });
 }
@@ -63,7 +66,7 @@ async function fetchAllFeaturePullRequests() {
       const response = await fetch(url, {
         headers: { Accept: 'application/vnd.github+json' },
         ...(controller ? { signal: controller.signal } : {}),
-        cache: 'no-cache',
+        cache: 'no-store',
       });
       if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
       const page = await response.json();
@@ -78,9 +81,9 @@ async function fetchAllFeaturePullRequests() {
 }
 
 /** Load merged feature PRs, falling back to cached or bundled summaries if unavailable. */
-export async function loadRecentChanges() {
+export async function loadRecentChanges({ forceRefresh = false } = {}) {
   const cached = readCache();
-  if (cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
+  if (!forceRefresh && cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
 
   try {
     const items = featureChangesFromPullRequests(await fetchAllFeaturePullRequests());

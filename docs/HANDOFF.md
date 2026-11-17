@@ -2,6 +2,9 @@
 
 ## November 17, 2026 - add optional Dark Forest side clearings
 - Keep the six existing landmark clearings on the main path and add six more landmark areas branching off it: three north and three south. They reuse the camp, well, shrine, obelisk, swamp and web props, with open walk-in spurs and tree-free clearings; maze footprints and the guardian route remain separate.
+## November 17, 2026 - refresh recent changes on every title-screen visit
+- The title screen now forces a fresh GitHub check whenever it opens, while immediately showing the cached or bundled list during the request. HTTP caching is disabled for the request, and stale cached data remains the fallback when GitHub is unavailable.
+- Merged major-feature PRs are also recognized by feature-like titles when their branch name is `fix/`, so the random-events update can appear after merge. Open and unmerged PRs remain excluded.
 
 ## November 16, 2026 - 50 random events across playable maps (local, not published)
 - Added all 50 proposed events in seven categories, with the approved rarity distribution (45/25/15/10/4/1). Ordinary campaign dungeon floors receive a separate, reachable Omen Chamber in addition to the shrine room. Overworlds and roomless special maps receive a reachable event site chosen from walkable floor; events also run in the Sky, Sea, Breach and Rift. Raid arenas, town hubs and the final throne stay excluded. The dungeon chamber has its own octagonal outline, concentric floor sigils, altar/light scatter, existing wall hangings, and a bright interactable event marker that stays off the minimap.
