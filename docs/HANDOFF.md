@@ -1,5 +1,9 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - refresh recent changes on every title-screen visit
+- The title screen now forces a fresh GitHub check whenever it opens, while immediately showing the cached or bundled list during the request. HTTP caching is disabled for the request, and stale cached data remains the fallback when GitHub is unavailable.
+- Merged major-feature PRs are also recognized by feature-like titles when their branch name is `fix/`, so the random-events update can appear after merge. Open and unmerged PRs remain excluded.
+
 ## November 16, 2026 - 50 random events across playable maps (local, not published)
 - Added all 50 proposed events in seven categories, with the approved rarity distribution (45/25/15/10/4/1). Ordinary campaign dungeon floors receive a separate, reachable Omen Chamber in addition to the shrine room. Overworlds and roomless special maps receive a reachable event site chosen from walkable floor; events also run in the Sky, Sea, Breach and Rift. Raid arenas, town hubs and the final throne stay excluded. The dungeon chamber has its own octagonal outline, concentric floor sigils, altar/light scatter, existing wall hangings, and a bright interactable event marker that stays off the minimap.
 - Events use existing enemy, loot, hazard, portal, cache, buff, particle, and sound systems. Hazards are telegraphed, temporary, and never seal paths. Events are optional until interacted with, and floor claims prevent rebuilding a depth to farm its event. Multiple fleeing treasure imps now work together without multiplying the regular imp's large reward burst.
