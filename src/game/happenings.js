@@ -80,7 +80,12 @@ export function setupHappenings(world, start, gen) {
   const specialObjects = !!(world.raid || gen.raid || world.biome.overworld || world.biome.challenge || world.biome.cave || world.biome.tower || world.biome.id === 'throne');
   setupWorldObjects(world, start, { special: specialObjects });
   if (world.kind !== 'dungeon') return;
-  setupDungeonEvent(world, gen.eventRoom, { start });
+  let eventRoom = gen.eventRoom;
+  if (world.biome.id === 'dark_forest' && gen.sideAreas?.length) {
+    const area = pick(gen.sideAreas);
+    eventRoom = { ...area, x: area.x - 2.5, y: area.y - 2.5, w: 5, h: 5, mx: area.x, my: area.y, eventRoom: true };
+  }
+  setupDungeonEvent(world, eventRoom, { start });
   if (world.biome.overworld) return;
   if (world.raid || gen.raid) return;
 

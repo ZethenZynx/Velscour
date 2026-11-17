@@ -2,6 +2,7 @@
 
 ## November 17, 2026 - start random events when entering their area
 - Removed the clickable pylon-style event marker. Events now begin automatically when the player enters the event room or special-map event area. The existing per-floor claim still prevents replay farming, and event-specific choices or portals remain part of the event after it starts.
+- In the Dark Forest, select one of the six new north/south landmark clearings for the event site rather than placing the area near the guardian at the end of the route.
 
 ## November 17, 2026 - add optional Dark Forest side clearings
 - Keep the six existing landmark clearings on the main path and add six more landmark areas branching off it: three north and three south. They reuse the camp, well, shrine, obelisk, swamp and web props, with open walk-in spurs and tree-free clearings; maze footprints and the guardian route remain separate.
