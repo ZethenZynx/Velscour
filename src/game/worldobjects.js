@@ -327,7 +327,7 @@ function roomSpots(world,start,count,special) {
     const cx=r.mx??r.cx??r.x+(r.w||1)/2,cy=r.my??r.cy??r.y+(r.h||1)/2;
     if(dist(cx,cy,start[0],start[1])<(special?6:8))continue;
     let [x,y]=[cx+rand(-1,1),cy+rand(-1,1)];if(!map.walkable(x,y))[x,y]=map.randomNear(cx,cy,2);
-    if(!map.walkable(x,y)||out.some(q=>dist(q[0],q[1],x,y)<5)||world.chests.some(c=>dist(c.x,c.y,x,y)<3))continue;
+    if(!map.walkable(x,y)||out.some(q=>dist(q[0],q[1],x,y)<5)||world.chests.some(c=>dist(c.x,c.y,x,y)<3)||(world.portals||[]).some(p=>dist(p.x,p.y,x,y)<5))continue;
     if(!map.findPath(start[0],start[1],x,y,12000))continue;
     out.push([x,y]);
   }
@@ -348,7 +348,7 @@ function roomSpots(world,start,count,special) {
     let available=tail;
     for(let tries=0;tries<Math.min(tail,160)&&out.length<count;tries++){
       const qi=randi(0,available-1),i=queue[qi];queue[qi]=queue[--available];const x=i%W+.5,y=Math.floor(i/W)+.5;
-      if(dist(x,y,start[0],start[1])<(special?6:8)||out.some(q=>dist(q[0],q[1],x,y)<5)||world.chests.some(c=>dist(c.x,c.y,x,y)<3))continue;
+      if(dist(x,y,start[0],start[1])<(special?6:8)||out.some(q=>dist(q[0],q[1],x,y)<5)||world.chests.some(c=>dist(c.x,c.y,x,y)<3)||(world.portals||[]).some(p=>dist(p.x,p.y,x,y)<5))continue;
       if(!map.findPath(start[0],start[1],x,y,4000))continue;out.push([x,y]);
     }
   }
@@ -357,7 +357,7 @@ function roomSpots(world,start,count,special) {
 
 /** Add one single-use object to a floor, in its reserved shrine room when the dungeon has one. */
 export function setupWorldObjects(world,start,{special=false}={}) {
-  if(!world?.map||!world.tileset||world.kind!=='dungeon'||!start)return 0;
+  if(!world?.map||!world.tileset||world.kind==='town'||!start)return 0;
   world.chests ||= [];
   const claimKey=makeClaimKey(world),claims=G.char?.worldObjectClaims||{};
   if(claims[claimKey])return 0;

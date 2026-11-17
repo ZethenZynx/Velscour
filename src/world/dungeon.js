@@ -52,7 +52,7 @@ function nextHangingDesign(rng, bag, count = 50) {
  * least two tiles from an arch or a door, and spaced apart: torches 3 tiles, hangings 2.5 tiles from any mount.
  * `torchRate(s)` / `hangRate` are the per-edge chances.
  */
-function wallMounts(map, rng, biome, torchRate, hangRate, count, shrineRoom = null) {
+function wallMounts(map, rng, biome, torchRate, hangRate, count, shrineRoom = null, eventRoom = null) {
   const edges = new Set(map.segments.map((s) => s.dir + s.mx + ',' + s.my + (s.front ? 'f' : '')));
   const along = (s, d) => (s.dir === 'f' ? s.dir + s.mx + ',' + (s.my + d) : s.dir + (s.mx + d) + ',' + s.my) + (s.front ? 'f' : '');
   const midRun = (s) => [-1, 1].every((d) => edges.has(along(s, d)));
@@ -93,6 +93,36 @@ function wallMounts(map, rng, biome, torchRate, hangRate, count, shrineRoom = nu
         if (!s) continue;
         const design = devotionalDesigns[artIndex++ % devotionalDesigns.length] % count;
         wallHangings.push(wallHangingAtWallSegment(s, design));
+        taken.push([s.mx, s.my]);
+      }
+    }
+  }
+  if (eventRoom) {
+    const inside = (s) => {
+      const x = s.dir === 'f' ? s.ex + (s.front ? -1 : 0) : s.ex0;
+      const y = s.dir === 'f' ? s.ey0 : s.ey + (s.front ? -1 : 0);
+      return x >= eventRoom.x && y >= eventRoom.y && x < eventRoom.x + eventRoom.w && y < eventRoom.y + eventRoom.h;
+    };
+    const sideOf = (s) => s.dir === 'f'
+      ? (Math.abs(s.ex - eventRoom.x) < 0.01 ? 'west' : 'east')
+      : (Math.abs(s.ey - eventRoom.y) < 0.01 ? 'north' : 'south');
+    const groups = new Map(['north', 'east', 'south', 'west'].map((side) => [side, []]));
+    for (const s of map.segments) if (inside(s) && midRun(s) && clearOfGaps(s)) groups.get(sideOf(s))?.push(s);
+    const eventDesigns = [4, 5, 6, 16, 17, 20, 22, 24, 25, 29, 30, 32, 34, 36, 38, 45, 48, 49];
+    let artIndex = rng.int(0, eventDesigns.length - 1);
+    for (const [side, group] of groups) {
+      const span = side === 'north' || side === 'south' ? eventRoom.w : eventRoom.h;
+      const axisCenter = side === 'north' || side === 'south' ? eventRoom.mx : eventRoom.my;
+      const coordinate = (s) => side === 'north' || side === 'south' ? s.mx : s.my;
+      group.sort((a, b) => Math.abs(coordinate(a) - axisCenter) - Math.abs(coordinate(b) - axisCenter));
+      const anchors = span >= 9 ? [0.3, 0.7] : [0.5];
+      for (const fraction of anchors) {
+        const target = side === 'north' || side === 'south'
+          ? eventRoom.x + eventRoom.w * fraction
+          : eventRoom.y + eventRoom.h * fraction;
+        const s = group.slice().sort((a, b) => Math.abs(coordinate(a) - target) - Math.abs(coordinate(b) - target)).find((candidate) => free(candidate, 1.7));
+        if (!s) continue;
+        wallHangings.push(wallHangingAtWallSegment(s, eventDesigns[artIndex++ % eventDesigns.length] % count));
         taken.push([s.mx, s.my]);
       }
     }
@@ -160,6 +190,9 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
     Object.assign(shrineRoom, { theme: 'shrine', name: themedShrine?.[1] || 'Shrine Chamber', shrineRoom: true });
     carveShrineSanctum(map, shrineRoom);
   }
+  const eventCandidates = rooms.filter((r) => r !== startRoom && r !== guardianRoom && r !== shrineRoom && r.w >= 3 && r.h >= 3);
+  const eventRoom = !raid && eventCandidates.length ? rng.pick(eventCandidates.filter(r => r.w * r.h >= Math.max(...eventCandidates.map(q => q.w * q.h)) * 0.7)) : null;
+  if (eventRoom) { Object.assign(eventRoom, { theme: 'ritual', name: 'Omen Chamber', eventRoom: true }); carveEventSanctum(map, eventRoom); }
   if (!map.walkable(layout.start[0], layout.start[1]) ||
       !map.walkable(layout.guardian[0], layout.guardian[1]) ||
       !map.walkable(layout.exit[0], layout.exit[1]))
@@ -177,12 +210,12 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
     }
     return [r.mx, r.my];
   };
-  const spawns = [], packRooms = eligibleRooms.filter((r) => r !== shrineRoom).length ? eligibleRooms.filter((r) => r !== shrineRoom) : [guardianRoom];
+  const spawns = [], packRooms = eligibleRooms.filter((r) => r !== shrineRoom && r !== eventRoom).length ? eligibleRooms.filter((r) => r !== shrineRoom && r !== eventRoom) : [guardianRoom];
   for (const r of packRooms) {
     const [x, y] = roomSpot(r), arch = pickArch(), A = ARCH[arch];
     spawns.push({ x, y, arch, n: rng.int(A.pack[0], A.pack[1]), rank: 'normal', look: looks.pick(arch) });
   }
-  const nonGuard = rooms.filter((r) => r !== startRoom && r !== guardianRoom && r !== shrineRoom);
+  const nonGuard = rooms.filter((r) => r !== startRoom && r !== guardianRoom && r !== shrineRoom && r !== eventRoom);
   const champs = 1 + Math.floor(Math.min(depth, 120) / 18);
   for (let i = 0; i < champs; i++) {
     const r = rng.pick(nonGuard.length ? nonGuard : packRooms), [x, y] = roomSpot(r), arch = pickArch();
@@ -201,9 +234,9 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
   const chests = [], chestRooms = nonGuard.length ? shuffleWith(nonGuard.slice(), rng) : [];
   const chestCount = Math.min(2, Math.max(1, Math.floor(chestRooms.length / 3)));
   for (const r of chestRooms.slice(0, chestCount)) chests.push({ x: r.mx, y: r.my, rare: rng.chance(0.15) });
-  const { torches, wallHangings } = wallMounts(map, rng, biome, () => 0.35, 0.3, wallHangingCount(biome), shrineRoom);
+  const { torches, wallHangings } = wallMounts(map, rng, biome, () => 0.35, 0.3, wallHangingCount(biome), shrineRoom, eventRoom);
   return {
-    map, rooms, spawns, props, chests, torches, wallHangings, looks, shrineRoom,
+    map, rooms, spawns, props, chests, torches, wallHangings, looks, shrineRoom, eventRoom,
     start: layout.start.slice(), exit: layout.exit.slice(), bossRoom: guardianRoom,
     raid: null, layoutId: layout.id, layoutName: layout.name,
   };
@@ -349,6 +382,9 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
     carveShrineSanctum(map, shrineRoom);
     holesBy.delete(shrineRoom.idx);
   }
+  const eventCandidates = rooms.filter((r) => r !== startRoom && r !== exitRoom && r !== shrineRoom && r.w >= 3 && r.h >= 3);
+  const eventRoom = !raid && eventCandidates.length ? rng.pick(eventCandidates.filter(r => r.w * r.h >= Math.max(...eventCandidates.map(q => q.w * q.h)) * 0.7)) : null;
+  if (eventRoom) { Object.assign(eventRoom, { theme: 'ritual', name: 'Omen Chamber', eventRoom: true }); carveEventSanctum(map, eventRoom); holesBy.delete(eventRoom.idx); }
 
   // pillars and cloister courts: void blocks inside shaped rooms become real walls (cover, sight lines)
   for (const [idx, hs] of holesBy) {
@@ -390,7 +426,7 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
     }
     return [r.mx, r.my];
   };
-  const packRooms = rooms.filter((r) => r !== startRoom && r !== shrineRoom && dist[r.idx] >= 0);
+  const packRooms = rooms.filter((r) => r !== startRoom && r !== shrineRoom && r !== eventRoom && dist[r.idx] >= 0);
   for (const r of packRooms) {
     const area = r.type === 'cave' ? 28 : r.w * r.h;
     let packs = Math.max(r === exitRoom && !raid ? 0 : 1, Math.round((area / 26) * dens * rng.range(0.7, 1.3)));
@@ -433,7 +469,7 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
     }
   }
   const chests = [];
-  const deadEnds = rooms.filter((r) => adj[r.idx].length === 1 && r !== startRoom && r !== exitRoom && r !== shrineRoom);
+  const deadEnds = rooms.filter((r) => adj[r.idx].length === 1 && r !== startRoom && r !== exitRoom && r !== shrineRoom && r !== eventRoom);
   const nChests = rng.int(1, 3);
   for (let i = 0; i < nChests; i++) {
     const r = deadEnds.length ? deadEnds.splice(rng.int(0, deadEnds.length - 1), 1)[0] : rng.pick(packRooms);
@@ -443,10 +479,10 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
   }
   const inArena = (s) => arena && s.mx >= arena.x - 0.5 && s.mx <= arena.x + arena.w + 0.5 && s.my >= arena.y - 0.5 && s.my <= arena.y + arena.h + 0.5;
   // the rate counts only the edges that may hold a mount (about half of them)
-  const { torches, wallHangings } = wallMounts(map, rng, biome, (s) => inArena(s) ? 0.45 : 0.16, 0.2, wallHangingCount(biome), shrineRoom);
+  const { torches, wallHangings } = wallMounts(map, rng, biome, (s) => inArena(s) ? 0.45 : 0.16, 0.2, wallHangingCount(biome), shrineRoom, eventRoom);
 
   return {
-    map, rooms, spawns, props, chests, torches, wallHangings, looks, shrineRoom,
+    map, rooms, spawns, props, chests, torches, wallHangings, looks, shrineRoom, eventRoom,
     start: [startRoom.mx, startRoom.my],
     exit: arena ? [arena.x + arena.w - 2.5, arena.cy] : exitRoom.keep || exitPos(map, exitRoom, startRoom),
     bossRoom: arena || exitRoom,
@@ -559,6 +595,10 @@ function placeObstacles(map, rooms, tileset, rng, startRoom) {
     const cx = Math.floor(r.mx), cy = Math.floor(r.my);
     const plan = r0.shrineRoom ? 'shrine-sanctum' : r.theme && THEMES[r.theme] ? 'themed' : r.w >= 6 && r.h >= 6 && rng.chance(0.55) ? rng.pick(['nave', 'shrine', 'rows', 'rubble', 'ring']) : null;
     r0.plan = plan;
+    if (r0.eventRoom) {
+      furnishEventRoom(r, { scat, rng, put, edge, cx, cy });
+      continue;
+    }
     if (r0.shrineRoom) {
       furnishShrineRoom(r, { scat, rng, put, edge, cx, cy });
       continue;
@@ -642,6 +682,39 @@ function carveShrineSanctum(map, room) {
         (right < bevel && bottom < bevel && right + bottom < bevel)) map.t[y * W + x] = 0;
   }
   room.shape = 'shrine-octagon';
+}
+
+// A separate, broader ritual chamber for the floor's major random event. It uses the same
+// existing floor and wall art as the dungeon while giving the event room its own silhouette.
+function carveEventSanctum(map, room) {
+  if (!room || room.w < 4 || room.h < 4) return;
+  const W = map.w, bevel = Math.min(2, Math.max(1, Math.floor(Math.min(room.w, room.h) / 4)));
+  for (let y = room.y; y < room.y + room.h; y++) for (let x = room.x; x < room.x + room.w; x++) {
+    const l = x - room.x, r = room.x + room.w - 1 - x, t = y - room.y, b = room.y + room.h - 1 - y;
+    if ((l < bevel && t < bevel && l + t < bevel) || (r < bevel && t < bevel && r + t < bevel) ||
+        (l < bevel && b < bevel && l + b < bevel) || (r < bevel && b < bevel && r + b < bevel)) map.t[y * W + x] = 0;
+  }
+  room.shape = 'omen-octagon';
+}
+
+// A ring of existing altars, treasure, statues, rubble and light props makes the event chamber
+// read as an authored encounter space, distinct from the devotional shrine sanctum.
+function furnishEventRoom(r, { scat, rng, put, edge, cx, cy }) {
+  const nonBlock = (tag) => tagged(scat, tag).filter(e => !e.block || !/fence|barricade|railing|palisade/.test(e.name));
+  const focal = [...nonBlock('altar'), ...nonBlock('treasure'), ...nonBlock('crystal'), ...nonBlock('statue')];
+  const lights = nonBlock('light').filter(e => !e.block), rubble = nonBlock('rubble').filter(e => !e.block);
+  const loose = scat.filter(e => !e.block);
+  // Keep the center tile open for the event's large, interactable sigil/portal marker.
+  put(cx, cy - 1.1, rng.pick(focal.length ? focal : loose), 0.08);
+  const radius = Math.max(1.8, Math.min(r.w, r.h) / 2 - 1.2);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, x = Math.round(cx + Math.cos(a) * radius), y = Math.round(cy + Math.sin(a) * radius);
+    put(x, y, rng.pick(lights.length && i % 2 === 0 ? lights : rubble.length ? rubble : loose), 0.12);
+  }
+  for (let i = 0; i < Math.min(8, edge.length); i++) {
+    const [x, y] = edge[(i * 7) % edge.length];
+    put(x, y, rng.pick(lights.length ? lights : rubble.length ? rubble : loose), 0.08);
+  }
 }
 
 // A deliberate, symmetrical arrangement makes the shrine unmistakable while leaving its center
@@ -833,13 +906,14 @@ function finishMap(map, tileset, rng, region = null, rooms = [], extra = []) {
     let v = b;
     const r = inRoom && roomOf[i] >= 0 ? rooms[roomOf[i]] : null, M = r && motif(r);
     const x = i % W, y = (i / W) | 0;
-    if (r?.shrineRoom && M) {
+    if ((r?.shrineRoom || r?.eventRoom) && M) {
       // Existing seal/rosette/star tiles form a strong center dais and two inlaid octagonal rings.
       const sx = Math.floor(r.mx) + 0.5, sy = Math.floor(r.my) + 0.5;
       const radius = Math.hypot(x + 0.5 - sx, y + 0.5 - sy);
       const sigilTiles = M.floor.length ? M.floor : featuresFor(b);
-      if (sigilTiles.length && (radius < 0.6 || Math.abs(radius - 2.1) < 0.45 || Math.abs(radius - 3.2) < 0.45)) v = sigilTiles[(x + y) % sigilTiles.length];
-      else if (M.floor.length && radius < 3.8 && rng.chance(0.42)) v = rng.pick(M.floor);
+      const rings = r.eventRoom ? [0.6, 1.8, 2.8, 3.6] : [0.6, 2.1, 3.2];
+      if (sigilTiles.length && rings.some(rr => Math.abs(radius - rr) < (rr < 1 ? 0.6 : 0.42))) v = sigilTiles[(x + y) % sigilTiles.length];
+      else if (M.floor.length && radius < 4.1 && rng.chance(r.eventRoom ? 0.58 : 0.42)) v = rng.pick(M.floor);
     }
     else if (M && M.runner.length && r.type !== 'cave' && (r.w >= r.h ? y === Math.floor(r.my) && x > r.x : x === Math.floor(r.mx) && y > r.y)) v = M.runner[(r.w >= r.h ? x : y) % 2 ? 0 : M.runner.length - 1];
     else if (M && M.floor.length && rng.chance(M.T.rate || 0.08)) v = rng.pick(M.floor);

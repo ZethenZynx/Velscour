@@ -1,7 +1,7 @@
 // Shaped dungeon rooms and scatter set pieces: builds levels in a few biomes, checks every floor tile is reachable from
 // the start, counts shapes/plans and screenshots one room of each. Usage: node tools/tests/rooms.js [biomes] [levels]
 const { openGame, report } = require('./harness');
-const biomes = (process.argv[2] || 'catacombs,cathedral,necropolis,frozen,hell').split(','), levels = +(process.argv[3] || 6);
+const biomes = (process.argv[2] || 'catacombs,cathedral,necropolis,frozen,hell,castle_keep').split(','), levels = +(process.argv[3] || 6);
 (async () => {
   const { browser, page, errors, shot } = await openGame({ width: 1280, height: 720 });
   await page.evaluate(async () => { const { G, game } = window.VELSCOUR; await game.newChar('paladin', 'Rooms'); document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.godMode = true; });
@@ -21,12 +21,16 @@ const biomes = (process.argv[2] || 'catacombs,cathedral,necropolis,frozen,hell')
       let lost = 0; for (let i = 0; i < m.t.length; i++) if (m.walkableTile(i % m.w, (i / m.w) | 0) && !seen[i]) lost++;
       const ex = w.portals.find((o) => o.type === 'exit'), exitOk = !!seen[Math.floor(ex.y) * m.w + Math.floor(ex.x)];
       const chestsOk = w.chests.every((c) => m.walkable(c.x, c.y));
+      const eventRooms = (w.rooms || []).filter((r) => r.eventRoom), shrineRooms = (w.rooms || []).filter((r) => r.shrineRoom);
+      const eventReachable = eventRooms.length === 1 && !!seen[Math.floor(eventRooms[0].my) * m.w + Math.floor(eventRooms[0].mx)];
+      const eventSeparate = eventRooms.length === 1 && shrineRooms.length === 1 && eventRooms[0] !== shrineRooms[0];
+      const eventMarker = w.chests.filter((c) => c.isDungeonEvent);
       w.creatures = w.creatures.filter((c) => c === p);
-      return { lost, exitOk, chestsOk, rooms: (w.genRooms || []).length };
+      return { lost, exitOk, chestsOk, eventReachable, eventSeparate, eventMarkers: eventMarker.length, shrineRooms: shrineRooms.length, rooms: (w.genRooms || []).length };
     }, [id, l]);
     const info = await page.evaluate(async () => (window.VELSCOUR.G.world.rooms || []).map((r) => [r.shape, r.plan, r.mx, r.my]));
-    console.log(`${id} L${l}: lost=${r.lost} exitOk=${r.exitOk} chestsOk=${r.chestsOk} rooms=${info.map((x) => (x[0] || '-') + '/' + (x[1] || '-')).join(' ')}`);
-    if (r.lost || !r.exitOk || !r.chestsOk) errors.push(`${id} L${l}: lost ${r.lost} exit ${r.exitOk} chests ${r.chestsOk}`);
+    console.log(`${id} L${l}: lost=${r.lost} exitOk=${r.exitOk} chestsOk=${r.chestsOk} eventRoom=${r.eventReachable} eventSeparate=${r.eventSeparate} eventMarkers=${r.eventMarkers} shrines=${r.shrineRooms} rooms=${info.map((x) => (x[0] || '-') + '/' + (x[1] || '-')).join(' ')}`);
+    if (r.lost || !r.exitOk || !r.chestsOk || !r.eventReachable || !r.eventSeparate || r.eventMarkers !== 1 || r.shrineRooms !== 1) errors.push(`${id} L${l}: lost ${r.lost} exit ${r.exitOk} chests ${r.chestsOk} eventRoom ${r.eventReachable}/${r.eventMarkers}, separate ${r.eventSeparate}, shrines ${r.shrineRooms}`);
     for (const [shape, plan, mx, my] of info) {
       const key = (shape !== 'rect' ? shape : '') + (plan || '');
       if (!key || shotDone.has(key)) continue;
