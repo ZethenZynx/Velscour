@@ -114,13 +114,16 @@ export class Player extends Creature {
     }
     // buffs
     let buffDmg = 0, buffAs = 0, buffArmor = 0, buffRes = 0, buffRegen = 0, buffSpeed = 0, buffCrit = 0, buffThorns = 0, buffLeech = 0, buffBlock = 0, buffLife = 0, buffCdr = 0, buffProj = 0;
-    let buffReduce = 0, buffMf = 0, buffGf = 0, buffXp = 0;
+    let buffReduce = 0, buffMf = 0, buffGf = 0, buffXp = 0, buffCritDmg = 0, buffArea = 0, buffEcho = 0;
+    const buffElemental = {};
     for (const b of this.buffs) {
       const s = b.stats;
       buffDmg += s.dmg || 0; buffAs += s.as || 0; buffArmor += s.armor || 0; buffRes += s.res || 0; buffRegen += s.regen || 0;
       buffSpeed += s.speed || 0; buffCrit += s.crit || 0; buffThorns += s.thorns || 0; buffLeech += s.leech || 0; buffBlock += s.block || 0;
       buffLife += s.life || 0; buffCdr += s.cdr || 0; buffProj += s.proj || 0;
       buffReduce += s.reduce || 0; buffMf += s.mf || 0; buffGf += s.gf || 0; buffXp += s.xp || 0;
+      buffCritDmg += s.critDmg || 0; buffArea += s.areaPct || 0; buffEcho += s.echoChance || 0;
+      for (const [el, value] of Object.entries(s.elemental || {})) buffElemental[el] = (buffElemental[el] || 0) + value;
     }
     // Defiance (deaths in this five-depth block) and the town's blessing (game/defiance.js)
     const hb = heroBonus(c);
@@ -143,7 +146,7 @@ export class Player extends Creature {
         magic: Math.round(((add.resAll || 0) + buffRes + Math.round((c.level - 1) * 0.2)) * 0.75),
       },
       critChance: clamp(critRaw, 0, 75), critOver,
-      critDmg: 50 + (add.critDmg || 0) + mk.critDmg + critOver * CRIT_OVER,
+      critDmg: 50 + (add.critDmg || 0) + buffCritDmg + mk.critDmg + critOver * CRIT_OVER,
       atkSpeed: Math.min(150, dex * 0.3 + (add.atkSpeed || 0) + buffAs),
       castSpeed: Math.min(150, int * 0.1 + (add.castSpeed || 0) + buffAs),
       moveSpeed: Math.min(80, (add.moveSpeed || 0) + buffSpeed * 0.6),
@@ -160,13 +163,13 @@ export class Player extends Creature {
       reduce: Math.min(60, (add.reduce || 0) + buffReduce),
       fortitude: fortitude(c.level),
       cdr: Math.min(60, (add.cdr || 0) + buffCdr / 2),
-      areaPct: add.areaPct || 0,
+      areaPct: (add.areaPct || 0) + buffArea,
       projSpeed: add.projSpeed || 0,
       extraProj: (add.extraProj || 0) + buffProj,
       pierce: add.pierce || 0,
       chainPlus: add.chainPlus || 0,
       splitChance: add.splitChance || 0,
-      echoChance: add.echoChance || 0,
+      echoChance: (add.echoChance || 0) + buffEcho,
       homing: add.homing || 0,
       novaOnCast: add.novaOnCast || 0,
       orbitOnCast: add.orbitOnCast || 0,
@@ -180,7 +183,7 @@ export class Player extends Creature {
       primary: { str, dex, vit, int }[C.primary],
       regenPct: buffRegen / 10,
     };
-    for (const k of ELEM_KEYS) st.elemPct[k] = (add[k + 'Pct'] || 0) + int;
+    for (const k of ELEM_KEYS) st.elemPct[k] = (add[k + 'Pct'] || 0) + int + (buffElemental[k] || 0);
     st.weapon = weapon ? itemDmg(weapon) : [Math.round(1 + (c.level - 1) * 0.4), Math.round(3 + (c.level - 1) * 0.8)];
     // Barbarians can carry an actual second melee weapon instead of a shield.
     const second = c.equip.offhand;
@@ -644,6 +647,19 @@ export class Player extends Creature {
       sfx('roar');
       return;
     }
+    const shrinePhoenix = this.buffs.find((b) => b.worldObject && b.phoenixCharges > 0);
+    if (shrinePhoenix) {
+      shrinePhoenix.phoenixCharges = 0;
+      this.buffs = this.buffs.filter((b) => b !== shrinePhoenix);
+      this.recompute();
+      this.hp = Math.max(1, Math.round(this.maxHp * 0.35));
+      this.invuln = Math.max(this.invuln || 0, 1.5);
+      addEffect(new Column(this.x, this.y, '#ff8b42', 1, 48, 300));
+      burst(this.x, this.y, 24, 'fire', 40, 5);
+      floatText(this.x, this.y, 70, 'PHOENIX!', '#ffb35f', 20, { life: 1.5 });
+      sfx('roar');
+      return;
+    }
     const cdCheat = this.st && this.st.cheatDeath;
     if (cdCheat && !(this.talentCheatCd > 0)) {
       this.talentCheatCd = cdCheat.cd || 120;
@@ -724,6 +740,10 @@ export class Player extends Creature {
     for (let i = this.buffs.length - 1; i >= 0; i--) {
       const b = this.buffs[i];
       b.t -= dt;
+      if (b.selfDrain) {
+        b.drainT = (b.drainT || 0) + dt;
+        while (b.drainT >= 1) { b.drainT -= 1; this.hp = Math.max(1, this.hp - Math.max(1, this.maxHp * b.selfDrain)); }
+      }
       if (b.pulse) {
         b.pulse.acc += dt;
         if (b.pulse.acc >= 1) {

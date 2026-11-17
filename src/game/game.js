@@ -23,6 +23,7 @@ import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
 import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, isActFinaleDepth, ACTS } from '../data/depth.js';
 import { addDefiance, clearDefiance, defianceText, tickBlessing } from './defiance.js';
 import { setupHappenings, announceDungeonAffixes, happeningsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
+import { setupWorldObjects, worldObjectsTick, clearWorldObjectBuffs } from './worldobjects.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
 import { spectateTick } from './spectate.js';
 import { toggleSmite, getUltimate, executeUltimate } from './smite.js';
@@ -363,6 +364,7 @@ export const game = {
 
   setWorld(world, start, oldWorld) {
     const p = G.player;
+    if (oldWorld && oldWorld !== world) clearWorldObjectBuffs(p);
     if (oldWorld && oldWorld.rift && oldWorld !== world) riftLeave(oldWorld); // walking out of an unfinished rift is a fail
     const keep = this.carrySummons(oldWorld);
     clearVfx();
@@ -1434,7 +1436,8 @@ export const game = {
         floatText(twin.x, twin.y, 72, 'TWIN GUARDIAN', '#ffb060', 11);
       }
     }
-    if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // shrines, treasure imps, cursed chests (game/happenings.js)
+    if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // encounters and interactive objects (game/happenings.js)
+    else setupWorldObjects(world, gen.start, { special: true });
     setupCommissions(world, gen.start); // this depth's Town Commission objectives (game/commissions.js)
     greedWorld(world, c); // the Greed lever and its Hoard multiply the omen's loot dials
     heresyWorld(world, c); // the Heresies' rank pays on top (none in Unbound)
@@ -1840,6 +1843,7 @@ export const game = {
       }
     }
     world.roster = BREACH_ARCHS;
+    setupWorldObjects(world, gen.start, { special: true });
     heresyWorld(world, c);
     world.onBossAwake = () => {};
     world.onBossKilled = () => {};
@@ -1979,6 +1983,7 @@ export const game = {
       onBack: () => { if (G.world === world) { stopMusic(); this.enterTown(); UI.log(`The Rift threw you back into Herrington Hollow. Tier ${tier} waits at the gate.`, '#a0f0ff'); } },
     });
     c.rifts.runs = (c.rifts.runs || 0) + 1;
+    setupWorldObjects(world, gen.start, { special: true });
     world.onBossAwake = (m) => { UI.centerMsg(m.name, `${m.title}${m.raid && m.raid.mods.length ? ' · ' + m.raid.modText() : ''}`, 3); sfx('boss'); };
     world.onBossKilled = () => {}; // riftWin handles it
     this.setWorld(world, gen.start, old);
@@ -2625,6 +2630,7 @@ export const game = {
       w.update(dt);
       if (G.world !== w) return;
       this.tickDungeonAffixWorld(w, dt);
+      worldObjectsTick(w, dt);
       if (w.overworldScenario) w.overworldScenario.update(dt);
       if (w.map.c3struct && !w.map.sky) castle3dTick(w, dt);
       ambushTick(w, dt);

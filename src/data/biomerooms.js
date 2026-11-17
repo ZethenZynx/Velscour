@@ -58,7 +58,7 @@ export const THEMES = {
   feast: { steps: [['rows', 'table|seat|tomb'], ['head', 'throne|altar|statue'], ['walls', 'light', 4], ['corners', 'store']], runner: /carpet|border|course/, rate: 0.04, shapes: ['rect', 'pillars'] },
   torture: { steps: [['walls', 'chain|bones', 6], ['head', 'work|tomb|altar'], ['clutter', 'bones', 5]], floor: /blood|stain|drain|chain/, rate: 0.14 },
   bone_pit: { steps: [['clutter', 'bones', 12], ['ring', 'bones']], floor: /bone|skull|remains|teeth/, rate: 0.2, shapes: ['round', 'octagon'], cave: true },
-  shrine: { steps: [['head', 'altar|statue'], ['ring', 'light'], ['pairs', 'statue|light']], floor: /seal|rosette|star|sunburst|ring/, rate: 0.1, shapes: ['octagon', 'round', 'cross'] },
+  shrine: { steps: [['head', 'altar|statue'], ['pairs', 'light|statue'], ['ring', 'light'], ['corners', 'statue|altar|light'], ['walls', 'banner|statue', 4]], floor: /seal|rosette|star|sunburst|ring/, rate: 0.1, shapes: ['octagon', 'round', 'cross'] },
   gallery: { steps: [['aisle', 'statue|grave|light'], ['walls', 'banner|statue', 3], ['corners', 'light']], runner: /carpet|course|border/, rate: 0.04, shapes: ['pillars', 'rect'] },
   ruin: { steps: [['clutter', 'rubble', 9], ['corners', 'rubble'], ['walls', 'statue|rubble', 2]], floor: /crack|fissure|collapse|rubble|broken|missing/, rate: 0.16, shapes: ['octagon', 'cross', 'round'] },
   graves: { steps: [['rows', 'grave|tomb'], ['corners', 'light'], ['walls', 'statue|growth', 2]], floor: /grave|soil|mound|burial|earth|petal/, rate: 0.12 },
