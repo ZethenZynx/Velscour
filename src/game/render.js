@@ -444,18 +444,19 @@ function drawCorpse(ctx, c) {
 }
 
 function drawHeresyAltar(ctx, x, y, open, lit) {
-  // A dark, horn-crowned ritual arch over an inlaid floor seal. Keep the palette
-  // muted before the Endgame opens, then let the familiar Velscour red take over.
-  const red = open ? '#ff3020' : '#7c252c';
+  // A horn-crowned ritual arch over an inlaid floor seal, scaled up so it reads
+  // as a destination in town instead of another narrow marker.
+  const red = open ? '#ff3020' : '#b52a35';
   const pulse = 0.72 + Math.sin(G.time * 2.6) * 0.12;
   ctx.save();
+  ctx.translate(x, y); ctx.scale(1.48, 1.42); ctx.translate(-x, -y);
 
   // The sigil sits flat on the ground plane, so it reads as a ritual site rather
   // than another upright town marker.
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = open ? (lit ? 0.28 + pulse * 0.12 : 0.16) : 0.10;
+  ctx.globalAlpha = open ? (lit ? 0.28 + pulse * 0.12 : 0.22) : 0.20;
   ctx.drawImage(glowSprite(red), x - 54, y - 34, 108, 54);
-  ctx.globalAlpha = open ? (lit ? pulse : 0.5) : 0.38;
+  ctx.globalAlpha = open ? (lit ? pulse : 0.72) : 0.62;
   ctx.strokeStyle = red;
   ctx.lineWidth = 1.6;
   ctx.beginPath(); ctx.ellipse(x, y - 2, 42, 15, 0, 0, TAU); ctx.stroke();
@@ -501,7 +502,7 @@ function drawHeresyAltar(ctx, x, y, open, lit) {
   ctx.fillStyle = open ? 'rgba(116,12,25,0.82)' : 'rgba(55,35,43,0.88)';
   ctx.beginPath(); ctx.ellipse(x, y - 66, 11, 18, 0, Math.PI, 0); ctx.lineTo(x + 11, y - 18); ctx.lineTo(x - 11, y - 18); ctx.closePath(); ctx.fill();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = open ? (lit ? pulse : 0.72) : 0.32;
+  ctx.globalAlpha = open ? (lit ? pulse : 0.84) : 0.62;
   ctx.drawImage(glowSprite(red), x - 25, y - 102, 50, 58);
   ctx.strokeStyle = red; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(x, y - 81); ctx.lineTo(x, y - 49); ctx.moveTo(x - 8, y - 65); ctx.lineTo(x + 8, y - 65); ctx.stroke();
@@ -536,7 +537,7 @@ function drawNpc(ctx, n) {
     const x = isoX(n.x, n.y), y = isoY(n.x, n.y), open = endgameUnlocked(), lit = open && heresyRankOf() > 0;
     drawHeresyAltar(ctx, x, y, open, lit);
     if (open) addLight(n.x, n.y, 3.2, lit ? 1.05 : 0.65, 34, '#ff3020');
-    n.sbox = [x - 38, y - 112, x + 38, y + 10];
+    n.sbox = [x - 60, y - 150, x + 60, y + 20];
     return;
   }
   if (n.stash) {
