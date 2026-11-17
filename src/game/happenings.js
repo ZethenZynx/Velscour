@@ -27,6 +27,7 @@ import { greedTick } from './greed.js';
 import { worldHeresies } from './heresies.js';
 import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
 import { setupWorldObjects } from './worldobjects.js';
+import { setupDungeonEvent } from './dungeonevents.js';
 
 // ------------------------------------------------------------------------------------------------ shrines
 export const SHRINES = {
@@ -54,6 +55,7 @@ function roomSpots(world, start, n) {
   const map = world.map, out = [];
   const rooms = (world.rooms || []).slice().sort(() => Math.random() - 0.5);
   for (const r of rooms) {
+    if (r.shrineRoom || r.eventRoom) continue;
     if (out.length >= n) break;
     const cx = r.mx ?? r.x + r.w / 2, cy = r.my ?? r.y + r.h / 2;
     if (dist(cx, cy, start[0], start[1]) < 8) continue;
@@ -77,7 +79,10 @@ export function setupHappenings(world, start, gen) {
   const torment = affixCascade && depth > FINAL_DEPTH;
   const specialObjects = !!(world.raid || gen.raid || world.biome.overworld || world.biome.challenge || world.biome.cave || world.biome.tower || world.biome.id === 'throne');
   setupWorldObjects(world, start, { special: specialObjects });
-  if (world.kind !== 'dungeon' || world.raid || gen.raid || world.biome.overworld) return;
+  if (world.kind !== 'dungeon') return;
+  setupDungeonEvent(world, gen.eventRoom, { start });
+  if (world.biome.overworld) return;
+  if (world.raid || gen.raid) return;
 
   // These former level-wide effects now run only when their matching affix was selected.
   if (affixes.has('vault')) {
@@ -201,10 +206,12 @@ export function addRemains(world, [x, y]) {
 
 export function addCache(world, [x, y]) {
   const depth = world.depth;
-  world.chests.push({
+  const cache={
     x, y, opened: false, reach: 1.3, rare: true, far: 30,
     use() { if (this.opened) return; this.opened = true; sfx('chest'); sfx('gold'); dropChest(world, this, depth); sparkle(x, y, 20, '#ffd060', 20, 0.5); },
-  });
+  };
+  world.chests.push(cache);
+  return cache;
 }
 
 /** Opening it calls three ambush waves; outlive them and it spills a hoard. */
@@ -312,19 +319,23 @@ export function spawnImp(world) {
   const base = m.onDamaged.bind(m);
   m.onDamaged = (src, d) => {
     base(src, d);
-    if (chance(0.45)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, lvl, 10 + lvl * 3) }));
+    if (!m.dungeonEventImp && chance(0.45)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, lvl, 10 + lvl * 3) }));
   };
   m.onDeath = () => {
     sfx('gold'); sfx('chest'); camera.shake(5);
     explosionFx(m.x, m.y, 1.6, 'holy', 'eruption');
-    for (let i = 0; i < 24; i++) world.addLoot(new GroundItem(m.x + rand(-0.6, 0.6), m.y + rand(-0.6, 0.6), 'gold', { amount: impGold(world, lvl, 25 + lvl * 6) }));
-    for (let i = 0; i < randi(3, 5); i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundItem(lvl + 2, { mf: G.player.st.magicFind, bonus: 1.3 }) }));
-    if (chance(0.5)) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundGem(lvl + 6) }));
-    UI.centerMsg('TREASURE IMP SLAIN', 'It burst like a piÃ±ata', 2);
-    world.happen.imp = null;
+    if (!m.dungeonEventImp) {
+      for (let i = 0; i < 24; i++) world.addLoot(new GroundItem(m.x + rand(-0.6, 0.6), m.y + rand(-0.6, 0.6), 'gold', { amount: impGold(world, lvl, 25 + lvl * 6) }));
+      for (let i = 0; i < randi(3, 5); i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundItem(lvl + 2, { mf: G.player.st.magicFind, bonus: 1.3 }) }));
+      if (chance(0.5)) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundGem(lvl + 6) }));
+    }
+    UI.centerMsg('TREASURE IMP SLAIN', 'It burst in a shower of gold', 2);
   };
   world.add(m);
-  world.happen.imp = m; world.happen.impLeft = 32;
+  const H = world.happen;
+  m.impLeft = 32;
+  (H.imps ||= []).push(m);
+  H.imp = m; H.impLeft = 32;
   addEffect(new Ring(m.x, m.y, 0.2, 2, 0.5, '#ffd040', 4));
   floatText(m.x, m.y, 70, 'Treasure Imp!', '#ffd040', 16, { life: 2 });
   UI.log('<b style="color:#ffd040">A Treasure Imp</b> scurries past, dripping gold. Catch it before it escapes!', '#ffd040');
@@ -332,18 +343,27 @@ export function spawnImp(world) {
 }
 
 function impTick(world, dt) {
-  const H = world.happen, m = H.imp;
-  if (!m) return;
-  if (m.dead) { H.imp = null; return; }
-  m.status.fear = { t: 1 }; // it always runs from the hero
-  if (chance(dt * 8)) sparkle(m.x, m.y, 20, '#ffd040', 1, 0.3);
-  if (chance(dt * 1.2)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, depthLevel(world.depth), 5 + depthLevel(world.depth) * 1.5) }));
-  if ((H.impLeft -= dt) <= 0) {
-    addEffect(new Ring(m.x, m.y, 2, 0.1, 0.5, '#ffd040', 4)); addEffect(new Column(m.x, m.y, '#ffd040', 0.5, 20, 240));
-    floatText(m.x, m.y, 70, 'Escaped!', '#ffd040', 14, { life: 1.6 });
-    UI.log('The Treasure Imp escaped through a rift, cackling.', '#c0a060');
-    m.dead = true; H.imp = null; sfx('portal', 0.5);
+  const H = world.happen, imps = H.imps ||= (H.imp ? [H.imp] : []);
+  for (const m of imps.slice()) {
+    if (m.dead) continue;
+    m.status.fear = { t: 1 }; // every imp in a multi-imp event flees from the hero
+    if (chance(dt * 8)) sparkle(m.x, m.y, 20, '#ffd040', 1, 0.3);
+    if (!m.dungeonEventImp && chance(dt * 1.2)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, depthLevel(world.depth), 5 + depthLevel(world.depth) * 1.5) }));
+    if ((m.impLeft -= dt) <= 0) {
+      addEffect(new Ring(m.x, m.y, 2, 0.1, 0.5, '#ffd040', 4)); addEffect(new Column(m.x, m.y, '#ffd040', 0.5, 20, 240));
+      floatText(m.x, m.y, 70, 'Escaped!', '#ffd040', 14, { life: 1.6 });
+      UI.log('The Treasure Imp escaped through a rift, cackling.', '#c0a060');
+      m.dungeonEventImpEscaped = true; m.dead = true; sfx('portal', 0.5);
+    }
   }
+  H.imps = imps.filter(m => !m.dead);
+  H.imp = H.imps[H.imps.length - 1] || null;
+  H.impLeft = H.imp?.impLeft || 0;
+}
+
+// Sky and sea battles skip the regular happenings simulation, but their event spawned imps still flee and escape.
+export function eventImpsTick(world, dt) {
+  if (world?.happen?.imps?.some(m => m.dungeonEventImp)) impTick(world, dt);
 }
 
 // ------------------------------------------------------------------------------------------------ challenge

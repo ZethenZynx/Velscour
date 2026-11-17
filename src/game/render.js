@@ -1408,7 +1408,7 @@ export function drawMinimap(world, dt, canvas, big = false) {
   }
   const dot = (x, y, col, r) => { const [sx, sy] = toS(x, y); c.fillStyle = col; c.beginPath(); c.arc(sx, sy + s * 0.3, r, 0, TAU); c.fill(); };
   for (const po of world.portals) if (map.seen[Math.floor(po.y) * map.w + Math.floor(po.x)] || world.kind === 'town') dot(po.x, po.y, po.active ? po.color || '#ff5020' : '#888', big ? 6 : 4);
-  for (const ch of world.chests) if (!ch.opened && !ch.isDungeonShrine && map.seen[Math.floor(ch.y) * map.w + Math.floor(ch.x)])
+  for (const ch of world.chests) if (!ch.opened && !ch.isDungeonShrine && !ch.isDungeonEvent && map.seen[Math.floor(ch.y) * map.w + Math.floor(ch.x)])
     dot(ch.x, ch.y, ch.dot || '#ffd040', big ? 4 : 2.5);
   for (const n of world.npcs) dot(n.x, n.y, '#ffe090', big ? 4 : 2.5);
   for (const m of world.creatures) {

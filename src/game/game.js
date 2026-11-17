@@ -22,8 +22,9 @@ import { CLASSES } from '../data/classes.js';
 import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
 import { FINAL_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, isActFinaleDepth, ACTS } from '../data/depth.js';
 import { addDefiance, clearDefiance, defianceText, tickBlessing } from './defiance.js';
-import { setupHappenings, announceDungeonAffixes, happeningsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
+import { setupHappenings, announceDungeonAffixes, happeningsTick, eventImpsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
 import { setupWorldObjects, worldObjectsTick, clearWorldObjectBuffs } from './worldobjects.js';
+import { setupDungeonEvent, dungeonEventTick } from './dungeonevents.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
 import { spectateTick } from './spectate.js';
 import { toggleSmite, getUltimate, executeUltimate } from './smite.js';
@@ -1437,7 +1438,10 @@ export const game = {
       }
     }
     if (!sky && !sea && biome.id !== 'throne') setupHappenings(world, gen.start, gen); // encounters and interactive objects (game/happenings.js)
-    else setupWorldObjects(world, gen.start, { special: true });
+    else {
+      setupWorldObjects(world, gen.start, { special: true });
+      setupDungeonEvent(world, gen.eventRoom, { start: gen.start });
+    }
     setupCommissions(world, gen.start); // this depth's Town Commission objectives (game/commissions.js)
     greedWorld(world, c); // the Greed lever and its Hoard multiply the omen's loot dials
     heresyWorld(world, c); // the Heresies' rank pays on top (none in Unbound)
@@ -1844,6 +1848,7 @@ export const game = {
     }
     world.roster = BREACH_ARCHS;
     setupWorldObjects(world, gen.start, { special: true });
+    setupDungeonEvent(world, null, { start: gen.start });
     heresyWorld(world, c);
     world.onBossAwake = () => {};
     world.onBossKilled = () => {};
@@ -1984,6 +1989,7 @@ export const game = {
     });
     c.rifts.runs = (c.rifts.runs || 0) + 1;
     setupWorldObjects(world, gen.start, { special: true });
+    setupDungeonEvent(world, null, { start: gen.start });
     world.onBossAwake = (m) => { UI.centerMsg(m.name, `${m.title}${m.raid && m.raid.mods.length ? ' · ' + m.raid.modText() : ''}`, 3); sfx('boss'); };
     world.onBossKilled = () => {}; // riftWin handles it
     this.setWorld(world, gen.start, old);
@@ -2634,7 +2640,10 @@ export const game = {
       if (w.overworldScenario) w.overworldScenario.update(dt);
       if (w.map.c3struct && !w.map.sky) castle3dTick(w, dt);
       ambushTick(w, dt);
-      if (w.kind === 'town') townTick(w, dt); else if (!w.sky && !w.seaRun) happeningsTick(w, dt);
+      if (w.kind === 'town') townTick(w, dt);
+      else if (!w.sky && !w.seaRun) happeningsTick(w, dt);
+      else eventImpsTick(w, dt);
+      if (w.kind !== 'town') dungeonEventTick(w, dt);
       if (w.rift) riftTick(w, dt); // the Abyssal Rift's clock (game/rifts.js)
       if (w.heresy) heresyTick(w, dt); // the Heresies as monsters appear, the Legion's hellgates (game/heresies.js; the Breach has no happenings tick)
       madnessTick(dt);
