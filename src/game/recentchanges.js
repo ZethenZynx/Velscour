@@ -1,7 +1,7 @@
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 
-const GITHUB_FEATURE_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour/pulls?state=closed&per_page=100&page=1&sort=created&direction=desc';
-const CACHE_KEY = 'velscour_recent_feature_pulls_v3';
+const GITHUB_FEATURE_PULLS_URL = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/pulls?state=closed&per_page=100&page=1&sort=created&direction=desc';
+const CACHE_KEY = 'velscour_recent_feature_pulls_v4';
 const CACHE_MS = 30 * 60 * 1000;
 const FEATURE_BRANCH = /^(?:feat|feature)\//i;
 
@@ -46,8 +46,9 @@ export function featureChangesFromPullRequests(pullRequests) {
   return pullRequests.flatMap((pullRequest) => {
     const branch = String(pullRequest?.head?.ref || '');
     const sourceRepo = pullRequest?.head?.repo?.full_name;
-    const title = String(pullRequest?.title || '').trim();
-    if (!pullRequest?.merged_at || !FEATURE_BRANCH.test(branch) || sourceRepo !== 'ZethenZynx/Velscour' || !title) return [];
+    const title = String(pullRequest?.title || '').trim().replace(/^(?:feat|feature):\s*/i, '').replace(/^./, (letter) => letter.toUpperCase());
+    const ownFork = sourceRepo === 'ZethenZynx/Velscour-PC' || sourceRepo === 'ZethenZynx/Velscour';
+    if (!pullRequest?.merged_at || !FEATURE_BRANCH.test(branch) || !ownFork || !title) return [];
     return [{ title, summary: cleanSummary(pullRequest.body) }];
   });
 }
@@ -76,7 +77,7 @@ async function fetchAllFeaturePullRequests() {
   return pullRequests;
 }
 
-/** Load every merged feature PR, falling back to cached or bundled summaries if unavailable. */
+/** Load merged feature PRs, falling back to cached or bundled summaries if unavailable. */
 export async function loadRecentChanges() {
   const cached = readCache();
   if (cached?.items?.length && Date.now() - cached.savedAt < CACHE_MS) return cached.items;
