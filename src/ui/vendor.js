@@ -364,7 +364,7 @@ export const Vendor = {
     const c = G.char;
     const lvl = Math.max(c.level, depthLevel(c.depth || 1));
     const price = Math.round(180 * Math.pow(1.065, goldLvl(lvl)));
-    body.appendChild(el('div', 'dim', 'Buy an unidentified item of your level. Gambled items are far more likely to be Rare or better.'));
+    body.appendChild(el('div', 'dim', 'The odds favor Fortunato. Gambled gear follows your depth’s tier limit, with only a 5% chance to reach one tier higher.'));
     const grid = el('div', 'row');
     grid.style.marginTop = '8px';
     for (const slot of ['weapon', 'offhand', 'head', 'body', 'hands', 'legs', 'feet', 'ring', 'gem']) {
@@ -372,7 +372,14 @@ export const Vendor = {
       const cost = slot === 'gem' ? Math.round(price * 0.6) : price;
       b.disabled = c.gold < cost;
       b.onclick = () => {
-        const it = slot === 'gem' ? rollGem(lvl + 8) : rollItem(c.level, { slot, mf: G.player.st.magicFind + 120, bonus: 0.5 });
+        const it = slot === 'gem'
+          ? rollGem(lvl + 8)
+          : rollItem(c.level, {
+            slot,
+            mf: G.player.st.magicFind + 120,
+            bonus: 0.5,
+            maxRarity: Math.min(qualityAtDepth(c.depth || 1) + (chance(0.05) ? 1 : 0), RARITY.length - 1),
+          });
         if (!addToBag(c, it)) { UI.log('Inventory full.', '#ff8080'); sfx('error'); return; }
         c.gold -= cost;
         sfx(it.rarity >= RARITY_EPIC ? 'levelup' : 'gold');
