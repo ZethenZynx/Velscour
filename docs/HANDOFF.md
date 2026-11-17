@@ -1,5 +1,11 @@
 # VELSCOUR: hand-off notes
 
+## November 16, 2026 - 50 shrine and world-object expansion (local, not published)
+- Added the full catalog: 10 blessing shrines, 8 cursed altars, 7 fountains, 7 gambling objects, 7 sacrifice/ritual objects, 8 mysteries and 3 environmental objects. They reuse biome scatter props and existing Canvas VFX; no artwork was generated.
+- Every ordinary dungeon floor now has exactly one catalog shrine/object in a dedicated, reachable shrine chamber. The chamber has a cut-corner octagonal footprint, concentric inlaid floor motifs, a deliberate altar/statue/brazier arrangement, and guaranteed devotional wall hangings on its walls, all from existing biome assets; its center stays open for the enlarged, glowing, labeled shrine object. Shrine objects do not appear on the minimap. The chamber is clear of normal monster packs and chests. The former seven random shrines no longer spawn in dungeons. Special maps keep their separate one-object placement.
+- Objects use the existing click interaction, confirm risky costs, apply temporary buffs that stack by type and clear when leaving a floor, and save one-use floor claims to prevent farming. Wave rituals and runic fields tick in gameplay.
+- `node --check` for changed modules, `node tools/tests/data_check.mjs`, `git diff --check`, and a mocked special-map placement check pass. The existing browser happenings test could not run because Playwright is not installed in this local copy. No GitHub update was made.
+
 ## November 16, 2026 - refresh title-screen changes from GitHub
 - The title screen now loads every merged PR from the fork's `feat/` and `feature/` branches across all API pages, without a display cap. It uses curated PR titles and the first summary sentence; the bundled offline list covers the full curated history too. Results cache for 30 minutes.
 - `node tools/tests/recent_changes.mjs`, JavaScript syntax checks, and `git diff --check` pass. Keep major user-visible additions on `feat:` commits; bug fixes stay out of this feed. No GitHub update was made.

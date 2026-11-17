@@ -26,6 +26,7 @@ import { smiteKill } from './smite.js';
 import { greedTick } from './greed.js';
 import { worldHeresies } from './heresies.js';
 import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixes.js';
+import { setupWorldObjects } from './worldobjects.js';
 
 // ------------------------------------------------------------------------------------------------ shrines
 export const SHRINES = {
@@ -37,7 +38,6 @@ export const SHRINES = {
   storm: { name: 'Storm Shrine', color: '#b0a0ff', el: 'light', buff: {}, t: 30, msg: 'lightning lashes nearby foes', storm: true },
   renewal: { name: 'Shrine of Renewal', color: '#60ff80', el: 'poison', buff: { regen: 30 }, t: 30, msg: 'life and mana restored', heal: true },
 };
-const SHRINE_KEYS = Object.keys(SHRINES);
 
 const EPITAPHS = [
   'who thought the imps were friendly', 'who skipped the potion vendor to save nine gold', 'who tried to pet the hound',
@@ -75,6 +75,8 @@ export function setupHappenings(world, start, gen) {
   const affixes = new Set(Array.isArray(world.dungeonAffixes) ? world.dungeonAffixes : []);
   const affixCascade = worldHeresies(world).includes('omens');
   const torment = affixCascade && depth > FINAL_DEPTH;
+  const specialObjects = !!(world.raid || gen.raid || world.biome.overworld || world.biome.challenge || world.biome.cave || world.biome.tower || world.biome.id === 'throne');
+  setupWorldObjects(world, start, { special: specialObjects });
   if (world.kind !== 'dungeon' || world.raid || gen.raid || world.biome.overworld) return;
 
   // These former level-wide effects now run only when their matching affix was selected.
@@ -109,8 +111,6 @@ export function setupHappenings(world, start, gen) {
   const want = 1 + (chance(0.6) ? 1 : 0) + (chance(0.35) ? 1 : 0);
   const spots = roomSpots(world, start, want + 3);
   const c = G.char, nemSpot = c && c.nemesis && (depth >= c.nemesis.depth - 5 || affixCascade) ? spots.pop() : null;
-  const nShrines = chance(0.7) ? (chance(0.35) ? 2 : 1) : 0;
-  for (let i = 0; i < nShrines && spots.length; i++) addShrine(world, spots.pop(), pick(SHRINE_KEYS));
   if (spots.length && chance(0.35)) addRemains(world, spots.pop());
   if (spots.length && chance(0.22 + Math.min(0.15, depth * 0.002))) addCursed(world, spots.pop());
   addEncounters(world, roomSpots(world, start, 4));
@@ -164,7 +164,7 @@ export function addShrine(world, [x, y], key) {
       burst(p.x, p.y, 30, S.el, 30, 5, { up: 2 });
       sfx('levelup', 0.6);
       if (S.heal) { p.hp = p.maxHp; p.mana = p.maxMana; }
-      if (typeof p?.addBuff === 'function') p.addBuff({ id: 'shrine_' + key, name: S.name, el: S.el, stats: S.buff, t: S.t, max: S.t, storm: S.storm });
+      if (typeof p?.addBuff === 'function') p.addBuff({ id: 'shrine_' + key, name: S.name, el: S.el, stats: S.buff, t: S.t, max: S.t, storm: S.storm, floorOnly: true, worldObject: true });
       floatText(p.x, p.y, 90, S.name.toUpperCase(), S.color, 16, { life: 2 });
       UI.log(`<b style="color:${S.color}">${S.name}</b>: ${S.msg} for ${S.t} s.`, S.color);
     },
