@@ -43,6 +43,7 @@ async function waitFor(expression) {
   while (Date.now() < deadline) { try { if (await evaluate(expression)) return; } catch (_) { /* page still loading */ } await sleep(200); }
   throw new Error(`Browser condition timed out: ${expression}`);
 }
+async function flushChat() { await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'); }
 async function mouse(x, y, type, button = 'left', held = false) {
   await send('Input.dispatchMouseEvent', { type, x, y, button, buttons: type === 'mousePressed' || held ? 1 : 0, clickCount: 1 });
 }
@@ -71,6 +72,7 @@ try {
   const priorRows = await evaluate("document.querySelectorAll('#game-chat .gc-message').length");
   const priorLogRows = await evaluate("document.querySelector('#log').children.length");
   await evaluate("(async()=>{(await import('/src/ui/ui.js')).UI.log('Browser test system message', '#ffe2a0')})()");
+  await flushChat();
   assert.equal(await evaluate("document.querySelectorAll('#game-chat .gc-message').length"), priorRows + 1, 'existing UI.log messages appear once in chat');
   assert.equal(await evaluate("document.querySelectorAll('#game-chat .gc-message span').length"), priorRows + 1, 'every chat row has one message body');
   assert.equal(await evaluate("document.querySelector('#log').children.length"), Math.min(6, priorLogRows + 1), 'original transient log remains intact and keeps its six-message cap');
@@ -143,6 +145,7 @@ try {
   await evaluate(startGame);
   await waitFor("document.querySelector('#game-chat') && !document.querySelector('#game-chat').classList.contains('hidden')");
   await evaluate("(async()=>{const {UI}=await import('/src/ui/ui.js');UI.event({category:'combat.damageDealt',text:'You hit Skeleton for 17 fire damage.',meta:{data:{amount:17,type:'fire'}}});UI.event({category:'combat.enemyDeath',text:'Skeleton was slain.'})})()");
+  await flushChat();
   assert.equal(await evaluate("document.querySelectorAll('#game-chat .gc-message').length>0"), true, 'structured combat events enter the shared history');
   assert.equal(await evaluate("document.querySelector('.gc-stat-values').textContent.includes('Damage dealt 17') && document.querySelector('.gc-stat-values').textContent.includes('kills 1')"), true, 'combat totals reflect the event amounts and kill count');
   await evaluate("document.querySelector('[data-tab=combat]').click()");
@@ -160,6 +163,7 @@ try {
   await evaluate("document.querySelector('.gc-settings-back').click();document.querySelector('[data-close]').click()");
   await evaluate("document.querySelector('.gc-settings').click();document.querySelector('[data-pref=grouping]').checked=true;document.querySelector('[data-pref=grouping]').dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-close]').click()");
   await evaluate("(async()=>{const {UI}=await import('/src/ui/ui.js');UI.event({category:'system.notification',text:'Grouped notification'});UI.event({category:'system.notification',text:'Grouped notification'})})()");
+  await flushChat();
   await evaluate("document.querySelector('[data-tab=all]').click();document.querySelector('.gc-preset').value='All Messages';document.querySelector('.gc-preset').dispatchEvent(new Event('change',{bubbles:true}))");
   assert.equal(await evaluate("[...document.querySelectorAll('.gc-message span')].some(x=>x.textContent.includes('Grouped notification ×2'))"), true, 'exact duplicate notifications group without merging distinct damage');
   await evaluate("window.__exportCapture=null;const old=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){window.__exportCapture={name:this.download,href:this.href};};document.querySelector('.gc-export').click();HTMLAnchorElement.prototype.click=old");
@@ -169,8 +173,12 @@ try {
   await evaluate("document.querySelector('.gc-search').value='';document.querySelector('.gc-search').dispatchEvent(new Event('input',{bubbles:true}))");
 
   await evaluate("(async()=>{const {UI}=await import('/src/ui/ui.js');for(let i=0;i<45;i++)UI.log('History item '+i)})()");
+  await flushChat();
+  await flushChat();
   await evaluate("document.querySelector('.gc-message-list').scrollTop=0");
+  await flushChat();
   await evaluate("(async()=>{const {UI}=await import('/src/ui/ui.js');UI.log('Unread marker item')})()");
+  await flushChat();
   assert.equal(await evaluate("!document.querySelector('.gc-unread').classList.contains('hidden')"), true, 'new arrivals show an unread indicator when reading older messages');
   await evaluate("document.querySelector('.gc-unread').click()");
   assert.equal(await evaluate("document.querySelector('.gc-unread').classList.contains('hidden')"), true, 'unread indicator jumps to newest messages');
