@@ -9,7 +9,7 @@ import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, spark
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
 import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange, isMovementSkill } from '../data/skills.js';
-import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, RARITY_LEGENDARY, shownEquip } from '../data/items.js';
+import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, RARITY_LEGENDARY, shownEquip, DUAL_WIELD } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
 import { heroBonus } from './defiance.js';
@@ -27,6 +27,9 @@ import { bardCompose, bardUpdate, harmonyMul } from './bard.js';
 import { ASTRONOMER, astroAfterCast, astroUpdate } from './astronomer.js';
 import { sigCast, sigHit, sigUpdate } from './signature.js';
 import { bladeOnBack } from './sigs/deathknight.js';
+import { rogueHit, rogueUpdate } from './rogue.js';
+import { ninjaHit, ninjaUpdate } from './ninja.js';
+import { ninjaGearLayer } from '../gfx/ninjagear.js';
 
 const FREE_CAST = new Set(['buff', 'summon']);
 import { relicBonuses } from '../data/relics.js';
@@ -185,9 +188,9 @@ export class Player extends Creature {
     };
     for (const k of ELEM_KEYS) st.elemPct[k] = (add[k + 'Pct'] || 0) + int + (buffElemental[k] || 0);
     st.weapon = weapon ? itemDmg(weapon) : [Math.round(1 + (c.level - 1) * 0.4), Math.round(3 + (c.level - 1) * 0.8)];
-    // Barbarians can carry an actual second melee weapon instead of a shield.
+    // Barbarians and Rogues can carry a second weapon instead of a shield.
     const second = c.equip.offhand;
-    if (this.classId === 'barbarian' && second?.slot === 'weapon') {
+    if (DUAL_WIELD.has(this.classId) && second?.slot === 'weapon') {
       const pair = itemDmg(second);
       st.weapon = st.weapon.map((v, i) => (v + pair[i]) * 0.6);
       st.atkSpeed = Math.min(150, st.atkSpeed + 12);
@@ -599,6 +602,8 @@ export class Player extends Creature {
 
   onHit(tgt, dmg, el, o = {}) {
     sigHit(this, tgt, dmg, el, o);
+    if (this.classId === 'rogue') rogueHit(this, tgt, dmg, el, o);
+    else if (this.classId === 'ninja') ninjaHit(this, tgt, dmg, el, o);
     if (this.classId === 'barbarian' && !o.dot && o.sk?.startsWith('barbarian.')) {
       if (o.sk === 'barbarian.0.0') {
         // One large payout per landed Bash, not one payout for each lightning-fan bolt.
@@ -641,6 +646,7 @@ export class Player extends Creature {
     if (g) drawGearFx(ctx, this, g.fx, g.col, layer, art);
     if (layer === 'front' && this.heldArt && G.settings.heldGear !== false) drawHeldLayer(ctx, this, this.heldArt.held, this.heldArt.base, art);
     if (layer === 'back' && this.classId === 'death_knight') bladeOnBack(ctx, this, art, this.heldArt?.base); // his flying sword at rest
+    if (this.classId === 'ninja' && G.settings.heldGear !== false && !this.ghostDraw) ninjaGearLayer(ctx, this, layer, art);
   }
 
   // ------------------------------------------------------------------ death
@@ -718,6 +724,8 @@ export class Player extends Creature {
     if (this.noRageT > 0) this.noRageT -= dt;
     if (this.classId === 'bard' && this.world) bardUpdate(this, dt);
     if (this.classId === ASTRONOMER && this.world) astroUpdate(this, dt);
+    if (this.classId === 'rogue' && this.world) rogueUpdate(this, dt);
+    else if (this.classId === 'ninja' && this.world) ninjaUpdate(this, dt);
     if (this.world) sigUpdate(this, dt);
     const canAct = this.tickStatus(dt, (k, amount, src) => {
       hit(src, this, amount, k === 'burn' ? 'fire' : k === 'poison' ? 'poison' : 'blood', { dot: true });

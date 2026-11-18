@@ -1,5 +1,5 @@
 import { TREE4_NAMES } from './skilltrees4.js';
-// The sixteen playable classes.
+// The playable classes.
 // primary: attribute that adds +1% damage to all of the class' skills per point.
 export const CLASSES = {
   paladin: {
@@ -105,6 +105,18 @@ export const CLASSES = {
     trees: ['Martial Arts', 'Spirit & Mantras', 'Dragon & Tiger'],
     desc: 'A disciplined martial artist of the secluded monasteries. Harnesses inner chi through lightning-fast hand strikes, soaring kicks, and sacred defensive mantras.',
   },
+  rogue: {
+    name: 'Rogue', primary: 'dex', base: { str: 16, dex: 30, vit: 20, int: 12 }, life: 80, mana: 46, lifeLvl: 14.5, manaLvl: 3.5,
+    weapon: 'dagger', element: 'blood', color: '#d8283c',
+    trees: ['Assassination', 'Subtlety', 'Knives'],
+    desc: 'A black-leather killer from the shuttered guilds. She builds Combo Points with twin daggers and spends them on bloody finishers, while steel rains from the sky and bursts from the ground.',
+  },
+  ninja: {
+    name: 'Ninja', primary: 'dex', base: { str: 18, dex: 30, vit: 20, int: 14 }, life: 82, mana: 48, lifeLvl: 15, manaLvl: 3.5,
+    weapon: 'katana', offhand: 'nunchaku', element: 'shadow', color: '#6fd8ff',
+    trees: ['Way of the Blade', 'Shadow Arts', 'Tools of War'],
+    desc: 'A silent agent of the ruined moon temple. He somersaults through foes behind a katana, calls shadows to repeat his cuts, and fills the air with shuriken and caltrops.',
+  },
 };
 for (const [c, name] of Object.entries(TREE4_NAMES)) if (CLASSES[c].trees.length === 3) CLASSES[c].trees.push(name);
 
@@ -132,6 +144,8 @@ export const DMG_TUNE = {
   dragon_knight: [1.05, 1.05, 1.05, 1.05],
   gunner: [0.96, 0.98, 0.98, 0.98],
   monk: [1.04, 1.05, 1.05, 1.05],
+  rogue: [1.03, 1.04, 1.04, 1.04],
+  ninja: [1.03, 1.04, 1.04, 1.04],
 };
 
 export const ATTRS = {
