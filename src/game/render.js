@@ -1551,9 +1551,25 @@ export function drawMinimap(world, dt, canvas, big = false) {
     }
   }
   const dot = (x, y, col, r) => { const [sx, sy] = toS(x, y); c.fillStyle = col; c.beginPath(); c.arc(sx, sy + s * 0.3, r, 0, TAU); c.fill(); };
+  const shrineAltarMarker = (x, y, col, name) => {
+    const [sx, sy] = toS(x, y), cy = sy + s * 0.3, r = big ? 5.5 : 3.5;
+    c.save(); c.translate(sx, cy); c.rotate(Math.PI / 4);
+    c.fillStyle = col || '#ffe080'; c.strokeStyle = '#fff1bd'; c.lineWidth = big ? 1.5 : 1;
+    c.fillRect(-r, -r, r * 2, r * 2); c.strokeRect(-r, -r, r * 2, r * 2);
+    c.restore();
+    if (big && name) {
+      const size = Math.max(10, Math.min(14, s * 0.82));
+      c.save(); c.font = `700 ${size}px Cinzel, Georgia, serif`; c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.lineJoin = 'round'; c.lineWidth = Math.max(2, size * 0.24); c.strokeStyle = 'rgba(8,6,5,.96)'; c.fillStyle = '#ffe6a0';
+      c.strokeText(name, sx + r + 5, cy); c.fillText(name, sx + r + 5, cy); c.restore();
+    }
+  };
   for (const po of world.portals) if (map.seen[Math.floor(po.y) * map.w + Math.floor(po.x)] || world.kind === 'town') dot(po.x, po.y, po.active ? po.color || '#ff5020' : '#888', big ? 6 : 4);
-  for (const ch of world.chests) if (!ch.opened && !ch.isDungeonShrine && !ch.isDungeonEvent && map.seen[Math.floor(ch.y) * map.w + Math.floor(ch.x)])
-    dot(ch.x, ch.y, ch.dot || '#ffd040', big ? 4 : 2.5);
+  for (const ch of world.chests) {
+    const seen = map.seen[Math.floor(ch.y) * map.w + Math.floor(ch.x)];
+    if (ch.isCustomShrineAltar) { if (!ch.opened && seen) shrineAltarMarker(ch.x, ch.y, ch.dot, ch.name); }
+    else if (!ch.opened && !ch.isDungeonShrine && !ch.isDungeonEvent && seen) dot(ch.x, ch.y, ch.dot || '#ffd040', big ? 4 : 2.5);
+  }
   for (const n of world.npcs) dot(n.x, n.y, '#ffe090', big ? 4 : 2.5);
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;

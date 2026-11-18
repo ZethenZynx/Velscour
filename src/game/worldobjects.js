@@ -321,6 +321,9 @@ function findShrineSprite(world,o) {
   }
   return findSprite(world,o);
 }
+function labelsAsShrineOrAltar(def) {
+  return def.category === 'blessing' || def.category === 'cursed' || /^(shrine|altar)\b/i.test(def.name);
+}
 function drawObject(world,o,ctx,sx,sy) {
   const shrine=!!o.isDungeonShrine,pulse=.8+.2*Math.sin(G.time*2.6+o.x);
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(sx,sy,shrine?26:18,shrine?11:7,0,0,TAU);ctx.fill();
@@ -344,10 +347,10 @@ function drawObject(world,o,ctx,sx,sy) {
     const glowSize=shrine?100:48;ctx.drawImage(glowSprite(o.color),sx-glowSize/2,top-glowSize*.68,glowSize,glowSize);
     ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';addLight(o.x,o.y,shrine?5:2.2,shrine?.9:.65,shrine?42:28,o.color,shrine);
   }
-  if(shrine&&G.player&&Math.hypot(o.x-G.player.x,o.y-G.player.y)<14){
+  if(o.isCustomShrineAltar&&G.player&&Math.hypot(o.x-G.player.x,o.y-G.player.y)<14){
     const labelY=top-10;ctx.save();ctx.font='700 11px Cinzel, Georgia, serif';ctx.textAlign='center';ctx.textBaseline='bottom';
-    ctx.lineWidth=3;ctx.strokeStyle='rgba(12,8,5,.95)';ctx.strokeText('SHRINE',sx,labelY);
-    ctx.fillStyle='#ffe6a0';ctx.fillText('SHRINE',sx,labelY);ctx.restore();
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(12,8,5,.95)';ctx.strokeText(o.name,sx,labelY);
+    ctx.fillStyle='#ffe6a0';ctx.fillText(o.name,sx,labelY);ctx.restore();
   }
   if(o.fieldT>0){ctx.globalAlpha=.28;ctx.strokeStyle=o.color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sx,sy,52,22,0,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
   if(o.revealedUntil>(world.time||0)){ctx.strokeStyle=o.color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sx,sy,24,10,0,0,TAU);ctx.stroke();}
@@ -406,7 +409,7 @@ export function setupWorldObjects(world,start,{special=false}={}) {
   if(!spots.length)spots.push(...roomSpots(world,start,1,special));
   let made=0;
   for(const [x,y] of spots){
-    const def=pick(CATALOG),isDungeonShrine=!!shrineRoom&&!special,o={...def,x,y,opened:false,reach:1.55,far:34,label:def.name,dot:def.color,rarity:rollRarity(),claimKey,spr:null,isDungeonShrine};
+    const def=pick(CATALOG),isDungeonShrine=!!shrineRoom&&!special,isCustomShrineAltar=labelsAsShrineOrAltar(def),o={...def,x,y,opened:false,reach:1.55,far:34,label:def.name,dot:def.color,rarity:rollRarity(),claimKey,spr:null,isDungeonShrine,isCustomShrineAltar};
     o.label=`${rar(o.rarity).name} ${o.name}`;o.spr=isDungeonShrine?findShrineSprite(world,o):findSprite(world,o);
     o.draw=(ctx,sx,sy)=>drawObject(world,o,ctx,sx,sy);
     o.use=()=>{if(o.opened||G.world!==world)return;useObject(world,o);};
