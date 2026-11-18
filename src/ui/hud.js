@@ -708,7 +708,7 @@ export const HUD = {
           const sk = SKILLS[b.id];
           if (sk) { const im = new Image(); im.src = skillIconURL(sk); im.style.width = '100%'; d.appendChild(im); }
           else { d.style.background = elem(b.el).glow; }
-          d.title = b.name;
+          d.title = b.description ? `${b.name}: ${b.description}` : b.name;
           if (!b.aura) d.appendChild(el('span', '', Math.ceil(b.t)));
           row.appendChild(d);
         }

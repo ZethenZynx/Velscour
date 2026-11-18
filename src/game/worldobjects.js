@@ -11,6 +11,7 @@ import { GroundItem, dropChest, rollGroundItem, rollGroundGem } from './loot.js'
 import { GEMS, goldPile, goldScale, itemName, rarityAt } from '../data/items.js';
 import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
+import { shrineBuffDescription } from './shrineeffects.js';
 
 const RARITIES = [
   { name: 'Common', chance: 45, scale: 1, color: '#b8b8b8' },
@@ -100,7 +101,8 @@ export function rollReliquaryEquipment(world) {
 function level(world) { return depthLevel(world.depth || G.char?.depth || 1); }
 function addBuff(p, o, name, color, stats, duration = 180, extra = {}) {
   const s = rewardScale(o), scaled = Object.fromEntries(Object.entries(stats).map(([k,v]) => [k, v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([a,n]) => [a, Math.round(n*s*10)/10])) : Math.round(v*s*10)/10]));
-  const buff = { id: `world_${o.id}`, name, el: 'arcane', color, stats: scaled, t: duration, max: duration, floorOnly: true, worldObject: true, ...extra };
+  const buff = { id: `world_${o.id}`, name, el: 'arcane', color, stats: scaled, t: duration, max: duration, floorOnly: true, worldObject: true, worldObjectId: o.id, ...extra };
+  buff.description = shrineBuffDescription(buff, o.id);
   p.addBuff(buff);
   return buff;
 }
@@ -167,9 +169,9 @@ function applyBlessing(world,o) {
   if(o.id==='elements'){
     const element=pick(['fire','cold','light','poison','arcane']); stats={elemental:{[element]:28}}; title=`the Elements (${element})`;
   }
-  used(world,o); addBuff(p,o,`Shrine of ${title}`,o.color,stats,duration,extra);
+  used(world,o); const buff=addBuff(p,o,`Shrine of ${title}`,o.color,stats,duration,extra);
   if(o.id==='fortitude')p.heal(p.maxHp*.12);
-  UI.log(`<b style="color:${o.color}">${esc(o.name)}</b> grants ${esc(title)} for ${duration} seconds.`,o.color,{category:o.name?.startsWith('Altar')?'dungeon.altar':'dungeon.shrine',important:true});
+  UI.log(`<b style="color:${o.color}">${esc(o.name)}</b><br><b>Effect Granted:</b> ${esc(title)}<br>${esc(buff.description)}<br><b>Duration:</b> ${duration} seconds, or until you leave the floor.`,o.color,{category:'dungeon.shrine',important:true});
   UI.event({ category: 'debug.shrine', text: `${o.name}: applied ${title} for ${duration} seconds.` });
 }
 
@@ -180,7 +182,10 @@ function useObject(world,o) {
     case 'blood': return ask(world,o,o.name,'Sacrifice 20% of your current health for a strong damage blessing and a depth-scaled treasure cache?',()=>{p.hp=Math.max(1,p.hp-p.hp*.2);addBuff(p,o,'Blood Price','#e85060',{dmg:42},150);rewardChest(world,o,1);});
     case 'greed': return ask(world,o,o.name,'Strengthen nearby enemies for better treasure? The choice cannot be undone this floor.',()=>{for(const m of world.creatures)if(m.team==='enemy'&&!m.dead&&dist(m.x,m.y,o.x,o.y)<9){m.maxHp*=1.35;m.hp=m.maxHp;m.dmg*=1.18;}rewardChest(world,o,2);});
     case 'torment': return ask(world,o,o.name,'Accept a 90-second weakening curse for a depth-appropriate equipment reward?',()=>{addBuff(p,o,'Torment','#a72848',{speed:-18,dmg:-12},90,{curse:true});rewardChest(world,o,1);});
-    case 'shadows': return ask(world,o,o.name,'Trade defense for increased shadow damage for 150 seconds?',()=>addBuff(p,o,'Shadow Pact','#8d61c9',{elemental:{shadow:32},reduce:-12},150));
+    case 'shadows': return ask(world,o,o.name,'Trade defense for added Shadow damage for 150 seconds? Each direct attack hit gains Shadow damage even if it normally deals no Shadow damage.',()=>{
+      const buff=addBuff(p,o,'Shadow Pact','#8d61c9',{addedDamage:{shadow:8},damageTakenPct:12},150);
+      UI.log(`<b style="color:${o.color}">${esc(o.name)}</b><br>${esc(buff.description)}<br><b>Duration:</b> 150 seconds, or until you leave the floor.`,o.color,{category:'dungeon.altar',important:true});
+    });
     case 'chaos': return ask(world,o,o.name,'Accept a randomized blessing and curse?',()=>{const a=pick([{good:{dmg:28},bad:{reduce:-10}},{good:{as:26},bad:{speed:-14}},{good:{mf:55},bad:{armor:-18}}]);addBuff(p,o,'Chaotic Boon',o.color,a.good,150);addBuff(p,{...o,id:'chaos_curse'},'Chaotic Price','#b44adc',a.bad,150,{curse:true});});
     case 'damned': return ask(world,o,o.name,'Summon a dangerous champion. Defeat it for a bonus hoard?',()=>{const m=randomEnemy(world,o.x,o.y,'champion',2.5);if(m){m.name='Warden of the Damned';m.onDeath=()=>rewardChest(world,o,2);}else rewardChest(world,o,1);});
     case 'decay': return ask(world,o,o.name,'Lose a small amount of health over time for increased attack power?',()=>{addBuff(p,o,'Decaying Might','#92a343',{dmg:38},120,{curse:true,selfDrain:.015});});
