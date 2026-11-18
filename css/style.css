@@ -647,6 +647,12 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 @keyframes logo-in { from { opacity: 0; transform: scale(.94); filter: blur(6px); } }
 .title-tag { position: relative; z-index: 2; font: 400 18px var(--font-head); color: var(--text-dim); letter-spacing: 3px; margin: 6px 0 24px; text-align: center; padding: 0 12px; }
 .title-menu { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
+.title-menu .update-available { color: #fff0a0; border-color: #d5a83e; box-shadow: 0 0 12px rgba(213, 168, 62, .25); }
+.update-change-list { max-height: 240px; overflow-y: auto; padding-left: 20px; }
+.update-change-list li { margin: 8px 0; color: var(--text-dim); }
+.update-change-list strong { display: block; color: var(--gold-bright); font-family: var(--font-head); }
+.update-change-list span, .update-change-list time { display: block; font-size: 12px; }
+.update-change-list time { color: #8a7762; margin-top: 2px; }
 .title-changes {
   position: absolute; z-index: 3; left: clamp(24px, 4vw, 96px); top: 50%; transform: translateY(-50%);
   width: clamp(240px, 19vw, 310px); max-height: min(48vh, 520px); display: flex; flex-direction: column; overflow: hidden;
