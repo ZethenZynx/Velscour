@@ -382,6 +382,11 @@ export const game = {
       world.add(s);
     }
     G.world = world;
+    if (oldWorld !== world) {
+      const areaName = world.biome?.name || world.region?.name || (world.kind === 'dungeon' ? 'Dungeon' : 'new area');
+      UI.event({ category: world.kind === 'dungeon' ? 'dungeon.entryExit' : 'dungeon.discovery', text: `Entered ${areaName}${world.depth ? ` at depth ${world.depth}` : ''}.`, meta: { data: { area: areaName, depth: world.depth || null } } });
+      if (oldWorld && oldWorld.depth !== world.depth && world.depth) UI.event({ category: 'dungeon.depth', text: `Entered depth ${world.depth}.`, meta: { data: { depth: world.depth } } });
+    }
     p.recompute(); // the Heresies in force read the level the hero stands in (game/heresies.js)
     Cine.abort(); // a cut scene belongs to the world it played in
     useTerrain(world.map); // a height map lifts the ground plane (gfx/terrain.js); flat maps clear it
@@ -1064,7 +1069,7 @@ export const game = {
     for (const s of w.creatures) if (s.team === 'player' && s !== p) [s.x, s.y] = w.map.randomNear(x, y, 1.5);
     w.map.reveal(x, y, 30);
     camera.follow(x, y, 0, true);
-    UI.log(`<b style="color:#ff4020">Velscour answers.</b> ${w.practice ? `This is a practice fight at Depth ${w.depth}: no victory, no relic hoard, but every phase of the real one.` : 'This is the real thing.'}`, '#ffb0a0');
+    UI.log(`<b style="color:#ff4020">Velscour answers.</b> ${w.practice ? `This is a practice fight at Depth ${w.depth}: no victory, no relic hoard, but every phase of the real one.` : 'This is the real thing.'}`, '#ffb0a0', { category: 'dungeon.boss', important: true });
   },
 
   async teleportToBiome(biome, { ignoreLevelGate = false, depthOverride = null, practiceFinalBoss = false } = {}) {

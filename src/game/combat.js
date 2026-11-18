@@ -206,6 +206,12 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (byHero && src && src.isPlayer && !o.dot) G.lastHit = tgt; // the HUD's target window
   if (byHero && src && src.isPlayer && o.sk && !o.dot && showFx) classHitFx(src, tgt, o.sk, el); // the class's own splash (gfx/classfx.js)
   const actualDamage = Math.min(dmg, Math.max(0, tgt.hp));
+  if (!o.silent && actualDamage > 0 && G.ui?.event) {
+    const attacker = src?.isPlayer ? 'You' : (src?.name || src?.arch || 'Enemy');
+    const target = tgt?.isPlayer ? 'you' : (tgt?.name || tgt?.arch || 'enemy');
+    const category = tgt.isPlayer ? 'combat.damageReceived' : byHero ? (crit ? 'combat.critical' : 'combat.damageDealt') : null;
+    if (category) G.ui.event({ category, text: `${attacker} hit ${target} for ${Math.round(actualDamage)} ${el || 'physical'} damage${crit ? ' (critical)' : ''}.`, color: crit ? '#ffd76b' : '', meta: { important: !!crit, data: { amount: actualDamage, type: el || 'physical', critical: !!crit } } });
+  }
   if (worldAffixes.has('mirror_world') && tgt.team === 'enemy' && fromPlayer && !o.dot && !o.force &&
       owner && !owner.dead && chance(DUNGEON_AFFIX_CONFIG.mirror_world.reflectChance)) {
     const reflected = Math.min(
@@ -377,6 +383,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
 
 function applyStatus(src, tgt, dmg, el, o) {
   const s = tgt.status;
+  const priorActive = new Set(Object.keys(s).filter((key) => s[key]?.t > 0));
   const boss = tgt.rank === 'boss';
   const leaderBuff = tgt.enemyLeaderBuff?.until > (tgt.world?.time || 0) ? tgt.enemyLeaderBuff : null;
   const crowdControlLands = !leaderBuff?.ccResist || !chance(leaderBuff.ccResist);
@@ -420,6 +427,10 @@ function applyStatus(src, tgt, dmg, el, o) {
     addEffect(new Bolt(tgt.x - 0.3, tgt.y - 0.3, 260, tgt.x, tgt.y, 0, '#c0d8ff', 0.25, 3));
     hit(src, tgt, dmg * 0.6, 'light', { noArc: true, crit: false });
   }
+  if (src?.isPlayer || tgt?.isPlayer) {
+    const newlyApplied = Object.keys(s).filter((key) => s[key]?.t > 0 && !priorActive.has(key));
+    if (newlyApplied.length) G.ui?.event?.({ category: 'combat.status', text: `${newlyApplied.join(', ')} applied to ${tgt.isPlayer ? 'you' : (tgt.name || tgt.arch || 'enemy')}.`, meta: { data: { effects: newlyApplied } } });
+  }
 }
 
 /** Damage all hostiles of `team` in radius. */
@@ -456,6 +467,7 @@ export function kill(tgt, src, info = {}) {
   }
   const owner = src && src.owner ? src.owner : src;
   const byPlayer = owner && (owner.isPlayer || owner.team === 'player');
+  if (byPlayer && tgt.team === 'enemy') G.ui?.event?.({ category: 'combat.enemyDeath', text: `${tgt.name || tgt.arch || 'Enemy'} was slain.`, meta: { categories: [...(tgt.rank === 'boss' ? ['dungeon.boss'] : []), ...(tgt.packLeaderType ? ['dungeon.packLeader'] : [])], important: tgt.rank === 'boss' || !!tgt.packLeaderType, data: { target: tgt.name || tgt.arch || 'Enemy' } } });
   if (tgt.clutter) {
     if (typeof tgt.die === 'function') tgt.die(src);
     return;

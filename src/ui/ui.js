@@ -257,9 +257,9 @@ export const UI = {
     this.logListeners.add(listener);
     return () => this.logListeners.delete(listener);
   },
-  log(html, color) {
+  log(html, color, meta = null) {
     for (const listener of this.logListeners) {
-      try { listener(html, color); } catch (error) { console.warn('Game log listener failed', error); }
+      try { listener(html, color, meta); } catch (error) { console.warn('Game log listener failed', error); }
     }
     if (!this.logEl) return;
     const d = el('div', '', html);
@@ -269,6 +269,14 @@ export const UI = {
     const sea = !!(G.world && G.world.seaRun), life = sea ? 8000 : 12400; // keep messages visible twice as long
     if (sea) { d.style.transition = 'opacity .6s'; setTimeout(() => { d.style.opacity = '0'; }, life - 600); }
     setTimeout(() => d.remove(), life);
+  },
+  // Structured events feed the PC chat without creating a duplicate transient log entry.
+  event(event) {
+    if (!event || typeof event.text !== 'string') return;
+    const meta = { category: event.category || 'system.notification', ...(event.meta || {}) };
+    for (const listener of this.logListeners) {
+      try { listener(event.text, event.color || '', meta); } catch (error) { console.warn('Game event listener failed', error); }
+    }
   },
   /** A centred banner; o.top puts it in the band under the boss bar, smaller (a fight's running banners). */
   centerMsg(title, sub = '', dur = 2.6, o = {}) {

@@ -1,5 +1,6 @@
 // Tactical enemy behaviors and the thirty named monster attacks. All presentation uses existing sprites and VFX.
 import { ENEMY_PROFILE_BY_ARCH, ENEMY_PROFILES, ENEMY_ATTACK_CONFIG } from '../data/enemyvariety.js';
+import { G } from '../state.js';
 import { angleTo, dist, rand, chance, pick, TAU } from '../core/util.js';
 import { addEffect, Telegraph, Ring, Slash, Bolt, burst, sparkle, spawn, smoke, elem, floatText } from '../gfx/vfx.js';
 import { Projectile, Delayed, Area, Fissure, explode, lineTargets, coneTargets } from './hazards.js';
@@ -225,7 +226,7 @@ function triggerNonCombatBehavior(m, target, allies, d, dt) {
     for (let i = 0; i < 2; i++) { const c = m.spawnEnemyMinion(m.arch, false, true); if (c) { c.decoy = true; c.maxHp = c.hp = Math.max(1, m.maxHp * 0.14); c.dmg *= 0.35; c.xp = 0; } }
     sparkle(m.x, m.y, 24, '#a878ff', 18, 0.45); say(m, 'MIRROR IMAGE', '#c39aff');
   }
-  if (b.includes('burrow_retreat') && target && m.hp < m.maxHp * 0.25 && !m.enemyBurrowRetreated && !m.fly && m.beginMove && m.beginMove('burrow', target, dist(m.x, m.y, target.x, target.y))) { m.enemyBurrowRetreated = true; return true; }
+  if (b.includes('burrow_retreat') && target && m.hp < m.maxHp * 0.25 && !m.enemyBurrowRetreated && !m.fly && m.beginMove && m.beginMove('burrow', target, dist(m.x, m.y, target.x, target.y))) { m.enemyBurrowRetreated = true; G.ui?.event?.({ category: 'debug.ai', text: `${m.name || m.arch || 'Enemy'} burrowed to retreat.` }); return true; }
   if (b.includes('defensive_stance') && target && m.hp < m.maxHp * 0.62 && !(m.defenseT > 0) && (cd.defensive_stance || 0) <= 0) {
     cd.defensive_stance = 7; m.defenseT = 2.2; m.moving = false; addEffect(new Ring(m.x, m.y, 0.35, 1.35, 0.3, '#c7c0ae', 3)); say(m, 'GUARD', '#d4cdbd'); return true;
   }
@@ -244,7 +245,7 @@ function triggerNonCombatBehavior(m, target, allies, d, dt) {
   }
   if (b.includes('tunnel_pursuit') && target && !m.fly && d > 3.5 && !w.map.losWide(m.x, m.y, target.x, target.y, m.r + 0.04) && (m.tunnelPursuitCd || 0) <= 0) {
     m.tunnelPursuitCd = 10;
-    if (m.beginMove?.('burrow', target, d)) { say(m, 'TUNNELING', '#c4ae8e'); return true; }
+    if (m.beginMove?.('burrow', target, d)) { say(m, 'TUNNELING', '#c4ae8e'); G.ui?.event?.({ category: 'debug.ai', text: `${m.name || m.arch || 'Enemy'} burrowed toward its target.` }); return true; }
   }
   return false;
 }
@@ -275,6 +276,7 @@ function chooseAttack(m, target, d) {
   }
   m.enemyAttackCd = cfg.cd * (m.rank === 'normal' ? 1.25 : 0.9) * rand(0.9, 1.12);
   m.startAction('enemy_attack', cfg.windup, { enemyAttack: attack, target, tx: target?.x, ty: target?.y, ang: aim });
+  G.ui?.event?.({ category: 'combat.special', text: `${m.name || m.arch || 'Enemy'} uses ${cfg.name || attack}.`, color: '#f29c58', meta: { data: { ability: attack } } });
   return true;
 }
 
@@ -292,6 +294,7 @@ export function updateEnemyVariety(m, target, distance, dt) {
     const ang = angleTo(m.x, m.y, target.x, target.y), len = Math.min(7.5, distance + 1);
     m.enemyChargeCd = 6.5; m.face(ang); m.startAction('charge', 0.65, { ang, len });
     warnLine(m, ang, len, 0.65, '#ff9b4a');
+    G.ui?.event?.({ category: 'debug.ai', text: `${m.name || m.arch || 'Enemy'} began a charging rush.` });
     return true;
   }
   if (applyPackTactics(m, target, distance, dt, allies)) return true;
