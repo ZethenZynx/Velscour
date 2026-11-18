@@ -52,12 +52,12 @@ const MOVES = {
 };
 
 /** A monster's special moves: one of its archetype's for a normal (more often deeper), two for a greater breed, all for elites. */
-function rollMoves(arch, rank, variant, depth) {
+export function rollMoves(arch, rank, variant, depth, random = Math.random) {
   const all = (ARCH_MOVES[arch] || []).slice();
   if (!all.length) return null;
   if (rank !== 'normal') return all;
-  const n = (chance(Math.min(0.9, 0.45 + depth * 0.012)) ? 1 : 0) + variant;
-  return n ? shuffle(all).slice(0, n) : null;
+  const n = (random() < Math.min(0.9, 0.45 + depth * 0.012) ? 1 : 0) + variant;
+  return n ? shuffle(all, random).slice(0, n) : null;
 }
 
 /** Demon Lord Velscour's life in normal monsters of his level: ~3x the last BOSS ROOM boss (~3 minutes of hero damage). */

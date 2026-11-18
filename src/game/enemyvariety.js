@@ -57,6 +57,9 @@ function tickTimers(m, dt) {
 
 function nearbyAllies(m, r = 5) { return nearest(m, r, (c) => liveEnemy(c)); }
 function applyPackTactics(m, target, d, dt, allies) {
+  // Charger movement is governed by aiCharger, which owns the warned rush and
+  // its recovery timer. Coordinated-flanking movement must not intercept it.
+  if (m.ai === 'charger') return false;
   const leaderFlank = m.enemyLeaderBuff?.until > (C(m).time || 0) && m.enemyLeaderBuff.flank;
   if (!m.enemyBehaviors.includes('pack_leader') && !leaderFlank && !m.enemyBehaviors.includes('coordinated_flanking')) return false;
   if (!target || m.static || (!leaderFlank && !m.enemyBehaviors.includes('coordinated_flanking'))) return false;
@@ -303,6 +306,9 @@ export function updateEnemyVariety(m, target, distance, dt) {
   if (target && m.enemyBehaviors.includes('charged_precision_shot') && m.enemyAttackCd <= 0 && m.enemyAttacks?.some((a) => ['piercing_arrow', 'bone_spear'].includes(a))) {
     if (chooseAttack(m, target, distance)) return true;
   }
+  // Exploders need to reach their core proximity detonation AI every combat
+  // tick; optional profile attacks must not keep them busy at point-blank range.
+  if (m.ai === 'exploder') return false;
   if (chooseAttack(m, target, distance)) return true;
   return false;
 }

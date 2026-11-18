@@ -21,19 +21,18 @@ export function chooseEncounterArchetype(roster, counts, recentRoles, getInfo, r
   if (!candidates.length) return roster[Math.floor(rng.next() * roster.length)];
   const available = [...new Set(candidates.map((x) => x.role))];
   const targetTotal = available.reduce((sum, role) => sum + (ENCOUNTER_ROLE_TARGETS[role] || 0), 0) || 1;
-  const specialPacks = candidates.filter((x) => x.role === 'special').map((x) => x.packMax);
-  const largestSpecialPack = specialPacks.length ? Math.max(...specialPacks) : 0;
-  let roles = available.filter((role) => role !== 'special' || !available.some((r) => r !== 'special') ||
-    counts.total === 0 || counts.special + largestSpecialPack <= (counts.total + largestSpecialPack) * 0.2);
-  if (!roles.length) roles = available.filter((role) => role !== 'special');
-  if (!roles.length) roles = available; // A specialist-only roster keeps its regional identity.
+  // Special groups are less common, but never forbidden: a hard cap could make
+  // charging, burrowing, and explosive enemy families vanish from a level.
+  let roles = available;
   const lastRole = recentRoles.at(-1), previousRole = recentRoles.at(-2);
   if (lastRole && lastRole === previousRole && roles.length > 1) roles = roles.filter((role) => role !== lastRole);
   let weights = roles.map((role) => {
     const target = (ENCOUNTER_ROLE_TARGETS[role] || 0) / targetTotal;
     const share = counts.total ? (counts[role] || 0) / counts.total : 0;
     const deficit = Math.max(0.015, target - share + 0.04);
-    return deficit * (recentRoles.includes(role) && roles.length > 1 ? 0.28 : 1);
+    let weight = deficit * (recentRoles.includes(role) && roles.length > 1 ? 0.28 : 1);
+    if (role === 'special' && share > 0.17) weight *= Math.max(0.22, 1 - (share - 0.17) * 2.4);
+    return weight;
   });
   let roll = rng.next() * weights.reduce((a, b) => a + b, 0), role = roles[roles.length - 1];
   for (let i = 0; i < roles.length; i++) { roll -= weights[i]; if (roll < 0) { role = roles[i]; break; } }

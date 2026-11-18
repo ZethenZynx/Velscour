@@ -5,7 +5,7 @@ import { generateDungeon } from '../../src/world/dungeon.js';
 import { BIOMES } from '../../src/data/biomes.js';
 import { ARCH } from '../../src/data/enemies.js';
 import { ENEMY_PROFILE_BY_ARCH, ENEMY_PROFILES } from '../../src/data/enemyvariety.js';
-import { encounterRole } from '../../src/data/enemycomposition.js';
+import { chooseEncounterArchetype, encounterRole } from '../../src/data/enemycomposition.js';
 import { RNG } from '../../src/core/util.js';
 
 const regions = ['catacombs', 'castle_keep', 'molten', 'fungal', 'frozen', 'desert', 'void', 'sewers', 'storm'];
@@ -66,7 +66,7 @@ console.log(`ALL        melee ${pct(totals.melee, totals.total)} ranged ${pct(to
 console.log(`Longest same-role run across ordinary spawn groups: ${longestSameRoleStreak}`);
 
 assert.ok(pct(totals.special, totals.total) !== 'NaN', 'No generated ordinary enemies were measured');
-assert.ok(totals.special / totals.total <= 0.22, 'Ordinary special attackers exceed the intended ~20% ceiling');
+assert.ok(totals.special / totals.total <= 0.30, 'Special attackers should remain occasional rather than dominate encounters');
 assert.ok(longestSameRoleStreak <= 3, 'Repeated same-role groups are too common');
 for (const region of regions) {
   const roster = getBiome(region).roster;
@@ -74,5 +74,9 @@ for (const region of regions) {
   const hasCaster = roster.some((id) => ['caster', 'nova', 'beamer'].includes(ARCH[id]?.ai));
   if (hasRanged) assert.ok(byRegion[region].ranged > 0, `${region} has ranged archetypes but generated none`);
   if (hasCaster) assert.ok(byRegion[region].caster + byRegion[region].support > 0, `${region} has caster/support archetypes but generated none`);
-  assert.ok(byRegion[region].special / byRegion[region].total <= 0.21, `${region} exceeds the special-attacker target`);
+  assert.ok(byRegion[region].special / byRegion[region].total <= 0.30, `${region} is dominated by special attackers`);
 }
+const stillEligible = chooseEncounterArchetype(['skeleton', 'hound'], { total: 100, melee: 50, special: 50 }, [],
+  (arch) => ({ role: arch === 'hound' ? 'special' : 'melee', packMax: 3 }),
+  { next: () => 0.999999 });
+assert.equal(stillEligible, 'hound', 'special families remain selectable above their preferred share');
