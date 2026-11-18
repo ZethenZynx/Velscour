@@ -14,6 +14,7 @@ export const UI = {
   selected: null,
   windowOrder: 30,
   windowPositions: new Map(),
+  logListeners: new Set(),
   tipCompareHtml: '',
   shiftDown: false,
   get modal() { return this.modalCount > 0; },
@@ -251,7 +252,15 @@ export const UI = {
   },
 
   // ------------------------------------------------------------- messages
+  onLog(listener) {
+    if (typeof listener !== 'function') return () => {};
+    this.logListeners.add(listener);
+    return () => this.logListeners.delete(listener);
+  },
   log(html, color) {
+    for (const listener of this.logListeners) {
+      try { listener(html, color); } catch (error) { console.warn('Game log listener failed', error); }
+    }
     if (!this.logEl) return;
     const d = el('div', '', html);
     if (color) d.style.color = color;

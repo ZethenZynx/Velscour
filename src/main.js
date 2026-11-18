@@ -6,6 +6,7 @@ import { loadAssets } from './core/assets.js';
 import { loadEnemyArt, loadPetArt } from './core/enemyart.js';
 import { rand, TAU } from './core/util.js';
 import { UI, $ } from './ui/ui.js';
+import { GameChat } from './ui/chat.js';
 import { HUD } from './ui/hud.js';
 import { LoadingScreen } from './ui/loading.js';
 import { titleScreen } from './ui/screens.js';
@@ -287,6 +288,7 @@ async function boot() {
   initInput(G.canvas);
   initSpectate(); // taps that catch critters / aim SMITE without moving the hero (game/spectate.js)
   UI.init();
+  GameChat.init();
   UI.vendor = Vendor;
   UI.stash = Stash;
   UI.jewelBox = JewelBox;
