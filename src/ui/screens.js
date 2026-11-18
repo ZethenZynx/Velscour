@@ -19,6 +19,7 @@ import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from
 import { isProfaneName, validateCharName } from '../core/profanity.js';
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 import { loadRecentChanges } from '../game/recentchanges.js';
+import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
 
 let current = null;
 
@@ -39,6 +40,7 @@ export function hide() { if (current) { current.remove(); current = null; } }
 
 export function titleScreen() {
   G.mode = 'title';
+  let updatesAvailable = [];
   const s = el('div', 'screen');
   s.classList.add('title-screen');
   s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
@@ -55,6 +57,7 @@ export function titleScreen() {
     });
     add(`Heroes <span style="font-size:13px;color:#a8977c">· ${used}/${CLASS_IDS.length}</span>`, () => classSelect(last ? last.classId : 'paladin'));
     add('Settings', settingsDialog, 'btn');
+    if (updatesAvailable.length) add('Update Available', () => showUpdateDialog(updatesAvailable), 'btn update-available');
     add('Credits', () => creditsScreen(titleScreen), 'btn');
     add('How to Play', helpDialog, 'btn');
   };
@@ -84,7 +87,12 @@ export function titleScreen() {
   renderChanges(RECENT_CHANGES);
   // Always revalidate when the title screen is entered. A cached/bundled list
   // is already visible while GitHub responds and remains the offline fallback.
-  loadRecentChanges({ forceRefresh: true }).then((items) => { if (current === s) renderChanges(items); });
+  loadRecentChanges({ forceRefresh: true }).then((items) => {
+    if (current !== s) return;
+    renderChanges(items);
+    updatesAvailable = changesAfterBundledBuild(items);
+    fill();
+  });
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
@@ -369,6 +377,7 @@ export function settingsDialog() {
   </div>
   <div class="settings-tab-pane" data-pane="general">
     <div class="settings-grid">
+      <label>Game updates</label><button type="button" class="btn small" data-check-game-updates>Check now</button>
       <label>Hero backups</label><button class="btn small" data-backups>View</button>
       <label>Pause while menus open</label><input type="checkbox" data-k="pauseMenus" ${st.pauseMenus !== false ? 'checked' : ''}>
       <label title="Keep previously seen cutscenes at normal speed">Don't fast-forward seen cutscenes</label><input type="checkbox" data-k="noSkipCine" ${st.noSkipCine ? 'checked' : ''}>
@@ -429,6 +438,18 @@ export function settingsDialog() {
   const d = UI.dialog({ title: 'Settings', html, cls: 'settings-dialog', buttons: [{ label: 'Done', fn: () => { stopKeyCaptureListener(); camera.computeZoom(); if (UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings(); saveSettings(); } }] });
   const tabBtns = d.box.querySelectorAll('.settings-tab-btn');
   const tabPanes = d.box.querySelectorAll('.settings-tab-pane');
+  const updateCheckButton = d.box.querySelector('[data-check-game-updates]');
+  if (updateCheckButton) updateCheckButton.onclick = async () => {
+    updateCheckButton.disabled = true;
+    updateCheckButton.textContent = 'Checking…';
+    try { await checkForGameUpdates(); }
+    finally {
+      if (updateCheckButton.isConnected) {
+        updateCheckButton.disabled = false;
+        updateCheckButton.textContent = 'Check now';
+      }
+    }
+  };
   const setTab = (name) => {
     activeSettingsTab = name;
     tabBtns.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === name));
