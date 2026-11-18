@@ -160,6 +160,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (C.mark && C.mark.t > 0) dmg *= 1 + C.mark.amt / 100;
     if (tgt.status.shred && tgt.status.shred.t > 0) dmg *= 1 + tgt.status.shred.amt;
     if (tgt.ward !== undefined) dmg *= tgt.ward; // a raid boss behind its warding crystals
+    if (tgt.team === 'enemy' && tgt.reduceIncomingDamage) dmg = tgt.reduceIncomingDamage(src, dmg, el, o);
     if (src && src.curses && src.curses.weaken && src.curses.weaken.t > 0 && !fromPlayer) dmg *= 1 - src.curses.weaken.amt / 100;
     if (tgt.reflect && src && src.isPlayer && !o.dot && !o.force) {
       // a raid boss's riposte (game/raidsigs.js): the hero's own blow comes back (minions' don't)
@@ -451,6 +452,7 @@ export function kill(tgt, src, info = {}) {
     return;
   }
   if (tgt.onDeath) tgt.onDeath(src);
+  if (tgt.onKilled) tgt.onKilled(src, info);
 
   if (world && tgt.team === 'enemy' && !tgt.affixNoDeathEffects) {
     const pushField = (id, el, radius, damage, duration = 3.5, delayT = 0, o = {}, fxOverride = null) => {
@@ -544,11 +546,11 @@ export function kill(tgt, src, info = {}) {
   }
   if (tgt.split && tgt.scale > 0.6 && tgt.spawnChild) { tgt.spawnChild(); tgt.spawnChild(); }
   if (byPlayer && world) {
-    world.kills++;
+    if (!tgt.noLoot) world.kills++;
     const p = G.player;
-    if (p) {
-      if (tgt.team === 'enemy') { p.gainXp(tgt.xp || 0); if (tgt.lastSk) p.gainMastery(tgt.lastSk, tgt.xp || 0); }
-      p.char.kills = (p.char.kills || 0) + 1;
+    if (p && !tgt.noLoot) {
+      if (tgt.team === 'enemy' && !tgt.noLoot) { p.gainXp(tgt.xp || 0); if (tgt.lastSk) p.gainMastery(tgt.lastSk, tgt.xp || 0); }
+      if (!tgt.noLoot) p.char.kills = (p.char.kills || 0) + 1;
       const leg = p.st.legendary;
       if (leg.bloodbath) {
         explosionFx(tgt.x, tgt.y, 1.4, 'blood', 'explosion', { sound: false });
@@ -579,8 +581,8 @@ export function kill(tgt, src, info = {}) {
       if (p.chart && tgt.team === 'enemy') astroOnKill(p, tgt); // the fallen may become a star on the Astronomer's chart
       if (p.sig && !info.sig) sigKill(p, tgt, src); // the class signature (game/signature.js); its own kills never feed it
     }
-    if (tgt.team === 'enemy') { dropLoot(world, tgt); commissionKill(world, tgt); if (world.rift) riftKill(world, tgt); }
-    if (world.onKill) world.onKill(tgt); // streaks, challenges (game/happenings.js)
+    if (tgt.team === 'enemy' && !tgt.noLoot) { dropLoot(world, tgt); commissionKill(world, tgt); if (world.rift) riftKill(world, tgt); }
+    if (world.onKill && !tgt.noLoot) world.onKill(tgt); // streaks, challenges (game/happenings.js)
   }
   if ((tgt.rank === 'boss' || tgt.rank === 'raid' || tgt === world?.boss) && world) {
     for (const c of world.creatures) if (c.summon && !c.dead) c.cheerT = 2.5;
