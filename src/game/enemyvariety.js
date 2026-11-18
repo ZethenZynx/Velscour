@@ -165,7 +165,7 @@ function summonTick(m, allies) {
   return false;
 }
 
-function triggerNonCombatBehavior(m, target, allies, dt) {
+function triggerNonCombatBehavior(m, target, allies, d, dt) {
   const b = m.enemyBehaviors || [], cd = m.enemyBehaviorCd || (m.enemyBehaviorCd = {}), w = C(m);
   if (b.includes('pack_leader') && packLeader(m, allies)) {
     m.aura = m.aura || '#eac44e';
@@ -294,7 +294,7 @@ export function updateEnemyVariety(m, target, distance, dt) {
   const allies = nearbyAllies(m, 5);
   supportTick(m, allies, dt);
   summonTick(m, allies);
-  if (triggerNonCombatBehavior(m, target, allies, dt)) return true;
+  if (triggerNonCombatBehavior(m, target, allies, distance, dt)) return true;
   if (m.stunT > 0) { m.moving = false; return true; }
   if (target && m.enemyBehaviors.includes('charging_rush') && distance > 2.4 && distance < 7.5 && (m.enemyChargeCd || 0) <= 0 && C(m).map.los(m.x, m.y, target.x, target.y)) {
     const ang = angleTo(m.x, m.y, target.x, target.y), len = Math.min(7.5, distance + 1);
