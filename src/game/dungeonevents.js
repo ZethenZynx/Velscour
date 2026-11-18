@@ -1,4 +1,4 @@
-// One major event is housed in a separate authored chamber on each campaign dungeon floor.
+// One featured event is housed in a separate authored chamber on each campaign dungeon floor.
 // Events begin when the player enters their room or map area; encounters reuse existing systems and art.
 import { G } from '../state.js';
 import { chance, pick, rand, randi, TAU } from '../core/util.js';
@@ -190,13 +190,18 @@ function pulse(world, run, { element = 'arcane', color = run.def.color, duration
   UI.centerMsg(run.def.name.toUpperCase(), 'Avoid the marked bursts until the disturbance passes', 2.8);
 }
 
-function addPulseStrike(world, run, x, y) {
+export function addPulseStrike(world, run, x, y) {
   const R = run.pulseRadius, col = run.pulseColor, p = world.player;
   addEffect(new Ring(x, y, 0.25, R, 0.75, col, 4, { fill: true }));
+  if (run.def.mode === 'crystal') {
+    for (let i = 0; i < 5; i++) spawn({ type: 'shard', x: x + rand(-R * 0.65, R * 0.65), y: y + rand(-R * 0.65, R * 0.65), z: 0, vz: rand(15, 30), g: 80, life: 0.9, size: rand(3, 5), color: '#a6efff', rot: rand(TAU) });
+  }
   // The impact happens after a clear telegraph and only hurts the hero if still in its small marked area.
-  world.addHazard({ t: 0, update(dt) { this.t += dt; if (this.t < 0.85) return true;
+  world.addHazard({ t: 0, x, y, r: R, update(dt) { if (!run.active) return false; this.t += dt; if (this.t < 0.85) return true;
     if (p && !p.dead && Math.hypot(p.x-x,p.y-y) < R) hit({ team:'enemy', world, level:depthLevel(world.depth||1), dmg:p.maxHp * run.pulseDamage }, p, p.maxHp * run.pulseDamage, run.element, { dot:true });
-    addEffect(new Column(x,y,col,0.25,10,220)); sparkle(x,y,9,col,12,0.45); return false; }, draw() {} });
+    addEffect(new Column(x,y,col,0.25,10,220));
+    if (run.def.mode === 'crystal') for (let i = 0; i < 8; i++) spawn({ type: 'shard', x: x + rand(-R, R), y: y + rand(-R, R), z: rand(2, 18), vz: rand(28, 58), g: 95, life: 0.65, size: rand(3, 6), color: '#78ddfa', rot: rand(TAU) });
+    sparkle(x,y,9,col,12,0.45); return false; }, draw() {} });
 }
 
 function eventClaimKey(world) {
@@ -214,7 +219,7 @@ function startRun(world, def, room) {
   const run = world.happen.event = { def, room, x:cx, y:cy, t:0, active:true, paid:false, claimed:false, claimKey, foes:[] };
   const p = world.player, col = def.color;
   addEffect(new Column(cx,cy,col,1,38,360)); addEffect(new Ring(cx,cy,0.3,5,1.2,col,6,{fill:true}));
-  sfx('gate',0.7); UI.centerMsg(def.name.toUpperCase(), 'A major dungeon event has begun', 2.8);
+  sfx('gate',0.7); UI.centerMsg(def.name.toUpperCase(), 'The event has begun', 2.8);
   UI.log(`<b style="color:${col}">${def.name}</b> begins as you enter the event area.`, col, { category: 'dungeon.randomEvent', important: true });
 
   switch(def.mode) {
@@ -281,7 +286,10 @@ function startRun(world, def, room) {
     case 'shadow': addEventFoes(world,run,{count:1,rank:'unique',hp:2.2,damage:1.1});run.kind='kill';run.reward={gear:2,quality:3};break;
     case 'awakening': addEventFoes(world,run,{count:5,rank:'normal',hp:1.15});run.kind='kill';run.reward={gear:1};break;
     case 'labyrinth': {const dest=positions(world,room,1,4)[0];if(dest){addEffect(new Ring(cx,cy,.2,3,1,col,4));run.dest=dest;}run.kind='timer';run.remaining=12;run.reward={gold:4,gear:1};break;}
-    case 'crystal': loot(world,cx,cy,{gems:3});run.kind='timer';run.remaining=14;run.reward={gems:1};break;
+    case 'crystal':
+      loot(world,cx,cy,{gems:3});
+      pulse(world,run,{element:'cold',color:'#74dfff',duration:14,damage:0.035,radius:1.4});
+      run.reward={gems:1};break;
     case 'fungus': pulse(world,run,{element:'poison',color:'#77d17a',duration:17,damage:.025,radius:1.7});run.reward={gems:1};break;
     case 'machinery': pulse(world,run,{element:'phys',color:'#d49a58',duration:16,damage:.035,radius:1.35});run.reward={gold:4};break;
     case 'dragon': addEventFoes(world,run,{count:1,rank:'boss',hp:2.8,damage:1.4});run.kind='kill';run.reward={gold:10,gear:2,quality:4};break;
