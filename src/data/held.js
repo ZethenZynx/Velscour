@@ -11,7 +11,7 @@ export const heldTierForRarity = (rarity) => Math.min(HELD_PER.length - 1, Math.
 export const CLASS_FOCUS = {
   paladin: 'shield', ranger: 'quiver', wizard: 'tome', necromancer: 'orb', dragoon: 'shield', totem_master: 'idol',
   death_knight: 'skull', arcane_sorcerer: 'orb', carrion_witch: 'lantern', bard: 'drum', slime_lord: 'jar',
-  boomerang_knight: 'rang', lancer: 'shield', dragon_knight: 'shield', gunner: 'bomb', monk: 'tome',
+  boomerang_knight: 'rang', lancer: 'shield', dragon_knight: 'shield', gunner: 'bomb', monk: 'tome', ninja: 'nunchaku',
 };
 
 /** The set an item of `base` shows in, in `slot`, held by `cls` (null: no held art). */
@@ -19,13 +19,14 @@ export function heldSetOf(base, slot, cls) {
   if (slot === 'offhand') {
     if (base === 'shield') return { lancer: 'towershields', dragon_knight: 'dragonshields', dragoon: 'bucklers' }[cls] || 'holyshields';
     if (base === 'orb') return cls === 'arcane_sorcerer' ? 'starorbs' : 'darkorbs';
-    const focus = { tome: 'tomes', lantern: 'lanterns', skull: 'frostskulls', idol: 'idols', jar: 'jars', bomb: 'bombs', drum: 'drums', quiver: 'quivers', rang: 'rangs' }[base];
+    const focus = { tome: 'tomes', lantern: 'lanterns', skull: 'frostskulls', idol: 'idols', jar: 'jars', bomb: 'bombs', drum: 'drums', quiver: 'quivers', rang: 'rangs', nunchaku: 'nunchakus' }[base];
     if (focus) return focus;
+    if (base === 'dagger' && cls === 'rogue') return 'offstilettos';
     return base === 'axe' ? 'handaxes' : null; // the Barbarian's second weapon: only an axe has a left-hand set
   }
   return {
-    sword: cls === 'death_knight' ? 'greatswords' : 'swords', axe: 'greataxes', mace: cls === 'slime_lord' ? 'slimemaces' : 'maces', hammer: 'maces',
-    dagger: 'daggers', staff: { totem_master: 'totemstaves', carrion_witch: 'crooks' }[cls] || 'firestaves', wand: cls === 'arcane_sorcerer' ? 'starwands' : 'bonewands',
+    sword: cls === 'ninja' ? 'katanas' : cls === 'death_knight' ? 'greatswords' : 'swords', katana: 'katanas', axe: 'greataxes', mace: cls === 'slime_lord' ? 'slimemaces' : 'maces', hammer: 'maces',
+    dagger: cls === 'rogue' ? 'stilettos' : 'daggers', staff: { totem_master: 'totemstaves', carrion_witch: 'crooks' }[cls] || 'firestaves', wand: cls === 'arcane_sorcerer' ? 'starwands' : 'bonewands',
     bow: 'bows', crossbow: 'crossbows', spear: cls === 'lancer' ? 'lances' : 'spears', scythe: 'scythes', pistol: 'pistols', boomerang: 'boomerangs', lute: 'lutes',
   }[base] || null;
 }
