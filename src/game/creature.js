@@ -2,7 +2,7 @@
 import { G } from '../state.js';
 import { isoX, isoY, screenDirToTile } from '../core/view.js';
 import { TAU, rand, chance, clamp, makeCanvas, drawFiltered } from '../core/util.js';
-import { spawn, glowSprite, ELEM } from '../gfx/vfx.js';
+import { spawn, glowSprite, ELEM, Sigil } from '../gfx/vfx.js';
 import { pixelSprite } from '../gfx/pixelart.js';
 import { classSprite } from '../core/assets.js';
 import { enemyImage } from '../core/enemyart.js';
@@ -17,6 +17,26 @@ let UID = 0;
 // ctx.filter is a slow software path, in Safari above all); without ctx.filter support it is put through by hand
 const FREEZE = 'hue-rotate(180deg) saturate(1.6) brightness(1.2)', CHARM = 'hue-rotate(90deg)';
 const tints = { [FREEZE]: new WeakMap(), [CHARM]: new WeakMap() };
+function drawPackLeaderRune(ctx, creature, px, py) {
+  if (!creature.packLeaderType || creature.dead) return;
+  const r = Math.max(13, Math.min(24, (creature.r || 0.35) * 48));
+  const color = creature.packLeaderRuneColor || '#d8c080';
+  const pulse = (creature.packRunePulseUntil || 0) > (creature.world?.time || 0);
+  ctx.save(); ctx.translate(px, py + 1.5); ctx.scale(1, 0.42);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = pulse ? 0.58 : 0.3;
+  ctx.lineJoin = 'round';
+  if (creature.packLeaderRuneSprite) {
+    try { ctx.drawImage(creature.packLeaderRuneSprite, -r, -r, r * 2, r * 2); } catch { /* keep the built-in fallback */ }
+  } else {
+    const sigil = creature._packLeaderSigil || (creature._packLeaderSigil = new Sigil(0, 0, 0, 1, color, color));
+    ctx.strokeStyle = color; ctx.lineWidth = pulse ? 3.4 : 2.4;
+    sigil.trace(ctx, r, creature.animT * 0.34);
+    ctx.globalAlpha = pulse ? 0.66 : 0.4; ctx.lineWidth = 0.9;
+    ctx.strokeStyle = '#f5dfb2'; sigil.trace(ctx, r * 0.92, -creature.animT * 0.22);
+  }
+  ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
 function tinted(img, f) {
   if (!f) return img;
   let c = tints[f].get(img);
@@ -423,6 +443,7 @@ export class Creature {
     const fly = this.fly ? 16 + Math.sin(this.animT * 3) * 4 : 0;
     const z = this.z + fly + bob;
     // shadow (none under Velscour's Mirror of Sin copies: game/velscour.js)
+    drawPackLeaderRune(ctx, this, px, py);
     if (!this.noShadow) {
       ctx.fillStyle = 'rgba(0,0,0,0.38)';
       const sw = Math.max(8, Math.min(w, h) * 0.32);

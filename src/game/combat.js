@@ -50,6 +50,13 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   const world = tgt.world || G.world;
   const worldAffixes = new Set(Array.isArray(world && world.dungeonAffixes) ? world.dungeonAffixes : []);
   let dmg = amount;
+  const leaderBuff = src?.enemyLeaderBuff?.until > (world?.time || 0) ? src.enemyLeaderBuff : null;
+  if (leaderBuff) {
+    dmg *= 1 + (leaderBuff.damage || 0);
+    if (leaderBuff.element) el = leaderBuff.element;
+    if (leaderBuff.status === 'slow') o = { ...o, slow: true };
+    else if (leaderBuff.status === 'burn') o = { ...o, burn: true };
+  }
   let crit = false;
   if (src && src.summon && src.partyBuff && src.partyBuff.stats.dmg) dmg *= 1 + src.partyBuff.stats.dmg / 100; // banners, party buffs
   const owner = src && src.owner ? src.owner : src;
@@ -58,7 +65,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
   if (fromPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
   if (fromPlayer && worldAffixes.has('blood_sacrifice')) dmg *= 1.25;
-  if (fromPlayer && owner?.affixDamageDownT > 0) dmg *= 0.85;
+  if (fromPlayer && (owner?.affixDamageDownT > 0 || owner?.packLeaderDamageDownUntil > (world?.time || 0))) dmg *= 0.85;
   if (tgt.isPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
   if (tgt.isPlayer && worldAffixes.has('mana_surge') && el !== 'phys') dmg *= 1.2;
   if (tgt.isPlayer && (tgt.affixSunderT || 0) > 0) dmg *= 1.15;
@@ -371,6 +378,8 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
 function applyStatus(src, tgt, dmg, el, o) {
   const s = tgt.status;
   const boss = tgt.rank === 'boss';
+  const leaderBuff = tgt.enemyLeaderBuff?.until > (tgt.world?.time || 0) ? tgt.enemyLeaderBuff : null;
+  const crowdControlLands = !leaderBuff?.ccResist || !chance(leaderBuff.ccResist);
   const leg = src && src.isPlayer ? src.st.legendary : {};
   const unyielding = tgt.team === 'enemy' && (tgt.dungeonAffixIds || []).includes('unyielding');
   if (el === 'fire' && (o.burn || chance(0.25))) s.burn = { t: 3, dps: Math.max(s.burn && s.burn.t > 0 ? s.burn.dps : 0, dmg * (o.burn ? 0.35 : 0.2)), src };
@@ -380,10 +389,10 @@ function applyStatus(src, tgt, dmg, el, o) {
     s.poison = { t: 3.5, dps: Math.max(prior, dmg * (o.poison ? 0.45 : 0.3)) + stack, src };
   }
   if (el === 'blood' || o.bleed) s.bleed = { t: 3, dps: Math.max(s.bleed && s.bleed.t > 0 ? s.bleed.dps : 0, dmg * 0.3), src };
-  if (!unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
-  if (!unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
-  if (!unyielding && o.stun && (!boss || chance(0.15))) s.stun = { t: tgt.isPlayer ? 0.5 : 1.1 };
-  if (o.fear && !boss) s.fear = { t: 2.5 };
+  if (crowdControlLands && !unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
+  if (crowdControlLands && !unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
+  if (crowdControlLands && !unyielding && o.stun && (!boss || chance(0.15))) s.stun = { t: tgt.isPlayer ? 0.5 : 1.1 };
+  if (crowdControlLands && o.fear && !boss) s.fear = { t: 2.5 };
   if (el === 'acid') { s.shred = { t: 3, amt: 0.15 }; s.slow = { t: 2, amt: 0.15 }; }
   if (o.curse && !tgt.isPlayer) for (const c of o.curse) tgt.curses[c] = { t: 5, amt: 25, src };
   if (o.knock && !unyielding && !tgt.static && !boss) {
@@ -538,7 +547,7 @@ export function kill(tgt, src, info = {}) {
     if (gore.blood !== '#ffcc40') addDecal(tgt.x, tgt.y, blood, (big ? 1.1 : 0.7) * rand(0.8, 1.2), 'pool', 0.92);
   }
   sfx(gore.bones ? 'bones' : overkill ? 'gore' : 'squish', 0.8);
-  if (!overkill && tgt.sprite && world && world.corpses) world.corpses.push({ x: tgt.x, y: tgt.y, sprite: tgt.sprite, pal: tgt.pal, art: tgt.art, swap: tgt.swap, artH: tgt.artH, px: tgt.px, scale: tgt.scale, flip: tgt.flip, t: 0, maxHp: tgt.maxHp, arch: tgt.arch, level: tgt.level, fly: tgt.fly });
+  if ((!overkill || tgt.enemyPackId) && tgt.sprite && world && world.corpses) world.corpses.push({ x: tgt.x, y: tgt.y, sprite: tgt.sprite, pal: tgt.pal, art: tgt.art, swap: tgt.swap, artH: tgt.artH, px: tgt.px, scale: tgt.scale, flip: tgt.flip, t: 0, maxHp: tgt.maxHp, arch: tgt.arch, level: tgt.level, fly: tgt.fly, enemyPackId: tgt.enemyPackId || null });
   // elite death affix
   if (tgt.affixes && tgt.affixes.includes('fiery')) {
     explosionFx(tgt.x, tgt.y, 1.6, 'fire', 'explosion');

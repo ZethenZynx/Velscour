@@ -26,6 +26,7 @@ import { setupHappenings, announceDungeonAffixes, happeningsTick, eventImpsTick,
 import { setupWorldObjects, worldObjectsTick, clearWorldObjectBuffs } from './worldobjects.js';
 import { setupDungeonEvent, dungeonEventTick } from './dungeonevents.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
+import { assignPackLeader } from './packleaders.js';
 import { spectateTick } from './spectate.js';
 import { toggleSmite, getUltimate, executeUltimate } from './smite.js';
 import { hearthTick, useHearth, hearthPortalActive, closeHearthPortals, getActiveHearth, returnFromHearth } from './hearth.js';
@@ -1415,6 +1416,7 @@ export const game = {
       const n = s.n;
       const variant = Math.random() < Math.min(0.5, 0.2 + depth * 0.005) ? 1 : 0;
       const trait = rollTrait(world, depth) || (s.trait ? rollTrait(world, depth, true) : null);
+      const packMembers = [];
       for (let i = 0; i < n; i++) {
         const [x, y] = i === 0 ? [s.x, s.y] : gen.map.randomNear(s.x, s.y, 1.6);
         const rank = s.rank === 'unique' ? (i === 0 ? 'unique' : 'normal') : s.rank;
@@ -1423,8 +1425,9 @@ export const game = {
         // tanks and bullet-hell casters lead their pack; hunters, phasers and burrowers come as a pack
         if (trait && (i === 0 || ['hunter', 'phaser', 'burrower'].includes(trait))) applyTrait(m, trait);
         if (s.champ && i === 0) makeElite(m, 'champion', depth, world);
-        world.add(m);
+        world.add(m); packMembers.push(m);
       }
+      assignPackLeader(world, packMembers, biome, depth, s);
     }
     world.roster = [...new Set(gen.spawns.filter((s) => s.arch && !['raid', 'boss'].includes(s.rank)).map((s) => s.arch))];
     if (world.dungeonAffixes.includes('twin_guardians') && world.boss && !world.boss.raid) {
@@ -1838,13 +1841,15 @@ export const game = {
     const exit = { x: gen.exit[0], y: gen.exit[1], type: 'exit', active: false, color: '#4a3a5a', reach: 2, label: 'Sealed — the Breach Heart', use: () => this.useExit(world, exit) };
     world.portals = [{ x: tp[0], y: tp[1], type: 'town', active: true, color: '#3a8aff', reach: 1.6, label: 'Town Portal', use: () => this.useTownPortal() }]; // the exit appears when the Heart is won
     for (const s of heresySpawns(gen.spawns, heresyBegin(world, c))) { // Twinned Packs reach the Breach too (game/heresies.js)
+      const packMembers = [];
       for (let i = 0; i < s.n; i++) {
         const [x, y] = i === 0 ? [s.x, s.y] : gen.map.randomNear(s.x, s.y, 1.6);
         const rank = i === 0 ? s.rank : 'normal';
         const m = makeMonster(world, s.arch, B, lvl + (rank === 'normal' ? 0 : 1), rank, x, y, Math.random() < 0.25 ? 1 : 0, gen.looks.pick(s.arch));
         breachMonster(m);
-        world.add(m);
+        world.add(m); packMembers.push(m);
       }
+      assignPackLeader(world, packMembers, B, depth, s);
     }
     world.roster = BREACH_ARCHS;
     setupWorldObjects(world, gen.start, { special: true });
@@ -1972,14 +1977,16 @@ export const game = {
     for (const s of gen.spawns) {
       if (s.rank === 'raid' || s.rank === 'boss') continue; // the Guardian stirs at the quota (game/rifts.js)
       const variant = Math.random() < 0.4 ? 1 : 0, trait = rollTrait(world, Math.min(depth, 500));
+      const packMembers = [];
       for (let i = 0; i < s.n; i++) {
         const [x, y] = i === 0 ? [s.x, s.y] : gen.map.randomNear(s.x, s.y, 1.6);
         const rank = s.rank === 'unique' ? (i === 0 ? 'unique' : 'normal') : s.rank;
         const m = makeMonster(world, s.arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, x, y, variant, s.look);
         if (s.rank === 'unique' && i > 0) { m.affixes = []; m.name = m.name + ' Minion'; }
         if (trait && (i === 0 || ['hunter', 'phaser', 'burrower'].includes(trait))) applyTrait(m, trait);
-        world.add(m);
+        world.add(m); packMembers.push(m);
       }
+      assignPackLeader(world, packMembers, biome, depth, s);
     }
     world.roster = [...new Set(gen.spawns.filter((s) => s.arch && !['raid', 'boss'].includes(s.rank)).map((s) => s.arch))];
     world.rift = createRiftRun(world, gen, tier, {

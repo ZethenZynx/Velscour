@@ -3,6 +3,7 @@ import { ENEMY_PROFILE_BY_ARCH, ENEMY_PROFILES, ENEMY_ATTACK_CONFIG } from '../d
 import { angleTo, dist, rand, chance, pick, TAU } from '../core/util.js';
 import { addEffect, Telegraph, Ring, Slash, Bolt, burst, sparkle, spawn, smoke, elem, floatText } from '../gfx/vfx.js';
 import { Projectile, Delayed, Area, Fissure, explode, lineTargets, coneTargets } from './hazards.js';
+import { updatePackLeader, packLeaderAllyKilled, packLeaderKilled } from './packleaders.js';
 
 const COOLDOWNS = {
   minion_summoning: 9, corpse_reanimation: 12, portal_summoning: 15, sacrificial_summoning: 16,
@@ -53,25 +54,13 @@ function tickTimers(m, dt) {
 }
 
 function nearbyAllies(m, r = 5) { return nearest(m, r, (c) => liveEnemy(c)); }
-function packLeader(m, allies) {
-  if (!m.enemyBehaviors.includes('pack_leader')) return null;
-  // One leader per nearby pack, chosen deterministically so the aura never stacks.
-  const group = [m, ...allies].filter((c) => c.enemyBehaviors?.includes('pack_leader')).sort((a, b) => a.id - b.id);
-  return group[0] === m ? m : null;
-}
-
 function applyPackTactics(m, target, d, dt, allies) {
-  if (!m.enemyBehaviors.includes('pack_leader')) return false;
-  const leader = packLeader(m, allies);
-  if (leader) {
-    leader.aura = leader.aura || '#f0b84a';
-    for (const c of allies) c.enemyBuff = { t: 1.4, damage: 0.12, speed: 0.08 };
-    if (Math.random() < dt * 1.5) addEffect(new Ring(m.x, m.y, 0.5, 1.5, 0.3, '#ffc84a', 2));
-  }
-  if (!target || m.static || !m.enemyBehaviors.includes('coordinated_flanking')) return false;
+  const leaderFlank = m.enemyLeaderBuff?.until > (C(m).time || 0) && m.enemyLeaderBuff.flank;
+  if (!m.enemyBehaviors.includes('pack_leader') && !leaderFlank && !m.enemyBehaviors.includes('coordinated_flanking')) return false;
+  if (!target || m.static || (!leaderFlank && !m.enemyBehaviors.includes('coordinated_flanking'))) return false;
   const range = m.atkRange(target);
   if (d <= range + 0.35) return false;
-  const flankers = allies.filter((c) => c.enemyBehaviors?.includes('coordinated_flanking'));
+  const flankers = allies.filter((c) => c.enemyBehaviors?.includes('coordinated_flanking') || (c.enemyLeaderBuff?.until > (C(m).time || 0) && c.enemyLeaderBuff.flank));
   const i = Math.max(0, flankers.findIndex((c) => c.id === m.id));
   const n = Math.max(1, flankers.length);
   const base = angleTo(target.x, target.y, m.x, m.y);
@@ -167,10 +156,6 @@ function summonTick(m, allies) {
 
 function triggerNonCombatBehavior(m, target, allies, d, dt) {
   const b = m.enemyBehaviors || [], cd = m.enemyBehaviorCd || (m.enemyBehaviorCd = {}), w = C(m);
-  if (b.includes('pack_leader') && packLeader(m, allies)) {
-    m.aura = m.aura || '#eac44e';
-    for (const a of allies) a.enemyBuff ||= { t: 1.1, damage: 0.1, speed: 0.05 };
-  }
   if (b.includes('berserker_rage') && m.hp < m.maxHp * 0.35 && !m.enemyRaged) {
     m.enemyRaged = true; m.rageT = 7; m.aura = m.aura || '#ff5030'; say(m, 'BERSERK', '#ff6945');
     addEffect(new Ring(m.x, m.y, 0.35, 1.8, 0.35, '#ff4838', 3));
@@ -289,11 +274,13 @@ function chooseAttack(m, target, d) {
 }
 
 export function updateEnemyVariety(m, target, distance, dt) {
-  if (!m.enemyBehaviors?.length || m.enemySummoned) return false;
+  const leaderFlank = m.enemyLeaderBuff?.until > (C(m).time || 0) && m.enemyLeaderBuff.flank;
+  if ((!m.enemyBehaviors?.length && !m.packLeaderType && !leaderFlank) || m.enemySummoned) return false;
+  m.enemyBehaviors ||= [];
   tickTimers(m, dt);
   const allies = nearbyAllies(m, 5);
-  supportTick(m, allies, dt);
-  summonTick(m, allies);
+  if (updatePackLeader(m, target, distance, dt)) return true;
+  if (!m.packLeaderType) { supportTick(m, allies, dt); summonTick(m, allies); }
   if (triggerNonCombatBehavior(m, target, allies, distance, dt)) return true;
   if (m.stunT > 0) { m.moving = false; return true; }
   if (target && m.enemyBehaviors.includes('charging_rush') && distance > 2.4 && distance < 7.5 && (m.enemyChargeCd || 0) <= 0 && C(m).map.los(m.x, m.y, target.x, target.y)) {
@@ -401,7 +388,7 @@ export function executeEnemyAttack(m, a) {
 }
 
 export function enemyDamageReduction(m, src, damage, el) {
-  if (!m.enemyBehaviors?.length) return damage;
+  if (!m.enemyBehaviors?.length && !m.packLeaderType) return damage;
   src ||= { x: m.x, y: m.y };
   const original = damage;
   const facing = Math.cos(m.facing) * (src.x - m.x) + Math.sin(m.facing) * (src.y - m.y);
@@ -409,6 +396,16 @@ export function enemyDamageReduction(m, src, damage, el) {
   if (m.enemyBehaviors.includes('defensive_stance') && m.defenseT > 0) damage *= 0.74;
   if (m.enemyBarrier?.t > 0) damage *= 1 - Math.min(0.35, m.enemyBarrier.amount || 0.2);
   if (m.enemyBuff?.t > 0 && m.enemyBuff.guard) damage *= 0.9;
+  const leaderBuff = m.enemyLeaderBuff?.until > (m.world?.time || 0) ? m.enemyLeaderBuff : null;
+  if (leaderBuff) {
+    if (leaderBuff.guard) {
+      const absorbed = Math.min(damage * 0.18, m.enemyLeaderGuardPool || 0);
+      damage -= absorbed; m.enemyLeaderGuardPool = Math.max(0, (m.enemyLeaderGuardPool || 0) - absorbed);
+    }
+    if (leaderBuff.damageReduction) damage *= 1 - Math.min(0.3, leaderBuff.damageReduction);
+    if (leaderBuff.resist && el && el !== 'phys') damage *= 1 - Math.min(0.2, leaderBuff.resist);
+  }
+  if (m.packLeaderIsolated) damage *= 1.2;
   if (m.enemyBehaviors.includes('elemental_adaptation') && el && el !== 'phys') {
     if (m.enemyAdapt?.el === el && m.enemyAdapt.t > 0) damage *= 0.72;
     else { m.enemyAdapt = { el, t: 3.2 }; say(m, `${String(el).toUpperCase()} ADAPT`, elem(el).glow); }
@@ -434,6 +431,7 @@ export function enemyDamaged(m, src, dealt) {
 export function enemyAllyKilled(dead) {
   const w = dead.world;
   if (!w) return;
+  packLeaderAllyKilled(dead);
   for (const ally of w.query(dead.x, dead.y, 6, (c) => liveEnemy(c) && c !== dead && c.enemyBehaviors?.includes('revenge_frenzy'))) {
     ally.revengeT = Math.max(ally.revengeT || 0, 7); ally.aura = ally.aura || '#ff6038';
     if (Math.random() < 0.45) say(ally, 'VENGEANCE', '#ff6b46');
@@ -441,6 +439,7 @@ export function enemyAllyKilled(dead) {
 }
 
 export function enemyKilled(m) {
+  packLeaderKilled(m);
   if (!m.enemyBehaviors?.includes('unstable_death') || m.enemyUnstableDeath || m.enemySummoned || m.noLoot) return;
   m.enemyUnstableDeath = true;
   warnCircle(m, m.x, m.y, 2.4, 0.65, '#b960ff');
