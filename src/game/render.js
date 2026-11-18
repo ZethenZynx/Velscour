@@ -331,6 +331,25 @@ function drawBuilding(ctx, b, alpha) {
 }
 
 let fallbackChestArt = null;
+const CHEST_ART_POOLS = Object.freeze({
+  standard: Array.from({ length: 20 }, (_, i) => i),
+  gilded: [1, 4, 13, 14],
+  jeweled: [3, 9, 12, 19],
+  explosive: [0, 5, 11],
+  mimic: [0, 5, 6, 16],
+});
+
+function chestVariantIndex(c) {
+  if (Number.isInteger(c.chestVariant) && c.chestVariant >= 0 && c.chestVariant < A.chestVariants.length) return c.chestVariant;
+  const world = G.world;
+  const source = `${world?.biome?.id || world?.kind || ''}|${world?.depth || 0}|${G.dungeonSeed || 0}|${c.x}|${c.y}`;
+  let hash = 2166136261;
+  for (let i = 0; i < source.length; i++) hash = Math.imul(hash ^ source.charCodeAt(i), 16777619);
+  const pool = CHEST_ART_POOLS[c.chestType] || CHEST_ART_POOLS.standard;
+  c.chestVariant = pool[(hash >>> 0) % pool.length];
+  return c.chestVariant;
+}
+
 function chestArtFallback() {
   if (!A.chestImg || !A.chestMeta) return null;
   if (fallbackChestArt?.img !== A.chestImg || fallbackChestArt?.meta !== A.chestMeta) {
@@ -352,12 +371,15 @@ function drawChest(ctx, c) {
   if (c.draw) return c.draw(ctx, x, y); // shrines, remains, cursed chests (game/happenings.js)
   // Overworld and special-map tilesets may not include a biome chest atlas. Reuse the
   // game's shared painted chest sheet there instead of drawing the pink-edged box fallback.
-  const art = G.world?.tileset?.chest || chestArtFallback();
-  const s = art && (c.opened ? (c.rare ? art.rareOpen : art.open) : (c.rare ? art.rareClosed : art.closed));
+  const variant = A.chestVariants.length ? A.chestVariants[chestVariantIndex(c)] : null;
+  const art = variant ? null : G.world?.tileset?.chest || chestArtFallback();
+  const closed = variant ? variant.closed : art && (c.rare ? art.rareClosed : art.closed);
+  const s = variant ? (c.opened ? variant.open : variant.closed)
+    : art && (c.opened ? (c.rare ? art.rareOpen : art.open) : (c.rare ? art.rareClosed : art.closed));
   if (s) {
-    // the biome's chest art, sized off the closed chest so opening it doesn't change the scale
-    const k = 46 / (c.rare ? art.rareClosed : art.closed).w, w = s.w * k, h = s.h * k;
-    ctx.drawImage(s.img, s.sx, s.sy, s.w, s.h, x - w / 2, y + w / 4 - h, w, h);
+    // Keep the floor anchor and scale fixed between paired states, including taller open lids.
+    const k = 46 / closed.w, w = s.w * k, h = s.h * k, floorY = y + 46 / 4;
+    ctx.drawImage(s.img, s.sx, s.sy, s.w, s.h, x - w / 2, floorY - h, w, h);
     if (!c.opened) {
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + Math.sin(G.time * 3) * 0.15;
       ctx.drawImage(glowSprite(c.glow || (c.rare ? '#c080ff' : '#ffd060')), x - 28, y - 40, 56, 46);
@@ -369,8 +391,8 @@ function drawChest(ctx, c) {
     }
     if (!c.opened && c.label && G.player && Math.hypot(c.x - G.player.x, c.y - G.player.y) < 5) {
       ctx.save(); ctx.font = '10px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,8,5,.9)'; ctx.strokeText(c.label.toUpperCase(), x, y - h - 4);
-      ctx.fillStyle = c.glow || '#e8c575'; ctx.fillText(c.label.toUpperCase(), x, y - h - 4); ctx.restore();
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,8,5,.9)'; ctx.strokeText(c.label.toUpperCase(), x, floorY - h - 4);
+      ctx.fillStyle = c.glow || '#e8c575'; ctx.fillText(c.label.toUpperCase(), x, floorY - h - 4); ctx.restore();
     }
     return;
   }
@@ -584,7 +606,7 @@ function drawNpc(ctx, n) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(G.time * 2.3 + 1.1) * 0.12;
       ctx.drawImage(glowSprite('#b850ff'), x - 40, y - 46, 80, 64); ctx.restore();
     }
-    drawChest(ctx, { x: n.x, y: n.y, rare: true, opened: !!(n.reliquary ? G.ui.reliquary && G.ui.reliquary.active : n.jewelBox ? G.ui.jewelBox && G.ui.jewelBox.active : G.ui.stash && G.ui.stash.active) });
+    drawChest(ctx, { x: n.x, y: n.y, rare: true, chestType: n.reliquary || n.jewelBox ? 'jeweled' : 'standard', opened: !!(n.reliquary ? G.ui.reliquary && G.ui.reliquary.active : n.jewelBox ? G.ui.jewelBox && G.ui.jewelBox.active : G.ui.stash && G.ui.stash.active) });
     n.sbox = [x - 24, y - 40, x + 24, y + 6];
     return;
   }
