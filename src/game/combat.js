@@ -61,6 +61,9 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   if (src && src.summon && src.partyBuff && src.partyBuff.stats.dmg) dmg *= 1 + src.partyBuff.stats.dmg / 100; // banners, party buffs
   const owner = src && src.owner ? src.owner : src;
   const fromPlayer = owner && owner.isPlayer;
+  const altarElementBonuses = !o.dot && !o.worldObjectBonus && fromPlayer && !tgt.isPlayer
+    ? owner.st?.addedDamage
+    : null;
   if (fromPlayer && !tgt.isPlayer && G.char && G.char.madT > 0) dmg *= 2; // MADNESS (game/mayhem.js)
   if (fromPlayer && world && world.dungeonAffixes && world.dungeonAffixes.includes('weakness')) dmg *= DUNGEON_AFFIX_CONFIG.weakness.playerDamageMultiplier;
   if (fromPlayer && worldAffixes.has('glass_cannon')) dmg *= 1.5;
@@ -136,6 +139,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     const res = rk ? st.res[rk] : st.res.magic;
     dmg *= 1 - clamp(res, -100, 75) / 100;
     dmg *= 1 - clamp(st.reduce || 0, 0, 60) / 100;
+    dmg *= 1 + clamp(st.damageTakenPct || 0, 0, 100) / 100;
     if (worldAffixes.has('mortal_vulnerability') && (tgt.affixCritVulnerableT || 0) > 0) dmg *= 1.1;
     if (tgt.affixShieldT > 0) dmg *= 1 - (tgt.affixShield || 0.25);
     if (tgt.raidTakenMul) dmg *= tgt.raidTakenMul; // raid mechanics (game/raidsigs.js): sunder stacks
@@ -224,6 +228,14 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
   }
   tgt.hp -= dmg;
+  let altarBonusDamage = 0;
+  if (altarElementBonuses && actualDamage > 0 && tgt.hp > 0 && !tgt.dead) for (const [element, value] of Object.entries(altarElementBonuses)) {
+    if (tgt.hp <= 0 || tgt.dead) break;
+    const bonusPct = Math.min(30, value);
+    if (bonusPct > 0) altarBonusDamage += hit(src, tgt, amount * bonusPct / 100, element, {
+      dot: true, crit: false, noArc: true, worldObjectBonus: true, deferKill: true, proc: true,
+    });
+  }
   if (!tgt.isPlayer && tgt.team === 'enemy' && fromPlayer && !o.dot) {
     if (worldAffixes.has('adaptive_resistance')) {
       tgt.affixAdaptiveRes ||= {};
@@ -354,14 +366,14 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
 
   // ---- leech: by the share of the target's life the hit took (LEECH_K of the hero's own life a whole life's worth),
   // not raw damage, which runs far ahead of hero life (it healed whole life bars a hit)
-  if (fromPlayer && src.isPlayer && !tgt.isPlayer) {
+  if (fromPlayer && src.isPlayer && !tgt.isPlayer && !o.worldObjectBonus) {
     const st = src.st, share = Math.min(1, dmg / Math.max(1, tgt.maxHp)) * LEECH_K;
     const ls = (st.lifeSteal + (worldAffixes.has('vampiric_blessing') ? 4 : 0) + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
     if (ls > 0) src.heal(share * src.maxHp * ls * (o.dot ? 0.3 : 1), true);
     if (st.manaSteal > 0) src.mana = Math.min(src.maxMana, src.mana + share * src.maxMana * st.manaSteal / 100);
     if (tgt.curses.leech && tgt.curses.leech.t > 0) src.heal(share * src.maxHp * tgt.curses.leech.amt / 100 * 0.3, true);
     src.onHit && src.onHit(tgt, dmg, el, o);
-  } else if (src && src.summon && (src.leech || src.selfLeech) && src.owner) {
+  } else if (!o.worldObjectBonus && src && src.summon && (src.leech || src.selfLeech) && src.owner) {
     if (src.leech) leechHeal(src.owner, tgt, dmg, src.leech * 0.25);
     if (src.selfLeech && !src.dead) {
       const share = Math.min(1, dmg / Math.max(1, tgt.maxHp)) * LEECH_K;
@@ -369,16 +381,16 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     }
   }
   // ring augments ride on skill hits (o.aug) and on the hits of a skill's minions; the skill earns mastery for kills
-  if (byHero && !o.proc) {
+  if (byHero && !o.proc && !o.worldObjectBonus) {
     const sk = o.sk || (src && src.summon && src.skillId);
     if (sk) tgt.lastSk = sk;
     const aug = o.aug || (src && src.summon && src.aug);
     if (aug && owner && owner.isPlayer) augHit(src, owner, tgt, dmg, el, o.aug ? o : { aug, sk });
-  } else if (byHero && o.sk) tgt.lastSk = o.sk;
+  } else if (byHero && o.sk && !o.worldObjectBonus) tgt.lastSk = o.sk;
   if (tgt.curses.thorns && tgt.curses.thorns.t > 0 && tgt.isPlayer === false && src && src.team === 'player') { /* handled when monster attacks */ }
 
-  if (tgt.hp <= 0) kill(tgt, src, { el, overkill: -tgt.hp / tgt.maxHp, crit, aoe: o.aoe, sig: o.sig, proc: o.proc });
-  return dmg;
+  if (tgt.hp <= 0 && !o.deferKill) kill(tgt, src, { el, overkill: -tgt.hp / tgt.maxHp, crit, aoe: o.aoe, sig: o.sig, proc: o.proc });
+  return dmg + altarBonusDamage;
 }
 
 function applyStatus(src, tgt, dmg, el, o) {
