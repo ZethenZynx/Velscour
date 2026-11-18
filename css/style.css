@@ -728,6 +728,14 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .backup-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 4px; border-bottom: 1px solid rgba(180,140,80,.25); font-size: 14px; }
 .dialog-box p { margin: 6px 0 14px; }
 .dialog-box .row { justify-content: center; }
+.ancestral-reliquary-gem-picker { width: min(560px, 92vw); }
+.reliquary-gem-list { display: flex; flex-direction: column; gap: 6px; max-height: min(54vh, 440px); overflow-y: auto; overscroll-behavior: contain; padding: 2px 4px; text-align: left; scrollbar-color: #805d2b rgba(0, 0, 0, .24); }
+.reliquary-gem-option { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 10px; text-align: left; }
+.reliquary-gem-option > span:first-child { min-width: 0; }
+.reliquary-gem-option strong, .reliquary-gem-option small { display: block; }
+.reliquary-gem-option strong { color: var(--gold-bright); }
+.reliquary-gem-option small { margin-top: 2px; color: var(--text-dim); font-size: 11px; line-height: 1.35; }
+.reliquary-gem-offer { flex: 0 0 auto; color: var(--gold); font-size: 11px; white-space: nowrap; }
 .velscour-contact-dialog { width: min(560px, 92vw); }
 .velscour-taunt { color: #d2b994; font: 700 15px/1.5 var(--font-head); }
 .velscour-message-label { display: block; margin: 16px 0 6px; color: var(--gold); font: 700 12px var(--font-head); letter-spacing: 1px; text-transform: uppercase; }

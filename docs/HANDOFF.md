@@ -1,5 +1,11 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - Ancestral Reliquary offering fixes
+- The gem picker now scrolls through every unlocked Gem Bag gem, showing its name, tier or Sigil rank, special description and stack count. It has an explicit Cancel option, protects locked gems, and consumes one gem from a stack per offering.
+- Equipment chances by object rarity are Common 65%, Uncommon 72.8%, Rare 83.2%, Epic 96.2%, Legendary 100% and Mythic 100%. Legendary/Mythic guarantees are explicit. Failed equipment rolls pay depth-scaled gold instead.
+- The offered gem is consumed but its type and tier do not alter the reward. Equipment quality now uses the normal ground-loot quality roll; item level follows floor depth and is capped by character level, and the floor's depth quality cap still applies. Reliquary rarity does not force a high gear quality.
+- `node tools/tests/worldobjects_reliquary.mjs` checks all six chances, Gem Bag eligibility through slot 80, lock protection, character-level item-level caps, and floor-depth quality caps. Browser-level UI verification requires Playwright, which is not installed in this checkout.
+
 ## November 17, 2026 - complete title-screen change history
 - Recent Changes now includes every merged pull request targeting this fork's `main` branch, including bug fixes, balance work, gameplay changes and visual updates. Entries are sorted by merge time, grouped by date, and remain in a scrollable list without a display cap. The title screen requests the latest GitHub history whenever it opens; the bundled offline snapshot contains all 111 merged fork PRs available at this update.
 - The GitHub pull-request history is the automatic source of truth for future updates, so merged work appears on the next title-screen visit without editing the bundled snapshot. The snapshot remains the offline fallback. Open, closed-unmerged, and PRs targeting other branches are excluded.
