@@ -1,0 +1,53 @@
+name: Publish Velscour PC release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged fork source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Package the tagged PC game
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/velscour-pc-release"
+          mkdir -p "$stage"
+          git archive HEAD | tar -x -C "$stage"
+          VERSION="${RELEASE_TAG#v}" node --input-type=module - "$stage/src/data/build-version.js" <<'NODE'
+          import fs from 'node:fs';
+          const file = process.argv[2];
+          const version = process.env.VERSION;
+          const source = fs.readFileSync(file, 'utf8');
+          const updated = source.replace(/GAME_VERSION\s*=\s*'[^']*'/, `GAME_VERSION = '${version}'`);
+          if (updated === source) throw new Error('Could not stamp the release version');
+          fs.writeFileSync(file, updated);
+          NODE
+          archive="velscour-pc-${RELEASE_TAG}.zip"
+          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/$archive" .)
+          sha256sum "$archive" > "$archive.sha256"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the fork release and verified package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "velscour-pc-${RELEASE_TAG}.zip" \
+            "velscour-pc-${RELEASE_TAG}.zip.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Velscour PC ${RELEASE_TAG#v}" \
+            --verify-tag \
+            --generate-notes

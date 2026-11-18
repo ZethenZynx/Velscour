@@ -648,6 +648,14 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .title-tag { position: relative; z-index: 2; font: 400 18px var(--font-head); color: var(--text-dim); letter-spacing: 3px; margin: 6px 0 24px; text-align: center; padding: 0 12px; }
 .title-menu { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
 .title-menu .update-available { color: #fff0a0; border-color: #d5a83e; box-shadow: 0 0 12px rgba(213, 168, 62, .25); }
+.title-screen .fork-update-btn { position: absolute; z-index: 5; top: max(18px, env(safe-area-inset-top)); right: max(22px, env(safe-area-inset-right)); padding: 9px 16px; color: #fff0a0; border-color: #d5a83e; box-shadow: 0 0 14px rgba(213, 168, 62, .28); }
+.title-screen:not(.title-ready) .fork-update-btn { pointer-events: none; }
+.fork-update-dialog { width: min(640px, 94vw); text-align: left; }
+.fork-update-dialog h2 { text-align: center; }
+.fork-update-notes { max-height: 28vh; overflow: auto; overflow-wrap: anywhere; padding: 8px 10px; border: 1px solid rgba(176, 126, 49, .28); background: rgba(0, 0, 0, .2); text-align: left; }
+.fork-update-hash code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; color: #e4c47c; font-size: 11px; }
+.fork-update-hash a { color: #e4c47c; }
+.fork-update-download { display: block; width: fit-content; margin: 10px auto 0; text-decoration: none; text-align: center; }
 .update-change-list { max-height: 240px; overflow-y: auto; padding-left: 20px; }
 .update-change-list li { margin: 8px 0; color: var(--text-dim); }
 .update-change-list strong { display: block; color: var(--gold-bright); font-family: var(--font-head); }
