@@ -16,6 +16,7 @@ import { toughness, danger, densityXp, riftHold, dmgScale } from '../data/depth.
 import { attachSlime, slimeUpdate, courtDef } from './slimecourt.js';
 import { ART_BY_ID, REVIVED, greaterSwap, rollLooks, uniqueSwap } from '../data/bestiary.js';
 import { skillMorphFor } from '../data/talents.js';
+import { configureEnemyVariety, updateEnemyVariety, executeEnemyAttack, enemyDamageReduction, enemyDamaged, enemyAllyKilled, enemyKilled } from './enemyvariety.js';
 
 const LEASH = 10; // minions fight what's within this many tiles of the hero
 const CHASE = 1.3, CHASE_MAX = 4.6; // monsters' pursuit pace: x1.3, up to 4.6 tiles/s (the hero runs 4.2) unless faster already
@@ -89,8 +90,18 @@ export class Monster extends Creature {
 
   heal(n) { this.hp = Math.min(this.maxHp, this.hp + n); }
 
+  speedMul() {
+    const m = super.speedMul();
+    const buff = this.enemyBuff?.t > 0 ? this.enemyBuff.speed || 0 : 0;
+    const stance = this.defenseT > 0 ? 0.68 : 1;
+    return Math.max(0.15, m * (1 + buff + (this.revengeT > 0 ? 0.12 : 0) + (this.rageT > 0 ? 0.2 : 0)) * stance);
+  }
+
   /** All damage a monster deals goes through here (vampiric / thorns curse). */
   deal(target, amount, el, o = {}) {
+    if (this.enemyBuff?.t > 0) amount *= 1 + (this.enemyBuff.damage || 0);
+    if (this.revengeT > 0) amount *= 1.12;
+    if (this.rageT > 0) amount *= 1.12;
     const d = hit(this, target, amount, el, o);
     if (d > 0) {
       if (this.affixes && this.affixes.includes('vampiric') && this.rank !== 'boss' && !(this.dungeonAffixIds || []).includes('vampiric')) {
@@ -105,7 +116,8 @@ export class Monster extends Creature {
     return d;
   }
 
-  onDamaged(src) {
+  onDamaged(src, amount) {
+    enemyDamaged(this, src, amount || 0);
     this.regenSuppress = 6.0; // Taking direct damage suppresses regeneration for 6 seconds
     if (this.dungeonAffixIds?.includes('evasive') && src && !this.static && (this.affixEvasiveT || 0) <= 0) {
       this.affixEvasiveT = 2.4;
@@ -123,6 +135,23 @@ export class Monster extends Creature {
       this.thornCd = 0.5;
       hit(this, src, this.dmg * 0.25, 'phys', { dot: true, crit: false });
     }
+  }
+
+  reduceIncomingDamage(src, amount, el) { return enemyDamageReduction(this, src, amount, el); }
+  onEnemyDamaged(src, amount) { enemyDamaged(this, src, amount); }
+  onKilled(src) { enemyAllyKilled(this); enemyKilled(this); }
+  spawnEnemyMinion(arch = 'skeleton', strong = false, decoy = false, x = null, y = null) {
+    const w = this.world;
+    const owned = w.creatures.filter((c) => !c.dead && c.enemySummoned && c.enemySummoner === this).length;
+    const total = w.creatures.filter((c) => !c.dead && c.enemySummoned).length;
+    if (owned >= (strong ? 2 : 3) || total >= 24 || !ARCH[arch]) return null;
+    const [sx, sy] = x == null || y == null ? w.map.randomNear(this.x, this.y, 1.5) : w.map.nudge(x, y, 0.28);
+    const m = makeMonster(w, arch, w.biome, this.level || 1, 'normal', sx, sy);
+    m.enemySummoned = true; m.enemySummoner = this; m.noLoot = true; m.awake = true; m.moves = null;
+    m.enemyBehaviors = null; m.enemyAttacks = null; m.xp = 0; m.split = false; m.summoner = false; m.aoeCaster = false;
+    m.maxHp *= strong ? 0.72 : 0.45; m.hp = m.maxHp; m.dmg *= strong ? 0.78 : 0.5; m.speed *= 0.92;
+    if (decoy) { m.noLoot = true; m.decoy = true; m.dmg = 0; m.maxHp *= 0.2; m.hp = m.maxHp; m.name = 'Illusion'; m.el = 'arcane'; m.aura = '#b575ff'; }
+    w.add(m); return m;
   }
 
   // ---------------------------------------------------------------- targeting
@@ -267,7 +296,7 @@ export class Monster extends Creature {
     const rapidFire = dungeonAffixes.includes('rapid_fire') && ['ranged', 'caster'].includes(this.ai) ? 1.35 : 1;
     const bossEnrage = this.rank === 'boss' && dungeonAffixes.includes('boss_enrage') && this.hp < this.maxHp * 0.6 ? 1.3 : 1;
     const finalStand = this.rank === 'boss' && dungeonAffixes.includes('final_stand') && this.hp < this.maxHp * 0.1 ? 1.6 : 1;
-    this.cd -= dt * partyAttackSpeed * berserkAttackSpeed * rapidFire * bossEnrage * finalStand;
+    this.cd -= dt * partyAttackSpeed * berserkAttackSpeed * rapidFire * bossEnrage * finalStand * (this.rageT > 0 ? 1.2 : 1);
     if (this.spell && (this.spellCd -= dt) <= 0) this.castSpell();
 
     // fear: run away
@@ -294,6 +323,7 @@ export class Monster extends Creature {
     if (!this.summon && !this.awake) { this.awake = true; this.alertPack(); }
     const d = dist(this.x, this.y, target.x, target.y);
     this.trackTarget(target, dt);
+    if (updateEnemyVariety(this, target, d, dt)) return;
     if (dungeonAffixes.includes('cowardly') && this.hp < this.maxHp * 0.35 && !this.static) {
       const away = angleTo(target.x, target.y, this.x, this.y);
       w.map.move(this, Math.cos(away) * this.speed * dt, Math.sin(away) * this.speed * dt, this.ghost);
@@ -696,7 +726,10 @@ export class Monster extends Creature {
       spawn({ type: 'glow', x: this.x, y: this.y, z: 20, life: 0.25, size: 6, size1: 0, color: '#ff8040', add: true });
       const t = this.world.hostiles(this.team, this.x, this.y, this.r + 0.4)[0];
       if (t && !a.hit) { a.hit = true; this.deal(t, this.dmg * 1.4, this.el || 'phys', { knock: 1, ang: a.ang, melee: true }); }
-      if (a.len <= 0 || !moved) { this.state = 'idle'; this.cd = this.atkCd; }
+      if (a.len <= 0 || !moved) {
+        if (!moved && this.enemyBehaviors?.includes('wall_collision')) { this.stunT = 0.85; floatText(this.x, this.y, 50, 'STUNNED', '#f0c070', 10); addEffect(new Ring(this.x, this.y, 0.2, 1.1, 0.3, '#d8c49a', 3)); }
+        this.state = 'idle'; this.cd = this.atkCd;
+      }
     } else if (a.kind.startsWith('mv_')) this.moveTick(a, dt);
     else if (a.kind.startsWith('raid_') && this.raid) this.raid.tick(a, dt);
     else this.state = 'idle';
@@ -801,7 +834,10 @@ export class Monster extends Creature {
       case 'explode':
         explode(w, this, this.x, this.y, 1.7 * this.scale, this.dmg * 1.6, el === 'phys' ? 'fire' : el, {}, 'explosion');
         this.hp = 0; this.dead = true;
-        if (!this.summon) { this.world.kills++; }
+        if (!this.summon && !this.noLoot) { this.world.kills++; }
+        break;
+      case 'enemy_attack':
+        executeEnemyAttack(this, a);
         break;
       default:
         if (a.kind.startsWith('boss_')) this.bossPerform(a);
@@ -1486,6 +1522,7 @@ export function makeMonster(world, archId, biome, level, rank = 'normal', x = 0,
     undead, demon: art && art.demon !== undefined ? art.demon : A.demon, fly: art && art.fly !== undefined ? art.fly : A.fly, ghost: A.ghost, poison: A.poison, split: A.split,
     summoner: A.summoner && chance(A.summoner), aoeCaster: A.aoe, rank: 'normal', x, y,
   });
+  configureEnemyVariety(m, archId, art);
   if (A.ai === 'brute') m.atkReach = 0.7;
   m.moves = rollMoves(archId, rank, variant, depth);
   m.moveCd = rand(1.5, 4);

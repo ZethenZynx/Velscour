@@ -1,5 +1,10 @@
 # VELSCOUR: hand-off notes
 
+## November 17, 2026 - complete enemy variety and advanced AI (branch: `feat/enemy-variety-advanced-ai`)
+- Added ten reusable enemy role profiles, the full 40-behavior catalog, and all 30 named attacks, assigned across 82 non-boss archetypes (including Sea of Sand variants). Role combinations reuse existing monster sprites, action wind-ups, hazards, particles, projectiles, pathfinding, and collision; no artwork was generated.
+- Added bounded no-reward summons, persistent corpse-based one-time reanimation, support cooldowns, pack coordination, warning telegraphs, retreat and ambush states, partial defensive reductions, and depth-compatible monster damage. Enemy summons and illusions grant no XP, loot, player kill credit, or challenge progress.
+- `node tools/tests/enemy_variety.mjs`, `node tools/tests/data_check.mjs`, JavaScript syntax checks, and `git diff --check` pass. The local game loaded to town in a browser with no console errors; all 30 attack execution branches also ran through the runtime test harness. Combat visuals still need an in-game review. No deployment or merge was made.
+
 ## November 17, 2026 - Ancestral Reliquary offering fixes
 - The gem picker now scrolls through every unlocked Gem Bag gem, showing its name, tier or Sigil rank, special description and stack count. It has an explicit Cancel option, protects locked gems, and consumes one gem from a stack per offering.
 - Equipment chances by object rarity are Common 65%, Uncommon 72.8%, Rare 83.2%, Epic 96.2%, Legendary 100% and Mythic 100%. Legendary/Mythic guarantees are explicit. Failed equipment rolls pay depth-scaled gold instead.
