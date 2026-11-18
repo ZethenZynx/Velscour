@@ -330,10 +330,29 @@ function drawBuilding(ctx, b, alpha) {
   if (alpha < 1) ctx.globalAlpha = 1;
 }
 
+let fallbackChestArt = null;
+function chestArtFallback() {
+  if (!A.chestImg || !A.chestMeta) return null;
+  if (fallbackChestArt?.img !== A.chestImg || fallbackChestArt?.meta !== A.chestMeta) {
+    const frame = (r) => ({ img: A.chestImg, sx: r.x, sy: r.y, w: r.w, h: r.h });
+    fallbackChestArt = {
+      img: A.chestImg,
+      meta: A.chestMeta,
+      closed: frame(A.chestMeta.closed),
+      open: frame(A.chestMeta.open),
+      rareClosed: frame(A.chestMeta.rareClosed),
+      rareOpen: frame(A.chestMeta.rareOpen),
+    };
+  }
+  return fallbackChestArt;
+}
+
 function drawChest(ctx, c) {
   const x = isoX(c.x, c.y), y = isoY(c.x, c.y);
   if (c.draw) return c.draw(ctx, x, y); // shrines, remains, cursed chests (game/happenings.js)
-  const art = G.world && G.world.tileset && G.world.tileset.chest;
+  // Overworld and special-map tilesets may not include a biome chest atlas. Reuse the
+  // game's shared painted chest sheet there instead of drawing the pink-edged box fallback.
+  const art = G.world?.tileset?.chest || chestArtFallback();
   const s = art && (c.opened ? (c.rare ? art.rareOpen : art.open) : (c.rare ? art.rareClosed : art.closed));
   if (s) {
     // the biome's chest art, sized off the closed chest so opening it doesn't change the scale
