@@ -23,6 +23,14 @@ const urlCache = new Map();
 //   - ${classId}_talents.png : 3 rows (branches 0..2) x 8 cols (nodes 0..7), 64x64 px per cell (512x192)
 // Falls back seamlessly to procedural HTML5 canvas icons whenever a sheet does not exist yet.
 const SKILL_SHEET_DIR = 'assets/ui/skills/';
+// Only request painted atlases that are actually shipped. Other classes use
+// the procedural icon painter below; requesting absent optional PNGs creates
+// noisy 404 console errors (notably for newer classes without painted sheets).
+const PAINTED_SKILL_SHEETS = new Set([
+  'wizard_skills', 'wizard_talents', 'ranger_skills', 'ranger_talents',
+  'paladin_skills', 'paladin_talents', 'necromancer_skills', 'necromancer_talents',
+  'monk_skills', 'monk_talents',
+]);
 const skillSheets = new Map(); // `${classId}_${kind}` -> { status: 'loading'|'ready'|'missing', img, promise }
 let sheetLoadFn = null, sheetLoadTimer = 0;
 
@@ -42,6 +50,11 @@ function requestSheet(classId, kind) {
   const k = `${classId}_${kind}`;
   let rec = skillSheets.get(k);
   if (rec) return rec;
+  if (!PAINTED_SKILL_SHEETS.has(k)) {
+    rec = { status: 'missing', img: null, promise: Promise.resolve(null) };
+    skillSheets.set(k, rec);
+    return rec;
+  }
   rec = { status: 'loading', img: null, promise: null };
   rec.promise = new Promise((resolve) => {
     const img = new Image();
