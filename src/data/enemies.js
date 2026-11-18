@@ -57,10 +57,10 @@ for (const [i, [id, name]] of SAND_BOSSES.entries()) addSandArchetype(id, name, 
 //           web (a sticky shot that slows)
 export const ARCH_MOVES = {
   skeleton: ['combo', 'lunge'], archer: ['burst', 'snipe', 'fan'], zombie: ['frenzy', 'combo'], ghoul: ['lunge', 'frenzy'],
-  imp: ['blink', 'fan', 'lob'], demon: ['whirl', 'quake', 'hook'], spider: ['lunge', 'web'], bat: ['lunge'], slime: ['lob'],
+  imp: ['blink', 'fan', 'lob'], demon: ['whirl', 'quake', 'hook'], spider: ['lunge', 'web', 'burrow'], bat: ['lunge'], slime: ['lob'],
   wraith: ['blink', 'orbs'], golem: ['quake', 'whirl'], cultist: ['runes', 'blink'], hound: ['lunge', 'frenzy'],
-  eye: ['sweep', 'orbs'], knight: ['combo', 'whirl', 'hook'], worm: ['lob', 'burst'], shroom: ['lob'], elemental: ['orbs', 'blink'],
-  scorpion: ['lunge', 'combo'], gargoyle: ['lunge', 'quake'], beetle: [], abomination: ['whirl', 'hook', 'quake'], velscour: [],
+  eye: ['sweep', 'orbs'], knight: ['combo', 'whirl', 'hook'], worm: ['lob', 'burst', 'burrow'], shroom: ['lob'], elemental: ['orbs', 'blink'],
+  scorpion: ['lunge', 'combo', 'burrow'], gargoyle: ['lunge', 'quake'], beetle: [], abomination: ['whirl', 'hook', 'quake'], velscour: [],
 };
 for (const [id, , role] of SAND_CREATURES) ARCH_MOVES[id] = ARCH_MOVES[SAND_BASE[role] || 'skeleton'] || [];
 for (const [id, , role] of SAND_BOSSES) ARCH_MOVES[id] = ARCH_MOVES[role] || ['quake', 'slam'];
