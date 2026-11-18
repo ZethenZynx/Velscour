@@ -31,8 +31,10 @@ export function configureEnemyVariety(m, arch, art = null) {
     for (const b of p?.behaviors || []) behaviors.add(b);
     for (const a of p?.attacks || []) attacks.add(a);
   }
+  // The base charger AI already performs a warned rush on its own cooldown.
+  if (m.ai === 'charger') behaviors.delete('charging_rush');
   // Zombies carry the requested unstable corpse burst without receiving the rest of the magical profile.
-  if (arch === 'zombie') { behaviors.add('unstable_death'); attacks.add('death_burst'); }
+  if (arch === 'zombie' && chance(0.2)) { behaviors.add('unstable_death'); attacks.add('death_burst'); }
   if (!behaviors.size) return;
   m.enemyProfiles = profiles.slice();
   m.enemyBehaviors = [...behaviors];

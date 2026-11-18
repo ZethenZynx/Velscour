@@ -27,12 +27,12 @@ export const ENEMY_ATTACKS = [
 ];
 
 export const ENEMY_PROFILE_BY_ARCH = {
-  skeleton: ['pack', 'defender'], archer: ['sniper', 'retreat'], zombie: ['burrower'], ghoul: ['ambusher', 'retreat'],
-  imp: ['mystic', 'retreat'], demon: ['charger', 'mystic'], spider: ['ambusher', 'burrower'], bat: ['pack', 'ambusher'],
-  slime: ['burrower'], wraith: ['mystic', 'sniper'], golem: ['defender', 'charger'], cultist: ['summoner', 'support'],
-  hound: ['pack', 'charger'], eye: ['sniper', 'mystic'], knight: ['defender', 'charger'], worm: ['burrower', 'sniper'],
-  shroom: ['support', 'summoner'], elemental: ['support', 'mystic'], scorpion: ['burrower', 'ambusher'], gargoyle: ['ambusher', 'defender'],
-  beetle: ['burrower', 'charger'], abomination: ['charger', 'defender'],
+  skeleton: ['defender'], archer: ['sniper'], zombie: ['pack'], ghoul: ['ambusher'],
+  imp: ['mystic'], demon: ['charger'], spider: ['ambusher'], bat: ['pack'],
+  slime: ['ambusher'], wraith: ['mystic'], golem: ['defender'], cultist: ['summoner'],
+  hound: ['pack'], eye: ['sniper'], knight: ['defender'], worm: ['sniper'],
+  shroom: ['support'], elemental: ['support'], scorpion: ['ambusher'], gargoyle: ['defender'],
+  beetle: ['ambusher'], abomination: ['defender'],
 };
 
 export const ENEMY_PROFILES = {
@@ -49,8 +49,8 @@ export const ENEMY_PROFILES = {
     attacks: ['poisonous_vomit', 'fire_eruption'],
   },
   charger: {
-    behaviors: ['charging_rush', 'wall_collision', 'berserker_rage', 'ground_slam'],
-    attacks: ['overhead_strike', 'ground_slam', 'leaping_bite'],
+    behaviors: ['charging_rush', 'wall_collision'],
+    attacks: ['overhead_strike'],
   },
   support: {
     behaviors: ['ally_healing', 'protective_barrier', 'battle_chant', 'emergency_resurrection'],
@@ -73,8 +73,8 @@ export const ENEMY_PROFILES = {
     attacks: ['shield_bash', 'overhead_strike', 'spinning_slash', 'shockwave'],
   },
   mystic: {
-    behaviors: ['short_range_teleport', 'illusion_copies', 'elemental_adaptation', 'unstable_death'],
-    attacks: ['flame_wave', 'teleport_strike', 'fire_eruption', 'spectral_dash', 'life_drain', 'haunting_projectile', 'rock_throw', 'shockwave', 'death_burst'],
+    behaviors: ['short_range_teleport', 'illusion_copies', 'elemental_adaptation'],
+    attacks: ['flame_wave', 'teleport_strike', 'spectral_dash', 'life_drain', 'haunting_projectile', 'rock_throw'],
   },
 };
 

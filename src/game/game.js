@@ -1422,8 +1422,8 @@ export const game = {
         const rank = s.rank === 'unique' ? (i === 0 ? 'unique' : 'normal') : s.rank;
         const m = makeMonster(world, s.arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, x, y, variant, s.look);
         if (s.rank === 'unique' && i > 0) { m.affixes = []; m.name = m.name + ' Minion'; }
-        // tanks and bullet-hell casters lead their pack; hunters, phasers and burrowers come as a pack
-        if (trait && (i === 0 || ['hunter', 'phaser', 'burrower'].includes(trait))) applyTrait(m, trait);
+        // A rolled pack trait belongs to its lead member; it should not duplicate across the whole group.
+        if (trait && i === 0) applyTrait(m, trait);
         if (s.champ && i === 0) makeElite(m, 'champion', depth, world);
         world.add(m); packMembers.push(m);
       }
@@ -1983,7 +1983,7 @@ export const game = {
         const rank = s.rank === 'unique' ? (i === 0 ? 'unique' : 'normal') : s.rank;
         const m = makeMonster(world, s.arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, x, y, variant, s.look);
         if (s.rank === 'unique' && i > 0) { m.affixes = []; m.name = m.name + ' Minion'; }
-        if (trait && (i === 0 || ['hunter', 'phaser', 'burrower'].includes(trait))) applyTrait(m, trait);
+        if (trait && i === 0) applyTrait(m, trait);
         world.add(m); packMembers.push(m);
       }
       assignPackLeader(world, packMembers, biome, depth, s);

@@ -2,6 +2,8 @@
 import { TileMap } from './map.js';
 import { RNG, clamp } from '../core/util.js';
 import { ARCH } from '../data/enemies.js';
+import { ENEMY_PROFILE_BY_ARCH, ENEMY_PROFILES } from '../data/enemyvariety.js';
+import { chooseEncounterArchetype, encounterRole } from '../data/enemycomposition.js';
 import { rollLooks } from '../data/bestiary.js';
 import { isoBarrier } from '../gfx/isobarriers.js';
 import { wallHangingAtWallSegment, wallHangingCount } from '../gfx/wallhangings.js';
@@ -9,6 +11,31 @@ import { CASTLE_KEEP_LAYOUTS } from '../data/castlekeeplayouts.js';
 import { THEMES, TAGS, BIOME_ROOMS } from '../data/biomerooms.js';
 
 const S = 11; // chunk size in tiles
+
+function encounterPicker(roster, rng) {
+  const counts = { total: 0, melee: 0, ranged: 0, caster: 0, support: 0, special: 0 };
+  const recentRoles = [];
+  const pick = () => {
+    const arch = chooseEncounterArchetype(roster, counts, recentRoles, (id) => {
+      const A = ARCH[id];
+      const profileIds = ENEMY_PROFILE_BY_ARCH[id] || [];
+      const behaviors = profileIds.flatMap((profile) => ENEMY_PROFILES[profile]?.behaviors || []);
+      const role = A ? encounterRole(id, A.ai, behaviors) : null;
+      return { role, packMax: A?.pack ? (A.pack[0] + A.pack[1]) / 2 : 1 };
+    }, rng);
+    const A = ARCH[arch], profileIds = ENEMY_PROFILE_BY_ARCH[arch] || [];
+    const behaviors = profileIds.flatMap((profile) => ENEMY_PROFILES[profile]?.behaviors || []);
+    const role = A ? encounterRole(arch, A.ai, behaviors) : 'melee';
+    return { arch, role };
+  };
+  pick.record = (role, n) => {
+    counts[role] = (counts[role] || 0) + n;
+    counts.total += n;
+    recentRoles.push(role);
+    if (recentRoles.length > 3) recentRoles.shift();
+  };
+  return pick;
+}
 
 // Level layouts (data/biomes.js `style`): the share of built rooms and caves (the rest are small rooms), the shapes a
 // built room takes, how often a corridor is 3 wide, how many extra loops the maze gets, whether rooms fill their chunk
@@ -203,6 +230,7 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
   const props = placeObstacles(map, eligibleRooms, tileset, rng, startRoom);
   const looks = rollLooks(biome, () => rng.next()), roster = biome.roster;
   const pickArch = () => roster[Math.floor(Math.pow(rng.next(), 1.35) * roster.length)];
+  const pickOrdinary = encounterPicker(roster, rng);
   const roomSpot = (r) => {
     for (let i = 0; i < 30; i++) {
       const x = r.x + rng.range(0.6, r.w - 0.6), y = r.y + rng.range(0.6, r.h - 0.6);
@@ -212,8 +240,10 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
   };
   const spawns = [], packRooms = eligibleRooms.filter((r) => r !== shrineRoom && r !== eventRoom).length ? eligibleRooms.filter((r) => r !== shrineRoom && r !== eventRoom) : [guardianRoom];
   for (const r of packRooms) {
-    const [x, y] = roomSpot(r), arch = pickArch(), A = ARCH[arch];
-    spawns.push({ x, y, arch, n: rng.int(A.pack[0], A.pack[1]), rank: 'normal', look: looks.pick(arch) });
+    const [x, y] = roomSpot(r), selected = pickOrdinary(), arch = selected.arch, A = ARCH[arch];
+    const n = rng.int(A.pack[0], A.pack[1]);
+    spawns.push({ x, y, arch, n, rank: 'normal', look: looks.pick(arch) });
+    pickOrdinary.record(selected.role, n);
   }
   const nonGuard = rooms.filter((r) => r !== startRoom && r !== guardianRoom && r !== shrineRoom && r !== eventRoom);
   const champs = 1 + Math.floor(Math.min(depth, 120) / 18);
@@ -414,11 +444,8 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
   const rnd = () => rng.next();
   const looks = rollLooks(biome, rnd); // this level's bestiary: which art and palette swap each archetype gets
   const dens = density(depth) * (opts.density || 1); // opts.density: Abyssal Rifts thin the packs (data/rifts.js RIFT_DENSITY)
-  const pickArch = () => {
-    // earlier roster entries are a bit more common
-    const i = Math.floor(Math.pow(rng.next(), 1.35) * roster.length);
-    return roster[i];
-  };
+  const pickArch = () => roster[Math.floor(Math.pow(rng.next(), 1.35) * roster.length)];
+  const pickOrdinary = encounterPicker(roster, rng);
   const roomFloorSpot = (r) => {
     for (let i = 0; i < 30; i++) {
       const x = r.x + rng.range(0.6, r.w - 0.6), y = r.y + rng.range(0.6, r.h - 0.6);
@@ -432,11 +459,12 @@ export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
     let packs = Math.max(r === exitRoom && !raid ? 0 : 1, Math.round((area / 26) * dens * rng.range(0.7, 1.3)));
     if (r.type === 'small') packs = rng.chance(0.5) ? 1 : 0;
     for (let p = 0; p < packs; p++) {
-      const arch = pickArch();
+      const selected = pickOrdinary(), arch = selected.arch;
       const A = ARCH[arch];
       const [px, py] = roomFloorSpot(r);
       const n = rng.int(A.pack[0], A.pack[1]) + (depth > 30 && rng.chance(0.4) ? 1 : 0);
       spawns.push({ x: px, y: py, arch, n, rank: 'normal', look: looks.pick(arch) });
+      pickOrdinary.record(selected.role, n);
     }
   }
   // elites
