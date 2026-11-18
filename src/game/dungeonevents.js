@@ -215,7 +215,7 @@ function startRun(world, def, room) {
   const p = world.player, col = def.color;
   addEffect(new Column(cx,cy,col,1,38,360)); addEffect(new Ring(cx,cy,0.3,5,1.2,col,6,{fill:true}));
   sfx('gate',0.7); UI.centerMsg(def.name.toUpperCase(), 'A major dungeon event has begun', 2.8);
-  UI.log(`<b style="color:${col}">${def.name}</b> begins as you enter the event area.`, col);
+  UI.log(`<b style="color:${col}">${def.name}</b> begins as you enter the event area.`, col, { category: 'dungeon.randomEvent', important: true });
 
   switch(def.mode) {
     case 'goblin': {
@@ -299,7 +299,7 @@ function finish(world, run, success) {
   if(success&&run.reward)loot(world,run.x,run.y,run.reward);
   addEffect(new Column(run.x,run.y,success?'#ffd66b':'#765c70',0.75,30,320));
   UI.centerMsg(success?'EVENT COMPLETE':'EVENT ENDED',success?'The event area yields its reward':'The disturbance fades',2.2);
-  UI.log(success?`The ${run.def.name} event is complete.`:`The ${run.def.name} event has ended.`,success?'#ffd66b':'#a99aaa');
+  UI.log(success?`The ${run.def.name} event is complete.`:`The ${run.def.name} event has ended.`,success?'#ffd66b':'#a99aaa',{category:'dungeon.randomEvent',important:success});
   sfx(success?'levelup':'gate',0.55);
 }
 

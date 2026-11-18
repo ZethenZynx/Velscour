@@ -9,7 +9,7 @@ import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, spark
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
 import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange, isMovementSkill } from '../data/skills.js';
-import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, shownEquip } from '../data/items.js';
+import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, RARITY_LEGENDARY, shownEquip } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
 import { heroBonus } from './defiance.js';
@@ -299,6 +299,8 @@ export class Player extends Creature {
     if (G.world?.dungeonAffixes?.includes('cursed_fortune')) n *= 0.75;
     if (this.affixHealPenaltyT > 0) n *= 0.75;
     this.hp = Math.min(this.maxHp, this.hp + n);
+    const restored = Math.round(this.hp - before);
+    if (restored > 0) G.ui?.event?.({ category: 'combat.healing', text: `Restored ${restored} health.`, meta: { data: { amount: restored } } });
     if (!quiet && this.hp - before > 1) floatText(this.x, this.y, 50, '+' + Math.round(this.hp - before), '#60ff60', 13);
   }
 
@@ -317,7 +319,8 @@ export class Player extends Creature {
     const diff = c.level - depth;
     const pen = !flat && diff > 5 ? Math.max(0.1, 1 - (diff - 5) * 0.1) : 1;
     const gain = Math.round(n * pen * (1 + this.st.xpPct / 100));
-    if (c.level >= MAX_LEVEL) { gainMarkXp(gain); return; } // at the cap XP becomes Infernal Marks (game/marks.js)
+    if (gain > 0 && c.level < MAX_LEVEL) G.ui?.event?.({ category: 'experience.gained', text: `Gained ${gain} experience.`, meta: { data: { amount: gain } } });
+    if (c.level >= MAX_LEVEL) { if (gain > 0) G.ui?.event?.({ category: 'experience.milestone', text: `Added ${gain} progress toward an Infernal Mark.`, meta: { data: { amount: gain, target: 'Infernal Mark' } } }); gainMarkXp(gain); return; } // at the cap XP becomes Infernal Marks (game/marks.js)
     c.xp += gain;
     while (c.level < MAX_LEVEL && c.xp >= xpToNext(c.level)) {
       c.xp -= xpToNext(c.level);
@@ -331,6 +334,8 @@ export class Player extends Creature {
     c.statPoints += 5;
     c.skillPoints += 1;
     const earnedTalent = c.level % 5 === 0;
+    G.ui?.event?.({ category: 'experience.levelUp', text: `Reached level ${c.level}.`, color: '#ffe078', meta: { important: true, data: { level: c.level } } });
+    G.ui?.event?.({ category: 'experience.skillPoints', text: 'Gained 1 skill point.', meta: { data: { amount: 1 } } });
     if (earnedTalent) {
       c.talentPoints = (c.talentPoints || 0) + 1;
     }
@@ -390,6 +395,7 @@ export class Player extends Creature {
     switch (g.kind) {
       case 'gold':
         c.gold += g.amount; sfx('gold');
+        G.ui?.event?.({ category: 'loot.gold', text: `Picked up ${fmtInt(g.amount)} gold.`, color: '#ffd34a', meta: { data: { amount: g.amount } } });
         floatText(this.x, this.y, 46, `+${fmtInt(g.amount)} gold`, '#ffd34a', 12);
         return true;
       case 'orb_hp': {
@@ -422,12 +428,13 @@ export class Player extends Creature {
       case 'key': { // an Abyssal Key (docs/ENDGAME.md): three open Velscour Unbound
         c.keys = (c.keys | 0) + 1; endgame().keysFound++; saveEndgame();
         sfx('levelup', 0.5); floatText(this.x, this.y, 56, `ABYSSAL KEY ${Math.min(3, c.keys)}/3`, '#20e0ff', 15, { life: 2 });
-        if (G.ui) { G.ui.log(`An <b style="color:#20e0ff">Abyssal Key</b>: ${c.keys} held${c.keys >= 3 ? ' — three open <b>Velscour Unbound</b> at the Altar of Heresy' : ' (three open Velscour Unbound)'}.`, '#a0f0ff'); G.ui.refresh(); }
+        if (G.ui) { G.ui.log(`An <b style="color:#20e0ff">Abyssal Key</b>: ${c.keys} held${c.keys >= 3 ? ' — three open <b>Velscour Unbound</b> at the Altar of Heresy' : ' (three open Velscour Unbound)'}.`, '#a0f0ff', { category: 'loot.reward', important: true }); G.ui.refresh(); }
         return true;
       }
       case 'potion':
-        if ((c.potions[g.item.kind] || 0) >= 30) { if (g.t > 0.6 && !g.warned) { g.warned = true; floatText(this.x, this.y, 50, 'Potion belt full', '#ccc', 11); } return false; }
+        if ((c.potions[g.item.kind] || 0) >= 30) { if (g.t > 0.6 && !g.warned) { g.warned = true; floatText(this.x, this.y, 50, 'Potion belt full', '#ccc', 11); G.ui?.event?.({ category: 'loot.inventoryFull', text: 'Potion belt full.', color: '#ff7777', meta: { important: true } }); } return false; }
         c.potions[g.item.kind] = (c.potions[g.item.kind] || 0) + 1; sfx('pickup');
+        G.ui?.event?.({ category: 'loot.consumable', text: `Picked up ${g.item.name || g.item.kind}.` });
         G.ui && G.ui.refresh();
         return true;
       case 'item': {
@@ -438,11 +445,11 @@ export class Player extends Creature {
           this.recompute();
           if (G.game) G.game.autosave();
         } else if (!addToBag(c, g.item)) {
-          if (!g.warned) { g.warned = true; floatText(this.x, this.y, 50, g.item.type === 'gem' ? 'Gem Bag full' : 'Inventory full', '#ff8080', 12); sfx('error'); }
+          if (!g.warned) { g.warned = true; const reason = g.item.type === 'gem' ? 'Gem Bag full' : 'Inventory full'; floatText(this.x, this.y, 50, reason, '#ff8080', 12); G.ui?.event?.({ category: 'loot.inventoryFull', text: `${reason}.`, color: '#ff7777', meta: { important: true } }); sfx('error'); }
           return false;
         }
         sfx('pickup');
-        if (G.ui) { G.ui.log(`${slot ? 'Equipped' : 'Picked up'} <span style="color:${g.color}">${g.label}</span>`); G.ui.refresh(); }
+        if (G.ui) { G.ui.log(`${slot ? 'Equipped' : 'Picked up'} <span style="color:${g.color}">${g.label}</span>`, g.color, { category: g.item.type === 'gem' ? 'loot.gem' : 'loot.equipment', important: g.item.type === 'gear' && g.item.rarity >= RARITY_LEGENDARY, data: { rarity: g.item.rarity } }); G.ui.refresh(); }
         return true;
       }
     }
@@ -676,6 +683,7 @@ export class Player extends Creature {
     this.dead = true;
     this.hp = 0;
     this.channel = null;
+    G.ui?.event?.({ category: 'combat.playerDeath', text: 'You have fallen.', color: '#ff5a5a', meta: { important: true } });
     sfx('die');
     if (G.game) G.game.onPlayerDeath(src);
   }

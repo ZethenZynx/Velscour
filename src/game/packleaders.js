@@ -1,6 +1,7 @@
 // Encounter-level pack leaders. Groups are the existing generated spawn records;
 // scripted encounters and elite formations are deliberately not rewritten here.
 import { PACK_LEADER_CHANCE, PACK_LEADERS } from '../data/packleaders.js';
+import { G } from '../state.js';
 import { angleTo, chance, dist, rand } from '../core/util.js';
 import { addEffect, Ring, Sigil, sparkle, floatText, spawn } from '../gfx/vfx.js';
 
@@ -55,6 +56,7 @@ export function assignPackLeader(world, members, biome = world?.biome, depth = w
   leader.name = `${cfg.name} ${leader.name}`;
   leader.maxHp *= 1.16; leader.hp = Math.min(leader.maxHp, leader.hp * 1.16); leader.dmg *= 1.06;
   leader.packLeaderResurrections = 0; leader.packLeaderSummons = 0; leader.packLeaderCd = 1.4 + Math.random() * 1.8;
+  G.ui?.event?.({ category: 'debug.spawn', text: `${members.length}-enemy pack received a ${cfg.name} leader.`, meta: { data: { groupSize: members.length, leader: id, depth: depth || null } } });
   if (cfg.role === 'front') {
     leader.ai = 'melee'; leader.static = false; leader.range = 0; leader.packLeaderAttackRate = 1.08;
   }
@@ -209,7 +211,7 @@ export function updatePackLeader(leader, target, distance, dt) {
   leader.packLeaderCd = Math.max(0, (leader.packLeaderCd || 0) - dt);
   if (leader.packLeaderCd <= 0) {
     leader.packLeaderCd = 0.25;
-    if (useAbility(leader, target)) return true;
+    if (useAbility(leader, target)) { G.ui?.event?.({ category: 'combat.special', text: `${leader.packLeaderName || 'Pack leader'} uses a group ability.`, color: leader.packLeaderRuneColor, meta: { important: true, data: { leader: leader.packLeaderType } } }); G.ui?.event?.({ category: 'debug.ai', text: `${leader.packLeaderName || 'Pack leader'} used an ability.`, meta: { data: { leader: leader.packLeaderType } } }); return true; }
   }
   if (leader.packLeaderType === 'necromancer' && leader.packLeaderResurrections < 2 &&
       (leader.packLeaderAbilityCd?.raise || 0) <= timeOf(leader) && !corpses(leader).length) {

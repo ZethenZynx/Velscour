@@ -169,7 +169,8 @@ function applyBlessing(world,o) {
   }
   used(world,o); addBuff(p,o,`Shrine of ${title}`,o.color,stats,duration,extra);
   if(o.id==='fortitude')p.heal(p.maxHp*.12);
-  UI.log(`<b style="color:${o.color}">${esc(o.name)}</b> grants ${esc(title)} for ${duration} seconds.`,o.color);
+  UI.log(`<b style="color:${o.color}">${esc(o.name)}</b> grants ${esc(title)} for ${duration} seconds.`,o.color,{category:o.name?.startsWith('Altar')?'dungeon.altar':'dungeon.shrine',important:true});
+  UI.event({ category: 'debug.shrine', text: `${o.name}: applied ${title} for ${duration} seconds.` });
 }
 
 function useObject(world,o) {
@@ -218,7 +219,7 @@ function useObject(world,o) {
     case 'war_horn': return choose(world,o,o.name,'Choose how many enemy waves to summon. More waves bring a larger hoard.',[1,2,3].map(n=>({label:`${n} wave${n===1?'':'s'}`,cls:'red',run:()=>beginWaves(world,o,n,n)})));
     default: used(world,o);rewardChest(world,o,1);
   }
-  if(o.opened)UI.log(`<b style="color:${o.color}">${esc(o.name)}</b> is spent.`,o.color);
+  if(o.opened)UI.log(`<b style="color:${o.color}">${esc(o.name)}</b> is spent.`,o.color,{category:o.name?.startsWith('Altar')?'dungeon.altar':'dungeon.shrine'});
 }
 
 function useGamble(world,o,cost) {

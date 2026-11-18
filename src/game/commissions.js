@@ -91,7 +91,7 @@ export function setupCommissions(world, start) {
     const ch = chapterOf(e);
     if (!here(ch, world)) continue;
     const L = LINE_BY_ID[e.id];
-    G.ui.log(`<b style="color:#8fe0ff">Commission — ${escapeHtml(L.name)}:</b> ${escapeHtml(ch.text)}${ch.n > 1 && ch.kind !== 'relic' ? ` (${e.n}/${ch.n})` : ''}.`, '#c8e8ff');
+    G.ui.log(`<b style="color:#8fe0ff">Commission — ${escapeHtml(L.name)}:</b> ${escapeHtml(ch.text)}${ch.n > 1 && ch.kind !== 'relic' ? ` (${e.n}/${ch.n})` : ''}.`, '#c8e8ff', { category: 'quest.progress' });
     if (ch.kind === 'relic') placeObjects(world, start, e, ch);
   }
 }
@@ -163,7 +163,7 @@ function progress(e, k, what) {
   e.n += k;
   const need = ch.n || 1;
   if (e.n < need) {
-    G.ui.log(`<b style="color:#8fe0ff">${escapeHtml(L.name)}:</b> ${what ? escapeHtml(what) + ' — ' : ''}${e.n}/${need}.`, '#c8e8ff');
+    G.ui.log(`<b style="color:#8fe0ff">${escapeHtml(L.name)}:</b> ${what ? escapeHtml(what) + ' — ' : ''}${e.n}/${need}.`, '#c8e8ff', { category: 'quest.progress' });
     if (G.player) floatText(G.player.x, G.player.y, 80, `${e.n}/${need}`, '#8fe0ff', 14, { life: 1.4 });
     return;
   }
@@ -187,7 +187,7 @@ function progress(e, k, what) {
   for (const it of gifts) if (!addToBag(c, it) && G.world && G.player) G.world.addLoot(new GroundItem(G.player.x, G.player.y, 'item', { item: it }));
   sfx('levelup');
   G.ui.centerMsg(last ? 'COMMISSION COMPLETE' : 'CHAPTER COMPLETE', `${L.name}${last ? '' : ` · chapter ${e.ch} of ${L.chapters.length}`}`, 3);
-  G.ui.log(`<b style="color:#8fe0ff">${escapeHtml(L.name)}</b> — ${last ? 'the commission is complete' : `chapter ${e.ch} complete`}. ${escapeHtml(L.giver)} sends <span class="gold-text">${fmtInt(gold)} gold</span> and ${gifts.map((it) => `<span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span>`).join(', ')}.`, '#c8e8ff');
+  G.ui.log(`<b style="color:#8fe0ff">${escapeHtml(L.name)}</b> — ${last ? 'the commission is complete' : `chapter ${e.ch} complete`}. ${escapeHtml(L.giver)} sends <span class="gold-text">${fmtInt(gold)} gold</span> and ${gifts.map((it) => `<span style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</span>`).join(', ')}.`, '#c8e8ff', { category: 'quest.completion', important: last });
   if (!last) { const nx = chapterOf(e); if (nx) G.ui.log(`Next: ${nx.biome ? `when the portal opens on <b>${escapeHtml(BIOME_BY_ID[nx.biome] ? BIOME_BY_ID[nx.biome].name : nx.biome)}</b>, ` : ''}${escapeHtml(nx.text)}.`, '#c8e8ff'); }
   G.ui.refresh && G.ui.refresh();
 }

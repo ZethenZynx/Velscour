@@ -1,382 +1,94 @@
-// Desktop chat window for the PC edition. It presents the game's existing log;
-// multiplayer-only channels remain absent because this build has no chat server.
+// PC gameplay journal. All views consume one bounded, structured event history.
 import { UI } from './ui.js';
+import { sfx } from '../core/audio.js';
+import { RARITY } from '../data/items.js';
 
-const STORAGE_KEY = 'velscour.pc.chat-window.v1';
-const MAX_MESSAGES = 300;
-const MAX_RENDERED = MAX_MESSAGES;
-const FADE_DELAY = 5500;
+const KEY = 'velscour.pc.chat-window.v1';
+const CATEGORIES = {
+  'combat.damageDealt':['Damage dealt','combat','#e7d5c2'], 'combat.damageReceived':['Damage received','combat','#ff9a83'],
+  'combat.critical':['Critical hits','combat','#ffd76b'], 'combat.healing':['Healing','combat','#78dc8b'],
+  'combat.status':['Status effects','combat','#bb9bff'], 'combat.enemyDeath':['Enemy deaths','combat','#d5b89a'],
+  'combat.playerDeath':['Player deaths','combat','#ff5a5a'], 'combat.special':['Enemy abilities','combat','#f29c58'],
+  'loot.gold':['Gold','loot','#ffd34a'], 'loot.equipment':['Equipment','loot','#d0b6ff'], 'loot.gem':['Gems','loot','#78deed'],
+  'loot.consumable':['Consumables','loot','#82d58c'], 'loot.reward':['Special rewards','loot','#ffe397'], 'loot.inventoryFull':['Inventory full','loot','#ff7777'],
+  'experience.gained':['Experience gained','experience','#a7d8ff'], 'experience.levelUp':['Level-ups','experience','#ffe078'],
+  'experience.skillPoints':['Skill points','experience','#e5be70'], 'experience.milestone':['Milestones','experience','#bda7ee'],
+  'dungeon.entryExit':['Dungeon entry/exit','dungeon','#d9c5a2'], 'dungeon.depth':['Depth changes','dungeon','#c7b0ff'],
+  'dungeon.affix':['Dungeon affixes','dungeon','#d99bff'], 'dungeon.shrine':['Shrines','dungeon','#8fe7d3'],
+  'dungeon.altar':['Altars','dungeon','#e79eaa'], 'dungeon.randomEvent':['Random events','dungeon','#ffd166'],
+  'dungeon.boss':['Boss encounters','dungeon','#ff9e5d'], 'dungeon.packLeader':['Pack leaders','dungeon','#bb9cff'],
+  'dungeon.discovery':['Area discoveries','dungeon','#c1d59d'], 'quest.progress':['Quest progress','quest','#e5cd83'],
+  'quest.completion':['Quest completion','quest','#ffe078'], 'system.notification':['Notifications','system','#c4b69f'],
+  'debug.ai':['Enemy AI','debug','#8ccfff'], 'debug.spawn':['Pack leader spawns','debug','#9ed49e'], 'debug.affix':['Affixes','debug','#d19cff'],
+  'debug.shrine':['Shrines/altars','debug','#ffd166'],
+};
+RARITY.forEach((rarity,index)=>{CATEGORIES[`loot.tier.${index}`]=[`${rarity.name} equipment`,'loot',rarity.color];});
+const TAB_CATEGORIES = {
+  all:Object.keys(CATEGORIES).filter(x=>!x.startsWith('debug.')), combat:Object.keys(CATEGORIES).filter(x=>x.startsWith('combat.')),
+  loot:Object.keys(CATEGORIES).filter(x=>x.startsWith('loot.')), experience:Object.keys(CATEGORIES).filter(x=>x.startsWith('experience.')),
+  dungeon:Object.keys(CATEGORIES).filter(x=>x.startsWith('dungeon.')), quests:Object.keys(CATEGORIES).filter(x=>x.startsWith('quest.')),
+  system:Object.keys(CATEGORIES).filter(x=>x.startsWith('system.')), debug:Object.keys(CATEGORIES).filter(x=>x.startsWith('debug.')),
+};
+const BUILTINS = ['all','combat','loot','experience','dungeon','quests','system','debug'];
+const TITLES = {all:'All',combat:'Combat',loot:'Loot',experience:'Experience',dungeon:'Dungeon',quests:'Quests',system:'System',debug:'Debug'};
+const DEFAULT = {left:14,top:null,width:370,height:310,pinned:false,minimized:false,rememberLayout:true,lockMove:false,lockResize:false,autoFade:true,fadeDelay:5500,opacity:92,fontSize:'medium',spacing:'normal',timestamps:true,timeFormat:'24h',colors:true,important:true,sound:false,historyLimit:1000,grouping:false,groupWindow:2500,visible:Object.fromEntries(BUILTINS.map(x=>[x,x!=='debug'])),order:BUILTINS,defaultTab:'all',filters:{},preset:{},customTabs:[],debug:false};
+function readPrefs(){try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||'{}')};}catch{return {...DEFAULT};}}
+function textOf(value){const d=document.createElement('div');d.innerHTML=String(value??'');return(d.textContent||'').replace(/\s+/g,' ').trim();}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function loadPrefs() {
-  try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return value && typeof value === 'object' ? value : {};
-  } catch (_) { return {}; }
-}
-
-function plainText(html) {
-  const node = document.createElement('div');
-  node.innerHTML = String(html ?? '');
-  return (node.textContent || '').replace(/\s+/g, ' ').trim();
-}
-
-export const GameChat = {
-  root: null,
-  list: null,
-  messages: [],
-  prefs: loadPrefs(),
-  activeTab: 'all',
-  includeSystem: true,
-  unsubscribe: null,
-  fadeTimer: 0,
-  observer: null,
-  dragging: null,
-  resizing: null,
-  initialized: false,
-
-  init() {
-    if (this.initialized) return;
-    const app = document.getElementById('app');
-    if (!app) return;
-    this.initialized = true;
-    this.includeSystem = this.prefs.includeSystem !== false;
-    const root = document.createElement('section');
-    root.id = 'game-chat';
-    root.className = 'game-chat hidden';
-    root.setAttribute('aria-label', 'Game messages');
-    root.innerHTML = `
-      <header class="gc-header">
-        <span class="gc-title-mark" aria-hidden="true">✦</span>
-        <div class="gc-drag-handle"><span class="gc-title">Adventurer's Log</span><small>LOCAL GAME MESSAGES</small></div>
-        <button class="gc-pin" type="button" aria-label="Pin chat window" title="Pin window"><svg class="gc-pin-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 2h6l-.7 4 2.5 2.4v1.2H11l-.5 7.2-1 .8L9 9.6H5.2V8.4L7.7 6z"></path><path d="M9.5 17.6 8.8 19"></path></svg></button>
-        <button class="gc-minimize" type="button" aria-label="Minimize chat window" title="Minimize">−</button>
-      </header>
-      <nav class="gc-tabs" aria-label="Message channels">
-        <button class="gc-tab active" type="button" data-tab="all">All</button>
-        <button class="gc-tab" type="button" data-tab="system">System</button>
-      </nav>
-      <div class="gc-filter-row">
-        <label title="Show or hide game log notifications"><input class="gc-system-filter" type="checkbox"> System messages</label>
-        <span class="gc-offline-note">Player chat is unavailable offline</span>
-      </div>
-      <div class="gc-message-list" role="log" aria-live="polite" aria-relevant="additions"></div>
-      <button class="gc-unread hidden" type="button" aria-label="Jump to newest messages">New messages below <span>0</span> ↓</button>
-      <div class="gc-footer"><span>Messages from the existing game log</span><span class="gc-count">0</span></div>
-      <div id="gc-resize-handle" class="gc-resize-handle" role="separator" aria-label="Resize chat window" tabindex="0"><svg viewBox="0 0 16 16" aria-hidden="true"><line x1="5" y1="15" x2="15" y2="5"></line><line x1="10" y1="15" x2="15" y2="10"></line><line x1="14" y1="15" x2="15" y2="14"></line></svg></div>`;
-    const launcher = document.createElement('button');
-    launcher.id = 'game-chat-launcher';
-    launcher.className = 'game-chat-launcher hidden';
-    launcher.type = 'button';
-    launcher.textContent = 'Messages';
-    launcher.title = 'Open the adventurer’s log';
-    launcher.setAttribute('aria-label', 'Open game messages');
-    app.append(root, launcher);
-    this.root = root;
-    this.list = root.querySelector('.gc-message-list');
-    this.applyPrefs();
-    this.bindEvents(launcher);
-    this.unsubscribe = UI.onLog((html, color) => this.addSystemMessage(html, color));
-    const hud = document.getElementById('hud');
-    if (hud && typeof MutationObserver !== 'undefined') {
-      this.observer = new MutationObserver(() => this.syncGameVisibility());
-      this.observer.observe(hud, { attributes: true, attributeFilter: ['class'] });
-    }
-    window.addEventListener('resize', () => this.clampToViewport());
-    this.syncGameVisibility();
-  },
-
-  bindEvents(launcher) {
-    const root = this.root;
-    root.addEventListener('pointerdown', () => {
-      this.wake();
-    });
-    root.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
-    root.addEventListener('pointerenter', () => this.wake());
-    root.addEventListener('pointerleave', () => this.scheduleFade());
-    root.addEventListener('focusin', () => this.wake());
-    root.addEventListener('focusout', () => this.scheduleFade());
-    root.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        root.blur?.();
-        this.minimize();
-      }
-      // There is intentionally no send field in the offline PC build.
-      event.stopPropagation();
-    });
-    root.querySelectorAll('.gc-tab').forEach((button) => button.addEventListener('click', () => {
-      this.activeTab = button.dataset.tab;
-      root.querySelectorAll('.gc-tab').forEach((tab) => tab.classList.toggle('active', tab === button));
-      this.render();
-    }));
-    root.querySelector('.gc-system-filter').addEventListener('change', (event) => {
-      this.includeSystem = event.target.checked;
-      this.savePrefs();
-      this.render();
-    });
-    root.querySelector('.gc-pin').addEventListener('click', () => {
-      this.prefs.pinned = !this.prefs.pinned;
-      this.updatePin();
-      this.savePrefs();
-      if (this.prefs.pinned) root.classList.remove('gc-dimmed'); else this.scheduleFade();
-    });
-    root.querySelector('.gc-minimize').addEventListener('click', () => this.minimize());
-    launcher.addEventListener('click', () => this.restore());
-    root.querySelector('.gc-unread').addEventListener('click', () => this.scrollToBottom());
-    this.list.tabIndex = -1;
-    this.list.addEventListener('scroll', () => {
-      if (this.isAtBottom()) this.clearUnread();
-    }, { passive: true });
-    this.bindDrag();
-    this.bindResize();
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.repeat && !event.target?.closest?.('input, textarea, select, button, [contenteditable="true"]') && !UI.modal && document.getElementById('hud') && !document.getElementById('hud').classList.contains('hidden')) {
-        this.restore();
-        this.list?.focus({ preventScroll: true });
-      }
-      if (event.key === 'Escape' && !root.classList.contains('hidden') && !root.classList.contains('gc-faded') && !root.contains(event.target)) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.minimize();
-      }
-    });
-  },
-
-  bindDrag() {
-    const handle = this.root.querySelector('.gc-drag-handle');
-    handle.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      const rect = this.root.getBoundingClientRect();
-      this.dragging = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
-      handle.setPointerCapture?.(event.pointerId);
-      const move = (ev) => {
-        if (!this.dragging) return;
-        this.setPosition(this.dragging.left + ev.clientX - this.dragging.x, this.dragging.top + ev.clientY - this.dragging.y, false);
-      };
-      const end = () => {
-        if (!this.dragging) return;
-        this.dragging = null;
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', end);
-        handle.removeEventListener('pointercancel', end);
-        this.savePrefs();
-      };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', end);
-      handle.addEventListener('pointercancel', end);
-    });
-  },
-
-  bindResize() {
-    const handle = this.root.querySelector('.gc-resize-handle');
-    handle.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      const rect = this.root.getBoundingClientRect();
-      this.resizing = { x: event.clientX, y: event.clientY, width: rect.width, height: rect.height };
-      handle.setPointerCapture?.(event.pointerId);
-      const move = (ev) => {
-        if (!this.resizing) return;
-        const maxW = Math.max(300, window.innerWidth - this.root.offsetLeft);
-        const maxH = Math.max(180, window.innerHeight - this.root.offsetTop);
-        const width = Math.max(300, Math.min(maxW, this.resizing.width + ev.clientX - this.resizing.x));
-        const height = Math.max(180, Math.min(maxH, this.resizing.height + ev.clientY - this.resizing.y));
-        this.root.style.width = `${width}px`;
-        this.root.style.height = `${height}px`;
-      };
-      const end = () => {
-        if (!this.resizing) return;
-        this.resizing = null;
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', end);
-        handle.removeEventListener('pointercancel', end);
-        this.clampToViewport();
-        this.savePrefs();
-      };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', end);
-      handle.addEventListener('pointercancel', end);
-    });
-    handle.addEventListener('keydown', (event) => {
-      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-      event.preventDefault();
-      const grow = event.shiftKey ? 20 : 5;
-      const width = this.root.offsetWidth + (event.key === 'ArrowRight' ? grow : event.key === 'ArrowLeft' ? -grow : 0);
-      const height = this.root.offsetHeight + (event.key === 'ArrowDown' ? grow : event.key === 'ArrowUp' ? -grow : 0);
-      this.root.style.width = `${Math.max(300, Math.min(window.innerWidth - this.root.offsetLeft, width))}px`;
-      this.root.style.height = `${Math.max(180, Math.min(window.innerHeight - this.root.offsetTop, height))}px`;
-      this.savePrefs();
-    });
-  },
-
-  syncGameVisibility() {
-    const inGame = document.body && document.getElementById('hud') && !document.getElementById('hud').classList.contains('hidden');
-    if (inGame) {
-      if (this.prefs.minimized) this.minimize(); else this.restore(false);
-    } else {
-      this.root?.classList.add('hidden');
-      document.getElementById('game-chat-launcher')?.classList.add('hidden');
-      document.body?.classList.remove('game-chat-expanded');
-    }
-  },
-
-  addSystemMessage(html, color = '') {
-    const text = plainText(html);
-    if (!text) return;
-    const wasAtBottom = this.isAtBottom();
-    this.messages.push({ text, color: /^#[\da-f]{3,8}$/i.test(String(color)) ? color : '', time: Date.now() });
-    if (this.messages.length > MAX_MESSAGES) this.messages.splice(0, this.messages.length - MAX_MESSAGES);
-    if (this.root && !this.root.classList.contains('hidden')) {
-      if (this.includeSystem) {
-        this.list.appendChild(this.createMessageRow(this.messages[this.messages.length - 1]));
-        while (this.list.children.length > MAX_RENDERED) this.list.firstElementChild.remove();
-        this.root.querySelector('.gc-count').textContent = `${this.messages.length} ${this.messages.length === 1 ? 'message' : 'messages'}`;
-        if (wasAtBottom) this.scrollToBottom(); else this.incrementUnread();
-      }
-    }
-  },
-
-  createMessageRow(item) {
-    const row = document.createElement('div');
-    row.className = 'gc-message';
-    if (item.color) row.style.color = item.color;
-    const time = document.createElement('time');
-    time.dateTime = new Date(item.time).toISOString();
-    time.textContent = new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const text = document.createElement('span');
-    text.textContent = item.text;
-    row.append(time, text);
-    return row;
-  },
-
-  render() {
-    if (!this.list) return;
-    const filtered = this.messages.filter((message) => (this.activeTab === 'all' || this.activeTab === 'system') && this.includeSystem);
-    const visible = filtered.slice(-MAX_RENDERED);
-    const wasAtBottom = this.isAtBottom();
-    this.list.replaceChildren();
-    if (!visible.length) {
-      const empty = document.createElement('div');
-      empty.className = 'gc-empty';
-      empty.textContent = this.includeSystem ? 'No messages yet. The game log will appear here.' : 'System messages are hidden by your filter.';
-      this.list.appendChild(empty);
-    } else {
-      const fragment = document.createDocumentFragment();
-      for (const item of visible) fragment.appendChild(this.createMessageRow(item));
-      this.list.appendChild(fragment);
-    }
-    this.root.querySelector('.gc-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'message' : 'messages'}`;
-    this.root.querySelector('.gc-system-filter').checked = this.includeSystem;
-    if (wasAtBottom) this.scrollToBottom();
-  },
-
-  isAtBottom() {
-    if (!this.list) return true;
-    return this.list.scrollHeight - this.list.scrollTop - this.list.clientHeight < 28;
-  },
-  scrollToBottom() {
-    if (this.list) this.list.scrollTop = this.list.scrollHeight;
-    this.clearUnread();
-  },
-  incrementUnread() {
-    const badge = this.root?.querySelector('.gc-unread');
-    if (!badge) return;
-    const count = Number(badge.dataset.count || 0) + 1;
-    badge.dataset.count = String(count);
-    badge.querySelector('span').textContent = String(count);
-    badge.classList.remove('hidden');
-  },
-  clearUnread() {
-    const badge = this.root?.querySelector('.gc-unread');
-    if (!badge) return;
-    badge.dataset.count = '0';
-    badge.querySelector('span').textContent = '0';
-    badge.classList.add('hidden');
-  },
-
-  restore(wake = true) {
-    if (!this.root) return;
-    this.root.classList.remove('hidden');
-    this.root.classList.remove('gc-dimmed', 'gc-fading', 'gc-faded');
-    document.getElementById('game-chat-launcher')?.classList.add('hidden');
-    document.body.classList.add('game-chat-expanded');
-    this.prefs.minimized = false;
-    this.render();
-    if (wake) this.wake(); else this.scheduleFade();
-    this.savePrefs();
-  },
-  minimize() {
-    if (!this.root) return;
-    this.root.classList.add('hidden');
-    document.getElementById('game-chat-launcher')?.classList.remove('hidden');
-    document.body.classList.remove('game-chat-expanded');
-    this.prefs.minimized = true;
-    this.savePrefs();
-  },
-  wake() {
-    clearTimeout(this.fadeTimer);
-    if (!this.root) return;
-    this.root.classList.remove('gc-dimmed', 'gc-fading', 'gc-faded');
-    if (!this.root.classList.contains('hidden')) document.body.classList.add('game-chat-expanded');
-    this.scheduleFade();
-  },
-  scheduleFade() {
-    clearTimeout(this.fadeTimer);
-    if (this.prefs.pinned || !this.root || this.root.matches(':hover') || this.root.contains(document.activeElement)) return;
-    this.fadeTimer = setTimeout(() => {
-      if (!this.root || this.prefs.pinned || this.root.matches(':hover') || this.root.contains(document.activeElement)) return;
-      this.root.classList.add('gc-fading');
-      this.fadeTimer = setTimeout(() => {
-        if (!this.root || this.prefs.pinned || this.root.matches(':hover') || this.root.contains(document.activeElement)) return;
-        this.root.classList.remove('gc-fading');
-        this.root.classList.add('gc-faded');
-        document.body.classList.remove('game-chat-expanded');
-      }, 420);
-    }, FADE_DELAY);
-  },
-  updatePin() {
-    const button = this.root?.querySelector('.gc-pin');
-    if (!button) return;
-    button.classList.toggle('active', !!this.prefs.pinned);
-    button.setAttribute('aria-label', this.prefs.pinned ? 'Unpin chat window' : 'Pin chat window');
-    button.title = this.prefs.pinned ? 'Unpin window' : 'Pin window';
-  },
-  setPosition(left, top, save = true) {
-    if (!this.root) return;
-    const maxLeft = Math.max(0, window.innerWidth - this.root.offsetWidth);
-    const maxTop = Math.max(0, window.innerHeight - this.root.offsetHeight);
-    this.root.style.left = `${Math.max(0, Math.min(maxLeft, left))}px`;
-    this.root.style.top = `${Math.max(0, Math.min(maxTop, top))}px`;
-    this.root.style.bottom = 'auto';
-    this.root.style.right = 'auto';
-    if (save) this.savePrefs();
-  },
-  clampToViewport() {
-    if (!this.root || this.root.classList.contains('hidden')) return;
-    const rect = this.root.getBoundingClientRect();
-    this.setPosition(rect.left, rect.top, false);
-    const maxW = Math.max(300, window.innerWidth - rect.left);
-    const maxH = Math.max(180, window.innerHeight - rect.top);
-    this.root.style.width = `${Math.max(300, Math.min(maxW, rect.width))}px`;
-    this.root.style.height = `${Math.max(180, Math.min(maxH, rect.height))}px`;
-    this.savePrefs();
-  },
-  applyPrefs() {
-    const width = Math.max(300, Math.min(window.innerWidth, Number(this.prefs.width) || 370));
-    const height = Math.max(180, Math.min(window.innerHeight, Number(this.prefs.height) || 310));
-    this.root.style.width = `${width}px`;
-    this.root.style.height = `${height}px`;
-    const left = Number.isFinite(Number(this.prefs.left)) ? Number(this.prefs.left) : 14;
-    const top = Number.isFinite(Number(this.prefs.top)) ? Number(this.prefs.top) : Math.max(20, window.innerHeight - height - 150);
-    this.setPosition(left, top, false);
-    this.updatePin();
-  },
-  savePrefs() {
-    if (!this.root) return;
-    const rect = this.root.getBoundingClientRect();
-    Object.assign(this.prefs, { left: rect.left, top: rect.top, width: rect.width, height: rect.height, includeSystem: this.includeSystem });
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.prefs)); } catch (_) { /* private browsing may deny storage */ }
-  },
+export const GameChat={root:null,list:null,messages:[],prefs:readPrefs(),activeTab:'all',unread:0,unsubscribe:null,fadeTimer:0,dragging:null,resizing:null,initialized:false,stats:{dealt:0,received:0,healing:0,kills:0,crits:0,byType:{}},
+ init(){if(this.initialized)return;const app=document.getElementById('app');if(!app)return;this.initialized=true;document.body.classList.add('game-chat-enabled');this.activeTab=this.prefs.defaultTab||'all';
+ const root=document.createElement('section');root.id='game-chat';root.className='game-chat hidden';root.setAttribute('aria-label','Adventurer log');root.innerHTML=`
+ <header class="gc-header"><span class="gc-title-mark">✦</span><div class="gc-drag-handle"><span class="gc-title">Adventurer's Log</span><small>GAME JOURNAL</small></div><button class="gc-settings" title="Chat settings" aria-label="Chat settings">⚙</button><button class="gc-pin" title="Pin window" aria-label="Pin chat">⌖</button><button class="gc-minimize" title="Minimize chat" aria-label="Minimize chat">−</button></header>
+ <nav class="gc-tabs" aria-label="Message categories"></nav><div class="gc-toolbar"><select class="gc-preset" aria-label="Filter preset"><option>All Messages</option><option>Combat</option><option>Loot</option><option>Exploration</option><option>Important Only</option><option>Custom</option></select><button class="gc-filter-toggle" title="Show category filters">☷</button><input class="gc-search" type="search" placeholder="Search history" aria-label="Search message history"><button class="gc-bottom" title="Scroll to newest">↓</button></div>
+ <div class="gc-filters"></div><details class="gc-stats"><summary>Combat summary</summary><span class="gc-stat-values"></span><button class="gc-reset-stats">Reset statistics</button></details>
+ <div class="gc-message-list" role="log" aria-live="polite" aria-relevant="additions"></div><button class="gc-unread hidden" type="button">New messages below · <span>0</span></button>
+ <div class="gc-footer"><span class="gc-footnote">Party, Whisper, and Lobby chat are unavailable offline</span><span class="gc-count">0 messages</span><button class="gc-clear">Clear view</button><button class="gc-export">Export</button></div>
+ <div class="gc-settings-panel hidden" role="dialog" aria-label="Chat settings"></div><div id="gc-resize-handle" class="gc-resize-handle" role="separator" aria-label="Resize chat window" tabindex="0">◢</div>`;
+ const launcher=document.createElement('button');launcher.id='game-chat-launcher';launcher.className='game-chat-launcher hidden';launcher.textContent='Messages';launcher.setAttribute('aria-label','Open game messages');app.append(root,launcher);this.root=root;this.list=root.querySelector('.gc-message-list');this.applyPrefs();this.bindEvents(launcher);this.paintTabs();this.renderFilters();this.renderStats();this.unsubscribe=UI.onLog((html,color,meta)=>this.addMessage(html,color,meta));
+ const hud=document.getElementById('hud');if(hud)new MutationObserver(()=>this.syncVisibility()).observe(hud,{attributes:true,attributeFilter:['class']});window.addEventListener('resize',()=>this.clamp());this.syncVisibility();},
+ bindEvents(launcher){const r=this.root;r.addEventListener('pointerdown',()=>this.wake());r.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});r.addEventListener('pointerenter',()=>this.wake());r.addEventListener('pointerleave',()=>this.fade());r.addEventListener('focusin',()=>this.wake());r.addEventListener('focusout',()=>this.fade());document.addEventListener('pointermove',()=>{if(!r.matches(':hover')&&!r.contains(document.activeElement)&&!this.fadeTimer)this.fade();},{passive:true});r.addEventListener('keydown',e=>{if(e.key==='Escape'){if(e.target.matches('input,textarea,select'))e.target.blur();return;}e.stopPropagation();});
+ r.querySelector('.gc-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;this.activeTab=b.dataset.tab;this.renderFilters();this.render();this.save();});
+ r.querySelector('.gc-settings').onclick=()=>this.toggleSettings();r.querySelector('.gc-pin').onclick=()=>{this.prefs.pinned=!this.prefs.pinned;this.updatePin();this.save();if(this.prefs.pinned)clearTimeout(this.fadeTimer);else this.fade();};r.querySelector('.gc-minimize').onclick=()=>this.minimize();launcher.onclick=()=>this.restore();r.querySelector('.gc-unread').onclick=()=>this.scrollBottom();r.querySelector('.gc-bottom').onclick=()=>this.scrollBottom();r.querySelector('.gc-filter-toggle').onclick=()=>{this.prefs.filtersOpen=!this.prefs.filtersOpen;this.renderFilters();this.save();};
+ this.list.addEventListener('scroll',()=>{if(this.atBottom()){this.unread=0;this.updateUnread();}},{passive:true});r.querySelector('.gc-search').addEventListener('input',()=>this.render());r.querySelector('.gc-preset').addEventListener('change',e=>this.setPreset(e.target.value));r.querySelector('.gc-clear').onclick=()=>{const ids=new Set(this.visibleMessages().map(m=>m.id));this.messages=this.messages.filter(m=>!ids.has(m.id));this.render();};r.querySelector('.gc-export').onclick=()=>this.export();r.querySelector('.gc-reset-stats').onclick=()=>{this.stats={dealt:0,received:0,healing:0,kills:0,crits:0,byType:{}};this.renderStats();};this.bindDrag();this.bindResize();
+ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat&&!e.target.closest('input,textarea,select,button,[contenteditable=true]')&&!UI.modal&&document.getElementById('hud')&&!document.getElementById('hud').classList.contains('hidden')){this.restore();this.list.focus({preventScroll:true});}});},
+ bindDrag(){const h=this.root.querySelector('.gc-drag-handle');h.addEventListener('pointerdown',e=>{if(this.prefs.lockMove||e.button!==0)return;e.preventDefault();const r=this.root.getBoundingClientRect();this.dragging={x:e.clientX,y:e.clientY,left:r.left,top:r.top};h.setPointerCapture?.(e.pointerId);const move=v=>{if(this.dragging)this.setPosition(this.dragging.left+v.clientX-this.dragging.x,this.dragging.top+v.clientY-this.dragging.y,false);};const end=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',end);this.dragging=null;this.save();};h.addEventListener('pointermove',move);h.addEventListener('pointerup',end);});},
+ bindResize(){const h=this.root.querySelector('.gc-resize-handle');h.addEventListener('pointerdown',e=>{if(this.prefs.lockResize||e.button!==0)return;e.preventDefault();const r=this.root.getBoundingClientRect();this.resizing={x:e.clientX,y:e.clientY,w:r.width,h:r.height};h.setPointerCapture?.(e.pointerId);const move=v=>{if(!this.resizing)return;this.root.style.width=`${Math.max(300,Math.min(innerWidth-this.root.offsetLeft,this.resizing.w+v.clientX-this.resizing.x))}px`;this.root.style.height=`${Math.max(220,Math.min(innerHeight-this.root.offsetTop,this.resizing.h+v.clientY-this.resizing.y))}px`;};const end=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',end);this.resizing=null;this.clamp();};h.addEventListener('pointermove',move);h.addEventListener('pointerup',end);});h.addEventListener('keydown',e=>{if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const n=e.shiftKey?20:5;this.root.style.width=`${Math.max(300,this.root.offsetWidth+(e.key==='ArrowRight'?n:e.key==='ArrowLeft'?-n:0))}px`;this.root.style.height=`${Math.max(220,this.root.offsetHeight+(e.key==='ArrowDown'?n:e.key==='ArrowUp'?-n:0))}px`;this.clamp();});},
+ syncVisibility(){const hud=document.getElementById('hud'),inGame=hud&&!hud.classList.contains('hidden');if(!this.root)return;if(inGame){this.prefs.minimized?this.minimize():this.restore(false);}else{this.root.classList.add('hidden');document.getElementById('game-chat-launcher')?.classList.add('hidden');}},
+ addMessage(raw,color='',meta=null){const msg=textOf(raw);if(!msg)return;const category=meta?.category&&CATEGORIES[meta.category]?meta.category:'system.notification';if(category.startsWith('debug.')&&!this.prefs.debug)return;const categories=[category,...(Array.isArray(meta?.categories)?meta.categories.filter(c=>CATEGORIES[c]):[])];if(categories.some(c=>c.startsWith('debug.'))&&!this.prefs.debug)return;const now=Date.now(),data=meta?.data||{},m={id:now+Math.random(),text:msg,color:this.prefs.colors&&/^#[\da-f]{3,8}$/i.test(String(color))?color:'',time:now,category,categories:[...new Set(categories)],important:!!meta?.important,data};
+  if(category==='combat.damageDealt'||category==='combat.critical'){this.stats.dealt+=Number(data.amount)||0;this.stats.byType[data.type||'unknown']=(this.stats.byType[data.type||'unknown']||0)+(Number(data.amount)||0);if(category==='combat.critical'||data.critical)this.stats.crits++;}if(category==='combat.damageReceived')this.stats.received+=Number(data.amount)||0;if(category==='combat.healing')this.stats.healing+=Number(data.amount)||0;if(category==='combat.enemyDeath')this.stats.kills++;
+  const previous=this.messages.at(-1),canGroup=this.prefs.grouping&&!m.important&&category!=='combat.damageDealt'&&category!=='combat.damageReceived'&&category!=='combat.critical'&&previous&&previous.category===category&&previous.text===msg&&now-previous.time<=this.prefs.groupWindow,wasBottom=this.atBottom();let grouped=false;if(canGroup){previous.count=(previous.count||1)+1;previous.time=now;grouped=true;}else this.messages.push(m);const current=grouped?previous:m;const limit=Math.max(100,Math.min(5000,Number(this.prefs.historyLimit)||1000));if(this.messages.length>limit)this.messages.splice(0,this.messages.length-limit);
+  if(this.prefs.sound&&m.important)try{sfx('ui',.25);}catch{}if(this.root&&!this.root.classList.contains('hidden')){const search=this.root.querySelector('.gc-search').value.trim();if(search)this.render(false);else if(this.matchesMessage(current)){if(grouped&&this.list.lastElementChild?.dataset?.messageId===String(previous.id))this.list.lastElementChild.querySelector('span').textContent=`${previous.text} ×${previous.count}`;else this.list.appendChild(this.createMessageRow(current));while(this.list.children.length>1200)this.list.firstElementChild.remove();this.root.querySelector('.gc-count').textContent=`${this.messages.length} messages`;if(wasBottom)this.scrollBottom();else{this.unread++;this.updateUnread();}}}this.renderStats();},
+ matchesMessage(m){const cats=this.categoriesForTab(),filters=this.prefs.filters[this.activeTab]||{},preset=this.prefs.preset[this.activeTab]||'Custom',tags=m.categories||[m.category],matched=cats.filter(c=>tags.includes(c));if(!matched.length)return false;if(preset==='Custom'&&matched.every(c=>filters[c]===false))return false;if(preset==='Custom'&&tags.includes('loot.equipment')&&Number.isInteger(m.data?.rarity)&&filters[`loot.tier.${m.data.rarity}`]===false)return false;if(preset==='Important Only'&&!m.important&&!tags.some(c=>['combat.enemyDeath','experience.levelUp','quest.completion','dungeon.boss','loot.reward'].includes(c)))return false;if(preset==='Combat'&&!tags.some(c=>c.startsWith('combat.')))return false;if(preset==='Loot'&&!tags.some(c=>c.startsWith('loot.')))return false;if(preset==='Exploration'&&!tags.some(c=>c.startsWith('dungeon.')))return false;return true;},
+ allowedTabs(){return this.prefs.order.filter(id=>(BUILTINS.includes(id)?this.prefs.visible[id]!==false:true)&&(!id.startsWith('custom:')||this.prefs.customTabs.some(t=>`custom:${t.id}`===id))).filter(id=>id!=='debug'||this.prefs.debug);},
+ paintTabs(){const nav=this.root.querySelector('.gc-tabs');nav.replaceChildren();for(const id of this.allowedTabs()){const b=document.createElement('button');b.className='gc-tab'+(id===this.activeTab?' active':'');b.dataset.tab=id;b.textContent=BUILTINS.includes(id)?TITLES[id]:this.prefs.customTabs.find(t=>`custom:${t.id}`===id)?.name||'Custom';nav.appendChild(b);}if(!this.allowedTabs().includes(this.activeTab))this.activeTab=this.prefs.defaultTab||'all';},
+ categoriesForTab(id=this.activeTab){if(id.startsWith('custom:'))return this.prefs.customTabs.find(t=>`custom:${t.id}`===id)?.categories||[];return TAB_CATEGORIES[id]||[];},
+ visibleMessages(){const q=this.root.querySelector('.gc-search')?.value.trim().toLowerCase()||'';return this.messages.filter(m=>this.matchesMessage(m)&&(!q||m.text.toLowerCase().includes(q)));},
+ renderFilters(){const box=this.root.querySelector('.gc-filters');box.replaceChildren();const cats=this.categoriesForTab();for(const cat of cats){const label=document.createElement('label');label.innerHTML=`<input type="checkbox" data-category="${cat}"> ${esc(CATEGORIES[cat][0])}`;const cb=label.querySelector('input');cb.checked=this.prefs.filters[this.activeTab]?.[cat]!==false;cb.onchange=()=>{this.prefs.filters[this.activeTab]||={};this.prefs.filters[this.activeTab][cat]=cb.checked;this.prefs.preset[this.activeTab]='Custom';this.save();this.render();};box.append(label);}box.classList.toggle('expanded',this.prefs.filtersOpen===true);},
+ setPreset(name){this.prefs.preset[this.activeTab]=name;this.renderFilters();this.save();this.render();},
+ createMessageRow(m){const row=document.createElement('div');row.className='gc-message';row.dataset.messageId=String(m.id);row.dataset.group=CATEGORIES[m.category]?.[1]||'system';if(m.important&&this.prefs.important)row.classList.add('gc-important');if(m.color)row.style.color=m.color;else if(this.prefs.colors)row.style.setProperty('--gc-category-color',CATEGORIES[m.category]?.[2]||'');if(this.prefs.timestamps){const t=document.createElement('time');t.dateTime=new Date(m.time).toISOString();t.textContent=new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:this.prefs.timeFormat==='12h'});row.append(t);}const s=document.createElement('span');s.textContent=m.text+(m.count>1?` ×${m.count}`:'');row.append(s);return row;},
+ render(scroll=true){if(!this.list)return;const wasBottom=this.atBottom(),items=this.visibleMessages().slice(-1200),frag=document.createDocumentFragment();if(!items.length){const e=document.createElement('div');e.className='gc-empty';e.textContent='No messages match this view.';frag.append(e);}else for(const m of items)frag.append(this.createMessageRow(m));this.list.replaceChildren(frag);this.root.querySelector('.gc-count').textContent=`${this.messages.length} messages`;this.root.querySelector('.gc-preset').value=this.prefs.preset[this.activeTab]||'Custom';if(scroll&&wasBottom)this.scrollBottom();},
+ atBottom(){return !this.list||this.list.scrollHeight-this.list.scrollTop-this.list.clientHeight<28;},scrollBottom(){if(this.list)this.list.scrollTop=this.list.scrollHeight;this.unread=0;this.updateUnread();},updateUnread(){const b=this.root.querySelector('.gc-unread');b.querySelector('span').textContent=this.unread;b.classList.toggle('hidden',!this.unread);},
+ restore(wake=true){if(!this.root)return;this.root.classList.remove('hidden','gc-dimmed','gc-fading','gc-faded');document.getElementById('game-chat-launcher')?.classList.add('hidden');this.prefs.minimized=false;this.render();if(wake)this.wake();else this.fade();this.save();},minimize(){this.root?.classList.add('hidden');document.getElementById('game-chat-launcher')?.classList.remove('hidden');this.prefs.minimized=true;this.save();},wake(){clearTimeout(this.fadeTimer);this.root?.classList.remove('gc-dimmed','gc-fading','gc-faded');this.fade();},fade(){clearTimeout(this.fadeTimer);if(!this.prefs.autoFade||this.prefs.pinned||!this.root)return;this.fadeTimer=setTimeout(()=>{if(!this.root||this.prefs.pinned||this.root.matches(':hover')||this.root.contains(document.activeElement)){this.fadeTimer=0;return;}this.root.classList.add('gc-fading');this.fadeTimer=setTimeout(()=>{if(!this.root||this.prefs.pinned||this.root.matches(':hover')||this.root.contains(document.activeElement)){this.fadeTimer=0;return;}this.root.classList.remove('gc-fading');this.root.classList.add('gc-faded');this.fadeTimer=0;},420);},Math.max(1000,Number(this.prefs.fadeDelay)||5500));},
+ updatePin(){const b=this.root?.querySelector('.gc-pin');b?.classList.toggle('active',!!this.prefs.pinned);b?.setAttribute('aria-label',this.prefs.pinned?'Unpin chat':'Pin chat');},
+ setPosition(x,y,save=true){const w=this.root.offsetWidth,h=this.root.offsetHeight;this.root.style.left=`${Math.max(0,Math.min(innerWidth-w,x))}px`;this.root.style.top=`${Math.max(0,Math.min(innerHeight-h,y))}px`;this.root.style.bottom=this.root.style.right='auto';if(save)this.save();},clamp(){if(!this.root)return;const r=this.root.getBoundingClientRect();this.setPosition(r.left,r.top,false);this.save();},
+ applyPrefs(){const p=this.prefs,w=Math.max(300,Math.min(innerWidth,p.rememberLayout?Number(p.width)||DEFAULT.width:DEFAULT.width)),h=Math.max(220,Math.min(innerHeight,p.rememberLayout?Number(p.height)||DEFAULT.height:DEFAULT.height));this.root.style.width=`${w}px`;this.root.style.height=`${h}px`;this.root.style.setProperty('--gc-opacity',Math.max(20,Math.min(100,Number(p.opacity)||92))/100);this.root.dataset.font=p.fontSize||'medium';this.root.dataset.spacing=p.spacing||'normal';this.root.dataset.colors=String(!!p.colors);const top=p.rememberLayout&&p.top!=null?Number(p.top):Math.max(12,innerHeight-h-150),left=p.rememberLayout?Number(p.left)||14:14;this.setPosition(left,top,false);this.updatePin();this.render();},
+ save(){if(!this.root)return;if(this.prefs.rememberLayout){const r=this.root.getBoundingClientRect();this.prefs.left=r.left;this.prefs.top=r.top;this.prefs.width=r.width;this.prefs.height=r.height;}try{localStorage.setItem(KEY,JSON.stringify(this.prefs));}catch{}},
+ renderStats(){if(!this.root)return;this.root.querySelector('.gc-stat-values').textContent=`Damage dealt ${Math.round(this.stats.dealt)} · received ${Math.round(this.stats.received)} · healing ${Math.round(this.stats.healing)} · kills ${this.stats.kills} · critical hits ${this.stats.crits}${Object.keys(this.stats.byType).length?` · by type ${Object.entries(this.stats.byType).map(([k,v])=>`${k} ${Math.round(v)}`).join(', ')}`:''}`;},
+ export(){const body=this.messages.map(m=>`${new Date(m.time).toISOString()} [${m.category}] ${m.text}${m.count>1?` ×${m.count}`:''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([body],{type:'text/plain'}));a.download='velscour-game-log.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},
+ toggleSettings(){const panel=this.root.querySelector('.gc-settings-panel');if(!panel.classList.contains('hidden')){panel.classList.add('hidden');return;}panel.innerHTML=`<div class="gc-settings-head"><b>Journal Settings</b><button data-close>×</button></div><section><h3>Appearance</h3><label>Transparency <input data-pref="opacity" type="range" min="20" max="100" value="${this.prefs.opacity}"></label><label>Font size <select data-pref="fontSize"><option>small</option><option>medium</option><option>large</option></select></label><label>Message spacing <select data-pref="spacing"><option>compact</option><option>normal</option><option>comfortable</option></select></label><label><input data-pref="timestamps" type="checkbox"> Timestamps</label><label>Timestamp format <select data-pref="timeFormat"><option>24h</option><option>12h</option></select></label><label><input data-pref="colors" type="checkbox"> Category colors</label><button data-action="appearance">Restore appearance defaults</button></section><section><h3>Window Controls</h3><button data-action="position">Reset position</button><button data-action="size">Reset size</button><button data-action="both">Reset position and size</button><label><input data-pref="lockMove" type="checkbox"> Lock movement</label><label><input data-pref="lockResize" type="checkbox"> Lock resizing</label><label><input data-pref="pinned" type="checkbox"> Pin window</label><label><input data-pref="autoFade" type="checkbox"> Automatic fading</label><label>Fade delay (seconds) <input data-pref="fadeDelay" type="number" min="1" max="60"></label><label><input data-pref="rememberLayout" type="checkbox"> Remember position and size</label></section><section><h3>Notifications and History</h3><label><input data-pref="sound" type="checkbox"> Notification sounds</label><label><input data-pref="important" type="checkbox"> Highlight important messages</label><label>History limit <input data-pref="historyLimit" type="number" min="100" max="5000" step="100"></label><label><input data-pref="grouping" type="checkbox"> Group repeated identical messages</label><label>Grouping window (ms) <input data-pref="groupWindow" type="number" min="500" max="10000" step="500"></label><button data-action="tabs">Manage tabs and filters</button></section><p>Party, Whisper, and Lobby are unavailable in this offline PC build.</p></div>`;panel.classList.remove('hidden');panel.querySelector('[data-close]').onclick=()=>panel.classList.add('hidden');for(const el of panel.querySelectorAll('[data-pref]')){const k=el.dataset.pref;el.type==='checkbox'?el.checked=!!this.prefs[k]:el.value=this.prefs[k];el.onchange=()=>{this.prefs[k]=el.type==='checkbox'?el.checked:el.type==='number'||el.type==='range'?Number(el.value)*(k==='fadeDelay'?1000:1):el.value;this.applyPrefs();this.save();};}panel.querySelector('[data-action=position]').onclick=()=>{this.prefs.left=14;this.prefs.top=Math.max(12,innerHeight-(Number(this.prefs.height)||310)-150);this.applyPrefs();this.save();};panel.querySelector('[data-action=size]').onclick=()=>{this.prefs.width=370;this.prefs.height=310;this.applyPrefs();this.save();};panel.querySelector('[data-action=both]').onclick=()=>{this.prefs.left=14;this.prefs.width=370;this.prefs.height=310;this.prefs.top=Math.max(12,innerHeight-460);this.applyPrefs();this.save();};panel.querySelector('[data-action=appearance]').onclick=()=>{Object.assign(this.prefs,{opacity:92,fontSize:'medium',spacing:'normal',timestamps:true,timeFormat:'24h',colors:true});this.applyPrefs();this.toggleSettings();this.toggleSettings();};panel.querySelector('[data-action=tabs]').onclick=()=>this.manageTabs(panel);},
+ manageTabs(panel){
+  const section=panel.querySelector('section:last-of-type');
+  section.innerHTML=`<h3>Tabs and Filters</h3>${BUILTINS.filter(x=>x!=='debug').map(x=>`<div class="gc-tab-config" data-config-tab="${x}"><label><input type="checkbox" data-tab-visible="${x}" ${this.prefs.visible[x]!==false?'checked':''}> Show ${TITLES[x]}</label><button data-up>Up</button><button data-down>Down</button></div>`).join('')}<label><input type="checkbox" data-debug> Enable Debug tab</label><label>Default tab <select data-default>${[...BUILTINS.filter(x=>x!=='debug'),...(this.prefs.debug?['debug']:[]),...this.prefs.customTabs.map(t=>`custom:${t.id}`)].map(x=>`<option value="${x}">${BUILTINS.includes(x)?TITLES[x]:this.prefs.customTabs.find(t=>`custom:${t.id}`===x)?.name||'Debug'}</option>`).join('')}</select></label><label>New custom tab <input class="gc-custom-name" placeholder="Tab name"></label><button class="gc-custom-add">Add custom tab</button><div class="gc-custom-list"></div><button class="gc-settings-back">Back</button>`;
+  section.querySelector('[data-default]').value=this.prefs.defaultTab;
+  section.querySelectorAll('[data-tab-visible]').forEach(el=>el.onchange=()=>{this.prefs.visible[el.dataset.tabVisible]=el.checked;this.paintTabs();this.save();});section.querySelectorAll('[data-config-tab]').forEach(row=>{const move=step=>{const id=row.dataset.configTab,i=this.prefs.order.indexOf(id),j=Math.max(0,Math.min(this.prefs.order.length-1,i+step));this.prefs.order.splice(i,1);this.prefs.order.splice(j,0,id);this.paintTabs();this.save();this.manageTabs(panel);};row.querySelector('[data-up]').onclick=()=>move(-1);row.querySelector('[data-down]').onclick=()=>move(1);});
+  section.querySelector('[data-debug]').checked=this.prefs.debug;section.querySelector('[data-debug]').onchange=e=>{this.prefs.debug=e.target.checked;this.paintTabs();this.save();};
+  section.querySelector('[data-default]').onchange=e=>{this.prefs.defaultTab=e.target.value;this.save();};
+  section.querySelector('.gc-custom-add').onclick=()=>{const name=section.querySelector('.gc-custom-name').value.trim();if(!name)return;const id=String(Date.now());this.prefs.customTabs.push({id,name,categories:['loot.equipment','loot.gold']});this.prefs.order.push(`custom:${id}`);this.prefs.filters[`custom:${id}`]={};this.paintTabs();this.save();this.manageTabs(panel);};
+  const list=section.querySelector('.gc-custom-list');
+  for(const t of this.prefs.customTabs){const tabId=`custom:${t.id}`,row=document.createElement('div');row.className='gc-custom-edit';row.innerHTML=`<div><input data-name value="${esc(t.name)}"><label><input type="checkbox" data-visible ${t.visible!==false?'checked':''}> Show</label><button data-up>↑</button><button data-down>↓</button><button data-delete>Delete</button></div><div class="gc-custom-cats"></div>`;row.querySelector('[data-name]').onchange=e=>{t.name=e.target.value;this.paintTabs();this.save();};row.querySelector('[data-visible]').onchange=e=>{t.visible=e.target.checked;this.paintTabs();this.save();};row.querySelector('[data-delete]').onclick=()=>{this.prefs.customTabs=this.prefs.customTabs.filter(x=>x.id!==t.id);this.prefs.order=this.prefs.order.filter(x=>x!==tabId);this.paintTabs();this.save();this.manageTabs(panel);};
+   const reorder=step=>{const i=this.prefs.order.indexOf(tabId),j=Math.max(0,Math.min(this.prefs.order.length-1,i+step));if(i>=0){this.prefs.order.splice(i,1);this.prefs.order.splice(j,0,tabId);this.paintTabs();this.save();this.manageTabs(panel);}};row.querySelector('[data-up]').onclick=()=>reorder(-1);row.querySelector('[data-down]').onclick=()=>reorder(1);
+   const cats=row.querySelector('.gc-custom-cats');for(const [cat,info] of Object.entries(CATEGORIES)){const label=document.createElement('label');label.innerHTML=`<input type="checkbox" ${t.categories.includes(cat)?'checked':''}> ${esc(info[0])}`;label.querySelector('input').onchange=e=>{t.categories=e.target.checked?[...new Set([...t.categories,cat])]:t.categories.filter(x=>x!==cat);this.renderFilters();this.render();this.save();};cats.append(label);}list.append(row);}
+  section.querySelector('.gc-settings-back').onclick=()=>this.toggleSettings();
+ },
 };

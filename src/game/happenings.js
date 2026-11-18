@@ -143,7 +143,8 @@ export function announceDungeonAffixes(world) {
   setTimeout(() => {
     if (G.world !== world) return;
     UI.centerMsg(names.length === 1 ? names[0].toUpperCase() : 'AFFIXES ACTIVE', names.join(' · '), 3);
-    UI.log(`Affixes active: <b>${names.map((name) => name.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join(' · ')}</b>`, '#ffb060');
+    UI.log(`Affixes active: <b>${names.map((name) => name.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join(' · ')}</b>`, '#ffb060', { category: 'dungeon.affix', important: true });
+    UI.event({ category: 'debug.affix', text: `Dungeon affixes activated: ${names.join(', ')}.` });
   }, 2600);
 }
 // ------------------------------------------------------------------------------------------------ interactables
