@@ -637,10 +637,12 @@ export class Monster extends Creature {
 
   aiCharger(dt, t, d) {
     const los = this.world.map.los(this.x, this.y, t.x, t.y);
-    if (d > 2.2 && d < 7 && los && this.cd <= 0 && chance(0.6)) {
+    const chargeReady = (this.chargerChargeReadyAt || 0) <= this.world.time;
+    if (d > 2.2 && d < 7 && los && this.cd <= 0 && chargeReady && chance(0.45)) {
       const ang = angleTo(this.x, this.y, t.x, t.y);
       this.startAction('charge', 0.55, { ang, len: Math.min(8, d + 1.5) });
       addEffect(new Telegraph({ kind: 'line', x: this.x, y: this.y, ang, len: Math.min(8, d + 1.5), w: 0.7, reach: this.r + 0.4, dur: 0.55 }), 'ground');
+      this.chargerChargeReadyAt = this.world.time + 8;
       return;
     }
     this.aiMelee(dt, t, d);
@@ -677,7 +679,11 @@ export class Monster extends Creature {
   }
 
   aiExploder(dt, t, d) {
-    if (d < this.r + t.r + 0.5) { this.startAction('explode', 0.4); return; }
+    if (d < this.r + t.r + 0.5) {
+      this.startAction('explode', 0.65);
+      addEffect(new Telegraph({ kind: 'circle', x: this.x, y: this.y, r: 1.7, dur: 0.65, color: '#ff7840' }), 'ground');
+      return;
+    }
     this.chase(dt, t, this.speed);
   }
 

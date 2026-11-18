@@ -22,9 +22,12 @@ const assignedBehaviors = new Set(Object.values(ENEMY_PROFILES).flatMap((p) => p
 const assignedAttacks = new Set(Object.values(ENEMY_PROFILES).flatMap((p) => p.attacks));
 assignedBehaviors.add('unstable_death'); // Zombie death burst uses the same shared death effect.
 assignedAttacks.add('death_burst');
-for (const id of ENEMY_BEHAVIORS) check(assignedBehaviors.has(id), `behavior ${id} is assigned`);
+// Keep these high-pressure moves implemented but opt them out of default profiles to avoid stacking rushes.
+const optInBehaviors = new Set(['berserker_rage', 'ground_slam']);
+const optInAttacks = new Set(['ground_slam', 'leaping_bite']);
+for (const id of ENEMY_BEHAVIORS) check(assignedBehaviors.has(id) || optInBehaviors.has(id), `behavior ${id} is assigned or intentionally opt-in`);
 for (const id of ENEMY_ATTACKS) {
-  check(assignedAttacks.has(id), `attack ${id} is assigned`);
+  check(assignedAttacks.has(id) || optInAttacks.has(id), `attack ${id} is assigned or intentionally opt-in`);
   check(ENEMY_ATTACK_CONFIG[id], `attack ${id} has range, cooldown, and telegraph data`);
   check(ai.includes(`case '${id}'`), `attack ${id} has an execution case`);
 }
