@@ -93,8 +93,9 @@ export class Monster extends Creature {
   speedMul() {
     const m = super.speedMul();
     const buff = this.enemyBuff?.t > 0 ? this.enemyBuff.speed || 0 : 0;
+    const leaderBuff = this.enemyLeaderBuff?.until > (this.world?.time || 0) ? this.enemyLeaderBuff.speed || 0 : 0;
     const stance = this.defenseT > 0 ? 0.68 : 1;
-    return Math.max(0.15, m * (1 + buff + (this.revengeT > 0 ? 0.12 : 0) + (this.rageT > 0 ? 0.2 : 0)) * stance);
+    return Math.max(0.15, m * (1 + buff + leaderBuff + (this.revengeT > 0 ? 0.12 : 0) + (this.rageT > 0 ? 0.2 : 0)) * stance);
   }
 
   /** All damage a monster deals goes through here (vampiric / thorns curse). */
@@ -296,7 +297,8 @@ export class Monster extends Creature {
     const rapidFire = dungeonAffixes.includes('rapid_fire') && ['ranged', 'caster'].includes(this.ai) ? 1.35 : 1;
     const bossEnrage = this.rank === 'boss' && dungeonAffixes.includes('boss_enrage') && this.hp < this.maxHp * 0.6 ? 1.3 : 1;
     const finalStand = this.rank === 'boss' && dungeonAffixes.includes('final_stand') && this.hp < this.maxHp * 0.1 ? 1.6 : 1;
-    this.cd -= dt * partyAttackSpeed * berserkAttackSpeed * rapidFire * bossEnrage * finalStand * (this.rageT > 0 ? 1.2 : 1);
+    const leaderBuffRate = this.enemyLeaderBuff?.until > (this.world?.time || 0) ? this.enemyLeaderBuff.attackRate || 1 : 1;
+    this.cd -= dt * partyAttackSpeed * berserkAttackSpeed * rapidFire * bossEnrage * finalStand * (this.packLeaderAttackRate || 1) * leaderBuffRate * (this.rageT > 0 ? 1.2 : 1);
     if (this.spell && (this.spellCd -= dt) <= 0) this.castSpell();
 
     // fear: run away
