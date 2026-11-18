@@ -389,7 +389,7 @@ function drawChest(ctx, c) {
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     }
-    if (!c.opened && c.label && G.player && Math.hypot(c.x - G.player.x, c.y - G.player.y) < 5) {
+    if (!c.opened && c.label && !(c.dot || c.isDungeonEvent || c.eventLabel || c.scen || c.encounter || c.commission) && G.player && Math.hypot(c.x - G.player.x, c.y - G.player.y) < 5) {
       ctx.save(); ctx.font = '10px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,8,5,.9)'; ctx.strokeText(c.label.toUpperCase(), x, floorY - h - 4);
       ctx.fillStyle = c.glow || '#e8c575'; ctx.fillText(c.label.toUpperCase(), x, floorY - h - 4); ctx.restore();
@@ -1484,12 +1484,63 @@ function drawOverheadNames(ctx, world) {
     if (label) drawLabel(ctx, label, sx * d, sy * d, nameFont, n.altar ? '#ff8060' : n.vendor || n.stash ? '#ffe090' : '#c8c0b0', 3 * d);
     if (n.vendor && n.vendor.title) drawLabel(ctx, n.vendor.title, sx * d, (sy + 12) * d, `${Math.round(10 * d)}px "Alegreya Sans", sans-serif`, '#b0a080', 0);
   }
+  // Event chests and interactables also use minimap dots, but several custom draw()
+  // methods return before the ordinary chest label path. Keep their names in this
+  // shared world-label pass so labels follow the object and its current state.
+  const eventLabels = [], occupied = [];
+  const reserveLabel = (text, x, y, font, fill, lw) => {
+    if (!text) return;
+    const sprite = nameLabel(String(text), font, fill, lw);
+    occupied.push({ x: x - sprite.width / 2, y: y - sprite.height, w: sprite.width, h: sprite.height });
+  };
+  for (const c of world.creatures) if (!c.dead && c.sbox && (c.rank === 'champion' || c.rank === 'unique')) {
+    const x = (c.sbox[0] + c.sbox[2]) / 2, y = c.barTop != null ? camera.toScreen(0, c.barTop)[1] - 3 : c.sbox[1] - 8;
+    reserveLabel(c.name, x * d, y * d, nameFont, c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
+  }
+  for (const n of world.npcs) {
+    if (!n.sbox || n.hidden || (!n.vendor && !n.stash && !n.altar && (n !== nearest || n.talkT > 0))) continue;
+    const [sx, sy] = camera.toScreen((n.sbox[0] + n.sbox[2]) / 2, n.sbox[1] - 10);
+    reserveLabel(n.vendor ? n.vendor.name : n.name, sx * d, sy * d, nameFont, n.altar ? '#ff8060' : n.vendor || n.stash ? '#ffe090' : '#c8c0b0', 3 * d);
+    if (n.vendor && n.vendor.title) reserveLabel(n.vendor.title, sx * d, (sy + 12) * d, `${Math.round(10 * d)}px "Alegreya Sans", sans-serif`, '#b0a080', 0);
+  }
+  for (const po of world.portals) {
+    const label = typeof po.label === 'function' ? po.label() : po.label;
+    if (!label) continue;
+    const [sx, sy] = camera.tileToScreen(po.x, po.y, 100);
+    reserveLabel(label, sx * d, sy * d, nameFont, po.active ? '#ffd0a0' : '#909090', 3 * d);
+  }
+  for (const ch of world.chests) {
+    if (!ch || ch.opened || ch.hidden || ch.isCustomShrineAltar || typeof ch.use !== 'function') continue;
+    if (!(ch.dot || ch.isDungeonEvent || ch.eventLabel || ch.scen || ch.encounter || ch.commission)) continue;
+    const seenAt = Math.floor(ch.y) * world.map.w + Math.floor(ch.x);
+    if (!world.map.seen?.[seenAt]) continue;
+    const text = typeof ch.label === 'function' ? ch.label() : ch.label || ch.name;
+    if (!text) continue;
+    if (hero && Math.hypot(hero.x - ch.x, hero.y - ch.y) > 18) continue;
+    const [sx, sy] = camera.tileToScreen(ch.x, ch.y, ch.labelHeight || (ch.isDungeonEvent ? 84 : ch.labelTall ? 78 : 64));
+    if (sx < -200 || sy < -80 || sx > G.W + 200 || sy > G.H + 40) continue;
+    eventLabels.push({ ch, text: String(text), x: sx * d, y: sy * d, fill: ch.labelColor || '#d4b8df' });
+  }
+  for (const item of eventLabels) {
+    const sprite = nameLabel(item.text, nameFont, item.fill, 3 * d);
+    const w = sprite.width, h = sprite.height;
+    let y = item.y;
+    for (let attempt = 0; attempt < 5; attempt++, y -= 14 * d) {
+      const box = { x: item.x - w / 2, y: y - h, w, h };
+      if (!occupied.some((other) => box.x < other.x + other.w && box.x + box.w > other.x && box.y < other.y + other.h && box.y + box.h > other.y)) {
+        occupied.push(box);
+        drawLabel(ctx, item.text, item.x, y, nameFont, item.fill, 3 * d);
+        break;
+      }
+    }
+  }
   // portal labels
   for (const po of world.portals) {
-    if (!po.label) continue;
+    const label = typeof po.label === 'function' ? po.label() : po.label;
+    if (!label) continue;
     const [sx, sy] = camera.tileToScreen(po.x, po.y, 100);
     if (sx < -200 || sy < -40 || sx > G.W + 200 || sy > G.H + 40) continue;
-    drawLabel(ctx, po.label, sx * d, sy * d, nameFont, po.active ? '#ffd0a0' : '#909090', 3 * d);
+    drawLabel(ctx, label, sx * d, sy * d, nameFont, po.active ? '#ffd0a0' : '#909090', 3 * d);
   }
   // hovered monster info (desktop)
   const h = G.hover;

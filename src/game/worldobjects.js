@@ -410,7 +410,7 @@ export function setupWorldObjects(world,start,{special=false}={}) {
   if(!spots.length)spots.push(...roomSpots(world,start,1,special));
   let made=0;
   for(const [x,y] of spots){
-    const def=pick(CATALOG),isDungeonShrine=!!shrineRoom&&!special,isCustomShrineAltar=labelsAsShrineOrAltar(def),o={...def,x,y,opened:false,reach:1.55,far:34,label:def.name,dot:def.color,rarity:rollRarity(),claimKey,spr:null,isDungeonShrine,isCustomShrineAltar};
+    const def=pick(CATALOG),isDungeonShrine=!!shrineRoom&&!special,isCustomShrineAltar=labelsAsShrineOrAltar(def),o={...def,x,y,opened:false,reach:1.55,far:34,label:def.name,dot:def.color,labelColor:'#d4b8df',labelHeight:isDungeonShrine?82:74,rarity:rollRarity(),claimKey,spr:null,isDungeonShrine,isCustomShrineAltar};
     o.label=`${rar(o.rarity).name} ${o.name}`;o.spr=isDungeonShrine?findShrineSprite(world,o):findSprite(world,o);
     o.draw=(ctx,sx,sy)=>drawObject(world,o,ctx,sx,sy);
     o.use=()=>{if(o.opened||G.world!==world)return;useObject(world,o);};

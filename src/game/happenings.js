@@ -187,7 +187,7 @@ const FALLEN_LOOKS = () => TOWNSFOLK.filter((v) => v.knight || v.guard || v.cast
 export function addRemains(world, [x, y]) {
   const who = pick(FALLEN_NAMES), why = pick(EPITAPHS), depth = world.depth, look = pick(FALLEN_LOOKS()), flip = chance(0.5);
   world.chests.push({
-    x, y, opened: false, reach: 1.4, far: 22, label: `Remains of ${who}`, dot: '#e8dcc0',
+    x, y, opened: false, reach: 1.4, far: 22, label: `Remains of ${who}`, dot: '#e8dcc0', labelColor: '#d4b8df', labelHeight: 82,
     draw(ctx, sx, sy) {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(sx, sy, 20, 7, 0, 0, TAU); ctx.fill();
       if (drawFolkPose(ctx, look, 'dead', sx, sy + 2, flip, this.opened ? 0.85 : 1)) {
@@ -213,7 +213,7 @@ export function addRemains(world, [x, y]) {
 export function addCache(world, [x, y]) {
   const depth = world.depth;
   const cache={
-    x, y, opened: false, reach: 1.3, rare: true, far: 30,
+    x, y, opened: false, reach: 1.3, rare: true, far: 30, label: 'Treasure Cache', labelColor: '#d4b8df', labelHeight: 66, eventLabel: true,
     use() { if (this.opened) return; this.opened = true; sfx('chest'); sfx('gold'); dropChest(world, this, depth); sparkle(x, y, 20, '#ffd060', 20, 0.5); },
   };
   world.chests.push(cache);
@@ -224,7 +224,7 @@ export function addCache(world, [x, y]) {
 export function addCursed(world, [x, y]) {
   const depth = world.depth;
   const ch = {
-    x, y, opened: false, reach: 1.4, far: 30, label: 'Cursed Chest', dot: '#ff3060', waves: 0, waveT: 0, done: false,
+    x, y, opened: false, reach: 1.4, far: 30, label: 'Cursed Chest', dot: '#ff3060', labelColor: '#d4b8df', labelHeight: 66, waves: 0, waveT: 0, done: false,
     draw(ctx, sx, sy) {
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(sx, sy, 17, 7, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = '#3a1020'; ctx.beginPath(); ctx.moveTo(sx - 15, sy - 4); ctx.lineTo(sx, sy + 3); ctx.lineTo(sx + 15, sy - 4); ctx.lineTo(sx + 15, sy - 17); ctx.lineTo(sx, sy - 24); ctx.lineTo(sx - 15, sy - 17); ctx.fill();
