@@ -102,6 +102,9 @@ function isTyping(e) {
 
 export function initInput(canvas) {
   window.addEventListener('keydown', (e) => {
+    // Floating chat controls are DOM UI, not gameplay input. In particular, don't
+    // let movement or skill keys pressed over the window reach the game loop.
+    if (e.target?.closest?.('.game-chat') || document.querySelector('#game-chat:not(.hidden):not(.gc-faded):hover') || (e.code === 'Escape' && document.querySelector('#game-chat:not(.hidden):not(.gc-faded)'))) return;
     if (isTyping(e)) return;
     const mapped = KEY_BINDING_ACTIONS.some((action) => currentBinding(action.id) === e.code);
     const macroBound = G.char && G.char.macros && G.char.macros.some((macro) => macro.key === e.code);
