@@ -26,6 +26,7 @@ export const A = {
   packs: {}, // biome pack id -> { floors, walls, scatter, meta } (assets/tiles/<id>/), a Promise while loading
   town: null, // the town pack (assets/tiles/town/, tools/townpack.py): { ground, objects, meta }
   chestImg: null, chestMeta: null, // assets/props/chests.*
+  chestVariants: [], // 20 paired closed/open treasure chest sprites
   gibImg: null, gibMeta: null, // assets/sprites/gibs.* (tools/gibpack.py): { set: [[x, y, w, h], ...] }
   boneImg: null, boneMeta: null, // assets/sprites/bones.* (tools/bones3d_bake.js): bone gibs' data sheet (gfx/bonegibs.js)
   heresyAltar: null, // the town Altar of Heresy (assets/sprites/props/heresy_altar.png)
@@ -66,6 +67,15 @@ export async function loadAssets(progress) {
   jobs.push(track(Promise.all([loadImage('assets/tiles/town/ground.webp'), loadImage('assets/tiles/town/objects.webp'), loadJSON('assets/tiles/town/town.json')])
     .then(([ground, objects, meta]) => { A.town = { ground, objects, meta }; })));
   jobs.push(track(loadImage('assets/props/chests.webp').then((i) => { A.chestImg = i; })));
+  jobs.push(track(Promise.all(Array.from({ length: 20 }, async (_, i) => {
+    const id = String(i + 1).padStart(2, '0');
+    const [closed, open] = await Promise.all([
+      loadImage(`assets/props/chest-variants/chest-${id}-closed.png`),
+      loadImage(`assets/props/chest-variants/chest-${id}-open.png`),
+    ]);
+    const frame = (img) => ({ img, sx: 0, sy: 0, w: img.naturalWidth, h: img.naturalHeight });
+    return { closed: frame(closed), open: frame(open) };
+  })).then((variants) => { A.chestVariants = variants; })));
   jobs.push(track(loadImage('assets/sprites/gibs.webp').then((i) => { A.gibImg = i; })));
   jobs.push(track(loadJSON('assets/sprites/gibs.json').then((j) => { A.gibMeta = j; })));
   jobs.push(track(loadImage('assets/sprites/bones.webp').then((i) => { A.boneImg = i; })));
