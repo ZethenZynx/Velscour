@@ -20,6 +20,7 @@ import { isProfaneName, validateCharName } from '../core/profanity.js';
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 import { loadRecentChanges } from '../game/recentchanges.js';
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
+import { initTitleForkUpdater, manuallyCheckForForkRelease } from '../game/forkreleaseupdater.js';
 
 let current = null;
 
@@ -44,6 +45,11 @@ export function titleScreen() {
   const s = el('div', 'screen');
   s.classList.add('title-screen');
   s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
+  const forkUpdateButton = el('button', 'btn fork-update-btn hidden', 'Update Available');
+  forkUpdateButton.type = 'button';
+  forkUpdateButton.setAttribute('aria-label', 'Update Available from the Velscour PC fork');
+  s.appendChild(forkUpdateButton);
+  initTitleForkUpdater(forkUpdateButton);
   const menu = el('div', 'title-menu');
   const add = (label, fn, cls = 'btn big') => { const b = el('button', cls, label); b.onclick = () => { if (!s.classList.contains('title-ready')) return; initAudio(); sfx('ui'); goFullscreen(); fn(); }; menu.appendChild(b); return b; };
   // Rebuild from local browser saves whenever the title is shown.
@@ -58,6 +64,7 @@ export function titleScreen() {
     add(`Heroes <span style="font-size:13px;color:#a8977c">· ${used}/${CLASS_IDS.length}</span>`, () => classSelect(last ? last.classId : 'paladin'));
     add('Settings', settingsDialog, 'btn');
     if (updatesAvailable.length) add('Update Available', () => showUpdateDialog(updatesAvailable), 'btn update-available');
+    add('Check for Updates', manuallyCheckForForkRelease, 'btn');
     add('Credits', () => creditsScreen(titleScreen), 'btn');
     add('How to Play', helpDialog, 'btn');
   };
