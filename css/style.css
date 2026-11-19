@@ -1541,6 +1541,35 @@ body.touch .shop-price { font-size: 8px; }
 body:not(.touch) #panels:has(.reliquary-panel) .reliquary-panel .rel-grid { grid-template-columns: repeat(10, 44px); }
 .vendor-panel .item-detail { background: #21170f; border-color: #76532c; }
 @media (max-width: 1250px) { body:not(.touch) .vendor-panel .shop-grid { grid-template-columns: repeat(6, 44px); } }
+/* Zafir's forge needs room for a gem label and two aligned action columns. */
+body:not(.touch) #panels:has(.gem-vendor-panel) .gem-vendor-panel {
+  width: min(620px, calc(100vw - 24px), max(340px, calc(100vw - 518px)));
+}
+body:not(.touch) .gem-vendor-panel .shop-grid { grid-template-columns: repeat(10, 44px); }
+.gem-vendor-panel .forge-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: center; gap: 8px; flex-wrap: initial; margin: 6px 0;
+}
+.gem-vendor-panel .forge-gem-label { min-width: 0; overflow-wrap: anywhere; }
+.gem-vendor-panel .forge-row > .btn { margin: 0; white-space: nowrap; }
+@media (max-width: 1050px) {
+  .gem-vendor-panel .forge-gem-label { grid-column: 1 / -1; }
+}
+@media (max-width: 1120px) {
+  body:not(.touch) .gem-vendor-panel .shop-grid { grid-template-columns: repeat(8, 44px); }
+}
+@media (max-width: 950px) {
+  body:not(.touch) .gem-vendor-panel .shop-grid { grid-template-columns: repeat(7, 44px); }
+  .gem-vendor-panel .forge-row { grid-template-columns: minmax(0, 1fr) max-content max-content; gap: 5px; }
+}
+@media (max-width: 860px) {
+  body:not(.touch) .gem-vendor-panel .shop-grid { grid-template-columns: repeat(6, 44px); }
+  .gem-vendor-panel .forge-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  .gem-vendor-panel .forge-gem-label { grid-column: 1 / -1; }
+  .gem-vendor-panel .forge-row > .btn { min-width: 0; white-space: normal; text-align: center; padding-inline: 6px; }
+}
+body.touch .gem-vendor-panel { max-width: min(60vw, calc(100vw - 16px)); }
+body.touch .gem-vendor-panel .shop-grid { grid-template-columns: repeat(auto-fit, 36px); }
 body.touch .inv-section-title { font-size: 11px; }
 body.touch .character-card { min-width: 210px; }
 body.touch .shop-price { font-size: 8px; }

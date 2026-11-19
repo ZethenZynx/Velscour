@@ -56,6 +56,42 @@ const { openGame, report } = require('./harness');
   await page.waitForFunction(() => !window.VELSCOUR.G.ui.anyOpen());
   await page.evaluate(() => window.VELSCOUR.G.ui.vendor.open('gems'));
   await page.waitForTimeout(400);
+  const forgeLayout = await page.evaluate(() => {
+    const panel = document.querySelector('.gem-vendor-panel'), rect = panel.getBoundingClientRect(), grid = panel.querySelector('.shop-grid');
+    return {
+      width: rect.width, right: rect.right, viewport: innerWidth,
+      stockFits: grid.scrollWidth <= grid.clientWidth + 1,
+      rows: [...panel.querySelectorAll('.forge-row')].map((row) => {
+        const labelEl = row.querySelector('.forge-gem-label'), label = labelEl.getBoundingClientRect();
+        const buttons = [...row.querySelectorAll('.forge-fuse, .forge-refine')].map((button) => {
+          const r = button.getBoundingClientRect();
+          return { x: r.x, y: r.y, right: r.right, disabled: button.disabled, opacity: getComputedStyle(button).opacity };
+        });
+        return { label: { x: label.x, right: label.right, fits: labelEl.scrollWidth <= labelEl.clientWidth + 1 }, buttons };
+      }),
+    };
+  });
+  if (forgeLayout.right > forgeLayout.viewport + 1) throw new Error('Gem Merchant extends beyond the viewport');
+  if (!forgeLayout.stockFits) throw new Error('Gem Merchant stock grid overflows its panel');
+  for (const row of forgeLayout.rows) {
+    if (!row.label.fits) throw new Error('Gem name or quantity is clipped');
+    if (row.buttons.some((button) => button.disabled && Number(button.opacity) >= 1)) throw new Error('Disabled Gem Forge controls do not appear disabled');
+    if (row.buttons.length === 2 && (Math.abs(row.buttons[0].y - row.buttons[1].y) > 1 || row.buttons[0].right > row.buttons[1].x + 1)) {
+      throw new Error('Fuse and Refine controls do not share a clear horizontal row');
+    }
+  }
+  console.log('Gem Forge layout:', JSON.stringify(forgeLayout));
+  await page.setViewportSize({ width: 800, height: 810 });
+  await page.waitForTimeout(100);
+  const compactForge = await page.evaluate(() => {
+    const panel = document.querySelector('.gem-vendor-panel'), rect = panel.getBoundingClientRect(), grid = panel.querySelector('.shop-grid');
+    const pairedActions = [...panel.querySelectorAll('.forge-row')].map((row) => [...row.querySelectorAll('.forge-fuse, .forge-refine')].map((button) => button.getBoundingClientRect().y));
+    return { right: rect.right, viewport: innerWidth, stockFits: grid.scrollWidth <= grid.clientWidth + 1, pairedActions };
+  });
+  if (compactForge.right > compactForge.viewport + 1 || !compactForge.stockFits) throw new Error('Gem Merchant does not fit at a compact screen width');
+  if (compactForge.pairedActions.some((ys) => ys.length === 2 && Math.abs(ys[0] - ys[1]) > 1)) throw new Error('Compact Gem Forge actions are not aligned');
+  await page.setViewportSize({ width: 1440, height: 810 });
+  await page.waitForTimeout(100);
   await shot('ui4_gems');
   await page.getByRole('button', { name: /^Fuse 3.*Sapphire/ }).click();
   const fused = await page.evaluate(() => window.VELSCOUR.G.char.bag.some((b) => b && b.gem === 'sapphire' && b.tier === 1));
@@ -63,6 +99,8 @@ const { openGame, report } = require('./harness');
   await page.waitForTimeout(200);
   await page.evaluate(() => window.VELSCOUR.G.ui.vendor.open('upgrade'));
   await page.waitForTimeout(300);
+  const otherVendorWidth = await page.locator('.vendor-panel').evaluate((panel) => panel.getBoundingClientRect().width);
+  if (otherVendorWidth >= forgeLayout.width) throw new Error('Gem Merchant width unexpectedly changed another merchant window');
   await page.evaluate(() => { window.VELSCOUR.G.ui.selected = { where: 'equip', slot: 'weapon' }; window.VELSCOUR.G.ui.refresh(); });
   await page.click('text=/Upgrade to \\+1/');
   await page.waitForTimeout(200);

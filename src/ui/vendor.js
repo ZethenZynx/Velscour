@@ -57,7 +57,7 @@ export const Vendor = {
     this.shopSel = null;
     const v = VBY[vid];
     sfx('ui');
-    UI.openPanel('vendor', `${v.name} — ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('inventory'); }, cls: 'vendor-panel' });
+    UI.openPanel('vendor', `${v.name} — ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : 'vendor-panel' });
     UI.openPanel('inventory', 'Backpack', renderInventory, { cls: 'inventory-panel' });
   },
 
@@ -284,12 +284,12 @@ export const Vendor = {
     if (!gems.length) box.appendChild(el('div', 'dim', 'You carry no gems the forge can work.'));
     for (const { b, i, where } of gems) {
       const row = el('div', 'row forge-row');
-      row.appendChild(el('span', '', `<span style="color:${GEMS[b.gem].color}">◆</span> ${escapeHtml(gemName(b.gem, b.tier))}${(b.count || 1) > 1 ? ` <span class="dim">x${b.count}</span>` : ''}`));
+      row.appendChild(el('span', 'forge-gem-label', `<span style="color:${GEMS[b.gem].color}">◆</span> ${escapeHtml(gemName(b.gem, b.tier))}${(b.count || 1) > 1 ? ` <span class="dim">x${b.count}</span>` : ''}`));
       const sig = GEMS[b.gem].sigil, fuse = fuseCost(b), refine = gemRefineCost(b.tier, GEMS[b.gem].special);
-      const f = el('button', 'btn small', `Fuse 3 → ${escapeHtml(gemName(b.gem, b.tier + 1))} (${fmtInt(fuse)}g)`);
+      const f = el('button', 'btn small forge-fuse', `Fuse 3 → ${escapeHtml(gemName(b.gem, b.tier + 1))} (${fmtInt(fuse)}g)`);
       f.disabled = (b.count || 1) < 3 || c.gold < fuse;
       f.onclick = () => { if (fuseGem(c, i, where)) { sfx('levelup'); UI.log(`Forged <span style="color:#c8f0ff">${escapeHtml(gemName(b.gem, b.tier + 1))}</span>!`); changed(); } };
-      const u = el('button', 'btn small', `Refine 1 (${fmtInt(refine)}g)`);
+      const u = el('button', 'btn small forge-refine', `Refine 1 (${fmtInt(refine)}g)`);
       u.disabled = c.gold < refine;
       u.onclick = () => {
         c.gold -= refine;
