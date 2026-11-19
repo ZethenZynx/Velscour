@@ -21,30 +21,31 @@ import { pixelSprite } from '../gfx/pixelart.js';
 import { GroundItem, rollGroundGem, rollOrbKind } from './loot.js';
 import { depthLevel } from '../data/depth.js';
 import { UI } from '../ui/ui.js';
+import { updateCritterFacing, shouldFlipCritterSprite } from './critter-facing.mjs';
 
 // fly: drifts in the air (z), else scuttles on the floor. w: spawn odds. life: seconds before it gets away.
 export const CRITTERS = Object.freeze({
   // The original four species remain part of the pool; reward and tier are rolled independently.
   wisp: { name: 'Wisp', artIndex: 10, artKey: 'wisp', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 12, speed: 1.3, motion: 'drift', accent: 'flame' },
   moth: { name: 'Treasure Moth', artIndex: 11, artKey: 'moth', sprite: 'bat', arch: 'bat', fly: true, w: 1, life: 11, speed: 1.6, motion: 'flutter', accent: 'wings' },
-  scarab: { name: 'Treasure Beetle', artIndex: 0, artKey: 'scarab', sprite: 'beetle', arch: 'beetle', fly: false, w: 1, life: 10, speed: 2.1, motion: 'scuttle', accent: 'shell' },
+  scarab: { name: 'Treasure Beetle', artIndex: 0, facesRight: false, artKey: 'scarab', sprite: 'beetle', arch: 'beetle', fly: false, w: 1, life: 10, speed: 2.1, motion: 'scuttle', accent: 'shell' },
   prism: { name: 'Gold Sprite', artIndex: 19, artKey: 'prism', sprite: 'elemental', arch: 'elemental', fly: true, w: 1, life: 9, speed: 2, motion: 'dart', accent: 'runes' },
   crystal_scarab: { name: 'Crystal Scarab', artIndex: 1, sprite: 'knight', arch: 'knight', fly: false, w: 1, life: 10, speed: 1.8, motion: 'skitter', accent: 'crystals' },
   goldback_spider: { name: 'Goldback Spider', artIndex: 2, sprite: 'spider', arch: 'spider', fly: false, w: 1, life: 10, speed: 2.5, motion: 'skitter', accent: 'legs' },
-  gem_tortoise: { name: 'Gem Tortoise', artIndex: 3, sprite: 'golem', arch: 'golem', fly: false, w: 1, life: 13, speed: 1.15, motion: 'steady', accent: 'shell' },
+  gem_tortoise: { name: 'Gem Tortoise', artIndex: 3, facesRight: false, sprite: 'golem', arch: 'golem', fly: false, w: 1, life: 13, speed: 1.15, motion: 'steady', accent: 'shell' },
   coin_crab: { name: 'Coin Crab', artIndex: 4, sprite: 'abomination', arch: 'abomination', fly: false, w: 1, life: 10, speed: 1.75, motion: 'sidestep', accent: 'claws' },
   treasure_mimic: { name: 'Treasure Mimic', artIndex: 5, sprite: 'crate', fly: false, w: 1, life: 10, speed: 1.45, motion: 'hop', accent: 'mimic' },
-  gilded_centipede: { name: 'Gilded Centipede', artIndex: 6, sprite: 'worm', arch: 'worm', fly: false, w: 1, life: 9, speed: 2.6, motion: 'slither', accent: 'segments' },
-  rune_snail: { name: 'Rune Snail', artIndex: 7, sprite: 'slime', arch: 'slime', fly: false, w: 1, life: 12, speed: 1.1, motion: 'steady', accent: 'shell' },
-  coin_rat: { name: 'Coin Rat', artIndex: 8, sprite: 'hound', arch: 'hound', fly: false, w: 1, life: 9, speed: 2.7, motion: 'dart', accent: 'ears' },
+  gilded_centipede: { name: 'Gilded Centipede', artIndex: 6, facesRight: false, sprite: 'worm', arch: 'worm', fly: false, w: 1, life: 9, speed: 2.6, motion: 'slither', accent: 'segments' },
+  rune_snail: { name: 'Rune Snail', artIndex: 7, facesRight: false, sprite: 'slime', arch: 'slime', fly: false, w: 1, life: 12, speed: 1.1, motion: 'steady', accent: 'shell' },
+  coin_rat: { name: 'Coin Rat', artIndex: 8, facesRight: true, sprite: 'hound', arch: 'hound', fly: false, w: 1, life: 9, speed: 2.7, motion: 'dart', accent: 'ears' },
   treasure_imp: { name: 'Treasure Imp', artIndex: 9, sprite: 'imp', arch: 'imp', fly: false, w: 1, life: 9, speed: 2.4, motion: 'zigzag', accent: 'flame' },
-  crystal_bat: { name: 'Crystal Bat', artIndex: 12, sprite: 'gargoyle', arch: 'gargoyle', fly: true, w: 1, life: 10, speed: 2.2, motion: 'swoop', accent: 'crystals' },
+  crystal_bat: { name: 'Crystal Bat', artIndex: 12, facesRight: true, sprite: 'gargoyle', arch: 'gargoyle', fly: true, w: 1, life: 10, speed: 2.2, motion: 'swoop', accent: 'crystals' },
   rune_eye: { name: 'Rune Eye', artIndex: 14, sprite: 'eye', arch: 'eye', fly: true, w: 1, life: 10, speed: 1.7, motion: 'orbit', accent: 'runes' },
   spectral_jellyfish: { name: 'Spectral Jellyfish', artIndex: 15, sprite: 'cloud', fly: true, w: 1, life: 13, speed: 1.15, motion: 'bob', accent: 'ghost' },
   lantern_spirit: { name: 'Lantern Spirit', artIndex: 16, sprite: 'lantern', fly: true, w: 1, life: 12, speed: 1.3, motion: 'sway', accent: 'flame' },
-  gem_dragonling: { name: 'Gem Dragonling', artIndex: 17, sprite: 'dragon', arch: 'demon', fly: true, w: 1, life: 10, speed: 2.4, motion: 'glide', accent: 'embers' },
+  gem_dragonling: { name: 'Gem Dragonling', artIndex: 17, facesRight: true, sprite: 'dragon', arch: 'demon', fly: true, w: 1, life: 10, speed: 2.4, motion: 'glide', accent: 'embers' },
   floating_skull: { name: 'Floating Skull', artIndex: 18, sprite: 'skeleton', arch: 'skeleton', fly: true, w: 1, life: 11, speed: 1.65, motion: 'drift', accent: 'ghost' },
-  treasure_fairy: { name: 'Treasure Fairy', artIndex: 13, sprite: 'cultist', arch: 'cultist', fly: true, w: 1, life: 10, speed: 2.1, motion: 'flutter', accent: 'wings' },
+  treasure_fairy: { name: 'Treasure Fairy', artIndex: 13, facesRight: true, sprite: 'cultist', arch: 'cultist', fly: true, w: 1, life: 10, speed: 2.1, motion: 'flutter', accent: 'wings' },
 });
 const KEYS = Object.keys(CRITTERS);
 
@@ -204,7 +205,7 @@ class Critter {
     const tier = rollCritterTier();
     const K = { ...CRITTERS[key], tier, color: TIER_COLORS[tier] || TIER_COLORS[0] };
     Object.assign(this, { world, key, K, tier, reward: critterReward(key), x, y, originX: x, originY: y,
-      z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), turn: 0, ph: rand(TAU),
+      z: K.fly ? rand(38, 58) : 0, t: 0, life: K.life, a: rand(TAU), facingAngle: 0, facingRight: K.facesRight ?? true, turn: 0, ph: rand(TAU),
       caught: false, gone: false, tutorial: false, tutorialRendered: false, layer: 'top' });
   }
   get alive() { return !this.caught && !this.gone && this.t < this.life; }
@@ -247,8 +248,12 @@ class Critter {
     if (motion === 'dart' || motion === 'zigzag') burst = Math.sin(this.t * 3.3 + this.ph) > 0.35 ? 1.7 : 0.55;
     if (motion === 'skitter' || motion === 'scuttle') burst = Math.sin(this.t * 11 + this.ph) > 0 ? 1.45 : 0.72;
     const s = K.speed * burst * (K.fly ? 1 : 0.6 + 0.4 * Math.abs(Math.sin(this.t * 7)));
+    const fromX = this.x, fromY = this.y;
     const nx = this.x + Math.cos(this.a) * s * dt, ny = this.y + Math.sin(this.a) * s * dt;
-    if (m.walkable(nx, ny)) { this.x = nx; this.y = ny; }
+    if (m.walkable(nx, ny)) {
+      this.x = nx; this.y = ny;
+      updateCritterFacing(this, fromX, fromY, this.x, this.y, dt);
+    }
     else { this.a += Math.PI * rand(0.6, 1.4); this.turn = 0.3; this.bump = 0.5; }
     if (K.fly) {
       const bob = motion === 'swoop' ? Math.sin(this.t * 2.2 + this.ph) * 27 :
@@ -309,6 +314,10 @@ class Critter {
       ctx.beginPath(); ctx.ellipse(px, py, size * 0.23, size * 0.09, 0, 0, TAU); ctx.fill();
     }
     ctx.globalAlpha = fade;
+    if (shouldFlipCritterSprite(this.facingRight, K.facesRight ?? true)) {
+      ctx.translate(px * 2, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(tinted, px - size / 2, y - size / 2, size, size);
     ctx.restore();
   }
@@ -322,6 +331,10 @@ class Critter {
     });
     ctx.save();
     ctx.globalAlpha = fade;
+    if (shouldFlipCritterSprite(this.facingRight, K.facesRight ?? true)) {
+      ctx.translate(px * 2, 0);
+      ctx.scale(-1, 1);
+    }
     // Species cues sit behind or over their reused creature sprites; all remain small pixel silhouettes.
     if (K.accent === 'wings') {
       ctx.globalAlpha = fade * (0.45 + 0.25 * Math.abs(Math.sin(this.t * 15)));
@@ -365,7 +378,7 @@ class Critter {
   /** The existing baked models tinted to the critter's actual gear-tier colour. */
   drawModel(ctx, px, py, fade) {
     const K = this.K, M = ART.meta, s = M.sets[K.artKey], t = this.t, cs = M.cell, w = cs / M.S * 0.8;
-    const d = s.dirs > 1 ? ((Math.round(this.a / (TAU / s.dirs)) % s.dirs) + s.dirs) % s.dirs : 0;
+    const d = s.dirs > 1 ? ((Math.round(this.facingAngle / (TAU / s.dirs)) % s.dirs) + s.dirs) % s.dirs : 0;
     const i = s.at + d * s.frames + Math.floor(t * (K.artKey === 'moth' ? 16 : K.artKey === 'scarab' ? 14 : 10) + this.ph * 3) % s.frames;
     const cy = K.fly ? py - this.z : py - 6;
     if (K.fly) { ctx.globalAlpha = fade * 0.3; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(px, py, 9, 4.5, 0, 0, TAU); ctx.fill(); }
