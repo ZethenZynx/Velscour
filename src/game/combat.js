@@ -5,7 +5,7 @@ import { rand, chance, clamp, angleTo, TAU, mixHex, pick } from '../core/util.js
 import { camera } from '../core/view.js';
 import { sfx } from '../core/audio.js';
 import { petCorpse } from '../core/petart.js';
-import { floatText, damageText, bloodSpray, gibs, addDecal, addEffect, Bolt, elem, spawn, burst, AffixFieldMarker } from '../gfx/vfx.js';
+import { floatText, damageText, bloodSpray, gibs, addDecal, addEffect, Bolt, Ring, elem, spawn, burst, AffixFieldMarker } from '../gfx/vfx.js';
 import { Meter } from './dpsmeter.js';
 import { explosionFx, hitSpark } from '../gfx/shapes.js';
 import { GORE } from '../data/enemies.js';

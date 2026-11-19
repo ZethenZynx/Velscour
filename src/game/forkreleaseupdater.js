@@ -21,7 +21,14 @@ export async function checkForForkRelease({ force = false } = {}) {
         cache: 'no-store',
         ...(controller ? { signal: controller.signal } : {}),
       });
-      if (response.status === 404) return { status: 'no-release', installedVersion: GAME_VERSION };
+      if (response.status === 404) {
+        // GitHub's latest-release endpoint returns 404 when this public fork has
+        // no published release. Cache that normal state to avoid querying it on
+        // every title-screen visit.
+        cached = { status: 'no-release', installedVersion: GAME_VERSION };
+        checkedAt = Date.now();
+        return cached;
+      }
       if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
       const data = await response.json();
       const state = getReleaseUpdateState(data, GAME_VERSION);

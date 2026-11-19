@@ -49,6 +49,19 @@ try {
   assert.equal(available.status, 'available');
   assert.equal(available.release.archive.sha256, digest);
 
+  let missingReleaseRequests = 0;
+  globalThis.fetch = async (url) => {
+    requestedUrl = String(url);
+    missingReleaseRequests++;
+    return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  };
+  const noRelease = await checkForForkRelease({ force: true });
+  assert.equal(noRelease.status, 'no-release', 'a missing latest release is a normal no-release state');
+  assert.equal(requestedUrl, FORK_RELEASES_API, '404 handling stays on this fork\'s release endpoint');
+  const cachedNoRelease = await checkForForkRelease();
+  assert.equal(cachedNoRelease.status, 'no-release');
+  assert.equal(missingReleaseRequests, 1, 'a missing release is cached across automatic title-screen checks');
+
   globalThis.fetch = async () => new Response('offline', { status: 503 });
   const failed = await checkForForkRelease({ force: true });
   assert.equal(failed.status, 'offline');
