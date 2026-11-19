@@ -372,7 +372,8 @@ function drawChest(ctx, c) {
   if (c.draw) return c.draw(ctx, x, y); // bespoke shrine/remains art (game/happenings.js)
   // Overworld and special-map tilesets may not include a biome chest atlas. Reuse the
   // game's shared painted chest sheet there instead of drawing the pink-edged box fallback.
-  const variant = A.chestVariants.length ? A.chestVariants[chestVariantIndex(c)] : null;
+  const variant = (c.townStorageChest && A.townStorageChests[c.townStorageChest])
+    || (A.chestVariants.length ? A.chestVariants[chestVariantIndex(c)] : null);
   const art = variant ? null : G.world?.tileset?.chest || chestArtFallback();
   const closed = variant ? variant.closed : art && (c.rare ? art.rareClosed : art.closed);
   const s = variant ? (c.opened ? variant.open : variant.closed)

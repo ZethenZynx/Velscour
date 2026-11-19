@@ -3,20 +3,21 @@ import fs from 'node:fs';
 import { TOWN_STORAGE_CHEST_ART, townStorageChestArtFor } from '../../src/data/town-storage-chests.js';
 
 const expected = [
-  ['storage', 2, '#d8aa4b'],
-  ['reliquary', 19, '#ffd070'],
-  ['jewelBox', 10, '#b850ff'],
+  ['storage', 'storage', '#d8aa4b'],
+  ['reliquary', 'reliquary', '#ffd070'],
+  ['jewelBox', 'jewel-box', '#b850ff'],
 ];
 
-for (const [key, variantNumber, glow] of expected) {
+for (const [key, artName, glow] of expected) {
   const art = TOWN_STORAGE_CHEST_ART[key];
-  assert.equal(art.chestVariant, variantNumber - 1, `${key} selects chest-${String(variantNumber).padStart(2, '0')}`);
+  assert.equal(art.townStorageChest, artName, `${key} selects its supplied reference design`);
   assert.equal(art.glow, glow, `${key} keeps its matching visual glow`);
 
   const pair = ['closed', 'open'].map((state) => {
-    const file = `assets/props/chest-variants/chest-${String(variantNumber).padStart(2, '0')}-${state}.png`;
+    const file = `assets/props/town-storage-chests/${artName}-${state}.png`;
     const png = fs.readFileSync(file);
     assert.equal(png.toString('ascii', 1, 4), 'PNG', `${file} is a PNG sprite`);
+    assert.equal(png[25], 6, `${file} preserves RGBA transparency`);
     return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
   });
   assert(pair.every(({ width, height }) => width > 0 && height > 0), `${key} has both sprite states`);
@@ -28,4 +29,4 @@ assert.equal(townStorageChestArtFor({ stash: true }), TOWN_STORAGE_CHEST_ART.sto
 assert.equal(townStorageChestArtFor({ stash: true, reliquary: true }), TOWN_STORAGE_CHEST_ART.reliquary, 'Reliquary uses its carved stone pair');
 assert.equal(townStorageChestArtFor({ stash: true, jewelBox: true }), TOWN_STORAGE_CHEST_ART.jewelBox, 'Jewel Box uses its amethyst pair');
 
-console.log('PASS: town storage, Reliquary, and Jewel Box use matching existing paired chest artwork.');
+console.log('PASS: all town containers select their matching transparent reference-art pairs.');

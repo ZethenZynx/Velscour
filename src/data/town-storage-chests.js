@@ -1,9 +1,9 @@
-// Existing paired artwork from assets/props/chest-variants (zero-based indices).
-// The shared renderer keeps each closed/open pair on the same ground anchor.
+// Extracted, transparent closed/open pairs from the user's Fantasy RPG Chest Collection reference.
+// The shared renderer keeps each closed/open pair on the same ground anchor. Dungeon chest variants are untouched.
 export const TOWN_STORAGE_CHEST_ART = Object.freeze({
-  storage: Object.freeze({ chestVariant: 1, chestType: 'standard', glow: '#d8aa4b' }), // chest-02: blue and gold
-  reliquary: Object.freeze({ chestVariant: 18, chestType: 'jeweled', glow: '#ffd070' }), // chest-19: carved stone guardian
-  jewelBox: Object.freeze({ chestVariant: 9, chestType: 'jeweled', glow: '#b850ff' }), // chest-10: amethyst and gold
+  storage: Object.freeze({ townStorageChest: 'storage', glow: '#d8aa4b' }), // blue panels, gold reinforcement, star emblem
+  reliquary: Object.freeze({ townStorageChest: 'reliquary', glow: '#ffd070' }), // ivory stone, gold trim, guardian figures
+  jewelBox: Object.freeze({ townStorageChest: 'jewel-box', glow: '#b850ff' }), // purple finish, gold filigree, gemstones
 });
 
 export function townStorageChestArtFor(npc) {
