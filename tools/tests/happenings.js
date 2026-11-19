@@ -70,6 +70,14 @@ const { openGame, report } = require('./harness');
     return w.chests.filter((c) => c.label).length;
   });
   ok(placed === 9, `placed 7 shrines + remains + cursed chest (${placed})`);
+  const cursedArt = await page.evaluate(async () => {
+    const { A } = await import('/src/core/assets.js');
+    const c = window.__cursed, pair = c && A.chestVariants[c.chestVariant];
+    return { type: c && c.chestType, variant: c && c.chestVariant, closed: !!pair?.closed?.img?.naturalWidth, open: !!pair?.open?.img?.naturalWidth, overlay: typeof c?.drawOverlay };
+  });
+  ok(cursedArt.type === 'cursed' && cursedArt.variant === 5, 'cursed chest selects the existing red rune chest variant 06');
+  ok(cursedArt.closed && cursedArt.open, 'cursed chest closed and opened artwork pair is loaded');
+  ok(cursedArt.overlay === 'function', 'cursed chest keeps its ambient visual effect overlay');
   await run(1); await shot('happen_interactables');
   // monsters take a few seconds each: 200 s to get round the level
   for (let i = 0; i < 20; i++) { await run(10); if (process.env.TRACE) console.log('   trace', await page.evaluate(async () => { const { Auto } = await import('/tools/tests/auto_player.js'); const G = window.VELSCOUR.G; return G.world.kind + ' D' + G.world.depth + ' ' + Auto.status + ' hp ' + Math.round(G.player.hp) + ' boss ' + (G.world.boss && G.world.boss.dead); })); }

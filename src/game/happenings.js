@@ -226,19 +226,11 @@ export function addCache(world, [x, y]) {
 export function addCursed(world, [x, y]) {
   const depth = world.depth;
   const ch = {
-    x, y, opened: false, reach: 1.4, far: 30, label: 'Cursed Chest', dot: '#ff3060', labelColor: '#d4b8df', labelHeight: 66, waves: 0, waveT: 0, done: false,
-    draw(ctx, sx, sy) {
-      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(sx, sy, 17, 7, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#3a1020'; ctx.beginPath(); ctx.moveTo(sx - 15, sy - 4); ctx.lineTo(sx, sy + 3); ctx.lineTo(sx + 15, sy - 4); ctx.lineTo(sx + 15, sy - 17); ctx.lineTo(sx, sy - 24); ctx.lineTo(sx - 15, sy - 17); ctx.fill();
-      ctx.strokeStyle = '#ff4070'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sx - 15, sy - 11); ctx.lineTo(sx, sy - 4); ctx.lineTo(sx + 15, sy - 11); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(sx, sy + 3); ctx.lineTo(sx, sy - 10); ctx.stroke();
-      if (!this.done) {
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(G.time * 4) * 0.2;
-        ctx.drawImage(glowSprite('#ff2050'), sx - 30, sy - 46, 60, 52);
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-        if (chance(0.15)) spawn({ type: 'glow', x: this.x + rand(-0.4, 0.4), y: this.y + rand(-0.4, 0.4), z: rand(10, 30), vz: rand(20, 50), life: 0.6, size: 3, size1: 0, color: '#ff3060', add: true });
-      }
+    x, y, opened: false, reach: 1.4, far: 30, label: 'Cursed Chest', dot: '#ff3060', labelColor: '#d4b8df', labelHeight: 66,
+    chestType: 'cursed', chestVariant: 5, glow: '#ff2050', tint: '#e32e45', glowWhileOpen: true,
+    waves: 0, waveT: 0, done: false,
+    drawOverlay() {
+      if (!this.done && chance(0.15)) spawn({ type: 'glow', x: this.x + rand(-0.4, 0.4), y: this.y + rand(-0.4, 0.4), z: rand(10, 30), vz: rand(20, 50), life: 0.6, size: 3, size1: 0, color: '#ff3060', add: true });
     },
     use() {
       if (this.opened) return;
