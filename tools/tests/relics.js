@@ -25,15 +25,48 @@ const { openGame, report } = require('./harness');
     const out = { bad: [] };
     for (const h of R.HEIRLOOMS) { if (!R.POWERS[h.power]) out.bad.push(h.id); for (const [s] of h.lines) if (!I.AFFIX_BY_STAT[s]) out.bad.push(h.id + ':' + s); }
     for (const g of R.GLYPHWORDS) for (const sl of g.slots) if (I.HOLLOW[sl] < g.sig.length) out.bad.push(g.id);
-    // drop odds over 200k level-150 drops
+    // Tier gate and the generated item quality use the live depth progression (not the item's level).
+    const savedWorld = G.world, savedRandom = Math.random;
+    G.world = { depth: 455 };
+    const locked = R.makeCovenant(70, { pieceId: 'templar_wpn' }) === null;
+    Math.random = () => 0;
+    const lockedDrop = R.maybeRelic(I.rollItem(70, { slot: 'weapon', rarity: 2, base: 'mace', generic: true }));
+    G.world = { depth: 456 };
+    const weapon = R.makeCovenant(70, { pieceId: 'templar_wpn' });
+    const expectedPl = I.powerLevel(70, I.RARITY_TIER_20);
+    const expectedAvg = (6 + expectedPl * 1.8 + 0.022 * expectedPl * expectedPl) * I.WEAPONS.mace.dmg;
+    const unlockedDrop = R.maybeRelic(I.rollItem(70, { slot: 'weapon', rarity: 2, base: 'mace', generic: true }));
+    const old = R.makeCovenant(70, { pieceId: 'templar_head', preview: true });
+    old.rarity = 3; old.uid = 'legacy-set-uid'; old.upg = 4; old.sockets = 1; old.maxSockets = 3; old.gems = [{ gem: 'ruby', tier: 2 }];
+    const migrated = R.migrateCovenantItem(old);
+    const { migrate: migrateSave } = await import('/src/game/save.js');
+    const saveFixture = JSON.parse(JSON.stringify(c));
+    const saveItem = R.makeCovenant(70, { pieceId: 'templar_head', preview: true });
+    saveItem.rarity = 3; saveItem.uid = 'save-set-uid'; saveItem.upg = 2; saveItem.sockets = 1; saveItem.gems = [{ gem: 'ruby', tier: 1 }];
+    saveFixture.bag[0] = saveItem; saveFixture.covenantTier20V1 = false;
+    migrateSave(saveFixture);
+    const saveMigration = saveFixture.bag.some((it) => it?.uid === 'save-set-uid' && it.rarity === I.RARITY_TIER_20 && it.upg === 2 && it.gems?.[0]?.gem === 'ruby');
+    const Q = await import('/src/game/reliquary.js');
+    const vaultItem = R.makeCovenant(70, { pieceId: 'templar_head', preview: true });
+    vaultItem.rarity = 3; vaultItem.uid = 'vault-set-uid';
+    const vaultData = { tabs: [Array.from({ length: 96 }, (_, i) => i === 0 ? vaultItem : null)], codex: {}, lines: 0 };
+    localStorage.setItem('velscour_reliquary_v1', JSON.stringify(vaultData)); Q.resetReliquaryCache();
+    const vaultMigration = Q.reliquary().tabs[0][0]?.uid === 'vault-set-uid' && Q.reliquary().tabs[0][0]?.rarity === I.RARITY_TIER_20;
+    const migration = { ok: migrated && old.rarity === I.RARITY_TIER_20 && old.uid === 'legacy-set-uid' && old.upg === 4 && old.gems.length === 1 && old.gems[0].gem === 'ruby' && old.rid === 'templar_head' && saveMigration && vaultMigration };
+    G.world = savedWorld; Math.random = savedRandom;
+    out.tier = { locked, lockedDrop: lockedDrop.relic !== 'cov', generated: weapon?.rarity === I.RARITY_TIER_20, weaponBase: !!weapon && weapon.dmg[0] === Math.round(expectedAvg * 0.8) && weapon.dmg[1] === Math.round(expectedAvg * 1.2), unlockedDrop: unlockedDrop.relic === 'cov' && unlockedDrop.rarity === I.RARITY_TIER_20, migration };
+    // drop odds over 200k level-150 drops at the newly eligible depth
+    G.world = { depth: 456 };
     let heir = 0, cov = 0, myth = 0;
     for (let i = 0; i < 200000; i++) { const it = R.maybeRelic(I.rollItem(150)); if (it.relic === 'heir') heir++; else if (it.relic === 'cov') cov++; else if (it.rarity === 5) myth++; }
     out.odds = { heir: heir / 2000, cov: cov / 2000, myth: myth / 2000 };
+    G.world = savedWorld;
     p.recompute();
     return out;
   });
   console.log(JSON.stringify(d.odds));
   check(!d.bad.length, `relic data consistent ${d.bad.join(',')}`);
+  check(Object.values(d.tier).every(Boolean), `Covenants unlock only at depth 456, use Tier 20 stats, and migrate without losing item identity or gems`);
   check(d.odds.heir > 0.02 && d.odds.heir < 0.6, `Heirlooms are rare (${d.odds.heir.toFixed(3)}% of drops)`);
   check(d.odds.cov > d.odds.heir, `Covenant pieces are commoner than Heirlooms (${d.odds.cov.toFixed(3)}%)`);
   // ---- 3: live Glyphword, procs, Codex, Reliquary
@@ -62,7 +95,7 @@ const { openGame, report } = require('./harness');
     // pry the stones out: plain again
     const g = staff.gems; staff.gems = []; out.plain = I.itemName(staff) !== 'Starfall'; staff.gems = g;
     // a full Templar set: bonuses and the Pyre power
-    for (const q of R.COVENANTS[0].pieces) { const it = R.makeCovenant(110, { pieceId: q.id }); it.req = 1; c.equip[q.slot] = it; Q.noteFind(it); }
+    for (const q of R.COVENANTS[0].pieces) { const it = R.makeCovenant(110, { pieceId: q.id, preview: true }); it.req = 1; c.equip[q.slot] = it; Q.noteFind(it); }
     p.recompute();
     out.setProcs = p.st.procs.map((x) => x.name);
     out.reduce = p.st.reduce;

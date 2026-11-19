@@ -32,6 +32,9 @@ export const RARITY = [
   { id: 19, name: 'Tier 20', color: '#ffd700', weight: 0.012, lv: 16, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 456, value: 250, dropGroup: 'mythic' }
 ];
 export const ABYSSAL = RARITY.length - 1;
+/** Set equipment uses the final quality band and follows its existing depth unlock. */
+export const RARITY_TIER_20 = RARITY.length - 1;
+export const TIER_20_MIN_DEPTH = RARITY[RARITY_TIER_20].minDepth;
 /** Highest quality available at a campaign depth. */
 export function qualityAtDepth(depth) {
   let cap = 0;

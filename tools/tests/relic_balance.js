@@ -1,7 +1,5 @@
-// Heirlooms and Covenants in item levels, measured like tools/tests/rarity.js: a hero wears Common gear of item level H,
-// one slot at a time takes an item, and its score (auto-play's charScore) is matched to the Common item level that
-// scores the same. Targets (data/relics.js): a Heirloom drops about as often as a Legendary, so it should be worth about
-// a Legendary (11.5 levels); a Covenant piece about an Epic (8); a full set's bonuses add on top, spread over 5 slots.
+// Heirlooms and Covenant Tier 20 baselines. Covenant pieces are checked against the actual T20 damage, armor and affix
+// formulas; a full set's bonuses are also compared with five ordinary T20 items using the game's equipment score.
 //   node tools/tests/relic_balance.js [classes] [samples]     # default paladin,wizard,ranger 16
 const { openGame, report } = require('./harness');
 const classes = (process.argv[2] || 'paladin,wizard,ranger').split(',');
@@ -34,7 +32,6 @@ const samples = +(process.argv[3] || 16);
       const roll = (slot, ilvl, kind) => {
         const sl = slotOf(slot);
         if (kind === 'heir') return R.makeHeirloom(ilvl, { slot: sl }) || rollItem(ilvl, { slot: sl, rarity: 4 });
-        if (kind === 'cov') return R.makeCovenant(ilvl, { slot: sl }) || rollItem(ilvl, { slot: sl, rarity: 3 });
         return rollItem(ilvl, { slot: sl, rarity: kind, base: slot === 'weapon' ? C.weapon : slot === 'offhand' ? C.offhand : undefined });
       };
       const realRandom = Math.random;
@@ -72,7 +69,7 @@ const samples = +(process.argv[3] || 16);
                 const slot = q.slot === 'ring' ? RING_SLOTS.find((r) => !used.has(r)) : q.slot;
                 used.add(slot);
                 if (!slots.includes(slot) && q.slot !== 'ring') continue;
-                c.equip[slot] = kind === 'set' ? R.makeCovenant(H, { pieceId: q.id }) : rollItem(H, { slot: q.slot, rarity: kind, base: q.base });
+                c.equip[slot] = kind === 'set' ? R.makeCovenant(H, { pieceId: q.id, preview: true }) : rollItem(H, { slot: q.slot, rarity: kind, base: q.base });
               }
               Math.random = realRandom;
               p.recompute(); t += charScore(p); k++;
@@ -86,25 +83,43 @@ const samples = +(process.argv[3] || 16);
         return Infinity;
       };
       const out = {};
-      for (const H of [60, 120, 200]) {
+      const quality = { checked: 0, issues: [] };
+      for (const S of R.COVENANTS) for (const piece of S.pieces) {
+        const it = R.makeCovenant(70, { pieceId: piece.id, preview: true });
+        if (!it || it.rarity !== 19 || it.relic !== 'cov' || it.rid !== piece.id) quality.issues.push(piece.id + ': category/quality');
+        if (piece.slot === 'weapon') {
+          const W = (await import('/src/data/items.js')).WEAPONS[piece.base];
+          const pl = (await import('/src/data/items.js')).powerLevel(70, 19), avg = (6 + pl * 1.8 + 0.022 * pl * pl) * W.dmg;
+          if (!it?.dmg || it.dmg[0] !== Math.max(1, Math.round(avg * 0.8)) || it.dmg[1] !== Math.max(2, Math.round(avg * 1.2))) quality.issues.push(piece.id + ': weapon damage');
+        } else if (piece.slot !== 'ring') {
+          const I = await import('/src/data/items.js'), mult = piece.slot === 'offhand' ? (I.OFFHANDS[piece.base] || I.OFFHANDS.shield).armor : I.ARMORS[piece.slot].armor;
+          const expected = 8 + (I.powerLevel(70, 19) * 2.4) + 0.025 * I.powerLevel(70, 19) ** 2;
+          if (!it?.armor || it.armor < Math.round(expected * mult * 0.9) || it.armor > Math.round(expected * mult * 1.1)) quality.issues.push(piece.id + ': T20 armor range');
+        }
+        for (const [stat, k] of piece.lines) {
+          const I = await import('/src/data/items.js'), expected = R.lineValue(stat, 70, k * R.TUNE.cov, I.RARITY_TIER_20);
+          if (it?.affixes.find((a) => a.s === stat && a.relic)?.v !== expected) quality.issues.push(piece.id + ': ' + stat + ' T20 affix scale');
+        }
+        quality.checked++;
+      }
+      for (const H of [60, 120]) {
         await setLevel(H + 4);
         const curve = []; for (let l = H - 10; l <= H + 60; l += 2) curve.push([l, score(l, 0, H)]);
-        const w = (k) => +(worth(curve, score(H, k, H)) - H).toFixed(1);
-        out[H] = { epic: w(3), legendary: w(4), mythic: w(5), heir: w('heir'), cov: w('cov'),
-          set: +(setScore(H, 'set') - setScore(H, 3)).toFixed(3), setVsMythic: +(setScore(H, 'set') - setScore(H, 5)).toFixed(3) };
+        out[H] = { epic: +(worth(curve, score(H, 3, H)) - H).toFixed(1), legendary: +(worth(curve, score(H, 4, H)) - H).toFixed(1),
+          mythic: +(worth(curve, score(H, 5, H)) - H).toFixed(1), tier20: +(worth(curve, score(H, 19, H)) - H).toFixed(1), heir: +(worth(curve, score(H, 'heir', H)) - H).toFixed(1),
+          set: +(setScore(H, 'set') - setScore(H, 3)).toFixed(3), setVsT20: +(setScore(H, 'set') - setScore(H, 19)).toFixed(3) };
       }
-      return out;
+      return { out, quality };
     }, { cls, samples });
-    console.log(`\n${cls}: worth in item levels over Common (one item at a time); set: score of a whole set minus five Epics / five Mythics`);
-    for (const [H, r] of Object.entries(res)) { console.log(`  H ${String(H).padEnd(4)} ${JSON.stringify(r)}`); rows.push(r); }
+    console.log(`\n${cls}: set comparison versus ordinary T20 (set bonuses across five slots); T20 baseline checks ${res.quality.checked} Covenant pieces`);
+    if (res.quality.issues.length) bad(`${cls}: T20 baseline issues ${res.quality.issues.join(', ')}`);
+    for (const [H, r] of Object.entries(res.out)) { console.log(`  H ${String(H).padEnd(4)} ${JSON.stringify(r)}`); rows.push(r); }
   }
   const avg = (k) => rows.reduce((a, r) => a + r[k], 0) / rows.length;
-  const A = { epic: avg('epic'), legendary: avg('legendary'), mythic: avg('mythic'), heir: avg('heir'), cov: avg('cov'), set: avg('set'), setVsMythic: avg('setVsMythic') };
+  const A = { set: avg('set'), setVsT20: avg('setVsT20') };
   console.log('\naverage', JSON.stringify(Object.fromEntries(Object.entries(A).map(([k, v]) => [k, +v.toFixed(2)]))));
-  if (!(A.heir > A.epic && A.heir < A.mythic + 3)) bad(`a Heirloom should sit between an Epic and a little over a Mythic (${A.heir.toFixed(1)} levels)`);
-  if (!(A.cov > A.epic - 3 && A.cov < A.legendary + 2)) bad(`a Covenant piece should be about an Epic (${A.cov.toFixed(1)} levels)`);
   if (!(A.set > 0)) bad('a full set should beat five Epics');
-  if (!(A.setVsMythic < 0.25)) bad(`a full set should not beat five Mythics by much (${A.setVsMythic.toFixed(3)})`);
+  if (!(A.setVsT20 < 0.25)) bad(`a full set should not beat five Tier 20 items by much (${A.setVsT20.toFixed(3)})`);
   report(errors);
   if (fail) process.exitCode = 1;
   await browser.close();

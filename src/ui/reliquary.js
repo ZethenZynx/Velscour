@@ -21,7 +21,7 @@ const icons = new Map();
 function entryIcon(e) {
   let u = icons.get(e.key);
   if (u) return u;
-  const it = e.kind === 'h' ? makeHeirloom(100, { id: e.key.slice(2) }) : e.kind === 'c' ? makeCovenant(100, { pieceId: e.key.slice(2) }) : e.kind === 's' ? makeGem('sig', e.rank) : null;
+  const it = e.kind === 'h' ? makeHeirloom(100, { id: e.key.slice(2) }) : e.kind === 'c' ? makeCovenant(100, { pieceId: e.key.slice(2), preview: true }) : e.kind === 's' ? makeGem('sig', e.rank) : null;
   u = it ? itemIconURL(it) : null;
   icons.set(e.key, u);
   return u;
