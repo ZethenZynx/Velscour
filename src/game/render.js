@@ -29,6 +29,7 @@ import { heresyRankOf } from './heresies.js';
 import { addLight } from '../gfx/vfx.js';
 import { drawTerrain, drawColumn, occludersFor, occludersOfRect, occluderObj, clipAdd, hiddenBehind, standKey, hopZ, drawSky, terrainShade, HS } from '../gfx/terrain.js';
 import { hopArc } from './alpine.js';
+import { townStorageChestArtFor } from '../data/town-storage-chests.js';
 
 let lightCanvas = null, glowCanvas = null, vignette = null, vigKey = '';
 const transitionSprites = new Map();
@@ -614,7 +615,9 @@ function drawNpc(ctx, n) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(G.time * 2.3 + 1.1) * 0.12;
       ctx.drawImage(glowSprite('#b850ff'), x - 40, y - 46, 80, 64); ctx.restore();
     }
-    drawChest(ctx, { x: n.x, y: n.y, rare: true, chestType: n.reliquary || n.jewelBox ? 'jeweled' : 'standard', opened: !!(n.reliquary ? G.ui.reliquary && G.ui.reliquary.active : n.jewelBox ? G.ui.jewelBox && G.ui.jewelBox.active : G.ui.stash && G.ui.stash.active) });
+    const chestArt = townStorageChestArtFor(n);
+    drawChest(ctx, { x: n.x, y: n.y, rare: true, ...chestArt,
+      opened: !!(n.reliquary ? G.ui.reliquary && G.ui.reliquary.active : n.jewelBox ? G.ui.jewelBox && G.ui.jewelBox.active : G.ui.stash && G.ui.stash.active) });
     n.sbox = [x - 24, y - 40, x + 24, y + 6];
     return;
   }
