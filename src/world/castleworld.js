@@ -680,6 +680,18 @@ export function generateCastle(depth,biome,seed,variant=null){
   }
   const bossArch=rng.pick(biome.roster);
   spawns.push({x:bossPoint[0],y:bossPoint[1],arch:bossArch,n:1,rank:'boss',look:looks.pick(bossArch),name:'Castle Guardian'});
+  // Add a moderate set of ordinary patrols to fill the Castle's broad quiet stretches. Use a separate seeded
+  // stream so the original patrols, side objectives, and layout dressing keep their existing placements and rolls.
+  const CASTLE_DENSITY_PACKS=22,densityRng=new RNG(((seed>>>0)^0x43c4571)>>>0),densityLooks=rollLooks(biome,densityRng.fn());
+  let densityPacks=0;
+  for(const spacing of [9,7])for(let tries=0;tries<CASTLE_DENSITY_PACKS*250&&densityPacks<CASTLE_DENSITY_PACKS;tries++){
+    const x=densityRng.int(10,W-11)+.5,y=densityRng.int(10,H-11)+.5;
+    if(!ok([x,y])||dist(x,y,ENTRY)<20||dist(x,y,bossPoint)<24||mat[I(x|0,y|0)]===MAT.hall
+      ||spawns.some(s=>Math.hypot(s.x-x,s.y-y)<spacing))continue;
+    const arch=densityRng.pick(biome.roster);
+    spawns.push({x,y,arch,n:densityRng.int(2,4),rank:'normal',look:densityLooks.pick(arch),castleDensityBonus:true});
+    densityPacks++;
+  }
   const chests=[[rooms[0].tiles[0]+5.5,rooms[0].tiles[1]+12.5],[rooms[1].tiles[2]-4.5,rooms[1].tiles[1]+5.5],[rooms[2].tiles[0]+4.5,rooms[2].tiles[3]-3.5],
     GY?[GY[0]+8,GY[1]+6]:place.graveyardS,RW?[RW[0]+5,RW[1]+3]:place.ruin,[SG[0]+16,SG[1]+12]].map(([x,y],j)=>{const [px,py]=near([x,y],3);return {x:px,y:py,rare:j===0||rng.chance(.2)};});
   const exit=near([bossPoint[0]+4,bossPoint[1]+3],4);
