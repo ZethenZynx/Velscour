@@ -852,7 +852,7 @@ export const POTION_INFO = {
   hp: 'Restores 45% Life over 2 seconds.',
   mp: 'Restores 50% Mana over 2 seconds.',
   rejuv: 'Instantly restores 35% Life and Mana.',
-  fury: '+30% Attack and Cast Speed, +18% Movement Speed, and +15% Cooldown Reduction for 15 seconds.',
+  fury: '+30% Attack and Cast Speed, +18% Movement Speed, +15% Cooldown Reduction, and +10 percentage points of critical-hit chance for 15 seconds. Critical-hit chance is capped at 75%; excess converts to critical damage.',
 };
 
 export const BANNER_KIT_PRICE = 75;

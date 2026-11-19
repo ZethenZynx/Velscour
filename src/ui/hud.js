@@ -7,6 +7,7 @@ import { A, potionIcon } from '../core/assets.js';
 import { UI, $, droppable } from './ui.js';
 import { skillIconURL, smiteIcon, madnessIcon, ultimateIcon } from './icons.js';
 import { CLASSES } from '../data/classes.js';
+import { POTION_INFO } from '../data/items.js';
 import { SKILLS, effLevel, manaCost, rageCost, whirlwindRageCost, cooldown, CLASS_SKILLS } from '../data/skills.js';
 import { xpToNext } from '../game/player.js';
 import { drawMinimap } from '../game/render.js';
@@ -858,7 +859,7 @@ export const HUD = {
 };
 
 function slotTip(map) {
-  if (typeof map === 'string') return `<b>${{ hp: 'Healing Potion', mp: 'Mana Potion', rejuv: 'Rejuvenation Potion', fury: 'Elixir of Fury' }[map]}</b><div class="dim">Key ${{ hp: 'Z', mp: 'X', rejuv: 'R', fury: 'V' }[map]} · Buy more from the Alchemist</div>`;
+  if (typeof map === 'string') return `<b>${{ hp: 'Healing Potion', mp: 'Mana Potion', rejuv: 'Rejuvenation Potion', fury: 'Elixir of Fury' }[map]}</b><div class="dim">Key ${{ hp: 'Z', mp: 'X', rejuv: 'R', fury: 'V' }[map]} · Buy more from the Alchemist</div>${map === 'fury' ? `<div class="dim">${POTION_INFO.fury}</div>` : ''}`;
   const id = G.char.bar[map];
   if (!id) return `<b>Empty slot [${SLOT_LABELS[map]}]</b><div class="dim">Click to choose a skill, or drag one here from the Skill Book (B).</div>`;
   const sk = SKILLS[id];
