@@ -18,10 +18,33 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const start = [12.5, 179.5], boss = [179.5, 12.5], exit = [185.5, 11.5];
   const dx = boss[0] - start[0], dy = boss[1] - start[1], denom = dx * dx + dy * dy;
   const routeLength = Math.hypot(dx, dy), sideX = -dy / routeLength, sideY = dx / routeLength;
-  const routePoint = (t, offset = 0) => [start[0] + dx * t + sideX * offset, start[1] + dy * t + sideY * offset];
+  // Keep the entrance and guardian approaches straight; seeded, eased offsets make only the
+  // middle of the trail wander gently across the forest without turning it into a zigzag.
+  const routeRng = new RNG((seed ^ 0x9e3779b9) >>> 0);
+  const bendCount = routeRng.int(3, 5), routeBends = [{ t: 0, offset: 0 }, { t: 0.2, offset: 0 }];
+  for (let i = 0; i < bendCount; i++) {
+    const t = 0.28 + i * (0.44 / Math.max(1, bendCount - 1)) + routeRng.range(-0.035, 0.035);
+    const choices = i === 0 || i === bendCount - 1 ? [-6, -4, 4, 6] : [-6, -4, 0, 0, 4, 6];
+    routeBends.push({ t, offset: routeRng.pick(choices) });
+  }
+  routeBends.push({ t: 0.82, offset: 0 }, { t: 1, offset: 0 });
+  routeBends.sort((a, b) => a.t - b.t);
+  const routeOffset = (t) => {
+    t = clamp(t, 0, 1);
+    let i = 1;
+    while (i < routeBends.length - 1 && routeBends[i].t < t) i++;
+    const a = routeBends[i - 1], b = routeBends[i], u = clamp((t - a.t) / (b.t - a.t), 0, 1);
+    const eased = (1 - Math.cos(Math.PI * u)) * 0.5;
+    return a.offset + (b.offset - a.offset) * eased;
+  };
+  const routePoint = (t, offset = 0) => {
+    const bend = routeOffset(t) + offset;
+    return [start[0] + dx * t + sideX * bend, start[1] + dy * t + sideY * bend];
+  };
   const distToRoute = (x, y) => {
     const t = clamp(((x - start[0]) * dx + (y - start[1]) * dy) / denom, 0, 1);
-    return Math.hypot(x - start[0] - t * dx, y - start[1] - t * dy);
+    const [rx, ry] = routePoint(t);
+    return Math.hypot(x - rx, y - ry);
   };
   const floors = new Map(tileset.floors.map((f, i) => [f.name, i]));
   const floor = (name) => floors.get(name) ?? 0;
@@ -130,7 +153,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
 
   const chests = [];
   for (const t of [0.3, 0.68]) {
-    const x = start[0] + dx * t + 6, y = start[1] + dy * t - 6;
+    const [x, y] = routePoint(t + 0.035);
     let best = -1, bestD = Infinity;
     for (let tries = 0; tries < 500; tries++) {
       const i = reachable[rng.int(0, reachable.length - 1)], tx = i % DF_W, ty = (i / DF_W) | 0;
@@ -139,6 +162,17 @@ export function generateDarkForest(depth, biome, tileset, seed) {
       if (d < bestD) { best = i; bestD = d; }
     }
     if (best < 0) throw new Error('Could not place a reachable Dark Forest chest.');
+    const bx = best % DF_W + 0.5, by = ((best / DF_W) | 0) + 0.5;
+    if (inMaze(bx, by) || nearMazeSpur(bx, by, 3.5)) {
+      best = -1; bestD = Infinity;
+      for (const i of reachable) {
+        const tx = i % DF_W, ty = (i / DF_W) | 0, px = tx + 0.5, py = ty + 0.5;
+        if (!map.walkableTile(tx, ty) || inMaze(px, py) || nearMazeSpur(px, py, 3.5) || nearLandmark(px, py, 8)) continue;
+        const d = (px - x) ** 2 + (py - y) ** 2;
+        if (d < bestD) { best = i; bestD = d; }
+      }
+      if (best < 0) throw new Error('Could not place a reachable Dark Forest route chest outside the labyrinths.');
+    }
     chests.push({ x:best % DF_W + 0.5, y:((best / DF_W) | 0) + 0.5, rare:false });
   }
 
@@ -281,7 +315,7 @@ export function generateDarkForest(depth, biome, tileset, seed) {
   const cells = Array.from({ length: bw * bh }, () => []);
   for (const tree of trees) cells[Math.floor(tree.y / B) * bw + Math.floor(tree.x / B)].push(tree);
   map.treeCells = { B, bw, bh, cells };
-  return { map, props, trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells, landmarks, sideAreas,
+  return { map, props, trees, buildings:[], wallHangings:[], townTiles:null, looks, spawns, chests, torches:[], labyrinths:mazeCells, landmarks, sideAreas, routeBends,
     start, boss, exit, shrine:boss, sites:[], scenarioId:0, seed, layoutSeed:seed };
 }
 
