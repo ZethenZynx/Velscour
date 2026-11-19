@@ -17,6 +17,7 @@ import { ASTRO, drawSun, drawMoon, drawBlackHole, drawChartStar, drawPlanet, pla
 import { SKILLS } from '../data/skills.js';
 import { hit, aoe } from './combat.js';
 import { Projectile, NovaWave, Area, explode, lineTargets } from './hazards.js';
+import { bodyR } from '../world/map.js';
 
 export const ASTRONOMER = 'arcane_sorcerer';
 export const CHART_N = 5;           // stars that complete a constellation
@@ -81,6 +82,15 @@ const onFloor = (w, x, y) => w && w.map && w.map.isFloor(x, y);
 function clampPt(p, tx, ty, range) {
   const w = p.world, a = angleTo(p.x, p.y, tx, ty);
   let d = Math.min(range, dist(p.x, p.y, tx, ty)), x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+  if (w.biome?.id === 'castle') {
+    let open = 0;
+    for (let s = 0.2; s <= d + 1e-6; s += 0.2) {
+      const nx = p.x + Math.cos(a) * s, ny = p.y + Math.sin(a) * s;
+      if (!w.map.walkable(nx, ny) || !w.map.circleFree(nx, ny, bodyR(p))) break;
+      open = s;
+    }
+    return [p.x + Math.cos(a) * open, p.y + Math.sin(a) * open];
+  }
   while (d > 0 && !onFloor(w, x, y)) { d -= 0.25; x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
   return [x, y];
 }

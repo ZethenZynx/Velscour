@@ -12,6 +12,7 @@ import { drawCosmicBeam } from '../gfx/cosmos.js';
 import { drawFlyingRang, drawRang3D, rangSkin, groundHeading } from '../gfx/boomerang3d.js';
 import { screenAngle } from '../gfx/vfx.js';
 import { hit, aoe, chainHit, leechHeal } from './combat.js';
+import { bodyR } from '../world/map.js';
 
 const roll = (d) => rand(d[0], d[1]);
 
@@ -754,7 +755,16 @@ export class Leap {
     // clamp landing to floor along the path
     const a = angleTo(this.sx, this.sy, this.tx, this.ty);
     let best = 0;
-    for (let s = 0; s <= d; s += 0.2) if (this.world.map.walkable(this.sx + Math.cos(a) * s, this.sy + Math.sin(a) * s)) best = s;
+    if (this.world.biome?.id === 'castle') {
+      const { map } = this.world, r = this.src.isPlayer ? bodyR(this.src) : 0;
+      for (let s = 0.2; s <= d + 1e-6; s += 0.2) {
+        const x = this.sx + Math.cos(a) * s, y = this.sy + Math.sin(a) * s;
+        if (!map.walkable(x, y) || r && !map.circleFree(x, y, r)) break;
+        best = s;
+      }
+    } else {
+      for (let s = 0; s <= d; s += 0.2) if (this.world.map.walkable(this.sx + Math.cos(a) * s, this.sy + Math.sin(a) * s)) best = s;
+    }
     this.tx = this.sx + Math.cos(a) * best; this.ty = this.sy + Math.sin(a) * best;
     this.src.face(a);
     this.src.invuln = this.dur;

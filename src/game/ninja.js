@@ -6,6 +6,7 @@
 // (MIRROR_DMG of it each). Grappling Hook pulls hookCount(L) foes to him: one at rank 1, one more every four ranks,
 // five from rank 17; a guardian too heavy to drag pulls him to it instead.
 import { G } from '../state.js';
+import { bodyR } from '../world/map.js';
 import { rand, chance, TAU, clamp, angleTo, dist } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { camera, isoX, isoY } from '../core/view.js';
@@ -31,6 +32,15 @@ export function ninjaOf(p) {
 function clampAt(w, p, tx, ty, range) {
   const a = angleTo(p.x, p.y, tx, ty);
   let d = Math.min(range, dist(p.x, p.y, tx, ty)), x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+  if (w.biome?.id === 'castle') {
+    let open = 0;
+    for (let s = 0.2; s <= d + 1e-6; s += 0.2) {
+      const nx = p.x + Math.cos(a) * s, ny = p.y + Math.sin(a) * s;
+      if (!w.map.walkable(nx, ny) || !w.map.circleFree(nx, ny, bodyR(p))) break;
+      open = s;
+    }
+    return [p.x + Math.cos(a) * open, p.y + Math.sin(a) * open];
+  }
   while (d > 0 && !w.map.walkable(x, y)) { d -= 0.25; x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
   return [x, y];
 }

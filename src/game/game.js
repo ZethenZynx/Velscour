@@ -1426,6 +1426,8 @@ export const game = {
         const [x, y] = i === 0 ? [s.x, s.y] : gen.map.randomNear(s.x, s.y, 1.6);
         const rank = s.rank === 'unique' ? (i === 0 ? 'unique' : 'normal') : s.rank;
         const m = makeMonster(world, s.arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, x, y, variant, s.look);
+        if (s.castleObjective) { m.castleObjective = s.castleObjective; m.objectiveTarget = true; }
+        if (s.name && i === 0) m.name = s.name;
         if (s.rank === 'unique' && i > 0) { m.affixes = []; m.name = m.name + ' Minion'; }
         // A rolled pack trait belongs to its lead member; it should not duplicate across the whole group.
         if (trait && i === 0) applyTrait(m, trait);

@@ -247,6 +247,8 @@ export function generateCastle(depth,biome,seed,variant=null){
     if(VX&&P.fields)out.push([[[VX[0]-4,VX[1]-2],[(VX[0]+P.fields[0]+40)/2,VX[1]+4],[P.fields[0]+40,P.fields[1]+12]],3.2]);
     if(VX&&P.graveyard)out.push([[[VX[0]-6,VX[1]+6],[(VX[0]+P.graveyard[0])/2,(VX[1]+P.graveyard[1])/2+14],[P.graveyard[0]+6,P.graveyard[1]+12]],2.8]);
     if(VX&&P.orchard)out.push([[[E[0]-4,E[1]-24],[(E[0]+P.orchard[0])/2,E[1]-18],[P.orchard[0]+20,P.orchard[1]+20]],2.6]);
+    // The siege camp is a required pre-gate side objective in every Castle layout.
+    if(VX&&P.siege)out.push([[[E[0]+5,E[1]-18],[(E[0]+P.siege[0])/2,(E[1]+P.siege[1])/2+8],[P.siege[0],P.siege[1]]],3.2]);
     return out;
   }
 
@@ -662,6 +664,20 @@ export function generateCastle(depth,biome,seed,variant=null){
     if(!ok([x,y])||sites.some(s=>dist(x,y,s)<8)||spawns.some(s=>Math.hypot(s.x-x,s.y-y)<14))continue;
     const arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:rng.int(2,3),rank:k%4===0?'champion':'normal',look:looks.pick(arch),rampart:true});k++;}
   for(const id of ['cathedral','great_hall']){const [x,y]=near(hallC(id),3),arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:2,rank:'normal',look:looks.pick(arch),castleRoom:id});}
+  // These two landmarks exist in every Castle variant. Keep the named objective foes on clear,
+  // reachable ground at each area's centre so both routes remain completeable before the moat gate.
+  const castleObjectives=[];
+  for(const [key,label,center,arch] of [
+    ['siege','Siege Commander',P.siege,'knight'],
+    ['graveyard','Graveyard Hexer',P.graveyard,'cultist'],
+  ]){
+    if(!center)throw new Error('Castle variant '+V.id+' is missing its '+key+' objective area.');
+    const at=near([center[0],center[1]+(key==='siege'?4:0)],14);
+    if(!ok(at)||dist(at[0],at[1],ENTRY)<20||mat[I(Math.floor(at[0]),Math.floor(at[1]))]===MAT.water)
+      throw new Error('Castle '+key+' objective is not reachable outside the gate; '+V.id+' seed '+seed);
+    const objective={key,label,x:at[0],y:at[1]};castleObjectives.push(objective);
+    spawns.push({x:at[0],y:at[1],arch,n:1,rank:'champion',look:looks.pick(arch),name:label,castleObjective:key});
+  }
   const bossArch=rng.pick(biome.roster);
   spawns.push({x:bossPoint[0],y:bossPoint[1],arch:bossArch,n:1,rank:'boss',look:looks.pick(bossArch),name:'Castle Guardian'});
   const chests=[[rooms[0].tiles[0]+5.5,rooms[0].tiles[1]+12.5],[rooms[1].tiles[2]-4.5,rooms[1].tiles[1]+5.5],[rooms[2].tiles[0]+4.5,rooms[2].tiles[3]-3.5],
@@ -774,12 +790,20 @@ export function generateCastle(depth,biome,seed,variant=null){
   {const D=map.drawbridge;D.tiles=[];rect(D.x0,D.hinge,D.x1-1,D.y1-1,(x,y,i)=>{D.tiles.push(i);map.block[i]=1;});D.down=false;D.lowering=false;
     D.plankV=WARM+8;D.faceArt=FACE.bridge;D.mat=MAT.plank;
     map.planOpen=(x,y)=>!D.down&&x>=D.x0&&x<D.x1&&y>=D.hinge&&y<D.y1;}
+  // The postern is an alternate way across the same moat. Seal its bridge too, or a leap/teleport
+  // could bypass the locked main gate. Both crossing tiles are released by the Castle run.
+  map.castlePosternTiles=[];
+  if(postern){const B=map.castleBridges.find((b)=>b.kind==='postern');if(B)rect(B.x0,B.far,B.x1,B.near-1,(x,y,i)=>{
+    if(x>=B.x0&&x<=B.x1&&y>=B.far&&y<B.near){map.castlePosternTiles.push(i);map.block[i]=1;}
+  });}
+  map.castleGateTiles=[...map.drawbridge.tiles,...map.castlePosternTiles];
+  map.castleObjectives=castleObjectives;map.castleGateLocked=true;map.castleGateUnlocked=false;
   map.castleKeep={x:KEEP[0],y:KEEP[1]};map.castleGarden=GDN;map.castleSiege=SG;map.castleVillage=[vx,vy];
   // the story's people: the herald by the road where the hero arrives, the lord in the keep's council chamber
   const council=room3('council').tiles;
   const story={herald:near([ENTRY[0]+3.5,ENTRY[1]-9],3),lord:near([(council[0]+council[2]+1)/2,(council[1]+council[3]+1)/2],2)};
   map.stepMask();
-  return {map,props,buildings,trees,wallHangings:[],townTiles:[...floors,...keepFloors,...castleCarpetTiles(),...castleRampartTops(),...castleRampartTops(KEEP_STONE),castlePlankTile()],looks,spawns,chests,torches:[],
+  return {map,props,buildings,trees,wallHangings:[],townTiles:[...floors,...keepFloors,...castleCarpetTiles(),...castleRampartTops(),...castleRampartTops(KEEP_STONE),castlePlankTile()],looks,spawns,chests,torches:[],castleObjectives,
     start:ENTRY,exit,boss:bossPoint,scenarioId,seed,engines,tents,variant:V,story};
 }
 

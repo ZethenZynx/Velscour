@@ -11,7 +11,16 @@ const LOWER_S = 2.6, NEAR_GATE = 11, NEAR_DOOR = 2.8;
 export function castle3dTick(world, dt) {
   const map = world.map, p = world.player, D = map.drawbridge;
   if (D && !D.down) {
-    if (!D.lowering && p && Math.hypot(p.x - D.x0 - 1, p.y - D.hinge) < NEAR_GATE) {
+    if (map.castleGateLocked && p && Math.hypot(p.x - D.x0 - 1, p.y - D.hinge) < NEAR_GATE
+      && G.time - (map.castleGateMessageAt || -10) > 3.5) {
+      map.castleGateMessageAt = G.time;
+      UI.centerMsg('CASTLE GATE SEALED', 'Complete an objective in either outside area to gain entry.', 2.8);
+    }
+    if (!D.lowering && map.castleGateUnlocked) {
+      D.lowering = true; D.t = 0;
+      UI.centerMsg('THE DRAWBRIDGE', 'comes down with a rattle of chains', 2.2);
+      sfx('door');
+    } else if (!D.lowering && !map.castleGateLocked && p && Math.hypot(p.x - D.x0 - 1, p.y - D.hinge) < NEAR_GATE) {
       D.lowering = true; D.t = 0;
       UI.centerMsg('THE DRAWBRIDGE', 'comes down with a rattle of chains', 2.2);
       sfx('door');
