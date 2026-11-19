@@ -4,7 +4,7 @@
 // Tabs open by collecting (25% and 80% of the Codex) and by Town Commission lines finished (1 and 3; game/commissions.js).
 import { G } from '../state.js';
 import { GEMS, SIGILS, itemName, itemColor } from '../data/items.js';
-import { codexKey, CODEX_TOTAL, HEIRLOOMS, GLYPHWORDS, PIECE_BY_ID } from '../data/relics.js';
+import { codexKey, CODEX_TOTAL, HEIRLOOMS, GLYPHWORDS, PIECE_BY_ID, migrateCovenantItem } from '../data/relics.js';
 
 const KEY = 'velscour_reliquary_v1';
 export const VAULT_TABS = 6, VAULT_SIZE = 96;
@@ -27,6 +27,11 @@ export function reliquary() {
   for (const t of R.tabs) while (t.length < VAULT_SIZE || t.length % 12 !== 0) t.push(null);
   R.codex = R.codex || {};
   R.lines = R.lines || 0;
+  if (!R.covenantTier20V1) {
+    for (const tab of R.tabs) for (const it of tab) if (it?.relic === 'cov') migrateCovenantItem(it);
+    R.covenantTier20V1 = true;
+    saveReliquary();
+  }
   return R;
 }
 export function saveReliquary() { try { localStorage.setItem(KEY, JSON.stringify(reliquary())); } catch (e) { /* storage full or blocked: the vault lives on for this visit */ } }

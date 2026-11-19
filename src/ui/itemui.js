@@ -108,7 +108,8 @@ export function itemTooltip(item, opts = {}) {
     } else {
       const gw = glyphOf(item), kind = item.relic || (gw ? 'glyph' : null);
       if (gw) h += `<div class="tt-base" style="color:${RELIC_COLORS.glyph}">'${gw.sig.map((r) => SIGILS[r].name).join(' · ')}'</div>`;
-      h += `<div class="tt-base">${escapeHtml(itemBaseLine(item))} · ${kind ? `<b style="color:${RELIC_COLORS[kind]}">${RELIC_NAMES[kind]}</b>` : RARITY[item.rarity].name} ${SLOT_NAMES[item.slot]} · iLvl ${item.ilvl} · <span title="Item level + the rarity's worth in levels: what the item's numbers are rolled at">Power ${powerLevel(item.ilvl, item.rarity)}</span></div>`;
+      const qualityLabel = item.relic === 'cov' ? `<b style="color:${RELIC_COLORS.cov}">Covenant Set · Tier 20</b>` : kind ? `<b style="color:${RELIC_COLORS[kind]}">${RELIC_NAMES[kind]}</b>` : RARITY[item.rarity].name;
+      h += `<div class="tt-base">${escapeHtml(itemBaseLine(item))} · ${qualityLabel} ${SLOT_NAMES[item.slot]} · iLvl ${item.ilvl} · <span title="Item level + the rarity's worth in levels: what the item's numbers are rolled at">Power ${powerLevel(item.ilvl, item.rarity)}</span></div>`;
       const fin = finishOf(item), gfx = gearFxOf(item);
       if (fin || gfx) h += `<div class="dim" style="font-style:italic">${fin ? escapeHtml(fin.name) + ' finish' : ''}${fin && gfx ? ' · ' : ''}${gfx ? 'Aura: ' + escapeHtml(gfx.name) : ''}</div>`;
       if (item.dmg) { const [a, b] = itemDmg(item); h += `<div>Damage: <b>${shown(a)}–${shown(b)}</b>${cmp(opts.compare, item, 'dmg')}</div>`; }
