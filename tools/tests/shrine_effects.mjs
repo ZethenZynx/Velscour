@@ -2,7 +2,8 @@
 // Run with: node tools/tests/shrine_effects.mjs
 import assert from 'node:assert/strict';
 import { G } from '../../src/state.js';
-import { hit } from '../../src/game/combat.js';
+import { aoe, hit } from '../../src/game/combat.js';
+import { effects, Ring } from '../../src/gfx/vfx.js';
 import { LEGACY_SHRINE_DESCRIPTIONS, shrineBuffDescription } from '../../src/game/shrineeffects.js';
 import { SHRINES } from '../../src/game/happenings.js';
 
@@ -48,6 +49,24 @@ try {
   const capped = enemy();
   assert.equal(hit(hero, capped, 100, 'phys', { crit: false }), 130, 'same-element altar bonuses have a 30% cap');
 
+  world.dungeonAffixes = ['adaptive_resistance'];
+  const adaptive = enemy();
+  const effectStart = effects.length;
+  hit(hero, adaptive, 10, 'phys', { crit: false });
+  assert.equal(adaptive.affixAdaptiveShown, true, 'the adaptive-resistance combat branch runs');
+  assert(effects.slice(effectStart).some((effect) => effect instanceof Ring),
+    'adaptive resistance creates its intended Ring visual without a missing-symbol error');
+
+  const pack = Array.from({ length: 128 }, (_, i) => ({ ...enemy(), x: 1 + i * 0.01, affixAdaptiveRes: {} }));
+  world.hostiles = () => pack;
+  const aoeStarted = performance.now();
+  assert.equal(aoe(world, hero, 1, 1, 20, 1, 'phys'), pack.length,
+    'AoE damage resolves against a large group with adaptive-resistance visuals enabled');
+  const aoeElapsedMs = performance.now() - aoeStarted;
+  assert(pack.every((target) => target.affixAdaptiveShown), 'every AoE target resolves its one-time adaptation visual');
+  assert(Number.isFinite(aoeElapsedMs), 'large-group AoE completes without an exception');
+  world.dungeonAffixes = [];
+
   const player = { isPlayer: true, team: 'player', x: 0, y: 0, hp: 100000, maxHp: 100000,
     st: { armor: 0, res: { magic: 0 }, reduce: 0, damageTakenPct: 0, block: 0, legendary: {}, procs: [] },
     status: {}, buffs: [], curses: {} };
@@ -68,7 +87,7 @@ try {
   assert.match(shrineBuffDescription({ t: 150, stats: { addedDamage: { shadow: 16 }, damageTakenPct: 24 } }, 'shadows'),
     /direct attack hit.*16%.*take 24% more damage/i, 'Shadow Pact explains its actual scaled bonus and penalty');
 
-  console.log('PASS: added elemental damage, resistance, DoT exclusion, expiry, cap, damage-taken penalty, and shrine descriptions.');
+  console.log('PASS: altar/shrine checks and 128-target adaptive-resistance AoE; AoE elapsed ' + aoeElapsedMs.toFixed(1) + ' ms.');
 } finally {
   Math.random = originalRandom;
 }
