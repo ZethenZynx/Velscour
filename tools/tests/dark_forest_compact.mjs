@@ -17,6 +17,7 @@ await loadDarkForestTrees();
 const biome = BIOME_BY_ID.dark_forest;
 const tileset = { pack: 'dark_forest', floors: pack.floors, walls: pack.walls, scatter: pack.scatter, families: Object.keys(pack.walls).map((name) => [name, 1]) };
 const seeds = process.argv[2] == null ? 100 : +process.argv[2];
+const routeProfiles = new Set();
 for (let n = 1; n <= seeds; n++) {
   const g = generateDarkForest(7, biome, tileset, n * 7717 + 3), m = g.map;
   if (m.w !== DF_W || m.h !== DF_H || DF_W !== 192 || DF_H !== 192) throw Error('incorrect map size');
@@ -35,19 +36,43 @@ for (let n = 1; n <= seeds; n++) {
       if(X>=0&&Y>=0&&X<m.w&&Y<m.h&&!seen[j]&&m.walkableTile(X,Y)){seen[j]=1;q.push(j);}
     }
   }
-  for (const p of [g.boss,g.exit,...g.chests.map((c)=>[c.x,c.y]),...g.spawns.map((s)=>[s.x,s.y])]) if (!seen[idx(...p)]) throw Error('unreachable spawn or objective: '+p);
+  for (const p of [g.boss,g.exit,...g.chests.map((c)=>[c.x,c.y]),...g.spawns.map((s)=>[s.x,s.y])]) if (!seen[idx(...p)]) throw Error('unreachable spawn or objective at seed '+(n*7717+3)+': '+JSON.stringify({p,spawn:g.spawns.find((s)=>s.x===p[0]&&s.y===p[1]),blocked:m.block[idx(...p)]}));
   if (!(g.start[0] < m.w/4 && g.start[1] > m.h*3/4 && g.boss[0] > m.w*3/4 && g.boss[1] < m.h/4)) throw Error('start and boss are not on opposite corners');
   const expectedLandmarks = ['camp', 'well', 'shrine', 'obelisk', 'swamp', 'webs'];
   if (g.landmarks?.length !== expectedLandmarks.length || expectedLandmarks.some((name) => !g.landmarks.some((landmark) => landmark.what === name)) || g.props.length < 22) throw Error('expected all six decorative landmarks and their props');
   const routeDx = g.boss[0] - g.start[0], routeDy = g.boss[1] - g.start[1], routeLen = Math.hypot(routeDx, routeDy);
   const sideX = -routeDy / routeLen, sideY = routeDx / routeLen;
   const routeT = (point) => ((point[0] - g.start[0]) * routeDx + (point[1] - g.start[1]) * routeDy) / (routeLen * routeLen);
+  if (!g.routeBends || g.routeBends[0].offset !== 0 || g.routeBends.at(-1).offset !== 0) throw Error('path needs straight entrance and exit sections');
+  const routeOffset = (t) => {
+    t = Math.max(0, Math.min(1, t));
+    let i = 1;
+    while (i < g.routeBends.length - 1 && g.routeBends[i].t < t) i++;
+    const a = g.routeBends[i - 1], b = g.routeBends[i], u = Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t)));
+    const eased = (1 - Math.cos(Math.PI * u)) * 0.5;
+    return a.offset + (b.offset - a.offset) * eased;
+  };
+  const interior = g.routeBends.filter((bend) => bend.t > 0.2 && bend.t < 0.82);
+  if (interior.length < 3 || interior.every((bend) => bend.offset === 0) || Math.max(...interior.map((bend) => Math.abs(bend.offset))) > 6.01) throw Error('path needs gentle randomized middle bends');
+  routeProfiles.add(interior.map((bend) => `${bend.t.toFixed(2)}:${bend.offset}`).join(','));
+  for (let t = 0.01; t < 1; t += 0.01) {
+    const centerX = g.start[0] + routeDx * t + sideX * routeOffset(t), centerY = g.start[1] + routeDy * t + sideY * routeOffset(t);
+    const connectedTrail = Array.from({ length: 121 }, (_, j) => {
+      const angle = j / 120 * Math.PI * 2, x = Math.floor(centerX + Math.cos(angle) * 4), y = Math.floor(centerY + Math.sin(angle) * 4);
+      return x >= 0 && y >= 0 && x < m.w && y < m.h && seen[idx(x,y)] && m.walkableTile(x,y);
+    }).some(Boolean);
+    if (!connectedTrail) throw Error('winding trail is disconnected near t=' + t.toFixed(2) + ' seed ' + (n * 7717 + 3));
+  }
+  for (const area of g.sideAreas) {
+    const reachableSide = Array.from({ length: 81 }, (_, j) => [Math.floor(area.x) + j % 9 - 4, Math.floor(area.y) + ((j / 9) | 0) - 4]).some(([x,y]) => x >= 0 && y >= 0 && x < m.w && y < m.h && seen[idx(x,y)] && m.walkableTile(x,y) && Math.hypot(x + 0.5 - area.x, y + 0.5 - area.y) <= 4);
+    if (!reachableSide) throw Error('side clearing is unreachable: ' + area.what);
+  }
   const offsets = [];
   let previousT = 0;
   for (const landmark of g.landmarks) {
     const [lx, ly] = landmark.center, t = routeT([lx, ly]);
     const lateral = (lx - g.start[0]) * sideX + (ly - g.start[1]) * sideY;
-    if (Math.abs(lateral) > 3.5) throw Error('landmark should sit directly on or beside the main path: ' + landmark.what);
+    if (Math.abs(lateral - routeOffset(t) - landmark.offset) > 3.5) throw Error('landmark should sit directly on or beside the main path: ' + landmark.what);
     if (t - previousT < 0.06) throw Error('landmarks should be staggered along the main path, not clustered in pairs');
     previousT = t; offsets.push(Math.round(lateral * 10) / 10);
     if (g.labyrinths.some((maze) => { const [x0,y0,x1,y1] = maze.rect; return landmark.center[0] >= x0 && landmark.center[0] < x1 && landmark.center[1] >= y0 && landmark.center[1] < y1; })) throw Error('a landmark overlaps a labyrinth');
@@ -70,6 +95,7 @@ for (let n = 1; n <= seeds; n++) {
   if (g.trees.length < 14000 || g.trees.length > 15500) throw Error('tree population drifted from the full-size forest');
   if (g.trees.some((t)=>m.walkable(t.x,t.y))) throw Error('blocking tree has no collision');
 }
+if (seeds > 1 && routeProfiles.size < Math.ceil(seeds * 0.75)) throw Error('path bends should vary across random seeds');
 const guardian = { rank:'boss', dead:false, x:179.5, y:12.5 }, world = { boss:guardian };
 let opened = false;
 const run = createDarkForestRun(world, {}, biome, () => { opened = true; });
