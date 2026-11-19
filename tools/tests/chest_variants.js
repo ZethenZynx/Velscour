@@ -12,6 +12,7 @@ const { openGame, report } = require('./harness');
     const { G, game } = window.VELSCOUR;
     const { A } = await import('/src/core/assets.js');
     const { BIOME_BY_ID } = await import('/src/data/biomes.js');
+    const { chestAppearanceProfile, selectDungeonChestVariant } = await import('/src/data/chestappearances.js');
     await game.newChar('paladin', 'Chest Art Test');
     game.buildDungeon(34, BIOME_BY_ID.catacombs);
     const world = G.world;
@@ -40,12 +41,16 @@ const { openGame, report } = require('./harness');
     game.render();
     const stableSelections = standardProbe.every((c, i) => c.chestVariant === selections[i]);
     const variantsCovered = new Set(selections).size;
-    const pools = { gilded: [1, 4, 13, 14], jeweled: [3, 9, 12, 19], explosive: [0, 5, 11], mimic: [0, 5, 6, 16] };
-    const typeProbe = Object.entries(pools).flatMap(([type]) => Array.from({ length: 8 }, (_, i) => ({
-      x: p.x + i * 0.45, y: p.y + type.length * 0.13, chestType: type, chestRarity: i % 6,
+    const allowed = new Set(chestAppearanceProfile(w.biome.id).map((entry) => entry.id - 1));
+    const typeProbe = ['standard', 'gilded', 'jeweled', 'explosive', 'mimic'].flatMap((type) => Array.from({ length: 6 }, (_, i) => ({
+      x: p.x + i * 0.04, y: p.y + type.length * 0.03, chestType: type, chestRarity: i % 6, rare: i % 2 === 1,
     })));
+    // Identical coordinates and context with different loot classifications must
+    // resolve to the same art; move them onto one exact ground anchor.
+    for (const chest of typeProbe) { chest.x = p.x + 1.2; chest.y = p.y - 0.7; }
     w.chests = typeProbe; game.render();
-    const typePoolsRespected = typeProbe.every((c) => pools[c.chestType].includes(c.chestVariant));
+    const typeIndependent = typeProbe.every((c) => c.chestVariant === selectDungeonChestVariant({ biomeId: w.biome.id, variantId: w.chestEnvironmentVariant || '', seed: w.chestSeed ?? 0, x: c.x, y: c.y }));
+    const appearanceIndependent = typeProbe.every((c) => c.chestVariant === typeProbe[0].chestVariant);
 
     w.chests = Array.from({ length: 20 }, (_, i) => {
       const col = i % 5, row = Math.floor(i / 5);
@@ -54,6 +59,8 @@ const { openGame, report } = require('./harness');
         y: p.y + (row - 1.5) * 1.55,
         opened: i % 2 === 1,
         chestVariant: i,
+        chestArtPreview: true,
+        chestType: i === 0 ? 'cursed' : 'standard',
         label: `Variant ${String(i + 1).padStart(2, '0')}`,
         glow: '#d5a951',
       };
@@ -68,7 +75,7 @@ const { openGame, report } = require('./harness');
       loaded, chestCount: w.chests.length,
       labels: w.chests.filter((c) => c.label).length,
       variants: new Set(w.chests.map((c) => c.chestVariant)).size,
-      variantsCovered, stableSelections, typePoolsRespected,
+      variantsCovered, stableSelections, typePoolsRespected: typeProbe.every((c) => allowed.has(c.chestVariant)), typeIndependent, appearanceIndependent,
       interaction,
     };
 
@@ -84,8 +91,9 @@ const { openGame, report } = require('./harness');
   ok(result.loaded.every((pair) => pair.closed.w > 0 && pair.closed.h > 0 && pair.closed.loaded && pair.closed.alpha && pair.open.w > 0 && pair.open.h > 0 && pair.open.loaded && pair.open.alpha), 'every closed/open PNG loads with preserved transparency');
   ok(result.loaded.every((pair) => pair.open.w / pair.closed.w > 0.7 && pair.open.w / pair.closed.w < 1.4), 'opened sprites stay paired at a consistent rendered scale');
   ok(result.chestCount === 20 && result.variants === 20, 'live scene rendered all 20 unique variants');
-  ok(result.variantsCovered === 20 && result.stableSelections, 'normal chest variants cover the full set and stay stable between frames');
-  ok(result.typePoolsRespected, 'special chest visuals match their existing chest type without changing rarity');
+  ok(result.variantsCovered > 1 && result.stableSelections, 'the biome-compatible chest pool varies and stays stable between frames');
+  ok(result.typePoolsRespected, 'ordinary chest art stays inside the environment-compatible pool');
+  ok(result.typeIndependent && result.appearanceIndependent, 'chest art is independent of type, rarity, and reward classification');
   ok(result.labels === 20, 'existing chest label data remains attached');
   ok(result.interaction.opened && result.interaction.lootAdded && !!result.interaction.label, 'standard chest still opens, drops loot, and keeps its label');
   await shot('chest_variants');

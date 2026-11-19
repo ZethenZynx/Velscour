@@ -1301,6 +1301,10 @@ export const game = {
     }
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
+    // Chest appearance uses the same generated environment context as the level.
+    // This metadata is visual-only; chest type and loot rolls remain independent.
+    world.chestEnvironmentVariant = gen.variant?.id || '';
+    world.chestSeed = seed;
     world.dungeonAffixes = normalizeDungeonAffixIds(c.nextAffixes ?? c.dungeonAffixes);
     if (world.dungeonAffixes.includes('bloodmoon')) {
       world.lootMul = (world.lootMul || 1) * DUNGEON_AFFIX_CONFIG.bloodmoon.lootMultiplier;
