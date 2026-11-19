@@ -9,7 +9,7 @@ import { floatText, addEffect, Column, Ring, Sigil, SigilFlames, SkyBolts, spark
 import { Creature } from './creature.js';
 import { CLASSES, DMG_TUNE, DMG_TUNE_AT } from '../data/classes.js';
 import { SKILLS, CLASS_SKILLS, effLevel, skillBaseDamage, manaCost, rageCost, whirlwindRageCost, cooldown, useTime, weaponCoef, skillRange, isMovementSkill } from '../data/skills.js';
-import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, RARITY_LEGENDARY, shownEquip, DUAL_WIELD } from '../data/items.js';
+import { SLOTS, RING_SLOTS, itemStats, itemDmg, itemArmor, GEMS, RARITY_LEGENDARY, shownEquip, DUAL_WIELD, POTION_INFO } from '../data/items.js';
 import { augHits, augmentable } from '../data/rings.js';
 import { depthLevel, fortitude, logCurve, MAX_LEVEL } from '../data/depth.js';
 import { heroBonus } from './defiance.js';
@@ -390,9 +390,10 @@ export class Player extends Creature {
     return { hp: Math.round(this.hp - hpBefore), mana: Math.round(this.mana - manaBefore) };
   }
 
-  /** Shared potion/orb effect: the Elixir of Fury's 15-second haste blessing. */
+  /** Shared potion/orb effect: a 15-second haste and critical-hit blessing. */
   applyFury() {
-    this.addBuff({ id: 'fury', name: 'Elixir of Fury', el: 'fire', stats: { as: 30, speed: 30, cdr: 30 }, t: 15, max: 15 });
+    // Crit is stored in quarter-percent units; 40 adds 10 percentage points before the 75% cap.
+    this.addBuff({ id: 'fury', name: 'Elixir of Fury', description: POTION_INFO.fury, el: 'fire', stats: { as: 30, speed: 30, cdr: 30, crit: 40 }, t: 15, max: 15 });
     burst(this.x, this.y, 20, 'fire', 20, 3);
   }
 

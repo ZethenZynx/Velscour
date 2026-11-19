@@ -3,6 +3,7 @@ import { Player } from '../../src/game/player.js';
 import { dropLoot, dropChest, GroundItem, rollOrbKind } from '../../src/game/loot.js';
 import { heresyWorld } from '../../src/game/heresies.js';
 import { G } from '../../src/state.js';
+import { POTION_INFO } from '../../src/data/items.js';
 
 console.log('Testing life regen and health orb mechanics...');
 
@@ -78,11 +79,42 @@ const furyOrb = new GroundItem(0, 0, 'orb_fury');
 assert.strictEqual(rejuvOrb.color, '#c040ff', 'Rejuvenation Orb uses potion purple');
 assert.strictEqual(furyOrb.color, '#ffa020', 'Fury Orb uses Elixir orange');
 p.buffs = [];
+p.recompute();
+const critBeforeFury = p.st.critChance;
 p.pickup(furyOrb);
 const fury = p.buffs.find((b) => b.id === 'fury');
 assert.ok(fury, 'Fury Orb applies the Elixir of Fury buff');
 assert.strictEqual(fury.t, 15, 'Fury Orb buff lasts as long as the elixir');
-assert.deepStrictEqual(fury.stats, { as: 30, speed: 30, cdr: 30 }, 'Fury Orb shares the elixir stats');
+assert.deepStrictEqual(fury.stats, { as: 30, speed: 30, cdr: 30, crit: 40 }, 'Fury Orb shares the Elixir bonuses, including +10 percentage points of critical chance');
+assert.strictEqual(fury.description, POTION_INFO.fury, 'Active Fury buff uses the same description as potion and vendor tooltips');
+assert.ok(POTION_INFO.fury.includes('+10 percentage points of critical-hit chance'), 'Elixir description includes the critical chance bonus');
+assert.strictEqual(p.st.critChance, Math.min(75, critBeforeFury + 10), 'Fury adds 10 percentage points subject to the existing 75% cap');
+assert.ok(p.st.critChance > critBeforeFury, 'Fury Orb increases the test character critical chance');
+assert.strictEqual(p.st.critDmg, 50, 'Critical chance below cap does not alter critical damage');
+
+// Reapplying either source refreshes the same buff instead of stacking it.
+fury.t = 3;
+p.usePotion('fury');
+assert.strictEqual(p.buffs.filter((b) => b.id === 'fury').length, 1, 'Repeated Fury activation does not create stacked buffs');
+assert.strictEqual(fury.t, 15, 'Repeated Fury activation refreshes the existing duration');
+assert.strictEqual(p.st.critChance, Math.min(75, critBeforeFury + 10), 'Refreshing Fury does not stack critical chance');
+assert.strictEqual(char.potions.fury, 0, 'Elixir activation consumes its potion normally');
+
+// The normal timed-buff update removes the crit bonus when Fury expires.
+p.update(16);
+assert.strictEqual(p.buffs.some((b) => b.id === 'fury'), false, 'Expired Fury buff is removed');
+assert.strictEqual(p.st.critChance, critBeforeFury, 'Critical chance returns to baseline when Fury expires');
+
+// The established cap remains in force and overcap follows the game's crit-damage conversion.
+char.attrs.dex = 800;
+p.recompute();
+const cappedCritDmg = p.st.critDmg;
+p.applyFury();
+assert.strictEqual(p.st.critChance, 75, 'Fury cannot raise displayed critical chance above 75%');
+assert.strictEqual(p.st.critDmg, cappedCritDmg + 20, 'Critical chance above cap converts at the existing +2% crit damage per point');
+p.buffs = [];
+char.attrs.dex = 10;
+p.recompute();
 
 const hungerWorld = { kind: 'dungeon', heresy: { ids: ['hunger'], rank: 2 }, loot: [], addLoot(it) { this.loot.push(it); } };
 heresyWorld(hungerWorld, char);
