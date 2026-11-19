@@ -53,6 +53,17 @@ function statusOpts(m) {
 function clampTarget(w, p, tx, ty, range, canLand = (x, y) => w.map.isFloor(x, y)) {
   const a = angleTo(p.x, p.y, tx, ty);
   let d = Math.min(range, dist(p.x, p.y, tx, ty));
+  if (w.biome?.id === 'castle') {
+    // Blink and other targeted movement must stop at the first wall or sealed crossing,
+    // rather than finding a valid landing point on the far side of it.
+    const safe = (x, y) => w.map.walkable(x, y) && w.map.circleFree(x, y, bodyR(p)) && canLand(x, y);
+    let open = 0;
+    for (let s = 0.2; s <= d + 1e-6; s += 0.2) {
+      if (!safe(p.x + Math.cos(a) * s, p.y + Math.sin(a) * s)) break;
+      open = s;
+    }
+    return [p.x + Math.cos(a) * open, p.y + Math.sin(a) * open];
+  }
   let x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
   while (d > 0 && !canLand(x, y)) { d -= 0.25; x = p.x + Math.cos(a) * d; y = p.y + Math.sin(a) * d; }
   return [x, y];

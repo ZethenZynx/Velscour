@@ -54,6 +54,18 @@ export class TileMap {
 
   /** Move a circle with wall sliding. Returns true if moved at all. */
   move(e, dx, dy, ghost = false) {
+    // A Castle's sealed moat crossings are hard movement barriers. Sample only while locked,
+    // and only against those tiles, so a long dash/frame step cannot jump over the gate.
+    if (this.castleGateLocked && e.isPlayer && this.castleGateTiles?.length) {
+      const r = bodyR(e), d = Math.hypot(dx, dy), n = Math.ceil(d / 0.16);
+      for (let k = 1; k <= n; k++) {
+        const x = e.x + dx * k / n, y = e.y + dy * k / n;
+        for (const i of this.castleGateTiles) {
+          const tx = i % this.w, ty = (i / this.w) | 0;
+          if (x + r > tx && x - r < tx + 1 && y + r > ty && y - r < ty + 1) return false;
+        }
+      }
+    }
     if (ghost) {
       const nx = e.x + dx, ny = e.y + dy;
       if (this.isFloor(nx, ny)) { e.x = nx; e.y = ny; return true; }
