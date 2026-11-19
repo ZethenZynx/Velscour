@@ -646,13 +646,13 @@ export function floatText(x, y, z, text, color = '#fff', size = 14, opts = {}) {
 }
 
 // --------------------------------------------------------- damage numbers
-// Plain, heavy serif numbers with a black outline, rendered once at 1/PIX resolution for a chunky retro edge and cached.
-// Hits drift up and fade. Crits are blood: dark red, they hang in the air while drips run off the glyphs and fall.
+// Heavy serif numbers with a dark outline, rendered once at 1/PIX resolution for a chunky retro edge and cached.
+// Each damage element tints its own number; criticals use a slightly larger, brighter treatment.
 const DMG_STYLE = {
-  hit: { size: 19, life: 0.95, pop: 1.12, fill: ['#e8dcc4', '#c8b898', '#8a7a62'] },
-  crit: { size: 30, life: 2.1, pop: 1.3, fill: ['#e83020', '#a00a06', '#4a0202'], blood: true },
-  hurt: { size: 17, life: 1, pop: 1.1, fill: ['#e05a40', '#b01810', '#5a0604'] },
-  dot: { size: 13, life: 0.85, pop: 1 },
+  hit: { size: 19, life: 0.95, pop: 1.12, outline: 0.12 },
+  crit: { size: 26.5, life: 1.35, pop: 1.08, outline: 0.17 },
+  hurt: { size: 17, life: 1, pop: 1.1, outline: 0.13 },
+  dot: { size: 13, life: 0.85, pop: 1, outline: 0.12 },
 };
 const PIX = 1.5;
 // Numbers are put together from glyphs baked once per style/colour (an outline layer and a fill layer, so every fill
@@ -664,8 +664,8 @@ function glyphSet(style, color) {
   let G_ = glyphSets.get(key);
   if (G_) return G_;
   const S = DMG_STYLE[style], fs = Math.round(S.size / PIX), font = `900 ${fs}px Cinzel, Georgia, serif`;
-  const o = Math.max(1, Math.round(fs * 0.12)), h = Math.ceil(fs * 1.25) + o * 2 + 4;
-  G_ = { key, S, fs, font, o, h, cy: h / 2, ty: h / 2 + fs * 0.06, color, map: new Map() };
+  const o = Math.max(1, Math.round(fs * S.outline)), h = Math.ceil(fs * 1.25) + o * 2 + 4;
+  G_ = { key, style, fs, font, o, h, ty: h / 2 + fs * 0.06, color, map: new Map() };
   // keep the fallback font out of the cache until Cinzel has loaded
   if (!document.fonts || document.fonts.check(font)) glyphSets.set(key, G_);
   return G_;
@@ -673,25 +673,35 @@ function glyphSet(style, color) {
 function glyph(gs, ch) {
   let e = gs.map.get(ch);
   if (e) return e;
-  const { S, fs, font, o, h, ty } = gs, adv = measureCtx(font).measureText(ch).width, w = Math.ceil(adv) + o * 2 + 4;
+  const { style, fs, font, o, h, ty } = gs, adv = measureCtx(font).measureText(ch).width, w = Math.ceil(adv) + o * 2 + 4;
   const prep = (c) => { const g = c.getContext('2d'); g.font = font; g.textAlign = 'left'; g.textBaseline = 'middle'; g.lineJoin = 'round'; return g; };
   const line = makeCanvas(w, h), fill = makeCanvas(w, h);
   let g = prep(line); g.lineWidth = o * 2; g.strokeStyle = '#0a0303'; g.strokeText(ch, o + 2, ty);
   g = prep(fill);
-  if (S.fill) {
-    const lg = g.createLinearGradient(0, ty - fs * 0.45, 0, ty + fs * 0.45);
-    lg.addColorStop(0, S.fill[0]); lg.addColorStop(0.5, S.fill[1]); lg.addColorStop(1, S.fill[2]);
-    g.fillStyle = lg;
-  } else g.fillStyle = gs.color || '#ffffff';
+  const base = parseDamageColor(gs.color);
+  const lg = g.createLinearGradient(0, ty - fs * 0.45, 0, ty + fs * 0.45);
+  lg.addColorStop(0, tintDamageColor(base, 0.48));
+  lg.addColorStop(0.5, tintDamageColor(base, style === 'crit' ? 0.2 : 0));
+  lg.addColorStop(1, tintDamageColor(base, -0.44));
+  g.fillStyle = lg;
   g.fillText(ch, o + 2, ty);
-  e = { line, fill, adv, w, low: null };
-  if (S.blood) {   // the lowest inked pixel of each column (read once per glyph)
-    const a = line.getContext('2d').getImageData(0, 0, w, h).data, b = g.getImageData(0, 0, w, h).data;
-    e.low = new Int16Array(w).fill(-1);
-    for (let x = 0; x < w; x++) for (let y = h - 1; y > gs.cy; y--) { const k = (y * w + x) * 4 + 3; if (a[k] > 200 || b[k] > 200) { e.low[x] = y; break; } }
-  }
+  e = { line, fill, adv, w };
   if (glyphSets.get(gs.key) === gs) gs.map.set(ch, e);
   return e;
+}
+
+// Damage numbers use the same element glow palette as spells and hit effects. Keep the math
+// here deterministic so the cached glyphs need no per-frame color work.
+function parseDamageColor(value) {
+  const match = /^#?([\da-f]{6})$/i.exec(value || '');
+  if (!match) return [232, 220, 196];
+  const n = parseInt(match[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function tintDamageColor(rgb, amount) {
+  const target = amount >= 0 ? 255 : 0, k = Math.abs(amount);
+  const c = rgb.map((v) => Math.round(v + (target - v) * k));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 function numSprite(text, style, color) {
   const key = style + '|' + (color || '') + '|' + text;
@@ -702,19 +712,12 @@ function numSprite(text, style, color) {
   for (const ch of text) { const e = glyph(gs, ch); gl.push(e); tw += e.adv; }
   const w = Math.ceil(tw) + o * 2 + 4;
   c = numFree.pop() || makeCanvas(w, h);
-  c.width = w; c.height = h; c.roots = null;   // (also clears a reused canvas)
+  c.width = w; c.height = h; // (also clears a reused canvas)
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   // centred like the whole-string text was: the pen starts where a centred string of width tw would
   const x0 = Math.round(w / 2 - tw / 2) - o - 2;
   for (const layer of ['line', 'fill']) { let pen = x0; for (const e of gl) { g.drawImage(e[layer], Math.round(pen), 0); pen += e.adv; } }
-  if (gs.S.blood) {
-    const low = new Int16Array(w).fill(-1), cx = w / 2, cy = gs.cy, roots = [];
-    let pen = x0;
-    for (const e of gl) { const p0 = Math.round(pen); for (let x = 0; x < e.w; x++) { const X = p0 + x; if (X >= 0 && X < w && e.low[x] > low[X]) low[X] = e.low[x]; } pen += e.adv; }
-    for (let x = 2; x < w - 2; x++) if (low[x] >= 0) roots.push([x - cx, low[x] - cy]);
-    c.roots = roots;
-  }
   if (glyphSets.get(gs.key) === gs) {
     numCache.set(key, c);
     if (numCache.size > 400) { const k = numCache.keys().next().value, old = numCache.get(k); numCache.delete(k); if (numFree.length < 32) numFree.push(old); }
@@ -728,28 +731,12 @@ export function damageText(x, y, z, amount, style = 'hit', color = null) {
   if (texts.length > 120) texts.shift();
   const crit = style === 'crit';
   texts.push({
-    x, y, z: z + rand(-4, 6), text: fmt(amount), color, style, life: S.life, max: S.life, dmg: true, comic: true,
-    vz: style === 'dot' ? 24 : crit ? 14 : rand(38, 50), dx: rand(-12, 12), vx: rand(-1, 1) * (crit ? 2 : 6),
-    drips: crit ? Array.from({ length: 4 + Math.floor(rand(0, 3)) }, () => ({ r: Math.random(), len: rand(4, 13), at: rand(0.05, 0.5), sp: rand(0.5, 1.1), w: rand(1, 2) | 0 || 1 })) : null,
+    x, y, z: z + rand(-4, 6), text: fmt(amount), color: color || '#e0d8c8', style, life: S.life, max: S.life, dmg: true, comic: true,
+    vz: style === 'dot' ? 24 : crit ? 62 : rand(38, 50), dx: rand(-12, 12), vx: rand(-1, 1) * (crit ? 26 : 6),
+    // A tiny, deterministic pixel burst is drawn directly with the number, avoiding particle objects.
+    sparkAngle: crit ? rand(TAU) : 0,
+    sparks: crit ? Math.min(3, Math.max(0, 72 - texts.length)) : 0,
   });
-}
-
-/** Blood running off a crit number, in sprite pixels around its centre (the caller scales to the screen). */
-function drawDrips(ctx, t, spr, age) {
-  if (!spr.roots || !spr.roots.length) return;
-  for (const d of t.drips) {
-    const [rx, ry] = spr.roots[Math.floor(d.r * spr.roots.length)];
-    const k = Math.max(0, Math.min(1, (age - d.at) / d.sp));
-    if (k <= 0) continue;
-    const len = d.len * (1 - Math.pow(1 - k, 2));
-    ctx.fillStyle = '#4a0202'; ctx.fillRect(rx - 1, ry - 1, d.w + 2, len + 2);
-    ctx.fillStyle = '#9a0a06'; ctx.fillRect(rx, ry - 1, d.w, len);
-    ctx.fillStyle = '#c81810'; ctx.fillRect(rx, ry + len - 1, d.w + 1, 2);   // the swelling bead
-    if (k >= 1) {   // the bead lets go and falls
-      const ft = age - d.at - d.sp, fy = ry + len + 2 + 60 * ft * ft;
-      if (ft < 0.6) { ctx.fillStyle = '#8a0806'; ctx.fillRect(rx, fy, d.w + 1, 2); }
-    }
-  }
 }
 
 // light records are pooled: dozens are added every frame
@@ -832,7 +819,10 @@ export function updateVfx(dt, world) {
   for (let i = texts.length - 1; i >= 0; i--) {
     const t = texts[i];
     t.life -= dt; t.z += t.vz * dt;
-    if (t.comic) { t.vz *= Math.pow(0.03, dt); t.dx += t.vx * dt; } else t.vz *= 0.94;
+    if (t.comic) {
+      t.vz *= Math.pow(0.03, dt); t.dx += t.vx * dt;
+      if (t.style === 'crit') t.vx *= Math.pow(0.003, dt); // short lateral impact bounce
+    } else t.vz *= 0.94;
     if (t.life <= 0) texts.splice(i, 1);
   }
 }
@@ -1017,14 +1007,35 @@ export function drawTexts(ctx) {
       if (k < 0.2) sc *= 0.85 + 0.15 * (k / 0.2);
       const spr = numSprite(t.text, t.style, t.color);
       const [sx, sy] = camera.tileToScreen(t.x, t.y, t.z);
-      ctx.globalAlpha = Math.min(1, k / 0.25);
+      const alpha = Math.min(1, k / 0.25);
       const f = PIX * dpr * sc * mob, w = spr.width * f, h = spr.height * f, tx = (sx + t.dx) * dpr, ty = sy * dpr;
-      if (!t.drips) { ctx.drawImage(spr, tx - w / 2, ty - h / 2, w, h); continue; } // screen space: no transform needed
-      ctx.save();
-      ctx.translate(tx, ty);
-      ctx.drawImage(spr, -w / 2, -h / 2, w, h);
-      ctx.scale(f, f); drawDrips(ctx, t, spr, age);
-      ctx.restore();
+      if (t.style === 'crit') {
+        ctx.save();
+        ctx.translate(tx, ty);
+        // A low-cost, color-matched halo: reuse the cached glyph rather than applying a canvas blur.
+        const burst = Math.max(0, 1 - age / 0.28);
+        if (burst > 0 && texts.length < 72) {
+          ctx.globalAlpha = alpha * burst * 0.22;
+          ctx.drawImage(spr, -w * 0.56, -h * 0.56, w * 1.12, h * 1.12);
+        }
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(spr, -w / 2, -h / 2, w, h);
+        if (burst > 0 && t.sparks && texts.length < 72) {
+          ctx.globalAlpha = alpha * burst * 0.85;
+          ctx.fillStyle = t.color;
+          const travel = (5 + age * 24) * dpr;
+          for (let i = 0; i < t.sparks; i++) {
+            const a = t.sparkAngle + i * (TAU / Math.max(1, t.sparks));
+            const px = Math.cos(a) * travel, py = Math.sin(a) * travel - age * 10 * dpr;
+            const side = (i & 1) ? 1.5 : 2;
+            ctx.fillRect(px - side / 2, py - side / 2, side, side);
+          }
+        }
+        ctx.restore();
+        continue;
+      }
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(spr, tx - w / 2, ty - h / 2, w, h);
     }
   }
   ctx.imageSmoothingEnabled = true;
