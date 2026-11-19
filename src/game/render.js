@@ -368,7 +368,7 @@ function chestArtFallback() {
 
 function drawChest(ctx, c) {
   const x = isoX(c.x, c.y), y = isoY(c.x, c.y);
-  if (c.draw) return c.draw(ctx, x, y); // shrines, remains, cursed chests (game/happenings.js)
+  if (c.draw) return c.draw(ctx, x, y); // bespoke shrine/remains art (game/happenings.js)
   // Overworld and special-map tilesets may not include a biome chest atlas. Reuse the
   // game's shared painted chest sheet there instead of drawing the pink-edged box fallback.
   const variant = A.chestVariants.length ? A.chestVariants[chestVariantIndex(c)] : null;
@@ -380,7 +380,7 @@ function drawChest(ctx, c) {
     // Keep the floor anchor and scale fixed between paired states, including taller open lids.
     const k = 46 / closed.w, w = s.w * k, h = s.h * k, floorY = y + 46 / 4;
     ctx.drawImage(s.img, s.sx, s.sy, s.w, s.h, x - w / 2, floorY - h, w, h);
-    if (!c.opened) {
+    if (!c.opened || (c.glowWhileOpen && !c.done)) {
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + Math.sin(G.time * 3) * 0.15;
       ctx.drawImage(glowSprite(c.glow || (c.rare ? '#c080ff' : '#ffd060')), x - 28, y - 40, 56, 46);
       if (c.tint) {
@@ -394,6 +394,7 @@ function drawChest(ctx, c) {
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(12,8,5,.9)'; ctx.strokeText(c.label.toUpperCase(), x, floorY - h - 4);
       ctx.fillStyle = c.glow || '#e8c575'; ctx.fillText(c.label.toUpperCase(), x, floorY - h - 4); ctx.restore();
     }
+    if (c.drawOverlay) c.drawOverlay(ctx, x, y);
     return;
   }
   ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(x, y, 16, 7, 0, 0, TAU); ctx.fill();
@@ -417,6 +418,13 @@ function drawChest(ctx, c) {
     if (c.tint) { ctx.globalAlpha = 0.14; ctx.drawImage(glowSprite(c.tint), x - 20, y - 28, 40, 34); }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
+  if (c.opened && c.glowWhileOpen && !c.done) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + Math.sin(G.time * 3) * 0.15;
+    ctx.drawImage(glowSprite(c.glow || '#ff2050'), x - 28, y - 40, 56, 46);
+    if (c.tint) { ctx.globalAlpha = 0.14; ctx.drawImage(glowSprite(c.tint), x - 24, y - 34, 48, 40); }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  if (c.drawOverlay) c.drawOverlay(ctx, x, y);
 }
 
 /** Scenario shrines and objective markers are not teleport portals: render a fitted
