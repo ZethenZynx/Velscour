@@ -21,6 +21,7 @@ import { townFacingFlip } from './townsfolkvisuals.js';
 
 export const ENCOUNTER_CHANCE = 0.5;
 export const ENCOUNTERS = ['captive', 'laststand', 'peddler', 'wizard', 'witch', 'greener'];
+const RAT_BODY_RADIUS = 0.24;
 
 /** Roll this depth's encounters into `spots` (room centres; used ones are popped). `force` (tests): a kind list. */
 export function addEncounters(world, spots, force = G.encounterForce) {
@@ -254,14 +255,49 @@ function walk(world, n, target, speed, dt) {
   if (map.walkable(nx, ny)) { n.flip = townFacingFlip(nx - n.x, ny - n.y, n.flip); n.walking = true; n.running = true; n.walkT += dt; n.x = nx; n.y = ny; } else n.path = null;
 }
 
+/** Rats are harmless NPCs rather than Creatures, so move them through the map's body collision explicitly. */
+export function walkRat(world, rat, target, speed, dt) {
+  const map = world.map;
+  if (!map.circleFree(rat.x, rat.y, RAT_BODY_RADIUS)) return false;
+  if (!rat.path || (rat.repath = (rat.repath || 0) - dt) <= 0) {
+    rat.path = map.findPath(rat.x, rat.y, target[0], target[1], 30000, RAT_BODY_RADIUS + 0.06) || [];
+    rat.repath = 0.8;
+  }
+  if (!rat.path.length) return false;
+
+  let remaining = Math.min(Math.max(0, dt) * speed, 0.75);
+  let moved = false;
+  while (remaining > 1e-4 && rat.path.length) {
+    while (rat.path.length > 1 && Math.hypot(rat.x - rat.path[0][0], rat.y - rat.path[0][1]) < 0.35) rat.path.shift();
+    const [tx, ty] = rat.path[0], dx = tx - rat.x, dy = ty - rat.y, d = Math.hypot(dx, dy);
+    if (d < 1e-4) { rat.path.shift(); continue; }
+    const step = Math.min(remaining, 0.12, d);
+    const ox = rat.x, oy = rat.y;
+    map.move(rat, dx / d * step, dy / d * step, false);
+    const actual = Math.hypot(rat.x - ox, rat.y - oy);
+    if (actual < 1e-5) { rat.path = null; break; }
+    rat.flip = townFacingFlip(rat.x - ox, rat.y - oy, rat.flip);
+    rat.walking = true; rat.walkT += dt; moved = true;
+    remaining -= actual;
+  }
+  return moved;
+}
+
 // ------------------------------------------------------------------------------------------------ rats
 /** A few rats that scurry about the rooms and bolt from the hero (harmless, not monsters). */
 export function addRats(world, n) {
   const v = ANIMALS.find((a) => a.species === 'rat'), map = world.map, rooms = world.rooms || [];
   if (!v || !rooms.length) return;
   for (let i = 0; i < n; i++) {
-    const r = pick(rooms), [x, y] = near(world, [r.mx ?? r.x + r.w / 2, r.my ?? r.y + r.h / 2], 3);
+    const r = pick(rooms), cx = r.mx ?? r.x + r.w / 2, cy = r.my ?? r.y + r.h / 2;
+    let [x, y] = near(world, [cx, cy], 3);
+    if (!map.circleFree(x, y, RAT_BODY_RADIUS)) {
+      const candidate = map.randomNear(cx, cy, 3);
+      if (!candidate || !map.circleFree(candidate[0], candidate[1], RAT_BODY_RADIUS)) continue;
+      [x, y] = candidate;
+    }
     const rat = makeFolk(world, v, x, y, { calm: true, animal: true, species: 'rat', idleH: v.h, name: 'Rat', reach: 1 });
+    rat.r = RAT_BODY_RADIUS / 0.8;
     rat.townsfolkSpriteId = v.spriteId; rat.frameCount = v.frame.count;
     rat.onTick = (dt) => {
       const p = world.player;
@@ -273,7 +309,7 @@ export function addRats(world, n) {
       if (rat.fleeT) rat.fleeT = Math.max(0, rat.fleeT - dt);
       if (!rat.goal && (rat.waitT = (rat.waitT || rand(1, 4)) - dt) <= 0) { rat.waitT = rand(2, 6); rat.goal = map.randomNear(rat.x + rand(-5, 5), rat.y + rand(-5, 5), 2); rat.path = null; if (chance(0.3)) rat.feel('curious', 2); }
       if (rat.goal) {
-        walk(world, rat, rat.goal, rat.fleeT ? 3.6 : 1.4, dt);
+        walkRat(world, rat, rat.goal, rat.fleeT ? 3.6 : 1.4, dt);
         rat.running = !!rat.fleeT;
         if (Math.hypot(rat.x - rat.goal[0], rat.y - rat.goal[1]) < 0.3) rat.goal = null;
       }
