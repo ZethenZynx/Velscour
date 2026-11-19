@@ -432,8 +432,9 @@ export function generateCastle(depth,biome,seed,variant=null){
   if(P.kgarden){const [ax,ay]=P.kgarden;
     for(let b=0;b<5;b++){const x0=ax+b*7;rect(x0,ay,x0+4,ay+12,(x,y,i)=>{mat[i]=MAT.field;clear[i]=1;});
       for(let y=ay+1;y<ay+12;y+=3)S(rng.chance(.5)?'106_cabbage_basket':'68_herb_bundle',x0+2.5,y+.5,{solid:false});}}
+  const orchardTrees=[],orchardNTrees=[];
   if(P.orchardN){const O=P.orchardN;
-    for(const [x,y] of O.trees)add(rng.pick(['tree_01_small_young_apple','tree_08_medium_orchard_pear']),'trees',x+.5,y+.5,rng.chance(.5)?70:110,{solid:true});
+    for(const [x,y] of O.trees){orchardNTrees.push([x+.5,y+.5]);add(rng.pick(['tree_01_small_young_apple','tree_08_medium_orchard_pear']),'trees',x+.5,y+.5,rng.chance(.5)?70:110,{solid:true});}
     if(O.roost)for(const [nm,x,y] of [['bird_roost',0,0],['nest_box',2.6,1.6]])P_(nm,O.roost[0]+x,O.roost[1]+y);
     if(O.herbs)for(const [nm,x,y] of [['herb_drying_rack',0,0],['covered_basket',2,.4],['apple_sack',5.6,-.4]])P_(nm,O.herbs[0]+x,O.herbs[1]+y);}
   // The mason's yard, where a stretch of the curtain is being repaired: scaffolds and a hoist against it, dressed stone,
@@ -503,13 +504,14 @@ export function generateCastle(depth,biome,seed,variant=null){
     for(let t=0;t<14;t++){const x=vx+rng.range(-15,15),y=vy+rng.range(-8,8),i=I(x|0,y|0);if(!map.block[i]&&mat[i]!==MAT.road)T(rng.pick(['wildflowers','leafy_shrub','sawn_stump']),x,y,rng.range(16,26),false);}
   }
   // Fields and an orchard: furrowed strips, a scarecrow, split-rail fences and haystacks.
+  const fieldPlots=[];
   if(P.fields){const [fx,fy]=P.fields;
     for(let f=0;f<4;f++){const x0=fx+f*19,y0=fy+(f%2)*14;rect(x0,y0,x0+14,y0+11,(x,y,i)=>{if(mat[i]===MAT.water||mat[i]===MAT.road)return;mat[i]=MAT.field;forest[i]=0;clear[i]=1;});
-      P_('practice_dummy',x0+7.5,y0+5.5);T('hay_bale',x0+15.2,y0+2,26);
+      fieldPlots.push([x0+7.5,y0+5.5]);P_('practice_dummy',x0+7.5,y0+5.5);T('hay_bale',x0+15.2,y0+2,26);
       for(let x=x0;x<=x0+14;x+=1.6)T('split_rail_fence',x+.5,y0+11.8,30);}}
   if(P.orchard){const [ox,oy]=P.orchard;
     for(let r=0;r<4;r++)for(let c=0;c<6;c++){const x=ox+c*7+(r%2)*3,y=oy+r*7;if(!clear[I(x,y)]&&mat[I(x,y)]!==MAT.water){forest[I(x,y)]=0;
-      add(rng.pick(['tree_01_small_young_apple','tree_08_medium_orchard_pear','tree_01_small_young_apple']),'trees',x+.5,y+.5,rng.chance(.4)?110:72,{solid:true});}}}
+      orchardTrees.push([x+.5,y+.5]);add(rng.pick(['tree_01_small_young_apple','tree_08_medium_orchard_pear','tree_01_small_young_apple']),'trees',x+.5,y+.5,rng.chance(.4)?110:72,{solid:true});}}}
   // reeds along the river
   for(let t=0;t<900;t++){const x=rng.int(4,W-5),y=rng.int(4,H-5),i=I(x,y);if(mat[i]!==MAT.sand||map.block[i])continue;T(rng.chance(.7)?'dry_reeds':'fieldstone_cluster',x+rng.range(.2,.8),y+rng.range(.2,.8),rng.range(22,34),false);}
   // The graveyard by the river: headstones in rows, a broken statue, an old wall.
@@ -534,7 +536,8 @@ export function generateCastle(depth,biome,seed,variant=null){
     rect(Math.floor(x)-1,Math.floor(y)-1,Math.floor(x)+1,Math.floor(y),(xx,yy,i)=>{map.block[i]=1;});};
   for(const [x,y,v] of [[SG[0]-11,SG[1]+3,0],[SG[0]-6,SG[1]+6,1],[SG[0]-1,SG[1]+8,0],[SG[0]+5,SG[1]+8,2],[SG[0]+11,SG[1]+6,0],[SG[0]+15,SG[1]+3,1],[SG[0]-14,SG[1]+9,2],[SG[0]+8,SG[1]+13,0],[SG[0]-5,SG[1]+13,1],[SG[0]+2,SG[1]+2,2]])
     tent(x,y,V.story.tents?V.story.tents[v]:v);
-  for(const [x,y] of [[SG[0]-7,SG[1]+1],[SG[0]+8,SG[1]+2],[SG[0]+1,SG[1]+11]]){P_('stone_firepit',x,y,{light:4.5,smoke:4});P_('cookpot',x+.6,y-.4);
+  const campfires=[[-7,1],[8,2],[1,11]].map(([dx,dy])=>[SG[0]+dx,SG[1]+dy]);
+  for(const [x,y] of campfires){P_('stone_firepit',x,y,{light:4.5,smoke:4});P_('cookpot',x+.6,y-.4);
     for(const [dx,dy] of [[-2,1],[2,1.4],[0,-2.2]])P_(rng.pick(['folded_blankets','guard_stool','covered_basket']),x+dx,y+dy);}
   for(const [nm,x,y] of [['banner_pole',SG[0]-4,SG[1]-2],['banner_pole',SG[0]+12,SG[1]],['banner_pole',SG[0]+4,SG[1]+5],['crate_stack',SG[0]+18,SG[1]+9],['grain_sack',SG[0]+19.6,SG[1]+10.4],
     ['arrow_bundle',SG[0]-17,SG[1]+3],['spear_bundle',SG[0]-18,SG[1]+5],['crossbow_rack',SG[0]-16,SG[1]+6.6],['empty_cage',SG[0]+4,SG[1]+17],['empty_cage',SG[0]+6.5,SG[1]+17.6],
@@ -645,6 +648,11 @@ export function generateCastle(depth,biome,seed,variant=null){
   for(let a=0;a<q.length;a++){const i=q[a],x=i%W,y=(i/W)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
     const nx=x+dx,ny=y+dy;if(inb(nx,ny)&&!reach[I(nx,ny)]&&map.walkableTile(nx,ny)&&map.stepOk(i,I(nx,ny))){reach[I(nx,ny)]=1;q.push(I(nx,ny));}}}
   const ok=(p)=>reach[I(Math.floor(p[0]),Math.floor(p[1]))]&&map.circleFree(p[0],p[1],.35);
+  const onSealedCrossing=(p)=>{const x=Math.floor(p[0]),y=Math.floor(p[1]),D=L.drawbridge;
+    if(x>=D.x0&&x<D.x1&&y>=D.hinge&&y<D.y1)return true;
+    const B=map.castleBridges.find((b)=>b.kind==='postern');
+    return !!B&&x>=B.x0&&x<=B.x1&&y>=B.far&&y<B.near;};
+  const spawnOK=(p)=>ok(p)&&!onSealedCrossing(p);
   const near=(p,r=3)=>{if(ok(p))return p;for(let k=0;k<200;k++){const t=[p[0]+rng.range(-r,r),p[1]+rng.range(-r,r)];if(ok(t))return t;}
     for(let rr=1;rr<14;rr++)for(let k=0;k<40;k++){const a=k/40*Math.PI*2,t=[p[0]+Math.cos(a)*rr,p[1]+Math.sin(a)*rr];if(ok(t))return t;}return p;};
   const hallC=(id)=>{const r=rooms.find(r=>r.id===id).tiles;return [(r[0]+r[2]+1)/2,(r[1]+r[3]+1)/2];};
@@ -655,14 +663,14 @@ export function generateCastle(depth,biome,seed,variant=null){
   const looks=rollLooks(biome,rng.fn()),spawns=[];
   for(let k=0;k<70;k++){
     const x=rng.int(10,W-11)+.5,y=rng.int(10,H-11)+.5;
-    if(!ok([x,y])||dist(x,y,ENTRY)<24||dist(x,y,bossPoint)<24||mat[I(x|0,y|0)]===MAT.hall)continue;
+    if(!spawnOK([x,y])||dist(x,y,ENTRY)<24||dist(x,y,bossPoint)<24||mat[I(x|0,y|0)]===MAT.hall)continue;
     const arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:rng.int(2,4),rank:k%10===0?'champion':'normal',look:looks.pick(arch)});
   }
   // packs on the wall-walks and tower tops: they hold the walls, or come down the stairs at the hero
   const walkTiles=[];for(let i=0;i<N;i++)if(map.rampartDeck[i]&&reach[i]&&!map.block[i])walkTiles.push(i);
   for(let k=0,t=0;k<12&&t<600&&walkTiles.length;t++){const i=rng.pick(walkTiles),x=i%W+.5,y=((i/W)|0)+.5;
-    if(!ok([x,y])||sites.some(s=>dist(x,y,s)<8)||spawns.some(s=>Math.hypot(s.x-x,s.y-y)<14))continue;
-    const arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:rng.int(2,3),rank:k%4===0?'champion':'normal',look:looks.pick(arch),rampart:true});k++;}
+    if(!spawnOK([x,y])||sites.some(s=>dist(x,y,s)<8)||spawns.some(s=>Math.hypot(s.x-x,s.y-y)<14))continue;
+    const arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:rng.int(2,3),rank:k%4===0?'champion':'normal',look:looks.pick(arch),rampart:true,castleEnvironmental:true,castleEnvironment:'wall-defense'});k++;}
   for(const id of ['cathedral','great_hall']){const [x,y]=near(hallC(id),3),arch=rng.pick(biome.roster);spawns.push({x,y,arch,n:2,rank:'normal',look:looks.pick(arch),castleRoom:id});}
   // These two landmarks exist in every Castle variant. Keep the named objective foes on clear,
   // reachable ground at each area's centre so both routes remain completeable before the moat gate.
@@ -686,11 +694,82 @@ export function generateCastle(depth,biome,seed,variant=null){
   let densityPacks=0;
   for(const spacing of [9,7])for(let tries=0;tries<CASTLE_DENSITY_PACKS*250&&densityPacks<CASTLE_DENSITY_PACKS;tries++){
     const x=densityRng.int(10,W-11)+.5,y=densityRng.int(10,H-11)+.5;
-    if(!ok([x,y])||dist(x,y,ENTRY)<20||dist(x,y,bossPoint)<24||mat[I(x|0,y|0)]===MAT.hall
+    if(!spawnOK([x,y])||dist(x,y,ENTRY)<20||dist(x,y,bossPoint)<24||mat[I(x|0,y|0)]===MAT.hall
       ||spawns.some(s=>Math.hypot(s.x-x,s.y-y)<spacing))continue;
     const arch=densityRng.pick(biome.roster);
     spawns.push({x,y,arch,n:densityRng.int(2,4),rank:'normal',look:densityLooks.pick(arch),castleDensityBonus:true});
     densityPacks++;
+  }
+  // The uniform patrols above improve the average count, but they do not make the Castle feel occupied:
+  // they can land far from landmarks, and the older rolls deliberately skip every hall floor. Add small,
+  // seeded groups around real generated features as a separate layer, leaving the original patrol rolls intact.
+  const environmentalRng=new RNG(((seed>>>0)^0x6e91b27)>>>0),environmentalLooks=rollLooks(biome,environmentalRng.fn());
+  const environmentalAnchors=[];
+  const addEnvironmentalAnchors=(environment,points,limit,options={})=>{
+    const candidates=points.filter(Boolean).map((point)=>({environment,point,key:environmentalRng.range(0,1),radius:options.radius||8,
+      min:options.min||2,max:options.max||4,preferred:options.preferred||[],bounds:options.bounds||null,allowHall:!!options.allowHall}));
+    candidates.sort((a,b)=>a.key-b.key);
+    environmentalAnchors.push(...candidates.slice(0,limit));
+  };
+  // The siege lines are present in every layout. These points correspond to actual tent/fire/supply clusters,
+  // and are kept well away from the named commander interaction area.
+  addEnvironmentalAnchors('siege-camp',SG?[
+    [SG[0]-17,SG[1]+5],[SG[0]+19,SG[1]+9],[SG[0]-5,SG[1]+13],[SG[0]+8,SG[1]+13],
+    ...campfires.map(([x,y])=>[x,y+5]),
+  ]:[],3,{radius:9,min:3,max:5,preferred:['knight','archer','cultist','zombie']});
+  // Undead patrol the actual grave plot. The east side is reserved for its required Hexer objective.
+  addEnvironmentalAnchors('graveyard',GY?[
+    [GY[0]-9,GY[1]-7],[GY[0]-9,GY[1]+7],[GY[0]+1,GY[1]-8],[GY[0]+1,GY[1]+8],
+  ]:[],2,{radius:7,min:2,max:4,preferred:['zombie','ghoul','skeleton','wraith','cultist']});
+  // Orchard groups are computed from the trees that the selected variant really generated. A broad orchard
+  // is split into two groves; compact orchardN clusters stay as their own anchors.
+  if(orchardTrees.length){
+    if(P.orchard){const [ox,oy]=P.orchard;addEnvironmentalAnchors('orchard',[[ox+17,oy+7],[ox+17,oy+20]],orchardTrees.length>=18?2:1,
+      {radius:8,min:2,max:4,preferred:['bat','ghoul','archer','cultist']});}
+  }
+  if(orchardNTrees.length>=2){
+    const buckets=new Map();for(const [x,y] of orchardNTrees){const key=`${Math.floor(x/48)},${Math.floor(y/48)}`;const group=buckets.get(key)||[];group.push([x,y]);buckets.set(key,group);}
+    const groves=[...buckets.values()].filter((group)=>group.length>=2).map((group)=>[group.reduce((s,p)=>s+p[0],0)/group.length,group.reduce((s,p)=>s+p[1],0)/group.length]);
+    addEnvironmentalAnchors('tree-cluster',groves,Math.min(2,groves.length),{radius:7,min:2,max:4,preferred:['bat','ghoul','archer','cultist']});
+  }
+  // Fields are optional across variants; each anchor is the field plot around its existing training dummy.
+  addEnvironmentalAnchors('field-outpost',fieldPlots,fieldPlots.length?Math.min(2,fieldPlots.length):0,
+    {radius:7,min:2,max:4,preferred:['archer','knight','cultist']});
+  // A walled garden is a real courtyard feature where present. Otherwise use the open inner-ward corners as
+  // courtyard patrol anchors; blocked hall interiors and the throne room are rejected below.
+  if(GDN){const [x0,y0,x1,y1]=GDN,cx=(x0+x1)/2,cy=(y0+y1)/2;
+    addEnvironmentalAnchors('courtyard',[[cx-6,cy-4],[cx+6,cy+4],[cx-6,cy+4],[cx+6,cy-4]],2,{radius:8,min:3,max:5,preferred:['knight','archer','gargoyle']});
+  }else{
+    const cx=(RI.X0+RI.X1)/2,cy=(RI.Y0+RI.Y1)/2;
+    addEnvironmentalAnchors('courtyard',[[cx-10,cy-9],[cx+10,cy-9],[cx-10,cy+9],[cx+10,cy+9]],2,{radius:9,min:3,max:5,preferred:['knight','archer','gargoyle']});
+  }
+  // The keep entrance hall and armoury are genuine walkable interiors. The general patrol rolls above skipped all
+  // hall floors, so add one modest guard group in each instead of letting these major rooms remain vacant.
+  for(const [id,environment] of [['keep_hall','keep-interior'],['armoury','armoury']]){
+    const r=room3(id);if(!r)continue;const [x0,y0,x1,y1]=r.tiles,bounds=[x0+2,y0+2,x1-2,y1-2];
+    if(bounds[0]>bounds[2]||bounds[1]>bounds[3])continue;
+    environmentalAnchors.push({environment,point:[(x0+x1)/2,(y0+y1)/2],radius:Math.min(5,(x1-x0)/2,(y1-y0)/2),
+      min:2,max:4,preferred:['knight','skeleton','cultist','gargoyle'],bounds,allowHall:true});
+  }
+  // The ruined watchtower is optional but, when generated, receives a small guard group around its open apron.
+  addEnvironmentalAnchors('ruined-watchtower',RW?[[RW[0]+7,RW[1]+1],[RW[0]-7,RW[1]+5]]:[],1,
+    {radius:7,min:2,max:4,preferred:['skeleton','archer','gargoyle','cultist']});
+  let environmentalPacks=0;
+  for(const anchor of environmentalAnchors){
+    let placed=null;
+    for(const spacing of [8,7])for(let attempt=0;attempt<650&&!placed;attempt++){
+      const angle=environmentalRng.range(0,Math.PI*2),radius=environmentalRng.range(2.2,anchor.radius),x=anchor.point[0]+Math.cos(angle)*radius,y=anchor.point[1]+Math.sin(angle)*radius,
+        i=I(Math.floor(x),Math.floor(y));
+      if(!spawnOK([x,y])||anchor.bounds&&(x<anchor.bounds[0]||y<anchor.bounds[1]||x>anchor.bounds[2]||y>anchor.bounds[3])
+        ||dist(x,y,ENTRY)<20||dist(x,y,bossPoint)<24||mat[i]===MAT.hall&&!anchor.allowHall||mat[i]===MAT.water||mat[i]===MAT.road||mat[i]===MAT.cobble
+        ||spawns.some((s)=>Math.hypot(s.x-x,s.y-y)<spacing)||(castleObjectives.some((o)=>Math.hypot(o.x-x,o.y-y)<10)))continue;
+      placed=[x,y];
+    }
+    if(!placed)continue;
+    const pool=anchor.preferred.filter((arch)=>biome.roster.includes(arch)),arch=pool.length?environmentalRng.pick(pool):environmentalRng.pick(biome.roster);
+    spawns.push({x:placed[0],y:placed[1],arch,n:environmentalRng.int(anchor.min,anchor.max),rank:'normal',look:environmentalLooks.pick(arch),
+      castleEnvironmental:true,castleEnvironmentalBonus:true,castleEnvironment:anchor.environment,castleEnvironmentAnchor:[...anchor.point]});
+    environmentalPacks++;
   }
   const chests=[[rooms[0].tiles[0]+5.5,rooms[0].tiles[1]+12.5],[rooms[1].tiles[2]-4.5,rooms[1].tiles[1]+5.5],[rooms[2].tiles[0]+4.5,rooms[2].tiles[3]-3.5],
     GY?[GY[0]+8,GY[1]+6]:place.graveyardS,RW?[RW[0]+5,RW[1]+3]:place.ruin,[SG[0]+16,SG[1]+12]].map(([x,y],j)=>{const [px,py]=near([x,y],3);return {x:px,y:py,rare:j===0||rng.chance(.2)};});
@@ -809,7 +888,7 @@ export function generateCastle(depth,biome,seed,variant=null){
     if(x>=B.x0&&x<=B.x1&&y>=B.far&&y<B.near){map.castlePosternTiles.push(i);map.block[i]=1;}
   });}
   map.castleGateTiles=[...map.drawbridge.tiles,...map.castlePosternTiles];
-  map.castleObjectives=castleObjectives;map.castleGateLocked=true;map.castleGateUnlocked=false;
+  map.castleObjectives=castleObjectives;map.castleGateLocked=true;map.castleGateUnlocked=false;map.castleEnvironmentalPackCount=environmentalPacks;
   map.castleKeep={x:KEEP[0],y:KEEP[1]};map.castleGarden=GDN;map.castleSiege=SG;map.castleVillage=[vx,vy];
   // the story's people: the herald by the road where the hero arrives, the lord in the keep's council chamber
   const council=room3('council').tiles;
