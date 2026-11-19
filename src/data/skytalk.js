@@ -97,7 +97,7 @@ const PITCH = [
   ['Listen to yourselves. You are better than a demon\'s fleet.', 'calm'],
   ['Join me and you will never have to sing a shanty again.', 'laugh'],
   ['There is still a road home. I can show you where it starts.', 'calm'],
-  ['When I reach Depth 500, I would rather have you beside me than in front of me.', 'grim'],
+  ['When I reach Velscour, I would rather have you beside me than in front of me.', 'grim'],
   ['Our town needs defenders. Real ones. Ones who can fly.', 'calm'],
   ['You could be heroes. Songs, statues, the works. Possibly a small festival.', 'laugh'],
   ['Velscour will burn the world. Do you want to watch that from a nice ship?', 'angry'],

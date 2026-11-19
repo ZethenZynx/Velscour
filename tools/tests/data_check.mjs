@@ -159,16 +159,23 @@ const chests = JSON.parse(readFileSync(asset('props/chests.json')));
 for (const k of ['closed', 'open', 'rareClosed', 'rareOpen']) if (!chests[k]) bad.push(`chest art: no ${k}`);
 // Campaign destinations stay within their configured depth bands, and portal choices use the same pool.
 const hero = { biomeBag: [], lastBiome: null, overworldMisses: 0 };
+const campaignBands = [
+  [1, 6, 'overworld'], [7, 12, 'dark_forest'], [13, 18, 'castle'], [19, 24, 'castle_keep'],
+  [25, 30, 'sea_of_sand'], [31, 36, 'great_hunt'], [37, 42, 'serpentine_tower'], [43, 48, 'scorpion_king_pyramid'],
+  [49, 54, 'mountainside'], [55, 60, 'depths_edge'], [61, 66, 'snowy_summit'], [67, 72, 'endless_siege'],
+  [73, 79, 'pirate_seas'], [80, 84, 'skyship'], [85, 92, 'ghost_train'], [93, 99, 'deep_mines'], [100, 100, 'throne'],
+];
 for (let depth = 1; depth <= 500; depth++) {
   const eligible = biomesForDepth(depth), id = drawBiome(hero, depth), choices = biomeChoices(hero, depth);
   if (!eligible.includes(id)) bad.push(`depth ${depth}: drew ineligible biome ${id}`);
   if (!choices.length || choices.some((x) => !eligible.includes(x))) bad.push(`depth ${depth}: portal offered an ineligible biome`);
-  if (depth === 500 && (id !== 'throne' || choices.join() !== 'throne')) bad.push('Depth 500 must always be Velscour’s Throne');
+  const band = campaignBands.find(([start, end]) => depth >= start && depth <= end);
+  if (band && (eligible.length !== 1 || eligible[0] !== band[2])) bad.push(`campaign depth ${depth} has the wrong environment`);
+  if (depth === 100 && (id !== 'throne' || choices.join() !== 'throne')) bad.push('Depth 100 must always be Velscour\'s Throne');
+  if (depth > 100 && eligible.includes('throne')) bad.push(`Endgame depth ${depth} must not roll the throne`);
   hero.lastBiome = id;
 }
-if (!biomesForDepth(23).includes('overworld') || biomesForDepth(23).includes('dark_forest')) bad.push('Forsaken Wilds depth band is wrong');
-if (!biomesForDepth(24).includes('overworld') || !biomesForDepth(24).includes('dark_forest')) bad.push('shared depth 24 endpoint is wrong');
-if (!biomesForDepth(457).includes('throne') || biomesForDepth(457).includes('void')) bad.push('Throne depth band is wrong');
+if (biomesForDepth(101).length < 2 || biomesForDepth(500).includes('overworld')) bad.push('Infinite endgame pool is not open to eligible dungeon environments');
 let mixes = 0;
 for (let i = 0; i < 200; i++) { const m = mixPartner(BIOMES[0]); if (m) { mixes++; if (m.family !== BIOMES[0].family || m.id === BIOMES[0].id) bad.push('bad mix partner ' + m.id); } }
 console.log('monster art', BESTIARY.length, 'looks; depth-band biome checks passed; mixed levels', mixes, '/ 200');

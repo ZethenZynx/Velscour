@@ -37,6 +37,7 @@ export function reliquary() {
 export function saveReliquary() { try { localStorage.setItem(KEY, JSON.stringify(reliquary())); } catch (e) { /* storage full or blocked: the vault lives on for this visit */ } }
 /** Tests: forget the cached copy (the next call reads localStorage again). */
 export function resetReliquaryCache() { R = null; }
+if (typeof addEventListener === 'function') addEventListener('velscour-overhaul-reset-complete', resetReliquaryCache);
 
 /** Codex progress: {by: {h, c, g, s}, have, total, pct}. */
 export function codexProgress() {

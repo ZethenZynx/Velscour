@@ -1,7 +1,7 @@
 // LocalStorage persistence for heroes.
 import { CLASSES } from '../data/classes.js';
 import { normalizeDungeonAffixIds } from '../data/dungeonaffixes.js';
-import { MAX_LEVEL } from '../data/depth.js';
+import { MAX_LEVEL, MAX_DEPTH, FINAL_DEPTH } from '../data/depth.js';
 import { rollItem, HOLLOW, WEAPONS, OFFHANDS, ARMORS, AFFIX_BY_STAT, affixValue, powerLevel, tierOf, itemReqStat, charEffectiveStat, augTarget, affixScale, flatDmgValue, LINE_MULT, PERK_MULT } from '../data/items.js';
 import { SCOPE_MUL, augPower, augmentable, AUGMENTS } from '../data/rings.js';
 import { SKILLS, CLASS_SKILLS, MAX_SKILL_LEVEL } from '../data/skills.js';
@@ -20,6 +20,62 @@ import {
 const KEY = 'velscour_saves_v1';
 const ASIDE = KEY + '_unreadable_';   // + time: save data that couldn't be read, set aside before anything replaced it
 let unreadable = false;   // the saves are there but don't parse; preserve them until they can be recovered
+const OVERHAUL_RESET_KEY = 'velscour_campaign_overhaul_reset_v1';
+const OVERHAUL_BACKUP_KEY = 'velscour_campaign_overhaul_backup_v1';
+const OVERHAUL_EXTRA_KEYS = ['velscour_bard_heard', 'velscour_taunts_v1'];
+let overhaulResetChecked = false;
+
+/** One-time campaign migration: snapshot gameplay progress, then clear it without touching player preferences. */
+export function applyCampaignOverhaulReset() {
+  if (overhaulResetChecked) return true;
+  overhaulResetChecked = true;
+  try {
+    if (localStorage.getItem(OVERHAUL_RESET_KEY) === '1') return true;
+    const saves = localStorage.getItem(KEY);
+    const endgame = localStorage.getItem('velscour_endgame_v1');
+    const reliquary = localStorage.getItem('velscour_reliquary_v1');
+    const extras = Object.fromEntries(OVERHAUL_EXTRA_KEYS.map((key) => [key, localStorage.getItem(key)]));
+    const priorBackup = localStorage.getItem(OVERHAUL_BACKUP_KEY);
+    if (priorBackup === null) {
+      localStorage.setItem(OVERHAUL_BACKUP_KEY, JSON.stringify({ version: 1, savedAt: Date.now(), saves, endgame, reliquary, extras }));
+    } else {
+      const parsedBackup = JSON.parse(priorBackup);
+      if (!parsedBackup || parsedBackup.version !== 1) throw new Error('Existing campaign backup is not valid; keeping current saves untouched.');
+    }
+    // A pending marker makes the reset recoverable if the browser exits during these localStorage writes.
+    localStorage.setItem(OVERHAUL_RESET_KEY, 'pending');
+    localStorage.setItem(KEY, '[]');
+    localStorage.removeItem('velscour_endgame_v1');
+    localStorage.removeItem('velscour_reliquary_v1');
+    for (const key of OVERHAUL_EXTRA_KEYS) localStorage.removeItem(key);
+    localStorage.setItem(OVERHAUL_RESET_KEY, '1');
+    memo = null;
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('velscour-overhaul-reset-complete'));
+    return true;
+  } catch (error) {
+    // Restore the saved snapshot if any of the clearing writes failed partway through.
+    try {
+      const backup = JSON.parse(localStorage.getItem(OVERHAUL_BACKUP_KEY) || 'null');
+      if (backup?.version === 1) {
+        const snapshot = [[KEY, backup.saves], ['velscour_endgame_v1', backup.endgame], ['velscour_reliquary_v1', backup.reliquary], ...OVERHAUL_EXTRA_KEYS.map((key) => [key, backup.extras?.[key] ?? null])];
+        for (const [key, value] of snapshot) {
+          if (value === null || value === undefined) localStorage.removeItem(key);
+          else localStorage.setItem(key, value);
+        }
+      }
+      localStorage.removeItem(OVERHAUL_RESET_KEY);
+    } catch (restoreError) { console.error('The campaign reset failed and automatic rollback could not finish; the backup remains available.', restoreError); }
+    // Never destroy old progress unless a recoverable copy and reset marker can both be written.
+    overhaulResetChecked = false;
+    console.error('Campaign reset was not applied because a safe backup could not be created.', error);
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('velscour-overhaul-reset-blocked'));
+    return false;
+  }
+}
+
+export function campaignOverhaulBackup() {
+  try { return JSON.parse(localStorage.getItem(OVERHAUL_BACKUP_KEY) || 'null'); } catch (_) { return null; }
+}
 function readAll() {
   let list;
   const raw = localStorage.getItem(KEY);
@@ -71,6 +127,7 @@ export async function unreadableSaves() {
 }
 
 export function listSaves() {
+  if (!applyCampaignOverhaulReset()) return [];
   return readAll().sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
 }
 // The autosave (every 30 s) used to parse and re-encode every hero on the device to change one: with full stashes on
@@ -78,6 +135,7 @@ export function listSaves() {
 // text per hero; while the stored data is still exactly that, only the hero being saved is encoded again.
 let memo = null;   // { raw, parts: Map(id -> JSON) }
 export function writeSave(char) {
+  if (!applyCampaignOverhaulReset()) return false;
   char.lastPlayed = Date.now();
   const raw = localStorage.getItem(KEY);
   let ok;
@@ -100,6 +158,7 @@ function remember(list) {
   return raw === localStorage.getItem(KEY) ? { raw, parts } : null;
 }
 export function deleteSave(id) {
+  if (!applyCampaignOverhaulReset()) return false;
   const list = readAll(), gone = list.find((c) => c.id === id);
   writeAll(list.filter((c) => c.id !== id));
 }
@@ -111,11 +170,12 @@ export function heroesByClass() {
   return out;
 }
 export function deleteClassSaves(classId) {
+  if (!applyCampaignOverhaulReset()) return false;
   const list = readAll();
   writeAll(list.filter((c) => c.classId !== classId));
 }
 /** Every save of a class (old saves may hold several). */
-export function classSaves(classId) { return readAll().filter((c) => c.classId === classId); }
+export function classSaves(classId) { if (!applyCampaignOverhaulReset()) return []; return readAll().filter((c) => c.classId === classId); }
 export function newCharData(classId, name) {
   const C = CLASSES[classId];
   const c = {
@@ -133,7 +193,7 @@ export function newCharData(classId, name) {
     jewelBox: Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null), // dedicated town vault for gems & runes
     tabs: Array(TAB_SLOTS).fill(null), tabAt: 0, // the Bard's Tabs: locked Music Sheets he plays (data/tabs.js)
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
-    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
+    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], affixStreak: 0, affixBiome: null, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
     kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, critterTutorialSeen: false, critterArrowEncounters: 0, wdmg: 1,
   };
@@ -277,9 +337,16 @@ function rescaleFlatDmg(it, a) {
 
 /** Fill in fields added by later versions. */
 export function migrate(c) {
+  const savedDepth = Number(c.depth);
+  c.depth = Number.isFinite(savedDepth) ? Math.max(1, Math.min(MAX_DEPTH, Math.floor(savedDepth))) : 1;
+  const savedDeepest = Number(c.deepest);
+  c.deepest = Number.isFinite(savedDeepest) ? Math.max(0, Math.min(MAX_DEPTH, Math.floor(savedDeepest))) : 0;
   migrateToLv100Rebalance(c);
   c.dungeonAffixes = normalizeDungeonAffixIds(c.dungeonAffixes);
   c.nextAffixes = normalizeDungeonAffixIds(c.nextAffixes);
+  c.affixStreak = Math.max(0, Math.floor(Number(c.affixStreak) || 0));
+  if (c.depth <= FINAL_DEPTH) { c.affixStreak = 0; c.dungeonAffixes = []; c.nextAffixes = []; }
+  if (typeof c.affixBiome !== 'string') c.affixBiome = null;
   c.potions = Object.assign({ hp: 0, mp: 0, rejuv: 0, fury: 0 }, c.potions);
   c.cleared = c.cleared || {};
   c.seaOfSandRuns = c.seaOfSandRuns || {};

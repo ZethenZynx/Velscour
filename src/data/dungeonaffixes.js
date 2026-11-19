@@ -2025,8 +2025,26 @@ export function chooseDungeonAffix(currentIds = [], random = Math.random) {
   return available[Math.min(available.length - 1, Math.floor(random() * available.length))] || null;
 }
 
+export function affixCountForStreak(completedDepths = 0) {
+  const n = Number.isFinite(Number(completedDepths)) ? Math.max(0, Math.floor(Number(completedDepths))) : 0;
+  return Math.min(MAX_AFFIX_SECTIONS, Math.floor(n / AFFIX_DEPTH_INTERVAL));
+}
+
+/** Preserve the current set for the same environment, add newly earned slots, or reroll all slots on a biome change. */
+export function rollDungeonAffixesForStreak(completedDepths = 0, random = Math.random, currentIds = [], reroll = false) {
+  const target = affixCountForStreak(completedDepths);
+  let ids = reroll ? [] : normalizeDungeonAffixIds(currentIds).slice(0, target);
+  while (ids.length < target) {
+    const next = chooseDungeonAffix(ids, random);
+    if (!next) break;
+    ids.push(next.id);
+  }
+  return ids;
+}
+
 /** Roll a fresh set for one destination floor; old-floor affixes are never carried forward. */
 export function rollDungeonAffixesForDepth(nextDepth, random = Math.random, startDepth = 1, guaranteeOne = false) {
+  if (Number(nextDepth) <= 100) return [];
   const ids = [];
   const elapsedDepths = Math.max(0, (Number(nextDepth) || 0) - (Number(startDepth) || 1));
   const target = Math.min(MAX_AFFIX_SECTIONS, Math.max(guaranteeOne ? 1 : 0, Math.floor(elapsedDepths / AFFIX_DEPTH_INTERVAL)));

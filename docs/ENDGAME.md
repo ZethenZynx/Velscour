@@ -1,6 +1,6 @@
 # THE ENDGAME: Heresies, Abyssal Rifts, Velscour Unbound, Infernal Marks
 
-What a hero does after Velscour falls (depth 500). Four systems, one unlock: **the Endgame opens for the whole browser
+What a hero does after Velscour falls (depth 100). Four systems, one unlock: **the Endgame opens for the whole browser
 (every hero) the first time any hero slays Velscour for real** (not the skull's practice fight). Before that the altar
 and the rift gate stand in town but refuse: *"Velscour still sits his throne."*
 
@@ -67,10 +67,8 @@ panel says so, the list is greyed and disabled, the rift door too. The altar its
 (a reachable tile about 5.5 tiles from the plaza's centre), an obelisk grey while locked, red once open, glowing while a
 Heresy is on.
 
-Where they stop: Ambush Weather has no effect in BOSS ROOMs or the Breach (`ambushTick` skips them); **Black Omens only
-reaches omenable depths (below 500)**: `setupHappenings` returns early from Depth 500 on and `omenable` is false there, so
-in the Endless Torment it is a rank point for nothing (proposal, not applied: let Black Omens past the `depth >=
-FINAL_DEPTH` return in `setupHappenings` for the omen block alone, and `portalChoice` roll one past 500 when it is on).
+Where they stop: Ambush Weather has no effect in BOSS ROOMs or the Breach (`ambushTick` skips them). Black Omens
+continues to apply in the infinite endgame; authored final-boss scenes remain excluded from ordinary happenings.
 
 Measured (`tools/tests/heresies.js balance` / `each`, a paladin geared for Depth 521 like `balance.js` BAL_GEAR 8, headless
 SwiftShader on a shared 4-CPU box, so timings are rough; ranges over 4 runs): a depth-520/521 level holds 586-675

@@ -14,7 +14,7 @@ import { regionOf } from '../game/regions.js';
 
 const step = (done, html) => `<div class="q-step${done ? ' done' : ''}"><i>${done ? '&#10004;' : '&#9670;'}</i><span>${html}</span></div>`;
 const nextRaid = (d) => { let n = Math.max(5, Math.ceil(d / 5) * 5); if (n === FINAL_DEPTH) n += 5; return n; };
-// Include the campaign's Depth 500 finale, but not post-campaign boss rooms.
+// The quest tracker lists the campaign's five-depth milestones only.
 const BOSS_ROOM_DEPTHS = Array.from({ length: Math.floor(FINAL_DEPTH / 5) }, (_, i) => (i + 1) * 5);
 
 export function renderQuest(body) {
@@ -146,7 +146,7 @@ export function renderQuest(body) {
     h += step(c.unbound.wins > 0, `Velscour Unbound: <b>${Math.min(3, c.keys)}/3</b> Abyssal Keys${c.unbound.wins ? ` · beaten ${c.unbound.wins}x` : ''}`);
     h += step(false, `Infernal Marks: <b>${marksTotal()}</b> (${marksFree()} free)`);
     h += '</div>';
-  } else if (deepest >= FINAL_DEPTH - 50) h += `<div class="q-sec"><h3>The Endgame</h3>${step(false, 'Slay Velscour at Depth 500: the Altar of Heresy and the Abyssal Rift gate open for every hero.')}</div>`;
+  } else if (deepest >= FINAL_DEPTH - 50) h += `<div class="q-sec"><h3>The Endgame</h3>${step(false, `Slay Velscour at Depth ${FINAL_DEPTH}: the Altar of Heresy and the Abyssal Rift gate open for every hero.`)}</div>`;
   h += `<div class="q-sec"><h3>Boss Rooms Conquered</h3><div class="q-raids">${BOSS_ROOM_DEPTHS.map((d) => {
     const defeated = !!(c.cleared || {})[d];
     const state = defeated ? 'defeated' : 'upcoming';

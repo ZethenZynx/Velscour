@@ -566,36 +566,34 @@ export const OVERWORLD_BIOME_IDS = BIOMES.filter((b) => b.overworld).map((b) => 
 
 /** Special destinations and ordinary dungeon pools for each campaign depth band. Endpoints are inclusive. */
 export const DEPTH_BIOME_RANGES = [
-  { start: 1, end: 24, ids: ['overworld'] },
-  { start: 24, end: 48, ids: ['dark_forest'] },
-  { start: 48, end: 72, ids: ['castle'] },
-  { start: 72, end: 96, ids: ['castle_keep'] },
-  { start: 96, end: 120, ids: ['sea_of_sand'] },
-  { start: 120, end: 144, ids: ['great_hunt'] },
-  { start: 144, end: 168, ids: ['serpentine_tower'] },
-  { start: 168, end: 192, ids: ['scorpion_king_pyramid'] },
-  { start: 192, end: 216, ids: ['mountainside'] },
-  { start: 216, end: 240, ids: ['depths_edge'] },
-  { start: 240, end: 264, ids: ['snowy_summit'] },
-  { start: 264, end: 288, ids: ['endless_siege'] },
-  { start: 288, end: 336, ids: ['pirate_seas'] },
-  { start: 336, end: 360, ids: ['skyship'] },
-  { start: 360, end: 408, ids: ['ghost_train'] },
-  { start: 408, end: 456, ids: ['deep_mines'] },
-  { start: 456, end: FINAL_DEPTH, ids: ['throne'] },
+  { start: 1, end: 6, ids: ['overworld'] },
+  { start: 7, end: 12, ids: ['dark_forest'] },
+  { start: 13, end: 18, ids: ['castle'] },
+  { start: 19, end: 24, ids: ['castle_keep'] },
+  { start: 25, end: 30, ids: ['sea_of_sand'] },
+  { start: 31, end: 36, ids: ['great_hunt'] },
+  { start: 37, end: 42, ids: ['serpentine_tower'] },
+  { start: 43, end: 48, ids: ['scorpion_king_pyramid'] },
+  { start: 49, end: 54, ids: ['mountainside'] },
+  { start: 55, end: 60, ids: ['depths_edge'] },
+  { start: 61, end: 66, ids: ['snowy_summit'] },
+  { start: 67, end: 72, ids: ['endless_siege'] },
+  { start: 73, end: 79, ids: ['pirate_seas'] },
+  { start: 80, end: 84, ids: ['skyship'] },
+  { start: 85, end: 92, ids: ['ghost_train'] },
+  { start: 93, end: 99, ids: ['deep_mines'] },
+  { start: FINAL_DEPTH, end: FINAL_DEPTH, ids: ['throne'] },
 ];
 
-export const DEPTH_DUNGEON_RANGES = [
-  { start: 1, end: 96, ids: ['catacombs', 'necropolis', 'plague', 'sewers', 'library', 'sunken'] },
-  { start: 96, end: 192, ids: ['desert_temple', 'desert', 'gilded', 'amber'] },
-  { start: 192, end: 288, ids: ['ice_temple', 'frozen', 'crystal'] },
-  { start: 288, end: 360, ids: ['heavenly', 'astral_plane', 'storm', 'shattered', 'cathedral'] },
-  { start: 360, end: 456, ids: ['molten', 'hell', 'forge', 'abyss', 'obsidian', 'blood', 'flesh', 'void'] },
-];
+const CAMPAIGN_ENVIRONMENTS = new Set(DEPTH_BIOME_RANGES.flatMap((range) => range.ids));
+export const DEPTH_DUNGEON_RANGES = [{ start: FINAL_DEPTH + 1, end: Number.MAX_SAFE_INTEGER, ids: [...new Set([...BIOMES, ...BETA_BIOMES].filter((b) => !b.overworld && !CAMPAIGN_ENVIRONMENTS.has(b.id)).map((b) => b.id))] }];
 
-/** Biomes eligible at a campaign depth. Shared endpoints intentionally include both adjacent bands. */
+/** Campaign depths use exactly one scheduled environment; endgame depths share the open dungeon pool. */
 export function biomesForDepth(depth) {
-  if (depth === FINAL_DEPTH) return ['throne'];
+  depth = Math.max(1, Math.floor(Number(depth) || 1));
+  if (depth <= FINAL_DEPTH) return DEPTH_BIOME_RANGES.find((range) => depth >= range.start && depth <= range.end)?.ids.slice() || ['throne'];
+  // Every ordinary dungeon pool is eligible as soon as the infinite endgame begins.
+  if (depth > FINAL_DEPTH) return DEPTH_DUNGEON_RANGES[0].ids.filter((id) => BIOME_BY_ID[id]);
   const ids = [];
   for (const range of [...DEPTH_BIOME_RANGES, ...DEPTH_DUNGEON_RANGES]) {
     if (depth >= range.start && depth <= range.end) ids.push(...range.ids);
@@ -604,11 +602,10 @@ export function biomesForDepth(depth) {
 }
 
 /**
- * A shuffled pool for this depth's configured ranges. An eligible overworld is guaranteed after three actual
- * non-overworld dungeon entries. Depth 500 always leads to Velscour's Throne.
+ * A shuffled pool for this depth's configured ranges. Campaign bands are fixed; the endgame cycles its open pool.
  */
 export function drawBiome(c, depth) {
-  if (depth === FINAL_DEPTH) return 'throne';
+  if (depth <= FINAL_DEPTH) return DEPTH_BIOME_RANGES.find((range) => depth >= range.start && depth <= range.end)?.ids[0] || 'throne';
   const all = biomesForDepth(depth);
   if (!all.length) return 'catacombs';
   const overworldIds = all.filter((id) => BIOME_BY_ID[id]?.overworld);
@@ -633,7 +630,7 @@ export function drawBiome(c, depth) {
  * are all overworlds.
  */
 export function biomeChoices(c, depth, n = 3) {
-  if (depth === FINAL_DEPTH) return ['throne'];
+  if (depth <= FINAL_DEPTH) return [drawBiome(c, depth)];
   const all = biomesForDepth(depth);
   if (!all.length) return ['catacombs'];
   const overworldIds = all.filter((id) => BIOME_BY_ID[id]?.overworld);
@@ -652,7 +649,7 @@ export function biomeChoices(c, depth, n = 3) {
 }
 /** The portal taken: spend its biome from the bag (and keep the overworld guarantee's bag clean, as drawBiome does). */
 export function takeBiome(c, id, depth) {
-  if (id === 'throne') return;
+  if (id === 'throne' || depth <= FINAL_DEPTH) return;
   const all = biomesForDepth(depth ?? c.depth ?? 1);
   if ((c.overworldMisses || 0) >= 3) { c.biomeBag = (c.biomeBag || []).filter((x) => all.includes(x) && !BIOME_BY_ID[x]?.overworld); return; }
   let bag = (c.biomeBag || []).filter((x) => all.includes(x));

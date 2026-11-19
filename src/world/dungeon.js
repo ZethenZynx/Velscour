@@ -274,7 +274,7 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
 
 /** opts.raid: a BOSS ROOM arena whatever the depth; opts.small: a 4 x 4 chunk maze (Abyssal Rifts, docs/ENDGAME.md). */
 export function generateDungeon(depth, biome, tileset, seed, opts = {}) {
-  if (!opts.rift && (depth === FINAL_DEPTH || biome.id === 'throne')) return generateThrone(biome, tileset, seed, depth, !!opts.practiceVelscour); // campaign throne depths use a regular guardian until Depth 500
+  if (!opts.rift && (depth === FINAL_DEPTH || biome.id === 'throne')) return generateThrone(biome, tileset, seed, depth, !!opts.practiceVelscour, !!opts.unbound);
   const raid = opts.raid ?? isRaidDepth(depth);
   if (biome.id === 'castle_keep' && !raid) {
     const layout = CASTLE_KEEP_LAYOUTS[Math.abs((depth - 1) % CASTLE_KEEP_LAYOUTS.length)];
@@ -954,8 +954,8 @@ function finishMap(map, tileset, rng, region = null, rooms = [], extra = []) {
   map.buildWalls(tileset, () => rng.next(), [...findOpenings(map, rooms, tileset, rng), ...extra.filter((o) => o.design)], families);
 }
 
-/** The Throne gauntlet ends in a regular guardian before Depth 500, and Velscour on the final depth (or practice). */
-function generateThrone(biome, tileset, seed, depth = FINAL_DEPTH, practiceVelscour = false) {
+/** The campaign's sole Throne floor ends with Velscour; practice runs use the same layout. */
+function generateThrone(biome, tileset, seed, depth = FINAL_DEPTH, practiceVelscour = false, unbound = false) {
   const rng = new RNG(seed);
   const W = 44, H = 80;
   const map = new TileMap(W, H);
@@ -976,17 +976,17 @@ function generateThrone(biome, tileset, seed, depth = FINAL_DEPTH, practiceVelsc
     if (((x + 0.5 - cx) / (ar.w / 2)) ** 2 + ((y + 0.5 - cy) / (ar.h / 2)) ** 2 <= 1) map.t[y * W + x] = 1;
   }
   finishMap(map, tileset, rng);
-  const actFinale = depth === 456;
+  const actFinale = depth === FINAL_DEPTH;
   const spawns = [
     { x: 14, y: 54, arch: 'demon', n: 3, rank: 'champion' },
     { x: 30, y: 54, arch: 'knight', n: 4, rank: 'normal' },
     { x: 10, y: 45, arch: 'imp', n: 6, rank: 'normal' },
     { x: 33, y: 45, arch: 'gargoyle', n: 4, rank: 'normal' },
     { x: 22, y: 38, arch: 'abomination', n: 2, rank: 'unique' },
-    { x: 22, y: 14, arch: (depth === FINAL_DEPTH || practiceVelscour) ? 'velscour' : rng.pick((biome.roster || []).filter((a) => a !== 'velscour')), n: 1, rank: actFinale ? 'raid' : 'boss' },
+    { x: 22, y: 14, arch: (depth === FINAL_DEPTH || practiceVelscour || unbound) ? 'velscour' : rng.pick((biome.roster || []).filter((a) => a !== 'velscour')), n: 1, rank: 'boss' },
   ];
   // The throne corridors draw gauntlet guards from the full biome roster. Depth 456 is Act 5's Kragmaul finale;
-  // other pre-final campaign depths have an ordinary guardian, and Velscour appears at Depth 500 or in practice.
+  // Velscour appears only at the campaign finale (or in a practice encounter).
   const throneGuards=(biome.roster||[]).filter(a=>a!=='velscour');
   if(throneGuards.length){
     for(const [x,y] of [[22,61],[10,48],[32,48],[12,38],[22,34]]){

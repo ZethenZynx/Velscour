@@ -97,7 +97,7 @@ After three consecutive entries into non-overworld dungeon packs, the next
 Overworlds can also appear naturally from the regular shuffle bag. Visiting any
 overworld resets the miss count to zero. Reentering the
 same depth and biome after a town trip is protected from double counting by
-`c.overworldLastVisit`. Those fields migrate safely for old saves. Depth 500
+`c.overworldLastVisit`. Those fields migrate safely for old saves. Depth 100
 always remains Velscour's throne; the guarantee does not override it.
 
 ### Testing / QA

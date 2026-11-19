@@ -20,7 +20,7 @@ for (const name of [...campaignAreas, ...specialAreas]) {
   if (!biome) throw new Error(`No level-name shortcut resolves for: ${name}`);
 }
 if (resolveLevelCheatName('The Eternal Breach', BIOME_BY_ID, BREACH_BIOME)?.id !== 'eternal_breach') throw new Error('Eternal Breach shortcut did not resolve.');
-if (resolveLevelCheatName("Velscour's Throne — Depth 500", BIOME_BY_ID, BREACH_BIOME)?.id !== 'throne') throw new Error('Depth 500 throne shortcut did not resolve.');
+if (resolveLevelCheatName("Velscour's Throne - Depth 100", BIOME_BY_ID, BREACH_BIOME)?.id !== 'throne') throw new Error('Depth 100 throne shortcut did not resolve.');
 if (resolveLevelCheatName('  tHe fOrSaKeN wIlDs  ', BIOME_BY_ID, BREACH_BIOME)?.id !== 'overworld') throw new Error('Case and whitespace should not affect name matching.');
 if (resolveLevelCheatName('The Celestial Expanse', BIOME_BY_ID, BREACH_BIOME)?.id !== 'astral_plane') throw new Error('Celestial Expanse shortcut did not resolve.');
 if (resolveLevelCheatName('Empyrean Citadel', BIOME_BY_ID, BREACH_BIOME)?.id !== 'heavenly') throw new Error('Empyrean Citadel shortcut did not resolve.');

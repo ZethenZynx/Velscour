@@ -12,7 +12,7 @@ import { ARCH, ARCH_MOVES, ELITE_AFFIXES, bossName, uniqueName } from '../data/e
 import { SUMMONS } from '../data/summons.js';
 import { turretMuzzle } from '../gfx/gunner3d.js';
 import { bodyR } from '../world/map.js';
-import { toughness, danger, densityXp, riftHold, dmgScale } from '../data/depth.js';
+import { toughness, danger, densityXp, riftHold, dmgScale, endgameScaling, FINAL_DEPTH } from '../data/depth.js';
 import { attachSlime, slimeUpdate, courtDef } from './slimecourt.js';
 import { ART_BY_ID, REVIVED, greaterSwap, rollLooks, uniqueSwap } from '../data/bestiary.js';
 import { skillMorphFor } from '../data/talents.js';
@@ -1499,6 +1499,11 @@ export function makeMonster(world, archId, biome, level, rank = 'normal', x = 0,
   const B = monsterBase(level);
   if (world.riftHold) B.hp *= riftHold(level);
   const depth = world.depth || 1;
+  if (depth > FINAL_DEPTH) {
+    const scale = endgameScaling(depth);
+    B.hp *= scale.health;
+    B.dmg *= scale.damage;
+  }
   if (A.seaOfSand && biome.id === 'sea_of_sand') look = { art:'ss_'+archId, swap:null };
   if (look === undefined) look = lookFor(world, archId);
   const art = look && ART_BY_ID[look.art];

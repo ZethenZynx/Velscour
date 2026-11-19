@@ -39,8 +39,9 @@ export function saveEndgame(quiet) {
 }
 /** Tests: forget the cached copy (the next call reads localStorage again). */
 export function resetEndgameCache() { E = null; }
+if (typeof addEventListener === 'function') addEventListener('velscour-overhaul-reset-complete', resetEndgameCache);
 
-/** Has the Endgame opened: any hero on this browser slew Velscour, or this hero cleared depth 500. */
+/** Has the Endgame opened: a hero on this browser defeated Velscour at the campaign finale. */
 export function endgameUnlocked(c = G.char) { return !!(endgame().unlocked || (c && c.cleared && c.cleared[FINAL_DEPTH])); }
 /** Velscour slain for real: the altar and the rift gate open for every hero. */
 export function unlockEndgame() {

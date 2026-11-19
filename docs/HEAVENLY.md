@@ -13,7 +13,7 @@
 sunlit marble halls, pearl-and-opal flooring, golden arches, radiant reliefs,
 luminous cloudstone chapels, marble angel statues, and a roster of **60 new
 named monsters with 60 real generated 2D sprites**. It does not replace
-Desecrated Cathedral, ASTRAL PLANE, HELL, Ice Temple, or the Depth 500 throne.
+Desecrated Cathedral, ASTRAL PLANE, HELL, Ice Temple, or the Depth 100 throne.
 
 The normal dungeon engine supplies maze rooms/corridors, guardian bosses,
 chests, the town-return and exit portals, XP/loot, player character rendering,

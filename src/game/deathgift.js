@@ -1,6 +1,6 @@
 // "DEATH IS THE ONLY WAY OUT, MY KIND SIR." sent to Velscour: level 100, the best gear of the hero's class (Mythic,
 // +10, perfect rolls and an extra enchanted line, Eternal gems, max-power ring augments), every skill and mastery
-// maxed, a full potion belt, a fortune in gold, and the way down opened to Depth 500. It is a cheat: the hero is marked
+// maxed, a full potion belt, a fortune in gold, and the way down opened to Velscour's campaign finale. It is a cheat: the hero is marked
 // for good (c.cheated) for local rift result tracking.
 import { G } from '../state.js';
 import { sfx, levelUpFanfare } from '../core/audio.js';
@@ -114,7 +114,7 @@ export function grantDeathGift() {
   sfx('levelup', 1);
   if (G.ui) {
     if (G.ui.hud) G.ui.hud.levelUp(c.level, levelUpFanfare());
-    G.ui.log('<b style="color:#ff3020">Velscour answers.</b> Level 100, his finest arms, and the road to Depth 500. Come die properly.', '#ffd860');
+    G.ui.log(`<b style="color:#ff3020">Velscour answers.</b> Level 100, his finest arms, and the road to Depth ${FINAL_DEPTH}. Come die properly.`, '#ffd860');
     G.ui.log('This hero took Velscour\'s gift: it will never be listed on the Honour Board.', '#ff9070');
     G.ui.refresh();
   }

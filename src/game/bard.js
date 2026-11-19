@@ -54,6 +54,7 @@ function remember(song) {
   if (h.size > HEARD_MAX) h.delete(h.values().next().value);
   try { localStorage.setItem(HEARD_KEY, JSON.stringify([...h])); } catch (e) { /* full or blocked */ }
 }
+if (typeof addEventListener === 'function') addEventListener('velscour-overhaul-reset-complete', () => { heard = null; });
 
 export function bardScore(p) {
   if (!p.score) { p.score = { notes: [], beats: 0, key: 'treble', harmony: 0, harmonyT: 0, idle: 0, flash: 0, discord: 0, cadences: 0, discords: 0, mel: -1, keyId: null, cands: [], recentA: [], recentB: [], play: null, pending: null, song: null }; nextBar(p.score, p); }

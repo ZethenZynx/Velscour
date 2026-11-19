@@ -118,7 +118,7 @@ export function setupHappenings(world, start, gen) {
     if (c && c.nemesis && spots.length) spawnNemesis(world, spots.pop(), c.nemesis);
     return;
   }
-  if (depth >= FINAL_DEPTH) return;
+  if (depth === FINAL_DEPTH) return; // keep the Throne's finale authored; infinite dungeons retain ordinary happenings
   setupScenario(world, start); // biome set pieces remain independent of affixes
   const want = 1 + (chance(0.6) ? 1 : 0) + (chance(0.35) ? 1 : 0);
   const spots = roomSpots(world, start, want + 3);

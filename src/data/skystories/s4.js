@@ -428,7 +428,7 @@ export const STORIES_4 = [
     },
   },
   {
-    id: 'velscour_herald', name: 'The Herald of Depth 500', base: 'ash', weather: 'Brimstone Dusk',
+    id: 'velscour_herald', name: 'The Herald of Velscour', base: 'ash', weather: 'Brimstone Dusk',
     blurb: 'Velscour has sent his Herald with a message for you, and a question for his knights.',
     hazardText: 'Hellfire ash: burning embers land on the deck and set it alight.',
     sky: ['#100508', '#3a0a18', '#8a1a1a'], far: ['#2e0f16', '#3e141c', '#4e1a22', '#60202a'], mid: ['#401820', '#562028', '#6c2830', '#86303a'],
@@ -444,7 +444,7 @@ export const STORIES_4 = [
       mid: { art: 'ashen_maw', arch: 'demon', name: 'The Gatemouth', title: 'Velscour\'s Doorbell, Rung with Teeth', h: 92, swap: 'infernal', voice: 0.5, moves: ['leap', 'crew'] },
       ashveil: { art: 'ap_red_gale_corsair', arch: 'knight', name: 'Captain Ashveil', title: 'Ferryman of the Burning Lanes', h: 92, swap: 'infernal', voice: 0.7, moves: ['crew', 'barrage', 'leap'] },
       brimwick: { art: 'ap_lord_thundershroud', arch: 'archer', name: 'Commodore Brimwick', title: 'Keeper of the Brimstone Ledger', h: 90, swap: 'obsidian', voice: 0.9, moves: ['barrage', 'smoke', 'hook'] },
-      herald: { art: 'horned_warlord', arch: 'demon', name: 'Malgareth the Herald', title: 'Mouth of Velscour, Voice of Depth 500', h: 140, swap: 'shadow', voice: 0.4, moves: ['storm', 'leap', 'crew'] },
+      herald: { art: 'horned_warlord', arch: 'demon', name: 'Malgareth the Herald', title: 'Mouth of Velscour, Voice of the Throne', h: 140, swap: 'shadow', voice: 0.4, moves: ['storm', 'leap', 'crew'] },
       tithe: { art: 'bloodglass_harvester', arch: 'demon', name: 'The Tithe-Taker', title: 'Collects Velscour\'s Share of Every Soul', h: 130, voice: 0.6, moves: ['leap', 'crew'] },
       stairmaw: { art: 'siege_maw', arch: 'demon', name: 'Stairmaw', title: 'Eats the Steps Behind You', h: 130, voice: 0.4, moves: ['leap', 'barrage'] },
       widow: { art: 'widow_of_cinders', arch: 'wraith', name: 'The Cinder Widow', title: 'Married the Last Herald, Briefly', h: 100, voice: 1.2, moves: ['smoke', 'storm'] },
@@ -458,7 +458,7 @@ export const STORIES_4 = [
       parley: [
         { who: 'cap', text: 'Hold. I am {@ashveil}, ferryman of the burning lanes. I bring a message from Velscour himself, {class}.', act: 'grim' },
         { who: 'hero', text: 'Velscour sends messages now? Not just monsters with teeth for doorbells?', act: 'smug' },
-        { who: 'cap', text: 'He sends both. The message is: Depth 500. He has had the stairs swept. He is laying out cushions.', act: 'calm' },
+        { who: 'cap', text: 'He sends both. The message is: the Throne. He has had the stairs swept. He is laying out cushions.', act: 'calm' },
         { who: 'k1', text: 'Cushions! You see, Maeve? A courteous lord. I have always said our lord was courteous.', act: 'salute' },
         { who: 'k2', text: 'You have always said that, Aldric. You also said the screaming from the flagship was "morale".', act: 'point' },
         { who: 'hero', text: 'You serve him, and you have never even seen him.', act: 'grim' },
@@ -483,7 +483,7 @@ export const STORIES_4 = [
       second: 'The Ledger says you owe Velscour nine hundred souls, {hero}. I will take the first one now.',
       charge: ['Ashveil! You ran from the Herald! Run from me too!', 'Brimwick! Close your ledger! I am cancelling your account!'],
       farewell: [['Tell him, {hero}, when you reach the bottom: Aldric passed the test. Just not his.', 'salute'], ['We serve Velscour. Until we see him. Then we shall see.', 'thinking']],
-      victory: 'Message received, Velscour. I will bring the answer down myself. Depth 500. Save me a cushion.',
+      victory: 'Message received, Velscour. I will bring the answer down myself. Save me a cushion.',
     },
     gauntlet: {
       master: 'herald',
@@ -500,7 +500,7 @@ export const STORIES_4 = [
       ],
       finale: [
         { who: 'k1', text: 'He killed the lapdog! My lord\'s lapdog! I am... strangely all right with that.', act: 'thinking' },
-        { who: 'herald', text: 'Enough. I deliver the message myself, {hero}: you never reach Depth 500. You never even reach the next one.', act: 'angry' },
+        { who: 'herald', text: 'Enough. I deliver the message myself, {hero}: you never reach the Throne. You never even reach the next one.', act: 'angry' },
         { who: 'hero', text: 'Come down, mouthpiece. I will send him your horns as my reply.', act: 'grim' },
       ],
       death: [

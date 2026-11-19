@@ -13,7 +13,7 @@ export function normalizeLevelCheatName(value) {
 /** Return the matching biome for a typed display name, including the standalone Breach biome. */
 export function resolveLevelCheatName(value, biomes, breachBiome) {
   let name = normalizeLevelCheatName(value);
-  if (name.endsWith(' depth 500')) name = name.slice(0, -' depth 500'.length).trim();
+  name = name.replace(/ depth \d+$/, '').trim();
   const named = [...Object.values(biomes || {}), breachBiome]
     .filter(Boolean)
     .find((biome) => normalizeLevelCheatName(biome.name) === name);

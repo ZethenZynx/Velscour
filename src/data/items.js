@@ -31,6 +31,9 @@ export const RARITY = [
   { id: 18, name: 'Tier 19', color: '#ffe0f0', weight: 0.012, lv: 15.714, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 432, value: 234.162, dropGroup: 'mythic' },
   { id: 19, name: 'Tier 20', color: '#ffd700', weight: 0.012, lv: 16, perks: 2, sockets: 5, ringSockets: 3, bonus: 3.4, minIlvl: 50, fullIlvl: 70, minDepth: 456, value: 250, dropGroup: 'mythic' }
 ];
+// Quality ranks unlock on the campaign/endgame's 25-depth cadence: rank 1 at Depth 1,
+// rank 20 at Depth 476. Existing rarity identities and weights are retained.
+RARITY.forEach((r, i) => { r.minDepth = 1 + i * 25; });
 export const ABYSSAL = RARITY.length - 1;
 /** Set equipment uses the final quality band and follows its existing depth unlock. */
 export const RARITY_TIER_20 = RARITY.length - 1;
@@ -516,8 +519,8 @@ export function sigilStats(rank, slot) {
   const v = FIXED.has(s) ? b : b * sigilMult(rank);
   return [[s, Math.round(v * 10) / 10]];
 }
-/** The deepest Sigil rank a depth can drop (rank r from depth 24 r). */
-export const sigilCap = (depth) => clamp(Math.floor(depth / 24), 0, SIGIL_MAX);
+/** The highest eligible Sigil: rank 1 at Depth 1, each new rank every 25 depths. */
+export const sigilCap = (depth) => clamp(Math.floor((Math.max(1, Number(depth) || 1) - 1) / 25), 0, SIGIL_MAX);
 /** A Sigil from depth `depth`: mostly the few ranks just under its cap. */
 export function rollSigil(depth, bonus = 0) {
   const cap = sigilCap(depth);
