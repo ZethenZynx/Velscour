@@ -30,6 +30,7 @@ import { addLight } from '../gfx/vfx.js';
 import { drawTerrain, drawColumn, occludersFor, occludersOfRect, occluderObj, clipAdd, hiddenBehind, standKey, hopZ, drawSky, terrainShade, HS } from '../gfx/terrain.js';
 import { hopArc } from './alpine.js';
 import { townStorageChestArtFor } from '../data/town-storage-chests.js';
+import { CURSED_CHEST_VARIANT, selectDungeonChestVariant } from '../data/chestappearances.js';
 
 let lightCanvas = null, glowCanvas = null, vignette = null, vigKey = '';
 const transitionSprites = new Map();
@@ -332,22 +333,17 @@ function drawBuilding(ctx, b, alpha) {
 }
 
 let fallbackChestArt = null;
-const CHEST_ART_POOLS = Object.freeze({
-  standard: Array.from({ length: 20 }, (_, i) => i),
-  gilded: [1, 4, 13, 14],
-  jeweled: [3, 9, 12, 19],
-  explosive: [0, 5, 11],
-  mimic: [0, 5, 6, 16],
-});
-
 function chestVariantIndex(c) {
-  if (Number.isInteger(c.chestVariant) && c.chestVariant >= 0 && c.chestVariant < A.chestVariants.length) return c.chestVariant;
+  if (c.chestType === 'cursed') return CURSED_CHEST_VARIANT;
+  // Explicit art indices are for the in-game sprite gallery only, never gameplay chests.
+  if (c.chestArtPreview === true && Number.isInteger(c.chestVariant) && c.chestVariant >= 0 && c.chestVariant < A.chestVariants.length) return c.chestVariant;
   const world = G.world;
-  const source = `${world?.biome?.id || world?.kind || ''}|${world?.depth || 0}|${G.dungeonSeed || 0}|${c.x}|${c.y}`;
-  let hash = 2166136261;
-  for (let i = 0; i < source.length; i++) hash = Math.imul(hash ^ source.charCodeAt(i), 16777619);
-  const pool = CHEST_ART_POOLS[c.chestType] || CHEST_ART_POOLS.standard;
-  c.chestVariant = pool[(hash >>> 0) % pool.length];
+  c.chestVariant = selectDungeonChestVariant({
+    biomeId: world?.biome?.id || world?.kind,
+    variantId: world?.chestEnvironmentVariant || '',
+    seed: world?.chestSeed ?? G.dungeonSeed ?? 0,
+    x: c.x, y: c.y,
+  });
   return c.chestVariant;
 }
 

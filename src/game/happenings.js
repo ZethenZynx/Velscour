@@ -5,6 +5,7 @@
 // Wiring: game.buildDungeon -> setupHappenings, game.update -> happeningsTick, combat kill -> world.onKill,
 // game.enterTown -> townHappening, loot.dropLoot reads world.lootMul / world.goldMul. Shrines, remains and cursed
 import { G } from '../state.js';
+import { CURSED_CHEST_VARIANT } from '../data/chestappearances.js';
 import { rand, randi, chance, pick, TAU, dist } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { camera, isoX, isoY } from '../core/view.js';
@@ -227,7 +228,7 @@ export function addCursed(world, [x, y]) {
   const depth = world.depth;
   const ch = {
     x, y, opened: false, reach: 1.4, far: 30, label: 'Cursed Chest', dot: '#ff3060', labelColor: '#d4b8df', labelHeight: 66,
-    chestType: 'cursed', chestVariant: 5, glow: '#ff2050', tint: '#e32e45', glowWhileOpen: true,
+    chestType: 'cursed', chestVariant: CURSED_CHEST_VARIANT, glow: '#ff2050', tint: '#e32e45', glowWhileOpen: true,
     waves: 0, waveT: 0, done: false,
     drawOverlay() {
       if (!this.done && chance(0.15)) spawn({ type: 'glow', x: this.x + rand(-0.4, 0.4), y: this.y + rand(-0.4, 0.4), z: rand(10, 30), vz: rand(20, 50), life: 0.6, size: 3, size1: 0, color: '#ff3060', add: true });
