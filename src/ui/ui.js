@@ -183,7 +183,8 @@ export const UI = {
   },
   panelBounds(p) {
     const host = this.panelsEl.getBoundingClientRect();
-    return { w: host.width, h: host.height, pw: p.root.offsetWidth, ph: p.root.offsetHeight };
+    const rendered = p.root.getBoundingClientRect();
+    return { w: host.width, h: host.height, pw: rendered.width, ph: rendered.height };
   },
   placePanel(name, x, y) {
     const p = this.panels.get(name);
@@ -202,39 +203,63 @@ export const UI = {
     const wasTrio = this.panelsEl.classList.contains('vendor-trio');
     const host = this.panelsEl.getBoundingClientRect();
     this.panelsEl.classList.toggle('vendor-trio', trio);
-    this.panelsEl.classList.toggle('vendor-trio-stacked', trio && (isPortrait || !this.desktopPanels() || host.width < 1000));
+    this.panelsEl.classList.toggle('vendor-trio-uniform', trio);
     if (wasTrio && !trio) {
-      for (const [, p] of this.panels) p.root.style.width = p.opts.width || '';
+      for (const [, p] of this.panels) {
+        p.root.style.width = p.opts.width || '';
+        p.root.style.position = '';
+        p.root.style.right = '';
+        p.root.style.bottom = '';
+        p.root.style.maxWidth = '';
+        p.root.style.maxHeight = '';
+        p.root.style.height = '';
+        p.root.style.transform = '';
+        p.root.style.transformOrigin = '';
+      }
     }
+    if (trio) {
+      const viewportWidth = Math.max(1, Math.min(host.width, window.innerWidth - host.left));
+      const viewportHeight = Math.max(1, Math.min(host.height, window.innerHeight - host.top));
+      const side = 8, preferredGap = 10;
+      const dimensions = [
+        ['vendor', 460],
+        ['character', 580],
+        ['inventory', 496],
+      ].map(([name, width]) => ({ panel: this.panels.get(name), width }));
+      const naturalWidth = dimensions.reduce((sum, d) => sum + d.width, 0);
+      const availableWidth = Math.max(1, viewportWidth - side * 2);
+      // Keep the original widths first, shrinking gaps before scaling the windows together.
+      const gap = Math.min(preferredGap, Math.max(0, (availableWidth - naturalWidth) / 2));
+      const scale = Math.min(1, availableWidth / (naturalWidth + gap * 2));
+      const availableHeight = Math.max(1, viewportHeight - side * 2);
+      const groupWidth = naturalWidth * scale + gap * 2;
+      let x = Math.max(side, (viewportWidth - groupWidth) / 2);
+      for (const { panel, width } of dimensions) {
+        panel.root.style.setProperty('position', 'absolute', 'important');
+        panel.root.style.setProperty('right', 'auto', 'important');
+        panel.root.style.setProperty('bottom', 'auto', 'important');
+        panel.root.style.setProperty('width', `${width}px`, 'important');
+        panel.root.style.setProperty('max-width', 'none', 'important');
+        // Preserve the original panel shape; scroll long contents inside the available height.
+        panel.root.style.setProperty('height', 'auto', 'important');
+        panel.root.style.setProperty('max-height', `${availableHeight / scale}px`, 'important');
+        panel.root.style.transformOrigin = 'top left';
+        panel.root.style.transform = `scale(${scale})`;
+        panel.root.style.setProperty('left', `${x}px`, 'important');
+        panel.root.style.setProperty('top', `${side}px`, 'important');
+        x += width * scale + gap;
+      }
+      return;
+    }
+    this.panelsEl.classList.remove('vendor-trio-uniform');
     if (isPortrait || !this.desktopPanels()) {
       for (const [, p] of this.panels) {
         p.root.style.left = '';
         p.root.style.top = '';
         p.root.style.width = p.opts.width || '';
-      }
-      return;
-    }
-    if (trio && host.width >= 1000) {
-      const side = 12, gap = 10;
-      const available = Math.max(0, host.width - side * 2 - gap * 2);
-      const vendor = this.panels.get('vendor'), character = this.panels.get('character'), inventory = this.panels.get('inventory');
-      const vendorWidth = Math.floor(available * 0.38), characterWidth = Math.floor(available * 0.30);
-      const inventoryWidth = available - vendorWidth - characterWidth;
-      const widths = [vendorWidth, characterWidth, inventoryWidth];
-      const starts = [side, side + vendorWidth + gap, side + vendorWidth + gap + characterWidth + gap];
-      for (const [index, panel] of [vendor, character, inventory].entries()) {
-        panel.root.style.width = `${widths[index]}px`;
-        panel.root.style.left = `${starts[index]}px`;
-        const ph = panel.root.offsetHeight;
-        panel.root.style.top = `${Math.max(0, Math.min(10, host.height - ph))}px`;
-      }
-      return;
-    }
-    if (trio) {
-      for (const [, p] of this.panels) {
-        p.root.style.left = '';
-        p.root.style.top = '';
-        p.root.style.width = p.opts.width || '';
+        p.root.style.position = '';
+        p.root.style.right = '';
+        p.root.style.bottom = '';
       }
       return;
     }
