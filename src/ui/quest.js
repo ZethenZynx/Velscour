@@ -128,6 +128,23 @@ export function renderQuest(body) {
     }
     h += `<div class="dim q-note">Foes slain on this depth: ${fmtInt(w.kills || 0)}</div>`;
   }
+  const heirloomBounty = Object.values(c.wandererBounties || {}).find((b) => b?.kind === 'relic' && b.state === 'active');
+  if (heirloomBounty) {
+    const area = heirloomBounty.area || {};
+    const areaName = BIOME_BY_ID[area.biomeId]?.name || 'the wilderness';
+    const inQuestArea = w?.kind === 'dungeon' && w.depth === area.depth && w.biome?.id === area.biomeId;
+    const owner = escapeHtml(heirloomBounty.giver?.name || 'its owner');
+    h += '<div class="q-title">The Lost Heirloom</div>';
+    if (heirloomBounty.recovered) {
+      h += step(false, inQuestArea
+        ? `Return the heirloom to <b>${owner}</b>. Their gold quest marker shows their location.`
+        : `Return to ${escapeHtml(areaName)} at Depth ${area.depth} and speak to <b>${owner}</b> to deliver the heirloom.`);
+    } else {
+      h += step(false, inQuestArea
+        ? `Find <b>${owner}</b>'s heirloom at the marked location, then bring it back.`
+        : `Continue the heirloom search in ${escapeHtml(areaName)} at Depth ${area.depth}; the owner is <b>${owner}</b>.`);
+    }
+  }
   h += '</div>';
   const deepest = c.deepest || 0, pctV = Math.min(100, deepest / FINAL_DEPTH * 100);
   h += commissionsHtml(c, w, step);

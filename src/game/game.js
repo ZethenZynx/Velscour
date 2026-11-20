@@ -1330,6 +1330,7 @@ export const game = {
     }
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
+    world.startPos = gen.start;
     // Chest appearance uses the same generated environment context as the level.
     // This metadata is visual-only; chest type and loot rolls remain independent.
     world.chestEnvironmentVariant = gen.variant?.id || '';
@@ -1637,7 +1638,10 @@ export const game = {
         const x = 3 + Math.random() * (map.w - 6), y = 3 + Math.random() * (map.h - 6);
         if (map.walkable(x, y) && map.findPath(gen.start[0], gen.start[1], x, y, 9000)) spots.push([x, y]);
       }
-      if (spots.length >= 2 && !biome.beta && !biome.tower && !castle) addWanderers(world, spots, forest ? 4 : 5);
+      const savedHeirloom = c.wandererBounties?.[`${biome.id}:${depth}`]?.kind === 'relic' && c.wandererBounties[`${biome.id}:${depth}`].state === 'active';
+      if ((spots.length >= 2 || savedHeirloom) && !biome.beta && !biome.tower && !castle) {
+        addWanderers(world, spots.length ? spots : [gen.start], forest ? 4 : 5);
+      }
       const look = gen.variant?.look || {};   // a castle variant has its own odds of rain and of night
       world.raining = biome.id !== 'sea_of_sand' && !biome.tower && Math.random() < (look.rain ?? 0.3); // a wet day in the Wilds or on the walls
       if (!biome.tower && Math.random() < (look.night ?? 0.25)) { world.darkK = biome.id === 'sea_of_sand' ? 0.45 : 0.6; world.night = true; } // nightfall: torches, spells and portals glow

@@ -685,11 +685,12 @@ function drawNpc(ctx, n) {
   if (n.icon && n.iconT > 0 && !(n.talkT > 0)) n.iconRect = drawEmote(ctx, n.icon, x + 10, spriteY + 2, n.iconAge || 0, n.iconT, G.time + (n.idleSeed || 0));
   else n.iconRect = null;
   if(n.bounty&&n.bounty.state!=='paid'){
-    // a wanderer's bounty (game/wanderers.js): a bobbing gold "!" to take it, a silver "?" while it runs
-    const offer=n.bounty.state==='offer',by=spriteY-16+Math.sin(G.time*4)*3;
-    ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.7;ctx.drawImage(glowSprite(offer?'#ffd040':'#c0d0ff'),x-16,by-22,32,32);ctx.restore();
-    ctx.save();ctx.font='900 22px Cinzel, Georgia, serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#1a1006';ctx.fillStyle=offer?'#ffd040':'#d8e0ff';
-    ctx.strokeText(offer?'!':'?',x,by);ctx.fillText(offer?'!':'?',x,by);ctx.restore();
+    // A returning arrow marks the heirloom owner after recovery; other bounties keep their offer/running markers.
+    const offer=n.bounty.state==='offer', returning=n.bounty.kind==='relic'&&n.bounty.found, mark=offer?'!':returning?'↩':'?', by=spriteY-16+Math.sin(G.time*4)*3;
+    const color=offer||returning?'#ffd040':'#c0d0ff';
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.7;ctx.drawImage(glowSprite(color),x-16,by-22,32,32);ctx.restore();
+    ctx.save();ctx.font='900 22px Cinzel, Georgia, serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#1a1006';ctx.fillStyle=offer||returning?'#ffd040':'#d8e0ff';
+    ctx.strokeText(mark,x,by);ctx.fillText(mark,x,by);ctx.restore();
   }
   drawTownSpeech(ctx,n,x,spriteY);
 }
@@ -1629,7 +1630,10 @@ export function drawMinimap(world, dt, canvas, big = false) {
     if (ch.isCustomShrineAltar) { if (!ch.opened && seen) shrineAltarMarker(ch.x, ch.y, ch.dot, ch.name); }
     else if (!ch.opened && !ch.isDungeonShrine && !ch.isDungeonEvent && seen) dot(ch.x, ch.y, ch.dot || '#ffd040', big ? 4 : 2.5);
   }
-  for (const n of world.npcs) dot(n.x, n.y, '#ffe090', big ? 4 : 2.5);
+  for (const n of world.npcs) {
+    const returnedHeirloom = n.bounty?.kind === 'relic' && n.bounty.found && n.bounty.state !== 'paid';
+    dot(n.x, n.y, returnedHeirloom ? '#fff080' : '#ffe090', returnedHeirloom ? (big ? 6 : 4) : (big ? 4 : 2.5));
+  }
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;
     const d = Math.hypot(m.x - p.x, m.y - p.y);
