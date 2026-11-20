@@ -175,6 +175,7 @@ class VelscourFight {
   unseal() {
     const map = this.world.map;
     for (const i of this.gateTiles) map.block[i] = 0;
+    map.touchMinimapTerrain?.();
     this.gateTiles = []; map.flowFrom = [-9, -9];
   }
 

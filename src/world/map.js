@@ -13,6 +13,11 @@ export class TileMap {
     this.v = new Uint8Array(w * h); // floor visual variant index
     this.block = new Uint8Array(w * h); // static obstacle on floor
     this.seen = new Uint8Array(w * h);
+    this.seenVersion = 0;
+    this.seenDirty = [];
+    this.seenDirtyOverflow = false;
+    this.seenDirtyLimit = 8192;
+    this.minimapTerrainVersion = 0;
     this.segments = []; // floor/void edges
     this.walls = []; // wall draw items (buildWalls)
     this.doors = [];
@@ -32,6 +37,24 @@ export class TileMap {
   idx(x, y) { return y * this.w + x; }
   inb(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
   tile(x, y) { return this.inb(x, y) ? this.t[y * this.w + x] : 0; }
+  /** Mark one cell explored and queue it for incremental map rendering. */
+  markSeen(tx, ty) {
+    if (!this.inb(tx, ty)) return false;
+    const i = ty * this.w + tx;
+    if (this.seen[i]) return false;
+    this.seen[i] = 1;
+    if (this.seenDirty.length < this.seenDirtyLimit) this.seenDirty.push(i);
+    else this.seenDirtyOverflow = true;
+    this.seenVersion++;
+    return true;
+  }
+  /** Clear exploration when reusing a town map for a new visit. */
+  clearSeen() {
+    if (!this.seenDirty.length && !this.seenDirtyOverflow && !this.seen.some((value) => value)) return;
+    this.seen.fill(0); this.seenDirty.length = 0; this.seenDirtyOverflow = false; this.seenVersion++; this.touchMinimapTerrain();
+  }
+  /** Invalidate cached terrain when a door, obstacle, bridge or floor changes at runtime. */
+  touchMinimapTerrain() { this.minimapTerrainVersion++; }
   isFloor(x, y) {
     const tx = Math.floor(x), ty = Math.floor(y);
     return tx >= 0 && ty >= 0 && tx < this.w && ty < this.h && this.t[ty * this.w + tx] === 1;
@@ -378,11 +401,13 @@ export class TileMap {
     const r2 = r * r;
     const x0 = Math.max(0, Math.floor(x - r)), x1 = Math.min(this.w - 1, Math.ceil(x + r));
     const y0 = Math.max(0, Math.floor(y - r)), y1 = Math.min(this.h - 1, Math.ceil(y + r));
+    let changed = false;
     for (let ty = y0; ty <= y1; ty++) {
       for (let tx = x0; tx <= x1; tx++) {
-        if ((tx - x) ** 2 + (ty - y) ** 2 <= r2) this.seen[ty * this.w + tx] = 1;
+        if ((tx - x) ** 2 + (ty - y) ** 2 <= r2) changed = this.markSeen(tx, ty) || changed;
       }
     }
+    return changed;
   }
 
   /**

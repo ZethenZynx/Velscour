@@ -57,6 +57,7 @@ export function createCastleRun(world, gen, biome, onSuccess = () => {}) {
     if (map.castleGateUnlocked) return;
     map.castleGateUnlocked = true; map.castleGateLocked = false;
     for (const i of map.castlePosternTiles || []) map.block[i] = 0;
+    map.touchMinimapTerrain?.();
     map._stepMask = null; map._terr = null; map.flowFrom = [-999, -999]; world.flowTimer = 0; world.castleFlow = null;
     UI.centerMsg('CASTLE GATE OPEN', 'The outer gate and postern are unsealed. The second side objective is optional.', 3.2);
     UI.log('The Castle Gate opens. You may enter the keep; the other outside objective remains optional.', '#ffd080');

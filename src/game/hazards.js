@@ -363,7 +363,7 @@ export class Area {
     const w = this.world;
     this.t += dt;
     if (this.t > this.dur) {
-      if (this.blockTiles) for (const i of this.blockTiles) w.map.block[i] = 0;
+      if (this.blockTiles) { for (const i of this.blockTiles) w.map.block[i] = 0; w.map.touchMinimapTerrain?.(); }
       return false;
     }
     if (this.follow) { if (this.follow.dead) return false; this.x = this.follow.x; this.y = this.follow.y; }
@@ -543,7 +543,7 @@ export function makeWall(world, src, x, y, ang, len, o) {
       const p = world.player;
       if (!(p && Math.floor(p.x) === tx && Math.floor(p.y) === ty) && world.map.walkableTile(tx, ty)) {
         const idx = ty * world.map.w + tx;
-        world.map.block[idx] = 1; a.blockTiles = [idx];
+        world.map.block[idx] = 1; world.map.touchMinimapTerrain?.(); a.blockTiles = [idx];
       }
     }
     out.push(world.addHazard(a));

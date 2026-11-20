@@ -780,6 +780,9 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .settings-tab-pane { display: none; min-height: 220px; }
 .settings-tab-pane.active { display: block; }
 .settings-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; text-align: left; }
+.map-opacity-control { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.map-opacity-control input[type="range"] { flex: 1; min-width: 80px; }
+.map-opacity-control output { min-width: 3.2em; text-align: right; color: #e5c98e; font-variant-numeric: tabular-nums; }
 .help-keys { text-align: left; font-size: 14px; columns: 2; column-gap: 24px; }
 .help-keys div { break-inside: avoid; margin-bottom: 3px; }
 .help-keys kbd { display: inline-block; min-width: 22px; text-align: center; padding: 1px 5px; border: 1px solid var(--gold-dim); border-radius: 3px; background: #1a110b; color: var(--gold-bright); font: 700 12px var(--font-body); }

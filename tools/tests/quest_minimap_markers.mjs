@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
-globalThis.document ||= { addEventListener() {}, fonts: { check: () => true }, createElement: () => ({ getContext: () => ({}) }) };
+const offscreenContext = new Proxy({}, { get: () => () => {}, set: () => true });
+globalThis.document ||= { addEventListener() {}, fonts: { check: () => true }, createElement: () => ({ getContext: () => offscreenContext }) };
 globalThis.window ||= { addEventListener() {} };
 globalThis.Image ||= class { addEventListener() {} set src(_value) {} };
 const { drawMinimap } = await import('../../src/game/render.js');
@@ -22,7 +23,7 @@ function makeWorld(extra = {}) {
   };
 }
 function markerCanvasPosition(world, canvas, target) {
-  const map = world.map, s = Math.max(2, Math.min(canvas.width / (map.w + map.h), canvas.height / ((map.w + map.h) / 2)) * 0.95);
+  const map = world.map, fit = Math.min(canvas.width / (map.w + map.h + 2), canvas.height / ((map.w + map.h) / 2 + 2)), s = Math.max(0.25, fit * 0.95);
   const sx = canvas.width / 2 + (target.x - target.y) * s - ((map.w - map.h) * s) / 2;
   const sy = canvas.height / 2 - ((map.w + map.h) / 4) * s + ((target.x + target.y) * s) / 2 + s * 0.3;
   return [sx, sy];

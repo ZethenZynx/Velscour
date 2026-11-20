@@ -159,6 +159,7 @@ export function createSummitRun(world, gen, biome, depth, win) {
       e.state = 'done';
       for (const m of [...e.foes, ...e.objs]) m.dead = true;
       for (const g of [e.gate, e.gateIn]) if (g) { for (const d of g.doors) { d.open = true; d.locked = false; } for (const i of g.tiles) map.block[i] = 0; }
+      map.touchMinimapTerrain?.();
     }
     const last = plateaus[kept.won - 1], [ax, ay] = map.randomNear(last.x, last.y, 1.5);
     gen.start = [ax, ay];
@@ -255,6 +256,7 @@ export function createSummitRun(world, gen, biome, depth, win) {
   function shut(g) {
     for (const d of g.doors) { d.open = false; d.locked = true; }
     for (const i of g.tiles) map.block[i] = 1;
+    map.touchMinimapTerrain?.();
     // anyone standing in the gateway is put through it, onto the near side
     for (const m of world.creatures) if (!m.dead && g.tiles.includes(map.tileIdx(m.x, m.y))) { const [x, y] = map.randomNear(m.x, m.y, 2); m.x = x; m.y = y; }
     map.flowFrom = [-9, -9];
@@ -263,6 +265,7 @@ export function createSummitRun(world, gen, biome, depth, win) {
   function open(g) {
     for (const d of g.doors) { d.locked = false; d.open = true; }
     for (const i of g.tiles) map.block[i] = 0;
+    map.touchMinimapTerrain?.();
     map.flowFrom = [-9, -9];
   }
   function tickEnc(e, dt) {

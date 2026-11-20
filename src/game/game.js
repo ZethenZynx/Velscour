@@ -435,7 +435,7 @@ export const game = {
     // every hero has a town of their own: the layout is rolled from c.townSeed
     if (!townCache || townCache.seed !== c.townSeed) townCache = generateTown(tileset, c.townSeed);
     const t = townCache;
-    t.map.seen.fill(0);
+    t.map.clearSeen();
     const world = new World('town', { map: t.map, tileset, biome: TOWN_BIOME, depth: 0, townTiles, buildings: t.buildings, props: t.props, wallHangings: t.wallHangings });
     world.raining = rollTownWeather();
     world.npcs = t.npcs
@@ -542,7 +542,7 @@ export const game = {
       act2TownCache = generateAct2Town(tileset, seed);
     }
     const t = act2TownCache;
-    t.map.seen.fill(0);
+    t.map.clearSeen();
     const world = new World('town', {
       map: t.map,
       tileset,
@@ -2750,7 +2750,8 @@ export const game = {
       const ctx = G.ctx;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 0.9; ctx.drawImage(automapCanvas, 0, 0); ctx.globalAlpha = 1;
+      // The terrain layer carries the user's transparency; draw markers at full strength above the dimmed world.
+      ctx.drawImage(automapCanvas, 0, 0);
     }
   },
 };

@@ -26,6 +26,7 @@ export const G = {
     shake: true,
     reduceFlashing: false, // reduce full-screen flashes, flashbangs, and rapid hit strobing
     zoom: 1,
+    tabMapTransparency: 45, // percentage: map terrain opacity is the inverse; markers remain fully visible
     hideItemNames: false, // no item name labels on the ground (hover still shows one)
     allItemNames: false, // every drop nearby named, with no budget (game/loot.js drawLootLabels)
     outlines: true, // see-through rims round the hero, monsters and pets, over spells, walls and darkness

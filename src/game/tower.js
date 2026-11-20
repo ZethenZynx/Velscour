@@ -161,7 +161,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     draw(ctx) { drawTower3D(ctx, tw); },
     /** Over the sprites: the railings and chandeliers, then whoever hangs in the well in front of them (render.js). */
     front(ctx) { drawTowerFront(ctx); for (const c of world.creatures) if (c.towerFront && !c.dead) c.draw(ctx); },
-    minimap: (c, W, H, big) => minimap(world, tw, c, W, H, big),
+    minimap: (c, W, H, big, opacity) => minimap(world, tw, c, W, H, big, opacity),
   };
   void buildTower3D(g).catch((e) => console.warn(e));
   // The old roof encounter data remains available for the roof scenery but is no longer part of this level route.
@@ -812,17 +812,23 @@ class Strike {
 }
 
 // ------------------------------------------------------------------ minimap: the tower from above
-function minimap(world, tw, c, W, H, big) {
+function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
   const g = tw.g, p = world.player, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.42, k = R / (g.rWall + 2);
+  c.save(); c.globalAlpha = terrainOpacity;
   c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2;
   c.beginPath(); c.arc(cx, cy, g.rWall * k, 0, TAU); c.stroke();
   if (!tw.roof) {
     c.beginPath(); c.arc(cx, cy, g.rIn * k, 0, TAU); c.stroke();
-    // Show the current turn along the descending stair.
     const run = world.overworldScenario, progress = run?.altitude ?? 0, turns = progress / 100 * g.v.turns;
     c.strokeStyle = 'rgba(255,200,110,0.8)'; c.lineWidth = (g.w * k) * 0.5;
     const a0 = -Math.PI / 2, rr = g.rc * k;
     c.beginPath(); c.arc(cx, cy, rr, a0, a0 - (turns % 1) * TAU, true); c.stroke();
+  }
+  c.restore();
+  if (!tw.roof) {
+    // Show the current turn along the descending stair above the translucent terrain and wall layer.
+    const run = world.overworldScenario, progress = run?.altitude ?? 0, turns = progress / 100 * g.v.turns;
+    const a0 = -Math.PI / 2, rr = g.rc * k;
     c.fillStyle = '#ffe2a0'; c.font = `${big ? 20 : 11}px Cinzel, Georgia, serif`; c.textAlign = 'center';
     c.fillText(`Turn ${Math.min(Math.floor(turns) + 1, Math.ceil(g.v.turns))}/${Math.ceil(g.v.turns)}`, cx, cy + 4);
     const dot = (x, y, col, r) => { const a = a0 + ((g.s(x) / g.C) % 1) * TAU, q = g.r(y) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };

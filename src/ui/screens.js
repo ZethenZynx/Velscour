@@ -513,6 +513,7 @@ export function settingsDialog() {
   <div class="settings-tab-pane" data-pane="graphics">
     <div class="settings-grid">
       <label>Camera zoom</label><input type="range" min="0.7" max="1.6" step="0.05" value="${st.zoom}" data-k="zoom">
+      <label title="Changes the terrain and walls on the TAB map only; important markers stay clear">TAB Map Transparency</label><div class="map-opacity-control"><input type="range" min="0" max="100" step="1" value="${st.tabMapTransparency ?? 45}" data-k="tabMapTransparency"><output data-map-opacity>${st.tabMapTransparency ?? 45}%</output><button type="button" class="btn small" data-reset-map-opacity>Reset</button></div>
       <label title="30 draws half the frames: smoother than a frame rate that keeps dipping, and a phone stays cooler (a hot phone slows itself down after a long session)">Frame rate cap</label><select data-k="fpsCap"><option value="0">None</option><option value="30">30 fps (cooler phone)</option></select>
       <label>Gore</label><select data-k="gore"><option value="0">Off</option><option value="1">Bloody</option><option value="2">Extreme</option></select>
       <label>Screen shake</label><input type="checkbox" data-k="shake" ${st.shake ? 'checked' : ''}>
@@ -664,6 +665,12 @@ export function settingsDialog() {
   d.box.querySelector('[data-k=gore]').value = String(st.gore);
   d.box.querySelector('[data-k=fpsCap]').value = String(st.fpsCap || 0);
   d.box.querySelector('[data-backups]').onclick = () => { sfx('ui'); backupsDialog(); };
+  d.box.querySelector('[data-reset-map-opacity]').onclick = () => {
+    st.tabMapTransparency = 45;
+    const range = d.box.querySelector('[data-k="tabMapTransparency"]'); range.value = '45';
+    d.box.querySelector('[data-map-opacity]').textContent = '45%';
+    saveSettings();
+  };
   const lf = d.box.querySelector('[data-loot-filter]');
   lf.onclick = () => { sfx('ui'); lootFilterDialog(() => { lf.textContent = `${lootFilter().on ? 'On' : 'Off'} · Set up`; }); };
   const labelFilterButton = d.box.querySelector('[data-label-filter]');
@@ -672,6 +679,7 @@ export function settingsDialog() {
     inp.oninput = inp.onchange = () => {
       const k = inp.dataset.k;
       st[k] = inp.type === 'checkbox' ? inp.checked : inp.dataset.str ? inp.value : Number(inp.value);
+      if (k === 'tabMapTransparency') d.box.querySelector('[data-map-opacity]').textContent = `${st[k]}%`;
       if ((k === 'showHeroStats' || k === 'showTargetBox' || k === 'showTargetSprite') && UI.hud && UI.hud.applyVisibilitySettings) UI.hud.applyVisibilitySettings();
       applyVolumes();
       saveSettings();

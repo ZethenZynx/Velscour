@@ -542,8 +542,9 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     if (!e.camp) {
       openSeal(e.k);
       const seal = dv.seals.find((s) => s.k === e.k);
-      if (seal) setTimeout(() => { for (const i of seal.tiles) map.block[i] = 0; map.flowFrom = [-9, -9]; }, 1500);
+      if (seal) setTimeout(() => { for (const i of seal.tiles) map.block[i] = 0; map.touchMinimapTerrain?.(); map.flowFrom = [-9, -9]; }, 1500);
       for (const i of e.lock || []) map.block[i] = 0;
+      map.touchMinimapTerrain?.();
     }
     for (const m of alive(e.foes)) m.hunter = true;
     if (G.game?.autosave) G.game.autosave();

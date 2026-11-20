@@ -112,6 +112,7 @@ export function breakClutter(c) {
     const remaining = w.creatures && w.creatures.some((o) => o !== c && o.clutter && !o.dead && o.tx === c.tx && o.ty === c.ty);
     if (!remaining) {
       if (w.map.block) w.map.block[tidx] = 0;
+      w.map.touchMinimapTerrain?.();
       if (w.map.clutter) w.map.clutter[tidx] = 0;
       if (w.map.flowFrom) w.map.flowFrom = [-999, -999];
       w.map.blockKey = (w.map.blockKey || 0) + 1;

@@ -54,10 +54,10 @@ export const crateCells = (car) => (car.cells || []).map((dx) => [car.x0 + dx, R
 export const carAt = (x) => CARS.find((c) => x >= c.x0 && x < c.x1 + 1) || null;
 
 /** After the walk map changes (a platform written or wiped): the path search's caches go. */
-export function mapChanged(map) { map._stepMask = null; map._los = null; map.flowFrom = [-999, -999]; }
+export function mapChanged(map) { map._stepMask = null; map._los = null; map.flowFrom = [-999, -999]; map.touchMinimapTerrain?.(); }
 /** Write a platform from x0 to x1 (tiles) beside the train: walkable, level with the car floors. */
 export function platformOn(map, x0, x1) {
-  for (let y = PLAT0; y < PLAT1; y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) { const i = y * map.w + x; map.t[i] = 1; map.block[i] = 0; map.seen[i] = 1; }
+  for (let y = PLAT0; y < PLAT1; y++) for (let x = Math.max(0, x0); x < Math.min(map.w, x1); x++) { const i = y * map.w + x; map.t[i] = 1; map.block[i] = 0; map.markSeen(x, y); }
   mapChanged(map);
 }
 export function platformOff(map) {
@@ -121,7 +121,7 @@ export function generateGhostTrain(depth, biome, seed) {
   const lieutenant = { x: ltCar.x0 + 5.5, y: CZ, arch: lt ? lt.arch : 'knight', look: lt ? lt.look : looks.pick('knight') };
   const boss = looks.boss(roster, rng.fn());
   spawns.push({ x: TENDER.x0 + 2.5, y: CZ, arch: boss ? boss.arch : 'knight', rank: 'boss', look: boss ? boss.look : looks.pick('knight') });
-  map.seen.fill(0);
+  map.clearSeen();
   return {
     map, props: [], buildings: [], wallHangings: [], torches: [], townTiles: null, looks, spawns, chests: [], rooms: [],
     start: [CABOOSE.x0 + 4.5, CZ], townPortal: [CABOOSE.x0 + 1.8, CZ], exit: [TENDER.x0 + 3, CZ], seed, cars: CARS, lieutenant,

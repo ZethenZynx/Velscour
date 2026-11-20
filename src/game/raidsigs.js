@@ -323,9 +323,10 @@ sig('rampart', 'Rampart Cage', (R) => {
       const i = y * map.w + x;
       if (map.t[i] === 1 && !map.block[i] && !(Math.floor(p.x) === x && Math.floor(p.y) === y)) { map.block[i] = 1; tiles.push(i); burst(x + 0.5, y + 0.5, 20, 'phys', 5, 2); }
     }
+    if (tiles.length) map.touchMinimapTerrain?.();
   }
   map.flowFrom = [-9, -9];
-  w.addHazard({ t: 0, update(dt) { if ((this.t += dt) > 3.2 || !live(R)) { for (const i of tiles) map.block[i] = 0; map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
+  w.addHazard({ t: 0, update(dt) { if ((this.t += dt) > 3.2 || !live(R)) { for (const i of tiles) map.block[i] = 0; if (tiles.length) map.touchMinimapTerrain?.(); map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
     ctx.save(); ctx.fillStyle = '#9aa0b0'; ctx.globalAlpha = 0.85;
     for (const i of tiles) { const x = i % map.w + 0.5, y = (i / map.w | 0) + 0.5, px = isoX(x, y), py = isoY(x, y); ctx.fillRect(px - 10, py - 34, 20, 34); ctx.fillStyle = '#c8d0e0'; ctx.fillRect(px - 10, py - 36, 20, 4); ctx.fillStyle = '#9aa0b0'; }
     ctx.restore();
@@ -581,8 +582,8 @@ sig('anvil', 'Anvil Drop', (R) => {
     const i = Math.floor(y) * map.w + Math.floor(x);
     if (map.t[i] !== 1 || map.block[i]) return;
     for (const c of w.creatures) if (!c.dead && Math.floor(c.x) === Math.floor(x) && Math.floor(c.y) === Math.floor(y)) c.x += 1.1;
-    map.block[i] = 1; map.flowFrom = [-9, -9];
-    w.addHazard({ t: 0, get depth() { return x + y; }, update(dt) { if ((this.t += dt) > 12 || !live(R)) { map.block[i] = 0; map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
+    map.block[i] = 1; map.touchMinimapTerrain?.(); map.flowFrom = [-9, -9];
+    w.addHazard({ t: 0, get depth() { return x + y; }, update(dt) { if ((this.t += dt) > 12 || !live(R)) { map.block[i] = 0; map.touchMinimapTerrain?.(); map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
       const px = isoX(x, y), py = isoY(x, y);
       ctx.save(); ctx.fillStyle = '#3a3a42'; ctx.fillRect(px - 22, py - 30, 44, 22); ctx.fillStyle = '#5c5c66'; ctx.fillRect(px - 26, py - 36, 52, 8); ctx.fillStyle = '#26262c'; ctx.fillRect(px - 12, py - 10, 24, 10); ctx.restore();
     } });
@@ -632,8 +633,9 @@ sig('lance_pin', 'Lance Pin', (R) => {
     const a = (i / 6) * TAU, x = Math.floor(p.x + Math.cos(a) * 2.2), y = Math.floor(p.y + Math.sin(a) * 2.2), k = y * map.w + x;
     if (map.t[k] === 1 && !map.block[k]) { map.block[k] = 1; tiles.push(k); addEffect(new Column(x + 0.5, y + 0.5, '#c0a0ff', 0.4, 10, 200)); }
   }
+  if (tiles.length) map.touchMinimapTerrain?.();
   map.flowFrom = [-9, -9];
-  w.addHazard({ t: 0, get depth() { return p.x + p.y; }, update(dt) { if ((this.t += dt) > 4 || !live(R)) { for (const k of tiles) map.block[k] = 0; map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
+  w.addHazard({ t: 0, get depth() { return p.x + p.y; }, update(dt) { if ((this.t += dt) > 4 || !live(R)) { for (const k of tiles) map.block[k] = 0; if (tiles.length) map.touchMinimapTerrain?.(); map.flowFrom = [-9, -9]; return false; } return true; }, draw(ctx) {
     ctx.save(); ctx.strokeStyle = '#d8c8ff'; ctx.lineWidth = 3;
     for (const k of tiles) { const x = k % map.w + 0.5, y = (k / map.w | 0) + 0.5, px = isoX(x, y), py = isoY(x, y); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + 4, py - 46); ctx.stroke(); }
     ctx.restore();

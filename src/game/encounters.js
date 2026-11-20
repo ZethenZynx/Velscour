@@ -343,7 +343,7 @@ const BUILD = {
       if (e.used) { n.say('That is all the safe ground I could chart.', 2.5); return; }
       choices(n, 'Lost Cartographer', 'I can mark a safe stretch of this floor on your map.', [{ label: 'Reveal nearby rooms', run: () => {
         e.used = true; const map = world.map, radius = 15, cx = Math.floor(n.x), cy = Math.floor(n.y);
-        if (map.seen) for (let y = Math.max(0, cy - radius); y <= Math.min(map.h - 1, cy + radius); y++) for (let x = Math.max(0, cx - radius); x <= Math.min(map.w - 1, cx + radius); x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2) map.seen[y * map.w + x] = 1;
+        if (map.seen) for (let y = Math.max(0, cy - radius); y <= Math.min(map.h - 1, cy + radius); y++) for (let x = Math.max(0, cx - radius); x <= Math.min(map.w - 1, cx + radius); x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2) map.markSeen ? map.markSeen(x, y) : map.seen[y * map.w + x] = 1;
         sparkle(n.x, n.y, 12, '#80d8ff', 20, 0.5); n.say('There. Mind the blank spaces beyond it.', 3); UI.log('<b>Cartographer</b> marks nearby rooms on your map.', '#80d8ff'); UI.refresh();
       } }]);
     };

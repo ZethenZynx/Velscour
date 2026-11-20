@@ -749,6 +749,7 @@ class Raid {
         const i = y * map.w + x;
         if (map.t[i] === 1 && !map.block[i]) { map.block[i] = 1; this.gateTiles.push(i); }
     }
+    if (this.gateTiles.length) map.touchMinimapTerrain?.();
     map.flowFrom = [-9, -9];
     w.addHazard((this.barrier = new Barrier(g, this.E)));
     UI.log('The way back is sealed!', '#ff6040');
@@ -759,6 +760,7 @@ class Raid {
     if (!this.sealed) return;
     const map = this.m.world.map;
     for (const i of this.gateTiles) map.block[i] = 0;
+    map.touchMinimapTerrain?.();
     map.flowFrom = [-9, -9];
     this.sealed = false;
     if (this.barrier) this.barrier.dead = true;

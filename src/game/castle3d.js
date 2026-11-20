@@ -37,7 +37,7 @@ export function castle3dTick(world, dt) {
           if (map.v && typeof D.plankV === 'number') map.v[i] = D.plankV;
           if (map.faceArt) map.faceArt[i] = D.faceArt ?? 3;
         }
-        map._terr = null; map._stepMask = null; world.floorChunks?.map?.clear(); world.flowTimer = 0;
+        map.touchMinimapTerrain?.(); map._terr = null; map._stepMask = null; world.floorChunks?.map?.clear(); world.flowTimer = 0;
         world.castleFlow = null;
         // the deck's frames hang from the anchor's ground point, and its z cancelled the sunken tile under it
         // (world/castleworld.js); that tile is ground now, so the lift goes too or the deck floats short of the pier

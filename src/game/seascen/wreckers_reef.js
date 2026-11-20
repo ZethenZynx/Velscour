@@ -185,6 +185,7 @@ function reefWalk(api, h, D) {
     // rock: waist high at most (boulders are cover, a lamp's pole is no wall: the bake's tops would hide whoever stands by it)
     else if (map.deck[t] === D) { map.block[t] = 1; map.hgt[t] = Math.min(map.hgt[t], lv(tot > 0.05 ? fy + 0.6 : 0.9)); }
   }
+  map.touchMinimapTerrain?.();
   api.mapChanged();
 }
 /** A walkable tile of the reef near (x, y). */

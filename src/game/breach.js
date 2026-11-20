@@ -59,7 +59,7 @@ export function createBreachRun(world, gen, biome, floor, onWin) {
   const islandAt = (x, y) => own[tileOf(x, y)];
 
   // ---------------------------------------------------------------- wards
-  const blockGate = (b, on) => { for (const i of b.gate) map.block[i] = on ? 1 : 0; map.flowFrom = [-999, -999]; map.blockKey = (map.blockKey || 0) + 1; };
+  const blockGate = (b, on) => { for (const i of b.gate) map.block[i] = on ? 1 : 0; map.touchMinimapTerrain?.(); map.flowFrom = [-999, -999]; map.blockKey = (map.blockKey || 0) + 1; };
   const axisOf = (b) => (Math.abs(b.p1[0] - b.p0[0]) > Math.abs(b.p1[1] - b.p0[1]) ? 'y' : 'x');
   const gateNear = (b, o) => {
     const p = b.a === o.idx ? b.p0 : b.p1;

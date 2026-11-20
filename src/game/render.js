@@ -247,6 +247,60 @@ function mapTerrainColor(world, map, i) {
   return color;
 }
 
+function mapCellColor(world, map, i) {
+  if (map.wet?.[i]) return map.wet[i] > 1 ? MAP_TERRAIN_COLORS.deepWater : MAP_TERRAIN_COLORS.water;
+  if (map.sea) return MAP_TERRAIN_COLORS.deepWater;
+  if (map.sky || map.ghostTrain || map.voidFace) return MAP_TERRAIN_COLORS.void;
+  return map.t[i] === 1 ? mapTerrainColor(world, map, i) : MAP_TERRAIN_COLORS.wall;
+}
+
+function mapCellWalkable(map, x, y) {
+  return (map.inb ? map.inb(x, y) : x >= 0 && y >= 0 && x < map.w && y < map.h) && map.t[y * map.w + x] === 1 && !map.block?.[y * map.w + x];
+}
+
+const mapInBounds = (map, x, y) => map.inb ? map.inb(x, y) : x >= 0 && y >= 0 && x < map.w && y < map.h;
+
+/** Draw one revealed isometric tile. A full-width diamond meets its four neighbours without checkerboard gaps. */
+function drawMapCell(ctx, world, map, x, y, s, toS, opacity = 1) {
+  if (x < 0 || y < 0 || x >= map.w || y >= map.h) return;
+  const i = y * map.w + x;
+  if (!map.seen[i]) return;
+  const floor = map.t[i] === 1, wet = !!map.wet?.[i];
+  if (!floor && !wet) {
+    const left = x > 0 ? i - 1 : -1, right = x + 1 < map.w ? i + 1 : -1;
+    const up = y > 0 ? i - map.w : -1, down = y + 1 < map.h ? i + map.w : -1;
+    const besideFloor = (left >= 0 && map.seen[left] && map.t[left] === 1) || (right >= 0 && map.seen[right] && map.t[right] === 1)
+      || (up >= 0 && map.seen[up] && map.t[up] === 1) || (down >= 0 && map.seen[down] && map.t[down] === 1);
+    if (!besideFloor && !map.sea && !map.sky && !map.ghostTrain && !map.voidFace) return;
+  }
+  const [sx, sy] = toS(x, y), color = mapCellColor(world, map, i);
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(sx, sy - s * 0.5); ctx.lineTo(sx + s, sy); ctx.lineTo(sx, sy + s * 0.5); ctx.lineTo(sx - s, sy); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = opacity;
+
+  // The collision grid supplies a restrained edge on walls and blocked tiles, making small room plans legible.
+  if (floor) {
+    const edge = Math.max(0.6, Math.min(1.5, s * 0.14));
+    ctx.strokeStyle = 'rgba(12,14,16,0.88)'; ctx.lineWidth = edge; ctx.beginPath();
+    let hasEdge = false;
+    let nx = x + 1, ny = y, ni = ny * map.w + nx;
+    if (!mapInBounds(map, nx, ny) || (map.seen[ni] && !mapCellWalkable(map, nx, ny))) { ctx.moveTo(sx + s, sy); ctx.lineTo(sx, sy + s * 0.5); hasEdge = true; }
+    nx = x; ny = y + 1; ni = ny * map.w + nx;
+    if (!mapInBounds(map, nx, ny) || (map.seen[ni] && !mapCellWalkable(map, nx, ny))) { ctx.moveTo(sx, sy + s * 0.5); ctx.lineTo(sx - s, sy); hasEdge = true; }
+    nx = x - 1; ny = y; ni = ny * map.w + nx;
+    if (!mapInBounds(map, nx, ny) || (map.seen[ni] && !mapCellWalkable(map, nx, ny))) { ctx.moveTo(sx - s, sy); ctx.lineTo(sx, sy - s * 0.5); hasEdge = true; }
+    nx = x; ny = y - 1; ni = ny * map.w + nx;
+    if (!mapInBounds(map, nx, ny) || (map.seen[ni] && !mapCellWalkable(map, nx, ny))) { ctx.moveTo(sx, sy - s * 0.5); ctx.lineTo(sx + s, sy); hasEdge = true; }
+    if (hasEdge) ctx.stroke();
+  }
+  if (floor && map.block?.[i] && !wet && color !== MAP_TERRAIN_COLORS.bridge) {
+    ctx.fillStyle = `rgba(12,14,16,${0.72 * opacity})`;
+    ctx.fillRect(sx - s * 0.18, sy - s * 0.11, s * 0.36, s * 0.22);
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** The atlas slice a wall item (a wall arm, an arch slice or a door part) shows now; null for a shut door's leaf. */
 function wallSlice(o) {
   if (o.kind !== 'door') return o.r;
@@ -1621,6 +1675,43 @@ function drawOverheadNames(ctx, world) {
 
 // ------------------------------------------------------------------ minimap
 let mmT = 0;
+const automapTerrainCaches = new WeakMap();
+
+function rebuildAutomapTerrainCache(world, canvas, s, toS) {
+  const map = world.map, W = canvas.width, H = canvas.height;
+  const dirtyList = Array.isArray(map.seenDirty) ? map.seenDirty : [];
+  const seenVersion = map.seenVersion ?? 0;
+  const key = `${W}x${H}:${s}:${world.biome?.id || ''}:${world.townTiles ? 'town' : ''}`;
+  let cache = automapTerrainCaches.get(map);
+  if (!cache || cache.key !== key) {
+    cache = { key, canvas: makeCanvas(W, H), seenVersion: -1, terrainVersion: -1, dirtyCursor: 0 };
+    automapTerrainCaches.set(map, cache);
+  }
+  const ctx = cache.canvas.getContext('2d');
+  const rebuild = cache.seenVersion < 0 || cache.terrainVersion !== (map.minimapTerrainVersion || 0) || map.seenDirtyOverflow || dirtyList.length < cache.dirtyCursor;
+  if (rebuild) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) drawMapCell(ctx, world, map, x, y, s, toS);
+  } else if (cache.seenVersion !== seenVersion) {
+    // New exploration redraws only the revealed cells and neighbours whose wall edges may have changed.
+    const dirty = new Set();
+    for (let k = cache.dirtyCursor; k < dirtyList.length; k++) {
+      const i = dirtyList[k], x = i % map.w, y = (i / map.w) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (mapInBounds(map, nx, ny)) dirty.add(ny * map.w + nx);
+      }
+    }
+    for (const i of dirty) drawMapCell(ctx, world, map, i % map.w, (i / map.w) | 0, s, toS);
+  }
+  cache.seenVersion = seenVersion;
+  cache.terrainVersion = map.minimapTerrainVersion || 0;
+  // The cached layer is current; clearing this queue avoids retaining a second copy of the explored grid.
+  if (Array.isArray(map.seenDirty)) map.seenDirty.length = 0;
+  if ('seenDirtyOverflow' in map) map.seenDirtyOverflow = false;
+  cache.dirtyCursor = 0;
+  return cache.canvas;
+}
 export function drawMinimap(world, dt, canvas, big = false) {
   if (!canvas) return;
   mmT -= dt;
@@ -1632,52 +1723,31 @@ export function drawMinimap(world, dt, canvas, big = false) {
   c.clearRect(0, 0, W, H);
   const p = world.player;
   if (!p) return;
-  if (world.tower) { world.tower.minimap(c, W, H, big); return; }
+  if (world.tower) {
+    const opacity = big ? 1 - clamp(Number(G.settings.tabMapTransparency ?? 45), 0, 100) / 100 : 1;
+    world.tower.minimap(c, W, H, big, opacity); return;
+  }
   const map = world.map;
-  const s = big ? Math.max(2, Math.min(W / (map.w + map.h), H / ((map.w + map.h) / 2)) * 0.95) : 2.4;
+  const fitScale = Math.min(W / (map.w + map.h + 2), H / ((map.w + map.h) / 2 + 2));
+  // Small enclosed floors use more of the circular HUD map; large maps keep their established local zoom.
+  const s = big ? Math.max(0.25, fitScale * 0.95) : Math.min(4.5, Math.max(2.4, fitScale * 0.9));
+  const terrainOpacity = big ? 1 - clamp(Number(G.settings.tabMapTransparency ?? 45), 0, 100) / 100 : 1;
   const cx = W / 2, cy = H / 2;
   const ox = big ? cx : cx - (p.x - p.y) * s, oy = big ? cy - ((map.w + map.h) / 4) * s + (big ? 0 : 0) : cy - ((p.x + p.y) * s) / 2;
   const toS = (x, y) => big ? [cx + (x - y) * s - ((map.w - map.h) * s) / 2, cy - ((map.w + map.h) * s) / 4 + ((x + y) * s) / 2] : [ox + (x - y) * s, oy + ((x + y) * s) / 2];
-  // the small map shows a window round the hero: only the tiles whose diamonds can land in it (the same order, so the
-  // same picture), not the whole map (60k-100k tiles on the dunes and the Castle) five times a second
-  let x0 = 0, x1 = map.w - 1, y0 = 0, y1 = map.h - 1;
-  if (!big) {
-    const d0 = (-4 - ox) / s - 1, d1 = (W + 4 - ox) / s + 1, s0 = (2 * (-4 - oy)) / s - 1, s1 = (2 * (H + 4 - oy)) / s + 1;   // x - y and x + y on screen
-    x0 = Math.max(0, Math.floor((d0 + s0) / 2)); x1 = Math.min(map.w - 1, Math.ceil((d1 + s1) / 2));
-    y0 = Math.max(0, Math.floor((s0 - d1) / 2)); y1 = Math.min(map.h - 1, Math.ceil((s1 - d0) / 2));
-  }
-  for (let y = y0; y <= y1; y++) {
-    for (let x = x0; x <= x1; x++) {
-      const i = y * map.w + x;
-      if (!map.seen[i]) continue;
-      const floor = map.t[i] === 1;
-      const wet = !!map.wet?.[i];
-      if (!floor && !wet) {
-        // Reveal only already-seen cells. Nearby void becomes a dark dungeon wall, while open sea/sky/rift tiles
-        // retain their own appearance. This makes mazes legible without exposing any unexplored passages.
-        let besideFloor = false;
-        const left = x > 0 ? i - 1 : -1, right = x + 1 < map.w ? i + 1 : -1;
-        const up = y > 0 ? i - map.w : -1, down = y + 1 < map.h ? i + map.w : -1;
-        if (left >= 0 && map.seen[left] && map.t[left] === 1) besideFloor = true;
-        if (!besideFloor && right >= 0 && map.seen[right] && map.t[right] === 1) besideFloor = true;
-        if (!besideFloor && up >= 0 && map.seen[up] && map.t[up] === 1) besideFloor = true;
-        if (!besideFloor && down >= 0 && map.seen[down] && map.t[down] === 1) besideFloor = true;
-        if (!besideFloor && !map.sea && !map.sky && !map.ghostTrain && !map.voidFace) continue;
-      }
+  if (big) {
+    const terrain = rebuildAutomapTerrainCache(world, canvas, s, toS);
+    c.globalAlpha = terrainOpacity; c.drawImage(terrain, 0, 0); c.globalAlpha = 1;
+  } else {
+    // Only draw nearby explored tiles; larger diamonds need a wider screen-space cull margin.
+    const pad = s + 2;
+    const d0 = (-pad - ox) / s - 1, d1 = (W + pad - ox) / s + 1, s0 = (2 * (-pad - oy)) / s - 1, s1 = (2 * (H + pad - oy)) / s + 1;
+    const x0 = Math.max(0, Math.floor((d0 + s0) / 2)), x1 = Math.min(map.w - 1, Math.ceil((d1 + s1) / 2));
+    const y0 = Math.max(0, Math.floor((s0 - d1) / 2)), y1 = Math.min(map.h - 1, Math.ceil((s1 - d0) / 2));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const [sx, sy] = toS(x, y);
-      if (!big && (sx < -4 || sy < -4 || sx > W + 4 || sy > H + 4)) continue;
-      const tileColor = wet ? (map.wet[i] > 1 ? MAP_TERRAIN_COLORS.deepWater : MAP_TERRAIN_COLORS.water)
-        : floor ? mapTerrainColor(world, map, i)
-        : map.sea ? MAP_TERRAIN_COLORS.deepWater : map.sky || map.ghostTrain || map.voidFace ? MAP_TERRAIN_COLORS.void : MAP_TERRAIN_COLORS.wall;
-      c.fillStyle = tileColor;
-      c.globalAlpha = floor ? 0.96 : 0.88;
-      c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + s * 0.5, sy + s * 0.3); c.lineTo(sx, sy + s * 0.6); c.lineTo(sx - s * 0.5, sy + s * 0.3); c.closePath(); c.fill();
-      c.globalAlpha = 1;
-      // Solid obstacles remain identifiable while their terrain remains visible around them.
-      if (floor && map.block?.[i] && !wet && tileColor !== MAP_TERRAIN_COLORS.water && tileColor !== MAP_TERRAIN_COLORS.deepWater && tileColor !== MAP_TERRAIN_COLORS.bridge) {
-        c.fillStyle = 'rgba(12,14,16,0.72)';
-        c.fillRect(sx - s * 0.18, sy + s * 0.19, Math.max(1, s * 0.36), Math.max(1, s * 0.22));
-      }
+      if (sx < -s || sy < -s * 0.5 || sx > W + s || sy > H + s * 0.5) continue;
+      drawMapCell(c, world, map, x, y, s, toS);
     }
   }
   // Subtle doorway marks sit below the functional markers, and only appear after their tile is explored.
