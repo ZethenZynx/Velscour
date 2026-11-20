@@ -145,6 +145,17 @@ export function renderQuest(body) {
         : `Continue the heirloom search in ${escapeHtml(areaName)} at Depth ${area.depth}; the owner is <b>${owner}</b>.`);
     }
   }
+  for (const quest of (w?.depthQuests || [])) {
+    const complete = quest.state === 'rewarded', failed = quest.state === 'failed', declined = quest.state === 'declined';
+    h += `<div class="q-title">${escapeHtml(quest.title)}</div>`;
+    h += step(complete, `<b>${complete ? 'Complete' : failed ? 'Failed' : declined ? 'Declined' : quest.state === 'objective-complete' ? 'Objective complete' : quest.state === 'accepted' ? 'In progress' : 'Available'}</b> - ${escapeHtml(quest.objective || '')}`);
+  }
+  const scenarioQuest = w?.scenario?.depthQuest;
+  if (scenarioQuest) {
+    const complete = scenarioQuest.state === 'rewarded', failed = scenarioQuest.state === 'failed';
+    h += `<div class="q-title">${escapeHtml(scenarioQuest.title)}</div>`;
+    h += step(complete, `<b>${complete ? 'Complete' : failed ? 'Failed' : scenarioQuest.state === 'accepted' ? 'In progress' : 'Available'}</b> — ${escapeHtml(scenarioQuest.objective || '')}`);
+  }
   h += '</div>';
   const deepest = c.deepest || 0, pctV = Math.min(100, deepest / FINAL_DEPTH * 100);
   h += commissionsHtml(c, w, step);

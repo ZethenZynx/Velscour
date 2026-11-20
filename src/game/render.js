@@ -691,6 +691,13 @@ function drawNpc(ctx, n) {
     ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.7;ctx.drawImage(glowSprite(color),x-16,by-22,32,32);ctx.restore();
     ctx.save();ctx.font='900 22px Cinzel, Georgia, serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#1a1006';ctx.fillStyle=offer||returning?'#ffd040':'#d8e0ff';
     ctx.strokeText(mark,x,by);ctx.fillText(mark,x,by);ctx.restore();
+  } else if (n.depthQuest && n.questIndicator) {
+    const mark = n.questIndicator, by = spriteY - 16 + Math.sin(G.time * 4 + n.x) * 3;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.72;
+    ctx.drawImage(glowSprite('#ffd040'), x - 16, by - 22, 32, 32); ctx.restore();
+    ctx.save(); ctx.font = '900 22px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4;
+    ctx.strokeStyle = '#1a1006'; ctx.fillStyle = mark === '!' ? '#ffd040' : '#d8e0ff';
+    ctx.strokeText(mark, x, by); ctx.fillText(mark, x, by); ctx.restore();
   }
   drawTownSpeech(ctx,n,x,spriteY);
 }
@@ -1637,7 +1644,7 @@ export function drawMinimap(world, dt, canvas, big = false) {
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;
     const d = Math.hypot(m.x - p.x, m.y - p.y);
-    if (m.team === 'enemy' && d < 14) dot(m.x, m.y, m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.rank === 'boss' ? 4 : 2);
+    if (m.team === 'enemy' && d < 14) dot(m.x, m.y, m.depthBountyMark ? '#ffe080' : m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.depthBountyMark ? (big ? 5 : 3) : m.rank === 'boss' ? 4 : 2);
     else if (m.team === 'player') dot(m.x, m.y, '#40ff60', 1.8);
   }
   if (world.cave && world.cave.mapMarks) for (const [x, y, col, r] of world.cave.mapMarks()) dot(x, y, col, (r || 2.4) * (big ? 1.6 : 1));   // the mountains: the trail ahead, the next way up, gates

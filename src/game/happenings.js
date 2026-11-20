@@ -119,7 +119,15 @@ export function setupHappenings(world, start, gen) {
     return;
   }
   if (depth === FINAL_DEPTH) return; // keep the Throne's finale authored; infinite dungeons retain ordinary happenings
-  setupScenario(world, start); // biome set pieces remain independent of affixes
+  const npcClaimKey = `${world.biome.id}:${Math.max(1, depth | 0)}`;
+  const npcClaims = G.char?.npcEncounterDepths || {};
+  setupScenario(world, start, undefined, { allowNpcQuest: !npcClaims[npcClaimKey] }); // biome set pieces remain independent of affixes
+  // Captive and escort set pieces already occupy the one optional NPC encounter slot on this depth.
+  // Record that claim so rebuilding the same depth cannot roll a second quest NPC.
+  if (['captives', 'escort'].includes(world.scenario?.mech) && G.char) {
+    (G.char.npcEncounterDepths ||= {})[npcClaimKey] = `scenario:${world.scenario.mech}`;
+    G.game?.autosave?.();
+  }
   const want = 1 + (chance(0.6) ? 1 : 0) + (chance(0.35) ? 1 : 0);
   const spots = roomSpots(world, start, want + 3);
   const c = G.char, nemSpot = c && c.nemesis && (depth >= c.nemesis.depth - 5 || affixCascade) ? spots.pop() : null;

@@ -1,5 +1,12 @@
 # VELSCOUR: hand-off notes
 
+## November 19, 2026 - unified dungeon NPC encounters and depth quests
+- Combined the existing captive, knight, peddler, wizard, witch and Greener encounters with sixteen new NPC types under the existing 50% optional encounter roll. The pool selects Common/Uncommon/Rare at 60/30/10, avoids repeating the last kind where possible, and permits at most one optional NPC encounter per depth.
+- Captive/escort scenario NPCs share the same per-character biome/depth claim. Rebuilding a claimed depth skips the random encounter and selects a different scenario instead of recreating an NPC quest. Old saves receive a normalized `npcEncounterDepths` map; no character data is reset.
+- Added available/in-progress/objective-complete/rewarded/failed quest states, visible `!`/`?` markers, Quest Log entries, reachable objective checks, return-to-NPC turn-ins for escort, treasure, bounty, rescue and duel tasks, and single-use outcomes for offers/trades. Existing People and Animals sheets are reused with biome-aware picks.
+- The Greener still leads the player to the cache; the player now explicitly accepts the invitation first. The opened cache is its reward and the return conversation closes the quest without a second loot payout.
+- `node tools/tests/dungeon_npc_catalog.mjs`, `node tools/tests/data_check.mjs`, `node tools/tests/wanderer_heirloom_quest.mjs`, JavaScript syntax checks and `git diff --check` pass. The browser encounter suite could not run because Playwright is not installed in this checkout; no live game was opened for this change.
+
 ## November 17, 2026 - complete enemy variety and advanced AI (branch: `feat/enemy-variety-advanced-ai`)
 - Added ten reusable enemy role profiles, the full 40-behavior catalog, and all 30 named attacks, assigned across 82 non-boss archetypes (including Sea of Sand variants). Role combinations reuse existing monster sprites, action wind-ups, hazards, particles, projectiles, pathfinding, and collision; no artwork was generated.
 - Added bounded no-reward summons, persistent corpse-based one-time reanimation, support cooldowns, pack coordination, warning telegraphs, retreat and ambush states, partial defensive reductions, and depth-compatible monster damage. Enemy summons and illusions grant no XP, loot, player kill credit, or challenge progress.

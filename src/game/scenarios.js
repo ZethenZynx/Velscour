@@ -21,7 +21,7 @@ export const SCENARIO_CHANCE = 0.55;
 const COLOR = '#ffb347';
 
 /** Roll this depth's scenario (or none) once the level is built. `force` = a mechanic index (tests). */
-export function setupScenario(world, start, force = G.scenarioForce ?? null) {
+export function setupScenario(world, start, force = G.scenarioForce ?? null, { allowNpcQuest = true } = {}) {
   world.scenario = null;
   world.roomSeen = new Set();
   const b = world.biome;
@@ -30,10 +30,18 @@ export function setupScenario(world, start, force = G.scenarioForce ?? null) {
   const c = G.char || {};
   let i = force ?? randi(0, 19);
   if (force === null && c.lastScenario === b.id + i) i = (i + randi(1, 19)) % 20;
-  c.lastScenario = b.id + i;
   const need = Math.min(40, 16 + Math.floor((world.depth || 1) / 6));
-  const info = biomeScenario(b.id, i, need);
+  let info = biomeScenario(b.id, i, need);
+  // NPC-based set pieces share the optional encounter claim. On a revisited depth, choose a
+  // different set piece rather than recreating a second captive/escort quest.
+  if (force === null && !allowNpcQuest && ['captives', 'escort'].includes(info?.mech)) {
+    for (let offset = 1; offset < 20; offset++) {
+      const candidate = (i + offset) % 20, next = biomeScenario(b.id, candidate, need);
+      if (next && !['captives', 'escort'].includes(next.mech)) { i = candidate; info = next; break; }
+    }
+  }
   if (!info) return;
+  c.lastScenario = b.id + i;
   const S = makeScenario(world, start, info, need);
   if (!S) return;
   world.scenario = S;
@@ -63,6 +71,11 @@ function makeScenario(world, start, info, need) {
   const ts = world.tileset, scat = ts ? ts.scatter : [];
   const roster = world.roster && world.roster.length ? world.roster : biome.roster;
   const S = { ...info, done: false, failed: false, active: false, got: 0, goal: 1, foes: [], objective: null, t: 0 };
+  const npcQuest = mech === 'captives' || mech === 'escort';
+  if (npcQuest) {
+    S.depthQuest = { title: info.title, state: 'available', objective: info.desc };
+    S.questNpcs = [];
+  }
   const sprite = (tag) => { const l = scat.filter((e) => tag === 'light' ? /brazier|candel|torch|lantern|censer/.test(e.name) : TAGS[tag].test(e.name)); return l.length ? pick(l) : null; };
   const foesAlive = () => S.foes.some((m) => !m.dead);
   // places: room spots the hero can reach, away from the start and from each other
@@ -116,6 +129,7 @@ function makeScenario(world, start, info, need) {
   const reward = (x, y, legendary = false) => {
     if (S.done) return;
     S.done = true; S.objective = null;
+    if (S.depthQuest) { S.depthQuest.state = 'rewarded'; S.depthQuest.objective = 'Rescue complete; the depth reward is yours.'; for (const n of S.questNpcs || []) n.questIndicator = null; }
     for (const ch of world.chests) if (ch.scen === S) ch.opened = true;
     dropChest(world, { x, y, rare: true }, depth); dropChest(world, { x, y, rare: true }, depth);
     const p = G.player;
@@ -125,8 +139,8 @@ function makeScenario(world, start, info, need) {
     sfx('gate'); UI.centerMsg(S.title.toUpperCase(), 'Scenario complete: a hoard is yours', 2.8);
     UI.log(`<b style="color:${COLOR}">${S.title}</b> complete.`, COLOR);
   };
-  const fail = (why) => { S.failed = true; S.objective = null; sfx('error'); UI.centerMsg('SCENARIO FAILED', why, 2.4); };
-  const begin = (sub) => { S.active = true; UI.centerMsg(S.title.toUpperCase(), sub || S.desc, 2.8); sfx('boss', 0.5); camera.shake(4); };
+  const fail = (why) => { S.failed = true; S.objective = null; if (S.depthQuest) { S.depthQuest.state = 'failed'; S.depthQuest.objective = why; for (const n of S.questNpcs || []) n.questIndicator = null; } sfx('error'); UI.centerMsg('SCENARIO FAILED', why, 2.4); };
+  const begin = (sub) => { S.active = true; if (S.depthQuest) { S.depthQuest.state = 'accepted'; S.depthQuest.objective = sub || S.depthQuest.objective; for (const n of S.questNpcs || []) n.questIndicator = '?'; UI.refresh(); } UI.centerMsg(S.title.toUpperCase(), sub || S.desc, 2.8); sfx('boss', 0.5); camera.shake(4); };
   const own = (mk) => { mk.scen = S; return mk; };
   const progress = (f) => { S.progress = f; };
   const at = spots(6);
@@ -148,17 +162,24 @@ function makeScenario(world, start, info, need) {
       const n = mech === 'escort' ? 1 : 3, folk = TOWNSFOLK.filter((v) => !v.royal && !v.courtier);
       S.goal = n;
       const people = at.slice(0, n).map(([x, y], i) => {
-        const f = pick(folk);
+        const preferred = /frozen|ice|summit/.test(biome.id) ? TOWNSFOLK.filter((v) => v.knight || v.old || v.worker)
+          : /castle|keep/.test(biome.id) ? TOWNSFOLK.filter((v) => v.guard || v.knight || v.courtier)
+            : /desert|sand|amber|gilded/.test(biome.id) ? TOWNSFOLK.filter((v) => v.merchant || v.worker || v.old)
+              : TOWNSFOLK.filter((v) => !v.royal && !v.courtier && !v.child);
+        const f = pick(preferred.length ? preferred : folk);
         const npc = { name: mech === 'escort' ? W.soul.replace(/^an? |^the /, '').replace(/^./, (c) => c.toUpperCase()) : 'Prisoner', x, y,
           townsfolkSpriteId: f.spriteId, pal: f.palette, frameCount: f.frame.count, child: f.child, animT: rand(3), walkT: 0, idleSeed: randi(0, 2),
           emotion: mech === 'escort' ? 'scared' : 'pray', emotionT: 4, alpha: mech === 'escort' ? 0.75 : 1, hp: 100,
           update(dt) { this.animT += dt; if (!this.walking) this.walkT = 0; this.walking = false; } };
+        npc.depthQuest = S.depthQuest; npc.questIndicator = '!'; S.questNpcs.push(npc);
         world.npcs.push(npc);
         if (mech === 'captives') foe(null, map.randomNear(x, y, 2.5), i === n - 1 ? 'champion' : 'normal', 3);
         own(marker(x, y, mech === 'escort' ? 'Lead ' + W.soul : 'Free the prisoner', sprite('chain'), (mk) => {
           mk.opened = true;
           if (mech === 'escort') { npc.follow = true; begin('Lead it to the far altar'); S.waveT = 6; return; }
+          if (S.depthQuest?.state === 'available') { S.depthQuest.state = 'accepted'; for (const person of S.questNpcs) person.questIndicator = '?'; }
           S.got++; npc.emotion = 'cheer'; npc.emotionT = 3; sfx('levelup', 0.4); floatText(x, y, 70, 'Freed!', '#a0ff90', 14);
+          if (S.depthQuest) { S.depthQuest.objective = `Free the captives (${S.got}/${n}).`; UI.refresh(); }
           setTimeout(() => { const i = world.npcs.indexOf(npc); if (i >= 0) world.npcs.splice(i, 1); }, 2500);
           if (S.got >= n) reward(x, y);
         }, { color: '#a0ff90' }));
