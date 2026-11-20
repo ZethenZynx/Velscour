@@ -332,6 +332,24 @@ try {
   assert.equal(breachState.reentered, true, 'returning to town and entering the zero-ward early Breach floor again succeeds');
   assert.deepEqual(breachState.errors, [], 'live world updates across Breach tiers produce no null-reference exceptions');
   console.log('PASS: Live Breach world updates run across all objective tiers and after town re-entry without browser errors.');
+
+  const breachSave = await evaluate(`(async () => {
+    const { G, game } = window.VELSCOUR;
+    game.autosave();
+    const { listSaves } = await import('/src/game/save.js');
+    const id = G.char.id, saved = listSaves().find((entry) => entry.id === id);
+    if (!saved) return { found: false };
+    await game.loadChar(saved);
+    const loaded = G.char?.id === id;
+    game.buildBreach(1, 1357911);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return { found: true, loaded, floor: G.world?.breach?.floor, errors: window.__forkUpdaterBrowserErrors };
+  })()`);
+  assert.equal(breachSave.found, true, 'the Breach test character was written to browser save storage');
+  assert.equal(breachSave.loaded, true, 'a saved character reloads before re-entering the Breach');
+  assert.equal(breachSave.floor, 1, 'the reloaded character can enter the zero-ward early Breach floor');
+  assert.deepEqual(breachSave.errors, [], 'save/load and re-entry produce no browser exceptions');
+  console.log('PASS: Character save/load and Eternal Breach re-entry preserve stable runtime state.');
 } finally {
   socket?.close();
   if (edge && edge.exitCode === null) {
