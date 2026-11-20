@@ -2,7 +2,7 @@
 import { BREACH_ARCHS } from './breach.js';
 // palette -> recolor() params applied to the biome's art (null = as drawn).
 // mon -> hue/sat/light shift applied to monster palettes.
-import { FINAL_DEPTH } from './depth.js';
+import { ACTS, FINAL_DEPTH } from './depth.js';
 export const BIOMES = [
   {
     id: 'catacombs', name: 'Skull-Lined Catacombs', palette: null, dark: 0.82, light: 7.5,
@@ -564,26 +564,38 @@ export const BIOME_BY_ID = Object.fromEntries([...BIOMES, ...BETA_BIOMES, BREACH
 /** Registered overworld biomes; campaign eligibility is limited by DEPTH_BIOME_RANGES below. */
 export const OVERWORLD_BIOME_IDS = BIOMES.filter((b) => b.overworld).map((b) => b.id);
 
-/** Special destinations and ordinary dungeon pools for each campaign depth band. Endpoints are inclusive. */
-export const DEPTH_BIOME_RANGES = [
-  { start: 1, end: 6, ids: ['overworld'] },
-  { start: 7, end: 12, ids: ['dark_forest'] },
-  { start: 13, end: 18, ids: ['castle'] },
-  { start: 19, end: 24, ids: ['castle_keep'] },
-  { start: 25, end: 30, ids: ['sea_of_sand'] },
-  { start: 31, end: 36, ids: ['great_hunt'] },
-  { start: 37, end: 42, ids: ['serpentine_tower'] },
-  { start: 43, end: 48, ids: ['scorpion_king_pyramid'] },
-  { start: 49, end: 54, ids: ['mountainside'] },
-  { start: 55, end: 60, ids: ['depths_edge'] },
-  { start: 61, end: 66, ids: ['snowy_summit'] },
-  { start: 67, end: 72, ids: ['endless_siege'] },
-  { start: 73, end: 79, ids: ['pirate_seas'] },
-  { start: 80, end: 84, ids: ['skyship'] },
-  { start: 85, end: 92, ids: ['ghost_train'] },
-  { start: 93, end: 99, ids: ['deep_mines'] },
-  { start: FINAL_DEPTH, end: FINAL_DEPTH, ids: ['throne'] },
-];
+/** The fixed environment order for each 25-depth campaign act. Each cycle restarts at its act boundary. */
+export const CAMPAIGN_ENVIRONMENT_ROTATIONS = {
+  1: ['overworld', 'dark_forest', 'castle', 'castle_keep'],
+  2: ['sea_of_sand', 'great_hunt', 'serpentine_tower', 'scorpion_king_pyramid'],
+  3: ['mountainside', 'depths_edge', 'snowy_summit', 'endless_siege'],
+  4: ['pirate_seas', 'skyship', 'ghost_train', 'deep_mines'],
+};
+
+/** Keep act finales in the environments suited to their signature boss encounters. */
+export const CAMPAIGN_BOSS_ENVIRONMENTS = {
+  25: 'castle_keep',       // Ossuarch, the Bone Colossus
+  50: 'scorpion_king_pyramid', // Pharaoh Sekhmun
+  75: 'snowy_summit',      // Hollowmere
+  [FINAL_DEPTH]: 'throne', // Velscour; never part of the rotation or endgame pool
+};
+
+export function campaignBiomeForDepth(depth) {
+  depth = Math.max(1, Math.floor(Number(depth) || 1));
+  const finale = CAMPAIGN_BOSS_ENVIRONMENTS[depth];
+  if (finale) return finale;
+  const act = ACTS.find((entry) => depth >= entry.start && depth <= entry.end);
+  if (!act) return 'throne';
+  const rotation = CAMPAIGN_ENVIRONMENT_ROTATIONS[act.act];
+  if (!rotation?.length) return 'throne';
+  return rotation[(depth - act.start) % rotation.length];
+}
+
+/** Point ranges preserve the existing range API while making the campaign schedule deterministic per depth. */
+export const DEPTH_BIOME_RANGES = Array.from({ length: FINAL_DEPTH }, (_, i) => {
+  const depth = i + 1;
+  return { start: depth, end: depth, ids: [campaignBiomeForDepth(depth)] };
+});
 
 const CAMPAIGN_ENVIRONMENTS = new Set(DEPTH_BIOME_RANGES.flatMap((range) => range.ids));
 export const DEPTH_DUNGEON_RANGES = [{ start: FINAL_DEPTH + 1, end: Number.MAX_SAFE_INTEGER, ids: [...new Set([...BIOMES, ...BETA_BIOMES].filter((b) => !b.overworld && !CAMPAIGN_ENVIRONMENTS.has(b.id)).map((b) => b.id))] }];
@@ -591,7 +603,7 @@ export const DEPTH_DUNGEON_RANGES = [{ start: FINAL_DEPTH + 1, end: Number.MAX_S
 /** Campaign depths use exactly one scheduled environment; endgame depths share the open dungeon pool. */
 export function biomesForDepth(depth) {
   depth = Math.max(1, Math.floor(Number(depth) || 1));
-  if (depth <= FINAL_DEPTH) return DEPTH_BIOME_RANGES.find((range) => depth >= range.start && depth <= range.end)?.ids.slice() || ['throne'];
+  if (depth <= FINAL_DEPTH) return [campaignBiomeForDepth(depth)];
   // Every ordinary dungeon pool is eligible as soon as the infinite endgame begins.
   if (depth > FINAL_DEPTH) return DEPTH_DUNGEON_RANGES[0].ids.filter((id) => BIOME_BY_ID[id]);
   const ids = [];
@@ -605,7 +617,7 @@ export function biomesForDepth(depth) {
  * A shuffled pool for this depth's configured ranges. Campaign bands are fixed; the endgame cycles its open pool.
  */
 export function drawBiome(c, depth) {
-  if (depth <= FINAL_DEPTH) return DEPTH_BIOME_RANGES.find((range) => depth >= range.start && depth <= range.end)?.ids[0] || 'throne';
+  if (depth <= FINAL_DEPTH) return campaignBiomeForDepth(depth);
   const all = biomesForDepth(depth);
   if (!all.length) return 'catacombs';
   const overworldIds = all.filter((id) => BIOME_BY_ID[id]?.overworld);

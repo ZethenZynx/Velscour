@@ -34,7 +34,8 @@ const { BESTIARY, SUMMON_ART, FAMILIAR_ART, ART_BY_ID, artPool, rollLooks } = aw
 const { ARCH } = await import(new URL('../../src/data/enemies.js', import.meta.url));
 const { HEAVENLY_MONSTERS } = await import(new URL('../../src/data/heavenly.js', import.meta.url));
 if (HEAVENLY_MONSTERS.length !== 60 || new Set(HEAVENLY_MONSTERS.map(m=>m.id)).size !== 60) bad.push('Expected 60 distinct Heavenly monsters');
-const { BIOMES, drawBiome, biomeChoices, biomesForDepth, mixPartner } = await import(new URL('../../src/data/biomes.js', import.meta.url));
+const { BIOMES, CAMPAIGN_BOSS_ENVIRONMENTS, CAMPAIGN_ENVIRONMENT_ROTATIONS, drawBiome, biomeChoices, biomesForDepth, mixPartner } = await import(new URL('../../src/data/biomes.js', import.meta.url));
+const { ACTS } = await import(new URL('../../src/data/depth.js', import.meta.url));
 const { SET3 } = await import(new URL('../../src/data/bestiary3.js', import.meta.url));
 if (SET3.length !== 260) bad.push('Expected the 260 monsters of enemy set 3');
 if (BESTIARY.some((a) => a.sourceArt || a.id.startsWith('bn_'))) bad.push('Generated overlay monsters (bn_) must not return');
@@ -157,20 +158,15 @@ for (const id of Object.keys(packs)) {
 }
 const chests = JSON.parse(readFileSync(asset('props/chests.json')));
 for (const k of ['closed', 'open', 'rareClosed', 'rareOpen']) if (!chests[k]) bad.push(`chest art: no ${k}`);
-// Campaign destinations stay within their configured depth bands, and portal choices use the same pool.
+// Campaign destinations follow their deterministic act rotation, and portal choices use the same scheduled biome.
 const hero = { biomeBag: [], lastBiome: null, overworldMisses: 0 };
-const campaignBands = [
-  [1, 6, 'overworld'], [7, 12, 'dark_forest'], [13, 18, 'castle'], [19, 24, 'castle_keep'],
-  [25, 30, 'sea_of_sand'], [31, 36, 'great_hunt'], [37, 42, 'serpentine_tower'], [43, 48, 'scorpion_king_pyramid'],
-  [49, 54, 'mountainside'], [55, 60, 'depths_edge'], [61, 66, 'snowy_summit'], [67, 72, 'endless_siege'],
-  [73, 79, 'pirate_seas'], [80, 84, 'skyship'], [85, 92, 'ghost_train'], [93, 99, 'deep_mines'], [100, 100, 'throne'],
-];
 for (let depth = 1; depth <= 500; depth++) {
   const eligible = biomesForDepth(depth), id = drawBiome(hero, depth), choices = biomeChoices(hero, depth);
   if (!eligible.includes(id)) bad.push(`depth ${depth}: drew ineligible biome ${id}`);
   if (!choices.length || choices.some((x) => !eligible.includes(x))) bad.push(`depth ${depth}: portal offered an ineligible biome`);
-  const band = campaignBands.find(([start, end]) => depth >= start && depth <= end);
-  if (band && (eligible.length !== 1 || eligible[0] !== band[2])) bad.push(`campaign depth ${depth} has the wrong environment`);
+  const act = ACTS.find((entry) => depth >= entry.start && depth <= entry.end);
+  const expected = act && (CAMPAIGN_BOSS_ENVIRONMENTS[depth] || CAMPAIGN_ENVIRONMENT_ROTATIONS[act.act][(depth - act.start) % CAMPAIGN_ENVIRONMENT_ROTATIONS[act.act].length]);
+  if (expected && (eligible.length !== 1 || eligible[0] !== expected || id !== expected || choices[0] !== expected)) bad.push(`campaign depth ${depth} has the wrong environment`);
   if (depth === 100 && (id !== 'throne' || choices.join() !== 'throne')) bad.push('Depth 100 must always be Velscour\'s Throne');
   if (depth > 100 && eligible.includes('throne')) bad.push(`Endgame depth ${depth} must not roll the throne`);
   hero.lastBiome = id;
@@ -178,7 +174,7 @@ for (let depth = 1; depth <= 500; depth++) {
 if (biomesForDepth(101).length < 2 || biomesForDepth(500).includes('overworld')) bad.push('Infinite endgame pool is not open to eligible dungeon environments');
 let mixes = 0;
 for (let i = 0; i < 200; i++) { const m = mixPartner(BIOMES[0]); if (m) { mixes++; if (m.family !== BIOMES[0].family || m.id === BIOMES[0].id) bad.push('bad mix partner ' + m.id); } }
-console.log('monster art', BESTIARY.length, 'looks; depth-band biome checks passed; mixed levels', mixes, '/ 200');
+console.log('monster art', BESTIARY.length, 'looks; sequential act biome checks passed; mixed levels', mixes, '/ 200');
 
 // ---- Velscour's level-up lines (src/data/taunts.js): 2,000 unique two-line taunts that fit the banner, a mood never twice in a row
 const { TAUNTS, CLASS_TAUNTS, MILESTONES, pickTaunt } = await import(new URL('../../src/data/taunts.js', import.meta.url));
