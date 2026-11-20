@@ -31,7 +31,6 @@ const R = registerRegion({
   createRun: (world, gen, biome, depth, win) => createHuntRun(world, gen, biome, depth, win),
   intro: (world) => { const sc = world.overworldScenario; return sc.land.intro(sc.def.name); },
   quest: huntQuest,
-  winText: 'Bonus skill point for the kill!',
   amb: 'dark_forest',
   wilds: true,
 });

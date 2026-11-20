@@ -3,8 +3,8 @@
 Where the Mountainside's summit leads. Win the Mountainside (beat its Summit Warden) and the party is carried straight
 on, at the same depth, into a mountain range: thin ridgelines two or three tiles wide, their flanks falling away
 steeply into a sea of cloud, four plateaus where groups of monsters fight, and the peak, the top of the range, an old
-shrine on a dais, where one of five snow-swapped bosses waits. Its fall opens the exit on the peak (+1 skill point the
-first time). A trip to town from the Summit comes back to the Summit (`c.nextBiome`).
+shrine on a dais, where one of five snow-swapped bosses waits. Its fall opens the exit on the peak. Skill points come
+from character leveling, not from clearing the Summit. A trip to town from the Summit comes back to the Summit (`c.nextBiome`).
 
 It is a region (`src/game/regions/summit.js`, `docs/NEW_REGIONS.md`): `snowy_summit` in `BETA_BIOMES`
 (`follows: 'mountainside'`), never drawn on its own. Velscour's skull reaches it directly: send `summit`, `snow`,

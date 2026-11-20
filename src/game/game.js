@@ -1511,14 +1511,11 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      const isEvery5Boss = depth <= FINAL_DEPTH && depth % 5 === 0;
       if (first) {
         this.awardFloorClear(depth);
         recordDepth(world, depth);
       }
-      const rewardText = first
-        ? (isEvery5Boss ? '+1 bonus skill point · the exit is open' : depth > FINAL_DEPTH ? '+1 Infernal Mark · the exit is open' : 'The exit is open')
-        : 'The exit is open';
+      const rewardText = first && depth > FINAL_DEPTH ? '+1 Infernal Mark · the exit is open' : 'The exit is open';
       UI.centerMsg(m.raid ? `${m.name} DEFEATED` : 'GUARDIAN SLAIN', rewardText, 3.5);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate');
@@ -1543,7 +1540,7 @@ export const game = {
         c.cleared[depth] = true;
         c.deepest = Math.max(c.deepest || 0, depth);
         this.brokeThrough(depth);
-        if (first) this.awardFloorClear(depth, 'winning the Sky Battle');
+        if (first) this.awardFloorClear(depth);
         sfx('gate'); UI.refresh(); this.autosave();
       });
       c.lastSkyVariant = world.sky.v.id; delete c.skyVariant;
@@ -1556,7 +1553,7 @@ export const game = {
         c.deepest = Math.max(c.deepest || 0, depth);
         this.brokeThrough(depth);
         const bell = world.seaRun.bell ? ` Brother Tolland has rung <b style="color:#ffe0a0">${world.seaRun.bell} bell${world.seaRun.bell > 1 ? 's' : ''}</b> on the Shattered Coast.` : '';
-        if (first) this.awardFloorClear(depth, 'holding the Dawnwake');
+        if (first) this.awardFloorClear(depth);
         else if (bell) UI.log(`The Dawnwake is held.${bell}`, '#ffd860');
         sfx('gate'); UI.refresh(); this.autosave();
       });
@@ -1569,7 +1566,7 @@ export const game = {
         c.cleared[depth] = true;
         c.deepest = Math.max(c.deepest || 0, depth);
         this.brokeThrough(depth);
-        if (first) this.awardFloorClear(depth, reg.winText ? null : `clearing Depth ${depth}`);
+        if (first) this.awardFloorClear(depth);
         addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
         sfx('gate'); UI.refresh(); this.autosave();
       }) || world.overworldScenario;
@@ -1580,7 +1577,7 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      if (first) this.awardFloorClear(depth, `winning ${gen.variant?.pyramid?.name || 'the Pyramid'}`);
+      if (first) this.awardFloorClear(depth);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
@@ -1591,7 +1588,7 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      if (first) this.awardFloorClear(depth, 'completing the Sea of Sand route');
+      if (first) this.awardFloorClear(depth);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
@@ -1604,7 +1601,7 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      if (first) this.awardFloorClear(depth, 'taking the tower');
+      if (first) this.awardFloorClear(depth);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
@@ -1615,7 +1612,7 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      if (first) this.awardFloorClear(depth, 'taking the top of the falls');
+      if (first) this.awardFloorClear(depth);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
@@ -1626,7 +1623,7 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      if (first) this.awardFloorClear(depth, 'completing the overworld scenario');
+      if (first) this.awardFloorClear(depth);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
     });
@@ -1784,14 +1781,10 @@ export const game = {
     }));
   },
 
-  awardFloorClear(depth, customContext = '') {
+  awardFloorClear(depth) {
     const c = G.char;
     if (!c) return;
-    const isBoss = (depth <= FINAL_DEPTH && depth % 5 === 0) || depth === FINAL_DEPTH;
-    if (isBoss) {
-      c.skillPoints++;
-      UI.log(customContext ? `Bonus skill point for ${customContext}!` : `Bonus skill point for defeating the Depth ${depth} Boss!`, '#ffd860');
-    } else if (depth > FINAL_DEPTH) {
+    if (depth > FINAL_DEPTH) {
       grantMarks(1, `for clearing Depth ${depth}`, G.world);
     }
   },

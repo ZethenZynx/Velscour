@@ -28,7 +28,6 @@ registerRegion({
     h += step(sc.completed, sc.completed ? 'The Last Stop: the exit is open on the platform.' : 'His fall puts the brakes on.');
     return h;
   },
-  winText: 'Bonus skill point for taking back the Iron Express!',
   amb: 'town',
   wilds: false,
 });

@@ -13,7 +13,6 @@
 //   createRun(world, gen, biome, depth, win) -> the run (game.js sets it as world.overworldScenario); call win() once
 //   intro(world, gen)              -> the log line on arrival
 //   quest(sc, step)                -> Quest Log steps while inside (step(done, html) is the Quest Log's helper)
-//   winText   the log line on a first clear ('Bonus skill point for ...')
 //   amb       an ambience key (src/core/audio.js AMB); default the biome id
 //   wilds     true: Forsaken Wilds extras (rain/night rolls) apply
 //   castleArt true: the Castle pack stays loaded after the build (releaseLevelArt in game.js; the Siege's masonry)

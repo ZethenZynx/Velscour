@@ -20,6 +20,5 @@ registerRegion({
   createRun: (world, gen, biome, depth, win) => createMountainRun(world, gen, biome, depth, win),
   intro: () => 'The trail switchbacks up the cliffs to the summit, and things hold it all the way. A ledge a hop high can be climbed; the cliffs cannot.',
   quest: mountainQuest,
-  winText: 'Bonus skill point for clearing the Mountainside!',
   amb: 'mountainside',
 });

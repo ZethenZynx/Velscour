@@ -22,6 +22,7 @@ const ASIDE = KEY + '_unreadable_';   // + time: save data that couldn't be read
 let unreadable = false;   // the saves are there but don't parse; preserve them until they can be recovered
 const OVERHAUL_RESET_KEY = 'velscour_campaign_overhaul_reset_v1';
 const OVERHAUL_BACKUP_KEY = 'velscour_campaign_overhaul_backup_v1';
+const SKILL_POINT_LEVEL_RESET = 'skillPointLevelResetV1';
 const OVERHAUL_EXTRA_KEYS = ['velscour_bard_heard', 'velscour_taunts_v1'];
 let overhaulResetChecked = false;
 
@@ -182,7 +183,7 @@ export function newCharData(classId, name) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     version: 1, rebalancedV1: true, name, classId, level: 1, xp: 0,
     attrs: { ...C.base }, statPoints: 0, skillPoints: 1, talentPoints: 0,
-    skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, skillRespecV2: true, bar: Array(BAR_SIZE).fill(null),
+    skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, skillRespecV2: true, [SKILL_POINT_LEVEL_RESET]: true, bar: Array(BAR_SIZE).fill(null),
     equip: { weapon: null, offhand: null, head: null, body: null, hands: null, legs: null, feet: null, ring1: null, ring2: null, ring3: null, ring4: null },
     vanity: { head: null, body: null, weapon: null, offhand: null }, hideHelm: false,
     macros: newMacros(), // game/macros.js
@@ -394,15 +395,11 @@ export function migrate(c) {
   for (const gid of Object.keys(c.granted)) {
     if (!SKILLS[gid] || SKILLS[gid].classId !== c.classId) delete c.granted[gid];
   }
-  // One-time refund for existing characters: earned points are based on level and first-cleared boss depths.
+  // Legacy one-time reset from the older boss-clear skill point system.
   if (!c.skillRespecV1) {
-    const bossSkillPoints = Object.entries(c.cleared).reduce((total, [depth, cleared]) => {
-      const floor = Number(depth);
-      return total + (cleared && Number.isInteger(floor) && floor > 0 && floor % 5 === 0 ? 1 : 0);
-    }, 0);
     c.skills = {};
     c.granted = {};
-    c.skillPoints = Math.max(1, Number(c.level) | 0) + bossSkillPoints;
+    c.skillPoints = Math.max(1, Math.min(MAX_LEVEL, Number(c.level) | 0));
     c.bar = Array(BAR_SIZE).fill(null);
     c.skillRespecV1 = true;
   }
@@ -419,6 +416,17 @@ export function migrate(c) {
     c.granted = {};
     c.bar = Array(BAR_SIZE).fill(null);
     c.skillRespecV2 = true;
+  }
+  // One-time level-only skill progression reset. Earlier versions granted skill points for
+  // boss/depth clears, so reset allocations and derive the balance solely from the hero's level.
+  // Level 1 retains its original starting point; every subsequent point comes from a level-up.
+  if (!c[SKILL_POINT_LEVEL_RESET]) {
+    c.skills = {};
+    c.granted = {};
+    const level = Math.max(1, Math.min(MAX_LEVEL, Math.floor(Number(c.level) || 1)));
+    c.skillPoints = level;
+    c.bar = Array(BAR_SIZE).fill(null);
+    c[SKILL_POINT_LEVEL_RESET] = true;
   }
   c.talents = c.talents || {};
   if (!Number.isInteger(c.talentPoints)) {

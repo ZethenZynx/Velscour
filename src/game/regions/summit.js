@@ -19,6 +19,5 @@ registerRegion({
   createRun: (world, gen, biome, depth, win) => createSummitRun(world, gen, biome, depth, win),
   intro: (world) => `The Snowy Summit: ${world.summitRun.plateaus.length} plateaus and their gates lie along the ridgelines between you and the peak.`,
   quest: summitQuest,
-  winText: 'Bonus skill point for taking the Snowy Summit!',
   amb: 'snowy_summit',
 });

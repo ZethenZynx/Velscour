@@ -39,7 +39,6 @@ const R = registerRegion({
     h += step(sc.completed, sc.completed ? 'The exit in the courtyard is open.' : 'Victory opens the exit in the courtyard.');
     return h;
   },
-  winText: 'Bonus skill point for breaking the Endless Siege!',
   amb: 'necropolis',
   wilds: true,
 });

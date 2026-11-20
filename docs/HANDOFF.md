@@ -4167,7 +4167,7 @@ On the player side, acid uses poison resistance, and phys/arcane/holy/shadow/blo
 - elemBonus is `str + physPct` for phys, otherwise `int + <el>Pct`.
 - Synergy (`player.js:133`) is `1 + 0.03 *` (points in the other skills of the same tree).
 
-**Grants** (`GRANTS`, `skills.js:13`) as [level, tree, idx]: [1,0,0] [2,1,0] [4,2,0] [8,0,4] [12,1,4] [16,2,4] [22,0,8] [28,1,8] [34,2,8]. Column 0 of every tree is auto-learned at 1 point without spending a point. `player.applyGrants` (`player.js:197`) auto-slots it; `x.0.0` goes to bar[0] (LMB). Skill points: 1 at creation (`save.js:30`), +1 per level, +1 for each depth cleared for the first time (`game.js:244`).
+**Grants** (`GRANTS`, `skills.js:13`) as [level, tree, idx]: [1,0,0] [2,1,0] [4,2,0] [8,0,4] [12,1,4] [16,2,4] [22,0,8] [28,1,8] [34,2,8]. Column 0 of every tree is auto-learned at 1 point without spending a point. `player.applyGrants` (`player.js:197`) auto-slots it; `x.0.0` goes to bar[0] (LMB). Skill points: 1 at creation, then +1 per level-up; the one-time `skillPointLevelResetV1` save migration recalculates old characters to exactly their level (max 100).
 
 **Summons.** `createSummon` (`monster.js:772`):
 - hp = `max(20, heroMaxHp * def.hp * (1+0.08(L-1)) * (1+summonPct/100))`.
@@ -4623,7 +4623,7 @@ Caches: `lightCanvas` + `vignette` (module level, keyed by size), `townCache`/`t
   - Gore: amount comes from the `G.settings.gore` setting (0/1/2, where 2 means ×1.4). Gibs on overkill (>0.5 of max HP, >0.25 for aoe, >0.3 on crit), for big targets, or 35% of the time.
   - A corpse is pushed to `world.corpses` only if not overkill. `fiery` affix: death blast, 1.5×dmg fire to a player within 1.8. `split`: two `spawnChild` (one generation in practice).
   - If the killer or its owner is player-team: `world.kills++`, then `G.player.gainXp(tgt.xp)` (enemy team only), `char.kills++`, and the `bloodbath` legendary (aoe 1.6, 35% of max HP, blood DoT). `vamp` legendary heals 2%. Then `dropLoot`.
-  - Bosses always call `world.onBossKilled` (game.js:238 opens the exit, grants a bonus skill point on first clear, and shows the victory screen for Velscour).
+  - Bosses always call `world.onBossKilled` (game.js opens the exit and shows the victory screen for Velscour; skill points are level-up only).
 - **Skill cast flow.** controls.js → `Player.tryUseSkill` (player.js:274):
   1. Town: refuse with a message.
   2. `castLock>0`: queue the cast (latest only; replayed in `update` when the lock ends).

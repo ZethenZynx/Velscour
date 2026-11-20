@@ -19,6 +19,5 @@ registerRegion({
   createRun: createMinesRun,
   intro: (world, gen) => `The lifts are dead. Ride the carts down ${gen.mine.L} shafts. Something waits at the Bottom.`,
   quest: minesQuest,
-  winText: 'Bonus skill point for clearing the Deep Rail Mines!',
   amb: 'catacombs',
 });

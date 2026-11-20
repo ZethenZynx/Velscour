@@ -83,8 +83,8 @@ to use the regular game systems.
 | 20 | Fate of the Wilds | A seeded surprise variation: wave, boss, rift, or control-circle trial |
 
 The exit activates only after the active scenario completes. First-time clears
-still grant a bonus skill point and update deepest depth, save/quest progress and
-exit presentation. Failed defensive or timed challenges remain retryable by
+update deepest depth, save/quest progress and exit presentation; skill points
+come from character leveling, not scenario rewards. Failed defensive or timed challenges remain retryable by
 activating the same shrine again. Returning to town reconstructs the level
 as before, and scenarios are not serialized mid-fight (consistent with normal
 dungeon world resets).
