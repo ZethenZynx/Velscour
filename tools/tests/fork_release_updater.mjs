@@ -17,7 +17,7 @@ const release = (overrides = {}) => ({
 });
 
 assert.equal(FORK_RELEASE_REPOSITORY, 'ZethenZynx/Velscour-PC');
-assert.equal(FORK_RELEASES_API, 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases/latest');
+assert.equal(FORK_RELEASES_API, 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases?per_page=10');
 assert.equal(compareVersions('0.2.0', '0.1.9'), 1);
 assert.equal(compareVersions('v1.0.0', '0.9.9'), 1);
 assert.equal(compareVersions('1.2.3-beta.2', '1.2.3'), -1);
@@ -42,7 +42,7 @@ let requestedUrl = '';
 try {
   globalThis.fetch = async (url) => {
     requestedUrl = String(url);
-    return new Response(JSON.stringify(release()), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify([release()]), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   const available = await checkForForkRelease({ force: true });
   assert.equal(requestedUrl, FORK_RELEASES_API, 'update check must request only the configured fork release endpoint');
@@ -53,18 +53,28 @@ try {
   globalThis.fetch = async (url) => {
     requestedUrl = String(url);
     missingReleaseRequests++;
-    return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   const noRelease = await checkForForkRelease({ force: true });
-  assert.equal(noRelease.status, 'no-release', 'a missing latest release is a normal no-release state');
-  assert.equal(requestedUrl, FORK_RELEASES_API, '404 handling stays on this fork\'s release endpoint');
+  assert.equal(noRelease.status, 'no-release', 'an empty release list is a normal no-release state');
+  assert.equal(requestedUrl, FORK_RELEASES_API, 'release checks stay on this fork\'s release list endpoint');
   const cachedNoRelease = await checkForForkRelease();
   assert.equal(cachedNoRelease.status, 'no-release');
   assert.equal(missingReleaseRequests, 1, 'a missing release is cached across automatic title-screen checks');
 
+  let rateLimitedRequests = 0;
+  globalThis.fetch = async () => { rateLimitedRequests++; return new Response('rate limited', { status: 403 }); };
+  const limited = await checkForForkRelease({ force: true });
+  const cachedLimited = await checkForForkRelease();
+  assert.equal(limited.status, 'offline', 'rate limits are reported without crashing');
+  assert.equal(cachedLimited.status, 'offline');
+  assert.equal(rateLimitedRequests, 1, 'rate-limit failures are cached during the retry cooldown');
+
   globalThis.fetch = async () => new Response('offline', { status: 503 });
   const failed = await checkForForkRelease({ force: true });
+  const cachedFailure = await checkForForkRelease();
   assert.equal(failed.status, 'offline');
+  assert.equal(cachedFailure.status, 'offline', 'network failures are cached for automatic checks');
 } finally {
   globalThis.fetch = originalFetch;
 }

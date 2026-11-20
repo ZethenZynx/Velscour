@@ -178,12 +178,14 @@ export function createBreachRun(world, gen, biome, floor, onWin) {
   // ---------------------------------------------------------------- the wards hold the hero
   // Walking, the closed wards' blocked tiles stop him; this catches blinks, leaps and dashes: wherever the hero ends
   // up must be somewhere the open wards allow (while a fight is on, its island alone), else he is put back.
-  let lastSafe = null, lockMsgT = 0, legalKey = '', legalIsl = null;
+  // A zero-ward floor produces the empty string as its ward key. Use null as the
+  // uninitialized sentinel so the first legality check always computes reachability.
+  let lastSafe = null, lockMsgT = 0, legalKey = null, legalIsl = null;
   const nearSide = new Map(bridges.map((b) => [b.idx, new Set(b.nearTiles || [])]));
   function legal(i, S) {
     if (S) return own[i] === S.o.idx;
     const key = wards.map((w) => (w.closed ? 1 : 0)).join('');
-    if (key !== legalKey) { legalKey = key; legalIsl = reachable(gen.startIsland); }
+    if (!legalIsl || key !== legalKey) { legalKey = key; legalIsl = reachable(gen.startIsland); }
     if (own[i] >= 0) return legalIsl.has(own[i]);
     const b = bridges[bridgeOf[i]];
     if (!b) return false;

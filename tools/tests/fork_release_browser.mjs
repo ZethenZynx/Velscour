@@ -84,11 +84,11 @@ function fakeFetchScript(mode, release) {
           commit: { author: { name: 'Velscour Test', date: update ? '2026-11-19T12:00:00Z' : '2026-11-17T12:00:00Z' }, message: update ? 'Fix main branch update notification\\n\\nReport changes committed directly to the Velscour PC main branch.' : 'Align altar collision with marked base point\\n\\nMove the altar collision from the front of the floor seal to the lower-center stone base.' }
         }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
-      if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases/latest') {
+      if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases?per_page=10') {
         window.__githubRequests.releases++;
         if (${JSON.stringify(mode)} === 'offline') return Promise.resolve(new Response('unavailable', { status: 503 }));
-        return Promise.resolve(new Response(${JSON.stringify(mode)} === 'no-release' ? '{}' : JSON.stringify(${payload}), {
-          status: ${JSON.stringify(mode)} === 'no-release' ? 404 : 200,
+        return Promise.resolve(new Response(${JSON.stringify(mode)} === 'no-release' ? '[]' : JSON.stringify([${payload}]), {
+          status: 200,
           headers: { 'Content-Type': 'application/json' }
         }));
       }
@@ -213,6 +213,15 @@ try {
   assert.equal(updateDialog.checksum, sha);
   console.log('PASS: New fork release reveals the title button and opens verified release details and fork-only ZIP link.');
 
+  await reload('no-release', buildRelease('0.0.0-dev'));
+  await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
+  assert.equal(await evaluate("document.querySelector('.fork-update-btn').classList.contains('hidden')"), true, 'empty release list keeps the update notice hidden');
+  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'a repository with no releases returns one successful empty-list request');
+  await evaluate("import('/src/ui/screens.js').then(module => module.titleScreen())");
+  await waitFor("document.querySelectorAll('.title-changes').length === 1");
+  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'reopening title screen reuses the cached no-release result');
+  console.log('PASS: No published releases use a cached HTTP 200 empty-list result without a 404 or false update notice.');
+
   await reload('offline', buildRelease('0.0.0-dev'));
   await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
   assert.ok(await evaluate("document.querySelector('.recent-changes-status').textContent.includes('included change history')"), 'offline first visit shows bundled history with a clear status');
@@ -300,6 +309,29 @@ try {
   assert.equal(endgameTown.after.merchantOpened, true, 'the unlocked Malakor vendor still opens');
   assert.equal(endgameTown.after.merchantPanel, true, 'Malakor trading panel renders after unlock');
   console.log('PASS: Altar and Malakor remain hidden and inaccessible at level/depth 100 until the saved Velscour defeat flag is set.');
+
+  const breachState = await evaluate(`(async () => {
+    const { G, game } = window.VELSCOUR;
+    const errorsBefore = window.__forkUpdaterBrowserErrors.length;
+    await game.newChar('paladin', 'Breach Floor One Regression');
+    const floors = [];
+    for (const [index, floor] of [1, 6, 11, 16, 21].entries()) {
+      game.buildBreach(floor, 481516 + index * 7919);
+      const w = G.world, run = w?.overworldScenario;
+      floors.push({ floor: w?.breach?.floor, objectiveCount: run?.hud?.total, islandCount: w?.breachBridges ? w?.map?.breach?.own && new Set(w.map.breach.own.filter((id) => id >= 0)).size : 0 });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    await game.enterTown();
+    game.buildBreach(1, 819855);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const finalWorld = G.world;
+    return { floors, reentered: finalWorld?.breach?.floor === 1, errors: window.__forkUpdaterBrowserErrors.slice(errorsBefore) };
+  })()`);
+  assert.deepEqual(breachState.floors.map(({ floor, objectiveCount }) => [floor, objectiveCount]), [[1, 1], [6, 2], [11, 3], [16, 4], [21, 5]],
+    'live Eternal Breach runs expose the expected progressive objective counts');
+  assert.equal(breachState.reentered, true, 'returning to town and entering the zero-ward early Breach floor again succeeds');
+  assert.deepEqual(breachState.errors, [], 'live world updates across Breach tiers produce no null-reference exceptions');
+  console.log('PASS: Live Breach world updates run across all objective tiers and after town re-entry without browser errors.');
 } finally {
   socket?.close();
   if (edge && edge.exitCode === null) {

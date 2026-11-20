@@ -1,4 +1,6 @@
-export const FORK_RELEASES_API = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases/latest';
+// Unlike `/releases/latest`, the list endpoint returns HTTP 200 with [] when this fork
+// has no published release, avoiding a predictable 404 on every fresh browser session.
+export const FORK_RELEASES_API = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases?per_page=10';
 export const FORK_RELEASE_REPOSITORY = 'ZethenZynx/Velscour-PC';
 
 const RELEASE_PAGE_PREFIX = 'https://github.com/ZethenZynx/Velscour-PC/releases/';

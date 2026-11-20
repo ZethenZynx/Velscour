@@ -10,7 +10,7 @@ const CACHE_MS = 5 * 60 * 1000;
 
 export async function checkForForkRelease({ force = false } = {}) {
   if (!force && cached && Date.now() - checkedAt < CACHE_MS) return cached;
-  if (!force && pending) return pending;
+  if (pending) return pending;
 
   pending = (async () => {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -22,23 +22,30 @@ export async function checkForForkRelease({ force = false } = {}) {
         ...(controller ? { signal: controller.signal } : {}),
       });
       if (response.status === 404) {
-        // GitHub's latest-release endpoint returns 404 when this public fork has
-        // no published release. Cache that normal state to avoid querying it on
-        // every title-screen visit.
+        // Treat an unavailable release listing as the normal no-release state too.
         cached = { status: 'no-release', installedVersion: GAME_VERSION };
         checkedAt = Date.now();
         return cached;
       }
       if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
       const data = await response.json();
-      const state = getReleaseUpdateState(data, GAME_VERSION);
+      if (!Array.isArray(data)) throw new Error('GitHub returned an invalid release list.');
+      const latest = data.find((release) => release && !release.draft && !release.prerelease);
+      if (!latest) {
+        cached = { status: 'no-release', installedVersion: GAME_VERSION };
+        checkedAt = Date.now();
+        return cached;
+      }
+      const state = getReleaseUpdateState(latest, GAME_VERSION);
       if (state.invalid) throw new Error('The latest fork release has no supported, checksummed ZIP package.');
       const result = { status: state.available ? 'available' : 'current', installedVersion: GAME_VERSION, release: { ...state, installedVersion: GAME_VERSION } };
       cached = result;
       checkedAt = Date.now();
       return result;
     } catch (error) {
-      return { status: 'offline', installedVersion: GAME_VERSION, error: error?.name === 'AbortError' ? 'The update check timed out.' : String(error?.message || 'Could not reach GitHub.') };
+      cached = { status: 'offline', installedVersion: GAME_VERSION, error: error?.name === 'AbortError' ? 'The update check timed out.' : String(error?.message || 'Could not reach GitHub.') };
+      checkedAt = Date.now();
+      return cached;
     } finally {
       if (timeout) clearTimeout(timeout);
       pending = null;
