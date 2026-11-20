@@ -17,12 +17,12 @@ import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
 import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
-import { RECENT_CHANGES } from '../data/recent-changes.js';
-import { loadRecentChanges } from '../game/recentchanges.js';
+import { loadRecentChanges, getCachedRecentChanges, getRecentChangesState, RECENT_CHANGES_REFRESH_MS } from '../game/recentchanges.js';
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
 import { initTitleForkUpdater, manuallyCheckForForkRelease } from '../game/forkreleaseupdater.js';
 
 let current = null;
+let currentCleanup = null;
 
 /** On phones, hide the browser chrome and prefer landscape (where supported). */
 function goFullscreen() {
@@ -37,11 +37,16 @@ function show(node) {
   current = node;
   UI.screensEl.appendChild(node);
 }
-export function hide() { if (current) { current.remove(); current = null; } }
+export function hide() {
+  if (currentCleanup) { currentCleanup(); currentCleanup = null; }
+  if (current) { current.remove(); current = null; }
+}
 
 export function titleScreen() {
   G.mode = 'title';
   let updatesAvailable = [];
+  let changesTrigger = null;
+  let openChanges = () => {};
   const s = el('div', 'screen');
   s.classList.add('title-screen');
   s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
@@ -63,6 +68,7 @@ export function titleScreen() {
     });
     add(`Heroes <span style="font-size:13px;color:#a8977c">· ${used}/${CLASS_IDS.length}</span>`, () => classSelect(last ? last.classId : 'paladin'));
     add('Settings', settingsDialog, 'btn');
+    changesTrigger = add('Recent Changes', () => openChanges(), 'btn');
     if (updatesAvailable.length) add('Update Available', () => showUpdateDialog(updatesAvailable), 'btn update-available');
     add('Check for Updates', manuallyCheckForForkRelease, 'btn');
     add('Credits', () => creditsScreen(titleScreen), 'btn');
@@ -71,9 +77,18 @@ export function titleScreen() {
   fill();
   s.refresh = fill;
   s.appendChild(menu);
-  const changes = el('section', 'title-changes');
-  changes.setAttribute('aria-label', 'Recent changes');
-  const renderChanges = (items) => {
+  const changes = el('div', 'title-changes');
+  changes.hidden = true;
+  changes.setAttribute('aria-hidden', 'true');
+  changes.innerHTML = `<section class="recent-changes-window" role="dialog" aria-modal="true" aria-labelledby="recent-changes-title"><header><h2 id="recent-changes-title">Recent Changes</h2><button type="button" class="btn recent-changes-close" aria-label="Close Recent Changes">×</button></header><p class="recent-changes-status" aria-live="polite"></p><ul class="recent-changes-list"></ul></section>`;
+  const changesList = changes.querySelector('.recent-changes-list');
+  const changesStatus = changes.querySelector('.recent-changes-status');
+  const changesClose = changes.querySelector('.recent-changes-close');
+  const formatDate = (date) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return 'Date unavailable';
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+  };
+  const renderChanges = (items, source = getRecentChangesState()) => {
     const groups = [];
     for (const item of items) {
       const date = item.date || '';
@@ -81,25 +96,82 @@ export function titleScreen() {
       if (!group || group.date !== date) groups.push(group = { date, items: [] });
       group.items.push(item);
     }
-    const formatDate = (date) => {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'Earlier updates';
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
-    };
-    changes.innerHTML = `<h2>Recent Changes</h2><ul>${groups.map(({ date, items: entries }) =>
-      `<li class="change-date"><time${date ? ` datetime="${escapeHtml(date)}"` : ''}>${escapeHtml(formatDate(date))}</time></li>${entries.map(({ title, summary }) =>
-        `<li><strong>${escapeHtml(title)}</strong>${summary ? `<span>${escapeHtml(summary)}</span>` : ''}</li>`
-      ).join('')}`
-    ).join('')}</ul>`;
+    changesList.replaceChildren();
+    if (!groups.length) {
+      const empty = document.createElement('li');
+      empty.className = 'recent-changes-empty';
+      empty.textContent = 'No saved commit history yet. Connect to GitHub and reopen this window to load changes from Velscour PC.';
+      changesList.appendChild(empty);
+    }
+    for (const group of groups) {
+      const dateHeading = document.createElement('li');
+      dateHeading.className = 'change-date';
+      const time = document.createElement('time');
+      if (group.date) time.dateTime = group.date;
+      time.textContent = formatDate(group.date);
+      dateHeading.appendChild(time);
+      changesList.appendChild(dateHeading);
+      for (const item of group.items) {
+        const entry = document.createElement('li');
+        entry.className = 'recent-change-entry';
+        const badge = document.createElement('span');
+        badge.className = `recent-change-category ${item.category === 'Maintenance' ? 'maintenance' : item.category === 'Game update' ? 'game-update' : 'other-change'}`;
+        badge.textContent = item.category || 'Commit';
+        const title = document.createElement('strong');
+        title.textContent = item.title || 'Untitled commit';
+        const meta = document.createElement('div');
+        meta.className = 'recent-change-meta';
+        if (item.author) {
+          const author = document.createElement('span');
+          author.textContent = item.author;
+          meta.appendChild(author);
+        }
+        if (item.url) {
+          const link = document.createElement('a');
+          link.href = item.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = `Commit ${item.shortSha || String(item.sha || '').slice(0, 7)}`;
+          meta.appendChild(link);
+        }
+        entry.append(badge, title, meta);
+        if (item.body) {
+          const details = document.createElement('details');
+          details.className = 'recent-change-details';
+          const summary = document.createElement('summary');
+          summary.textContent = 'Commit details';
+          const body = document.createElement('pre');
+          body.textContent = item.body;
+          details.append(summary, body);
+          entry.appendChild(details);
+        }
+        changesList.appendChild(entry);
+      }
+    }
+    const updated = source.savedAt ? formatDate(new Date(source.savedAt).toISOString().slice(0, 10)) : '';
+    if (source.kind === 'live') changesStatus.textContent = `Latest commits from ZethenZynx/Velscour-PC · refreshed ${updated}`;
+    else if (source.kind === 'loading') changesStatus.textContent = items.length ? 'Checking GitHub; showing saved commits…' : 'Loading commits from Velscour PC…';
+    else if (source.kind === 'stale') changesStatus.textContent = `GitHub unavailable (${source.message || 'request failed'}); showing saved commits${updated ? ` from ${updated}` : ''}.`;
+    else if (source.kind === 'unavailable') changesStatus.textContent = `Could not load commits from GitHub (${source.message || 'offline'}). Reopen this window when online.`;
+    else if (source.kind === 'cached') changesStatus.textContent = `Saved commits from ZethenZynx/Velscour-PC · refreshed ${updated}`;
+    else changesStatus.textContent = 'Commit history is loaded from the public Velscour PC repository.';
   };
-  renderChanges(RECENT_CHANGES);
-  // Always revalidate when the title screen is entered. A cached/bundled list
-  // is already visible while GitHub responds and remains the offline fallback.
-  loadRecentChanges({ forceRefresh: true }).then((items) => {
-    if (current !== s) return;
-    renderChanges(items);
-    updatesAvailable = changesAfterBundledBuild(items);
-    fill();
+  const closeChanges = () => {
+    changes.hidden = true;
+    changes.setAttribute('aria-hidden', 'true');
+    changesTrigger?.focus();
+  };
+  openChanges = () => {
+    changes.hidden = false;
+    changes.setAttribute('aria-hidden', 'false');
+    changesClose.focus();
+  };
+  changesClose.onclick = closeChanges;
+  changes.onclick = (event) => { if (event.target === changes) closeChanges(); };
+  changes.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeChanges(); }
   });
+  renderChanges(getCachedRecentChanges());
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
@@ -107,6 +179,22 @@ export function titleScreen() {
   const gate = el('div', 'title-gate', G.touch ? 'Tap to awaken' : 'Click to awaken');
   s.appendChild(gate);
   show(s);
+  const refreshChanges = () => {
+    const pending = loadRecentChanges();
+    renderChanges(getCachedRecentChanges(), getRecentChangesState());
+    return pending.then((items) => {
+    if (current !== s) return;
+    renderChanges(items);
+    const nextUpdates = changesAfterBundledBuild(items);
+    const before = updatesAvailable.map((item) => `${item.date || ''}\u0000${item.title || ''}`).join('\n');
+    const after = nextUpdates.map((item) => `${item.date || ''}\u0000${item.title || ''}`).join('\n');
+    updatesAvailable = nextUpdates;
+    if (before !== after) fill();
+    });
+  };
+  refreshChanges();
+  const refreshTimer = setInterval(refreshChanges, RECENT_CHANGES_REFRESH_MS);
+  currentCleanup = () => clearInterval(refreshTimer);
   attachTitleFx(s, s.querySelector('.title-logo'), {
     tag: s.querySelector('.title-tag'),
     menu,
