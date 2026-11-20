@@ -637,7 +637,6 @@ export const game = {
     setAmbience('sea_of_sand');
     Vendor.restock();
     const p = G.player;
-    if (p) this.spawnPlayer(world, arrive);
     p.hp = p.maxHp;
     p.mana = p.maxMana;
     this.autosave();
