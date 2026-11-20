@@ -83,7 +83,7 @@ const FLAG = Math.PI, FAR = -Math.PI * 0.75, LEFT = Math.PI * 0.75, RIGHT = -Mat
 /** Turn the warp on for a tower level, off for any other (game.js setWorld). */
 export function useTower(world) {
   const tw = world && world.tower;
-  setWarp(tw ? tw.warp : null, tw ? tw.pick : null);
+  setWarp(tw ? tw.warp : null, tw ? tw.pick : null, tw ? tw.directionWarp : null);
   if (!tw) { camera.leadX = camera.leadY = 0; if (camera.zoomK !== 1) { camera.zoomK = 1; camera.computeZoom(); } disposeTower3D(); return; }
   tw.frame(0);
 }
@@ -109,7 +109,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
         const q = g.arenaPoint(x, y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
       }
       else {
-        const s = g.X1 - x, t = g.theta0 - s / g.rc - tw.alpha, r = g.rWall - (y - g.YR);
+        const s = g.X1 - x, t = g.theta0 - s / g.rc - tw.alpha, rawR = g.rWall - (y - g.YR), r = x >= g.X1 ? g.landingRadius(x, y) : rawR;
         cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s);
         if (clip && (cx * CUT_N[0] + cy * CUT_N[1] < -CUT_C || upCut(cx, cy, z, tw.focus) < 0)) { out[0] = out[1] = 1e7; return out; }   // in the cutaway
       }
@@ -117,6 +117,9 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       return out;
     },
     warp: (x, y, out) => tw.raw(x, y, out, !tw.roof),
+    // Movement input should follow the real coordinate surface even where the visual cutaway
+    // hides geometry. Using the clipped render warp here can produce a singular direction matrix.
+    directionWarp: (x, y, out) => tw.raw(x, y, out, false),
     /** World px back to the tile position shown there: Newton steps from the flat inverse round the hero. */
     pick(wx, wy) {
       const p = world.player, a = [0, 0], b = [0, 0], c = [0, 0];
@@ -163,7 +166,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       else if (p.x >= g.arenaStart) {
         const q = g.arenaPoint(p.x, p.y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
       }
-      else { const s = g.s(p.x), t = g.theta(s) - tw.alpha, r = g.r(p.y); cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s); }
+      else { const s = g.s(p.x), t = g.theta(s) - tw.alpha, r = p.x >= g.X1 ? g.landingRadius(p.x, p.y) : g.r(p.y); cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s); }
       tw.focus[0] = cx; tw.focus[1] = z; tw.focus[2] = cy;
       warpMoved();
     },
@@ -826,7 +829,7 @@ class Strike {
 // ------------------------------------------------------------------ minimap: the tower from above
 function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
   const g = tw.g, p = world.player, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.42, k = R / (g.rWall + 2);
-  const dotStair = (x, y, col, r) => { const a = -Math.PI / 2 + ((g.s(x) / g.C) % 1) * TAU, q = g.r(y) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
+  const dotStair = (x, y, col, r) => { const a = -Math.PI / 2 + ((g.s(x) / g.C) % 1) * TAU, q = (x >= g.X1 ? g.landingRadius(x, y) : g.r(y)) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
   const dotArena = (x, y, col, r) => {
     const [wx, wy] = g.arenaPoint(x, y);
     c.fillStyle = col; c.beginPath(); c.arc(cx + wx * k, cy - wy * k, r, 0, TAU); c.fill();

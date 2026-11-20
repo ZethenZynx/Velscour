@@ -83,17 +83,23 @@ export function towerGeo(v) {
   const RT = rWall - 1.4;                                   // the roof's walkable radius, inside the parapet
   const AX = 48, XR = 96, GH = 2 * Math.ceil(rWall) + 8, AY = GH >> 1, YR = AY - (w >> 1);
   const XT = XR + 6, X0 = XT + 6, X1 = X0 + L, XB = X1 + 7;
-  // The ground arena continues from the foot landing into the open well. Its radius follows the
-  // tower's interior wall, leaving a narrow safety margin. The short transition blends the stair
-  // centerline into the wider arena so the 3D floor, movement map, and projected entities meet
-  // without a position jump at the landing.
-  const arenaR = rWall - 1.35, arenaWalkR = arenaR - 0.35, arenaFloorR = rWall - 0.1;
-  const arenaTransition = 4.5, arenaX = XB + arenaR, arenaY = YR + w / 2;
+  // The bottom uses the rooftop's walkable radius. The floor backing reaches the inner wall so
+  // it also covers the compressed landing; the playable disk itself stays inside the wall.
+  const arenaR = RT, arenaWalkR = RT, arenaFloorR = rWall;
+  // Place the disk center rc tiles past the stair end so its centerline reaches the same radius.
+  const arenaTransition = 4.5, arenaStart = XB - (arenaR - rc), arenaX = XB + rc, arenaY = YR + w / 2;
+  const landingCompress = (arenaR - rc) / (w / 2);
+  const landingRadius = (x, y) => {
+    const raw = rWall - (y - YR);
+    const compressed = rc + (raw - rc) * landingCompress;
+    const u = Math.max(0, Math.min(1, (x - X1) / Math.max(1e-6, arenaStart - X1))), blend = u * u * (3 - 2 * u);
+    return raw + (compressed - raw) * blend;
+  };
   const GW = Math.ceil(arenaX + arenaR) + 3;
   const theta0 = Math.PI / 2;
   const g = {
     v, w, rIn, rWall, rc, C, N, d, L, rise, H, slope, RT, AX, AY, XR, GW, GH, YR, XT, X0, X1, XB, theta0,
-    arenaR, arenaWalkR, arenaFloorR, arenaX, arenaY, arenaTransition, arenaStart: XB,
+    arenaR, arenaWalkR, arenaFloorR, arenaX, arenaY, arenaTransition, arenaStart, landingRadius,
     roofZ: H + 6.5,                                         // the roof deck, over the dome
     s: (x) => X1 - x,                                       // tiles climbed along the stair's centre line
     z: (s) => Math.min(H, Math.max(0, s * slope + rise / 2)),  // feet on the treads, sliding smoothly up
@@ -102,11 +108,14 @@ export function towerGeo(v) {
     onRoof: (x) => x < XR,
   };
   g.arenaPoint = (x, y, cameraAngle = 0, out = [0, 0, 0]) => {
-    const a = g.theta(g.s(g.arenaStart)) - cameraAngle, dx = x - g.arenaStart, dy = y - g.arenaY;
+    const a = g.theta(g.s(g.arenaStart)) - cameraAngle + Math.PI, dx = x - g.arenaStart, dy = y - g.arenaY;
     const ca = Math.cos(a), sa = Math.sin(a), stairY = Math.max(g.YR + 0.1, Math.min(g.YR + g.w - 0.1, y));
-    const stairR = g.r(stairY), diskR = g.arenaR - dx;
-    const tx = ca * diskR - sa * dy, ty = sa * diskR + ca * dy;
-    const sx = ca * stairR, sy = sa * stairR;
+    const stairR = g.landingRadius(g.arenaStart, stairY), stairA = g.theta(g.s(g.arenaStart)) + dx / g.rc - cameraAngle;
+    const sx = stairR * Math.cos(stairA), sy = stairR * Math.sin(stairA);
+    // Match the roof's centered-grid transform. Positive tile-x stays positive through the
+    // arena instead of measuring inward from its left edge (which mirrored horizontal input).
+    const localX = x - g.arenaX, localY = y - g.arenaY;
+    const tx = ca * localX - sa * localY, ty = sa * localX + ca * localY;
     const u = Math.max(0, Math.min(1, dx / g.arenaTransition)), blend = u * u * (3 - 2 * u);
     out[0] = sx + (tx - sx) * blend;
     out[1] = sy + (ty - sy) * blend;
@@ -126,7 +135,8 @@ export function towerGeo(v) {
       return g.arenaPoint(x, y, 0, out);
     } else {
       const s = g.s(x), t = g.theta(s), r = g.r(y);
-      out[0] = r * Math.cos(t); out[1] = r * Math.sin(t); out[2] = g.z(s);
+      const landingR = x >= X1 ? g.landingRadius(x, y) : r;
+      out[0] = landingR * Math.cos(t); out[1] = landingR * Math.sin(t); out[2] = g.z(s);
     }
     return out;
   };
@@ -140,7 +150,10 @@ export function generateTower(depth, biome, seed, force = null) {
   const v = towerVariant(seed, force), g = towerGeo(v), rng = new RNG(seed);
   const map = new TileMap(g.GW, g.GH), W = g.GW;
   // the stair, its landings (the ground floor at the foot, the stairhead at the top)
-  for (let y = g.YR; y < g.YR + g.w; y++) for (let x = Math.floor(g.XT); x < Math.ceil(g.XB); x++) { const i = y * W + x; map.t[i] = 1; map.v[i] = 0; }
+  for (let y = g.YR; y < g.YR + g.w; y++) for (let x = Math.floor(g.XT); x < Math.ceil(g.arenaStart); x++) {
+    if (x + 0.5 >= g.arenaStart) continue;
+    const i = y * W + x; map.t[i] = 1; map.v[i] = 0;
+  }
   // the roof: a disk inside the parapet, the stairhead turret blocked
   for (let y = 0; y < g.GH; y++) for (let x = 0; x < g.XR; x++) {
     const dx = x + 0.5 - g.AX, dy = y + 0.5 - g.AY;
@@ -149,8 +162,9 @@ export function generateTower(depth, biome, seed, force = null) {
     if (Math.hypot(dx, dy + g.rc) < 2.6) map.block[i] = 1;                               // the stairhead turret
     for (const a of [0, Math.PI / 2, Math.PI]) if (Math.hypot(dx - Math.cos(a) * g.RT * 0.68, dy - Math.sin(a) * g.RT * 0.68) < 1.0) map.block[i] = 1;   // braziers
   }
-  // Keep the roof grid intact and add a connected ground-level arena disk beyond the stair strip.
+  // End the stair exactly at the arena's west edge, then add the complete filled disk.
   for (let y = 0; y < g.GH; y++) for (let x = Math.floor(g.arenaStart); x < g.GW; x++) {
+    if (x + 0.5 < g.arenaStart) continue;
     const dx = x + 0.5 - g.arenaX, dy = y + 0.5 - g.arenaY;
     if (dx * dx + dy * dy > g.arenaWalkR ** 2) continue;
     const i = y * W + x; map.t[i] = 1; map.v[i] = 0; map.block[i] = 0;

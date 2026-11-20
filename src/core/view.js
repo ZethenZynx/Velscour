@@ -16,9 +16,10 @@ export const elevationAt = (x, y) => (ELEV ? ELEV(x, y) : 0);
 // A warped level (world/tower.js) lays the tile grid onto a 3D surface: WARP(x, y, out) writes the world px of tile
 // position (x, y) into out, WPICK(wx, wy) turns world px back into a tile position. isoX and isoY ask for the same
 // point back to back, so the last answer is kept until warpMoved() (the warp turns with the camera every frame).
-let WARP = null, WPICK = null, wkx = NaN, wky = NaN;
+let WARP = null, WPICK = null, WARP_DIRECTION = null, wkx = NaN, wky = NaN;
 const wout = [0, 0];
-export function setWarp(warp, pick) { WARP = warp; WPICK = pick; wkx = NaN; }
+const wd0 = [0, 0], wdx = [0, 0], wdy = [0, 0], WARP_EPS = 0.02;
+export function setWarp(warp, pick, directionWarp = warp) { WARP = warp; WPICK = pick; WARP_DIRECTION = directionWarp; wkx = NaN; }
 export function warpMoved() { wkx = NaN; }
 export const currentWarp = () => WARP;
 const warped = (x, y) => { if (x !== wkx || y !== wky) { wkx = x; wky = y; WARP(x, y, wout); } return wout; };
@@ -26,7 +27,21 @@ export const isoX = (x, y) => (WARP ? warped(x, y)[0] : (x - y) * HW);
 export const isoY = (x, y) => (WARP ? warped(x, y)[1] : (x + y) * HH - (ELEV ? ELEV(x, y) : 0));
 
 /** Convert a screen-space direction (world px) into a tile-space direction. */
-export function screenDirToTile(dx, dy) {
+export function screenDirToTile(dx, dy, x = NaN, y = NaN) {
+  // A custom warped level needs the local inverse of its tile-to-screen transform.
+  // The ordinary isometric inverse mirrors horizontal movement in the tower's arena.
+  const directionWarp = WARP_DIRECTION || WARP;
+  if (directionWarp && Number.isFinite(x) && Number.isFinite(y)) {
+    directionWarp(x, y, wd0);
+    directionWarp(x + WARP_EPS, y, wdx);
+    directionWarp(x, y + WARP_EPS, wdy);
+    const a = (wdx[0] - wd0[0]) / WARP_EPS, b = (wdy[0] - wd0[0]) / WARP_EPS;
+    const c = (wdx[1] - wd0[1]) / WARP_EPS, d = (wdy[1] - wd0[1]) / WARP_EPS;
+    const det = a * d - b * c;
+    if ([a, b, c, d, det].every(Number.isFinite) && Math.abs(det) > 1e-5 && Math.abs(wd0[0]) < 1e6 && Math.abs(wd0[1]) < 1e6) {
+      return [(dx * d - dy * b) / det, (dy * a - dx * c) / det];
+    }
+  }
   const tx = (dx / HW + dy / HH) / 2;
   const ty = (dy / HH - dx / HW) / 2;
   return [tx, ty];

@@ -257,16 +257,19 @@ export async function buildTower3D(g) {
   disposeTower3D();
   const clip = new T.Plane(new T.Vector3(CUT_N[0], 0, CUT_N[1]), CUT_C), up = new T.Plane(new T.Vector3(0, -1, 0), 1e6), clips = [clip, up];
   const M = await materials(v, clips);
-  // Ground-floor backing uses the same variant texture but bypasses both cutaway planes. The
-  // upper-floor cut is intentionally allowed to trim the stairs, but must never erase the arena.
-  const arenaFloorMaterial = M.floor.clone();
-  arenaFloorMaterial.clippingPlanes = [];
-  arenaFloorMaterial.clipIntersection = false;
+  // The bottom deck is a separate arena, like the rooftop deck: its own floor materials do not
+  // inherit the stair cutaway planes. This prevents either cut plane from erasing the arena.
+  const arenaMaterials = {};
+  for (const key of ['floor', 'paving', 'mosaic']) {
+    arenaMaterials[key] = M[key].clone();
+    arenaMaterials[key].clippingPlanes = [];
+    arenaMaterials[key].clipIntersection = false;
+  }
   const scene = new T.Scene(), root = new T.Group(), lightSrc = [], spin = [], flick = [];
   scene.add(root);
-  const B = new Build(), climb = new Build(), roof = new Build(), front = new Build();   // front: drawn again over the sprites (drawTowerFront)
+  const B = new Build(), arenaDeck = new Build(), climb = new Build(), roof = new Build(), front = new Build();   // front: drawn again over the sprites (drawTowerFront)
   const { rIn, rWall, rc, N, d, rise, H, L } = g, wallTop = H + 4, T2 = 1.6, rOut = rWall + T2;
-  const arenaFloorR = g.arenaFloorR;
+  const arenaFloorR = g.arenaFloorR, arenaDeckZ = 0;
   const th = (s) => g.theta(s);
 
   // `solid` gets the tower's masses as closed solids (no inner faces) for the stencil caps where the cutaway slices them
@@ -294,22 +297,19 @@ export async function buildTower3D(g) {
     B.quad('trim', P(rOut, t0, g.roofZ - 0.9), P(rOut, t1, g.roofZ - 0.9), P(rOut + 0.35, t1, g.roofZ - 0.4), P(rOut + 0.35, t0, g.roofZ - 0.4), [radial(t0, 0.7)[0], -0.7, radial(t0, 0.7)[2]], [[o0, 0], [o1, 0], [o1, 0.2], [o0, 0.2]]);
     block(t0, t1, rWall, rOut, -14, -14, g.roofZ + 0.2, g.roofZ + 0.2);
   }
-  // ---- the ground floor: paving in rings, a raised dais at the centre
-  // Continuous stone substrate beneath the decorative rings and central mosaic. This guarantees
-  // the arena has no rendering gaps between paving sections.
-  B.add('floor', worldUV(new T.CircleGeometry(arenaFloorR, 96).rotateX(-Math.PI / 2).translate(0, -0.18, 0)));
-  for (let i = 0; i < 96; i++) {
-    const t0 = (i / 96) * Math.PI * 2, t1 = ((i + 1) / 96) * Math.PI * 2;
-    for (const [r0, r1] of [[3.2, 7], [7, 11], [11, arenaFloorR]]) {
-      const p = [P(r0, t0, 0), P(r1, t0, 0), P(r1, t1, 0), P(r0, t1, 0)];
-      B.quad('floor', ...p, UP, p.map((q) => [q[0] / 2, q[2] / 2]));
+  // ---- the ground-floor arena: the same filled disk and concentric paving layout as the roof
+  arenaDeck.add('floor', worldUV(new T.CircleGeometry(arenaFloorR, 128).rotateX(-Math.PI / 2).translate(0, arenaDeckZ - 0.08, 0)));
+  for (let i = 0; i < 128; i++) {
+    const t0 = (i / 128) * Math.PI * 2, t1 = ((i + 1) / 128) * Math.PI * 2;
+    for (const [r0, r1] of [[0, 4], [4, 9], [9, arenaFloorR]]) {
+      const p = [P(r0, t0, arenaDeckZ), P(r1, t0, arenaDeckZ), P(r1, t1, arenaDeckZ), P(r0, t1, arenaDeckZ)];
+      arenaDeck.quad('paving', ...p, UP, p.map((q) => [q[0] / 2, q[2] / 2]));
     }
   }
-  B.add('trim', worldUV(new T.CylinderGeometry(3.2, 3.4, 0.5, 48).translate(0, 0.25, 0)));
-  B.add('floor', worldUV(new T.CylinderGeometry(2.4, 2.4, 0.62, 48).translate(0, 0.31, 0), 0.5, 0.5));
-  B.add('metal', worldUV(new T.TorusGeometry(1.6, 0.12, 6, 40).rotateX(Math.PI / 2).translate(0, 0.66, 0)));
-  lightSrc.push({ p: [0, 1.2, 0], c: v.lantern, r: 7, i: 0.6 });
-  B.add('mosaic', new T.CircleGeometry(7.2, 48).rotateX(-Math.PI / 2).translate(0, 0.02, 0));
+  lightSrc.push({ p: [0, arenaDeckZ + 1.2, 0], c: v.lantern, r: 7, i: 0.6 });
+  // Keep the guardian's spawn and the whole central combat area level; the roof's flat mosaic
+  // treatment is a better template here than the old raised dais, which put actors above the floor.
+  arenaDeck.add('mosaic', new T.CircleGeometry(5.2, 48).rotateX(-Math.PI / 2).translate(0, arenaDeckZ + 0.02, 0));
   extras(B, climb, g, v, lightSrc);
 
   // ---- the stair: treads with lit nosings, risers, a curb on the inner edge over the stringer, the soffit under it all
@@ -480,13 +480,10 @@ export async function buildTower3D(g) {
     lightSrc.push({ p: P(r, t, rz + 2.4), c: 0xff9a50, r: 9, i: 1.4, roof: true });
   }
 
-  const shell = B.build(M, 'tower'), inner = climb.build(M, 'climb'), top = roof.build(M, 'roof'), fr = front.build(M, 'front');
+  const shell = B.build(M, 'tower'), arena = arenaDeck.build(arenaMaterials, 'ground-arena'), inner = climb.build(M, 'climb'), top = roof.build(M, 'roof'), fr = front.build(M, 'front');
   inner.add(fr); fr.traverse((o) => o.layers.enable(1));   // the railings and chandeliers: layer 1 is the front pass
-  const arenaFloor = new T.Mesh(worldUV(new T.CircleGeometry(arenaFloorR, 96).rotateX(-Math.PI / 2).translate(0, -0.08, 0)), arenaFloorMaterial);
-  arenaFloor.name = 'tower:unclipped-ground-arena';
-  arenaFloor.frustumCulled = false;
-  arenaFloor.visible = false;
-  root.add(arenaFloor, shell, inner, top);
+  arena.visible = false;
+  root.add(arena, shell, inner, top);
   // ---- the cut caps: where the cutaway slices a solid, a flat face of dressed stone on the cut. The solid set's back
   // faces count up and its front faces down in the stencil (behind the clip plane only); a quad on the plane fills
   // wherever the count isn't zero, i.e. where the cut runs inside stone (three.js's clipping-stencil technique). The
@@ -531,7 +528,7 @@ export async function buildTower3D(g) {
   const clouds = cloudLayer(v); scene.add(clouds.grp);
   const moonS = moonSprite(v); scene.add(moonS);
 
-  S = { g, v, M, scene, root, clip, up, arenaFloor, arenaFloorMaterial, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
+  S = { g, v, M, arenaMaterials, scene, root, clip, up, arena, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
   return S;
 }
 const w16 = (w) => w / 1.6;
@@ -785,7 +782,7 @@ export function drawTower3D(ctx, tw) {
   const [fx, fy, fz] = tw.focus, k = UP_K / Math.SQRT2;
   const un = tw.arena ? UPN.set(0, -1, 0) : UPN.set(-(k + UP_D), -1, k - UP_D).normalize();
   S.up.setFromNormalAndCoplanarPoint(un, UPP.set(fx, fy + UP_H, fz));
-  S.arenaFloor.visible = !!tw.arena;
+  S.arena.visible = !!tw.arena;
   if (tw.roof) S.up.constant = 1e6;
   S.upCap.position.copy(UPP); S.upCap.quaternion.setFromUnitVectors(UPZ, un.negate());
   if (S.roofOn !== tw.roof) {
@@ -793,6 +790,8 @@ export function drawTower3D(ctx, tw) {
     S.amb.intensity = tw.roof ? 1.9 : 1.1; S.hemi.intensity = tw.roof ? 1.3 : 0.55; S.moon.intensity = tw.roof ? 2.6 : 0.9;   // the open sky
     for (const o of S.root.children) if (o.userData.roof) o.visible = tw.roof;
   }
+  // The arena is built as an open deck, so the staircase cut caps must not cover it.
+  S.caps.visible = S.cap.visible = S.upCap.visible = !tw.roof && !tw.arena;
   // lanterns nearest the hero get the point lights; the rest glow on their own
   const ca = Math.cos(tw.alpha), sa = Math.sin(tw.alpha);
   const near = [];
@@ -849,7 +848,7 @@ export function disposeTower3D() {
   if (!S) return;
   S.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   for (const m of Object.values(S.M)) { m.map?.dispose(); m.bumpMap?.dispose(); m.emissiveMap?.dispose(); m.dispose(); }
-  S.arenaFloorMaterial.dispose();
+  for (const m of Object.values(S.arenaMaterials)) m.dispose();
   // this tower's own textures and materials outside M (the shared halo and the airships' materials stay)
   for (const m of [S.cap.material, S.upCap.material, S.moonS.material, ...S.clouds.list.map((c) => c.s.material)]) { m.map?.dispose(); m.dispose(); }
   S.scene.background?.dispose();
