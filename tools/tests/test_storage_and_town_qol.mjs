@@ -99,7 +99,7 @@ const { addToJewelBox, sortJewelBox } = await import('../../src/ui/jewelbox.js')
 const { socketGem, renderInventory } = await import('../../src/ui/inventory.js');
 const { Vendor, fuseAll, fuseGem } = await import('../../src/ui/vendor.js');
 const {
-  GEM_BAG_COLS, GEM_BAG_BASE_ROWS, GEM_BAG_MAX_ROWS, gemBagRows, nextGemBagRowCost, buyGemBagRow,
+  BAG_ROW_COST, GEM_BAG_COLS, GEM_BAG_BASE_ROWS, GEM_BAG_MAX_ROWS, GEM_BAG_ROW_GOLD_COST, gemBagRows, nextGemBagRowCost, buyGemBagRow,
   buyStashRow, buyJewelBoxRow, buyReliquaryRow,
 } = await import('../../src/data/bag.js');
 const { grantMarks, marksFree, deductMarks, markBonuses } = await import('../../src/game/marks.js');
@@ -252,7 +252,9 @@ G.game = game;
   assert.equal(m0, 100);
 
   const savedGem = makeGem('ruby', 1); c.gemBag[0] = savedGem;
-  const gemCosts = [5000, 10000, 20000, 40000, 80000];
+  assert.deepEqual(BAG_ROW_COST, [5000, 10000, 20000, 40000, 80000, 160000], 'Backpack expansion prices remain unchanged');
+  const gemCosts = [1250, 2500, 5000, 10000, 20000];
+  assert.deepEqual(GEM_BAG_ROW_GOLD_COST, gemCosts, 'Gem Bag prices are 25% of equivalent Backpack expansion prices, rounded up');
   for (const [index, cost] of gemCosts.entries()) {
     c.gold = cost - 1;
     const beforeGold = c.gold, beforeSlots = c.gemBag.length;

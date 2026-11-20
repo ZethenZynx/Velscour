@@ -43,7 +43,11 @@ export function canBuyBagRow(c) { return !!c && nextRowCost(c) > 0 && c.gold >= 
 
 // --- GEM BAG (HERO'S GEM CARRIER) ---
 export const GEM_BAG_COLS = 10, GEM_BAG_BASE_ROWS = 3, GEM_BAG_MAX_ROWS = 8;
-export const GEM_BAG_ROW_GOLD_COST = [5000, 10000, 20000, 40000, 80000];
+// Each Gem Bag row costs one quarter of the matching Backpack expansion price.
+// Derive from the unchanged Backpack schedule so this never compounds a prior Gem Bag discount.
+export const GEM_BAG_ROW_GOLD_COST = BAG_ROW_COST
+  .slice(0, GEM_BAG_MAX_ROWS - GEM_BAG_BASE_ROWS)
+  .map((cost) => Math.ceil(cost * 0.25));
 
 export function gemBagRows(c) {
   if (!c || !Array.isArray(c.gemBag)) return GEM_BAG_BASE_ROWS;
