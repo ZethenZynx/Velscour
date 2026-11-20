@@ -72,6 +72,14 @@ function fakeFetchScript(mode, release) {
     const originalFetch = window.fetch.bind(window);
     window.fetch = (input, options) => {
       const url = typeof input === 'string' ? input : input.url;
+      if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/commits?sha=main&per_page=100') {
+        return Promise.resolve(new Response(JSON.stringify([{
+          sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          html_url: 'https://github.com/ZethenZynx/Velscour-PC/commit/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          author: { login: 'ZethenZynx' },
+          commit: { author: { name: 'Velscour Test', date: '2026-11-19T12:00:00Z' }, message: 'Fix recent changes panel layout\\n\\nKeep the title screen history visible.' }
+        }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
       if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases/latest') {
         if (${JSON.stringify(mode)} === 'offline') return Promise.resolve(new Response('unavailable', { status: 503 }));
         return Promise.resolve(new Response(${JSON.stringify(mode)} === 'no-release' ? '{}' : JSON.stringify(${payload}), {
@@ -137,12 +145,37 @@ try {
 
   await reload('release', buildRelease('0.0.0-dev'));
   assert.equal(await evaluate("document.querySelector('.fork-update-btn').classList.contains('hidden')"), true, 'button stays hidden when up to date');
+  await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Fix recent changes panel layout'");
+  await evaluate("document.querySelector('.title-screen').classList.add('title-lit')");
+  await waitFor("parseFloat(getComputedStyle(document.querySelector('.title-changes')).opacity) > 0.99");
+  const titlePanel = await evaluate(`(() => {
+    const screen = document.querySelector('.title-screen');
+    const panel = document.querySelector('.title-changes'), list = panel.querySelector('.recent-changes-list');
+    const menu = document.querySelector('.title-menu'), p = panel.getBoundingClientRect(), m = menu.getBoundingClientRect();
+    return { hidden: panel.hidden, opacity: getComputedStyle(panel).opacity, panelLeft: p.left, panelRight: p.right,
+      panelTop: p.top, panelBottom: p.bottom, menuLeft: m.left, menuRight: m.right, menuTop: m.top, menuBottom: m.bottom,
+      listOverflow: getComputedStyle(list).overflowY,
+      triggerInMenu: [...menu.querySelectorAll('button')].some(button => button.textContent.includes('Recent Changes')) };
+  })()`);
+  assert.equal(titlePanel.hidden, false, 'Recent Changes panel is present automatically');
+  assert.equal(titlePanel.opacity, '1', 'Recent Changes panel becomes visible with the title screen');
+  assert.equal(titlePanel.triggerInMenu, false, 'no Recent Changes button remains in the menu');
+  assert.equal(titlePanel.listOverflow, 'auto', 'history list is scrollable');
+  assert.ok(titlePanel.panelLeft < 50 && titlePanel.panelRight < 450, 'Recent Changes stays on the left');
+  assert.ok(titlePanel.panelRight <= titlePanel.menuLeft || titlePanel.panelBottom <= titlePanel.menuTop || titlePanel.menuBottom <= titlePanel.panelTop,
+    'Recent Changes does not overlap the main menu');
+  console.log('PASS: Recent Changes loads automatically in a scrollable left panel without a menu button or menu overlap.');
   await evaluate("[...document.querySelectorAll('.title-menu button')].find(button => button.textContent.includes('Check for Updates')).click()");
   await waitFor("document.querySelector('.dialog-box')?.textContent.toLowerCase().includes('up to date')");
   console.log('PASS: Title screen hides the release button when current and manual checking reports up to date.');
 
   await reload('release', buildRelease('0.2.0'));
   await waitFor("!document.querySelector('.fork-update-btn').classList.contains('hidden')");
+  const updatePosition = await evaluate(`(() => { const notices = document.querySelector('.title-update-notices').getBoundingClientRect();
+    const release = document.querySelector('.fork-update-btn').getBoundingClientRect();
+    return { right: notices.right, top: notices.top, releaseTop: release.top, width: innerWidth }; })()`);
+  assert.ok(updatePosition.right >= updatePosition.width - 30 && updatePosition.top < 40 && updatePosition.releaseTop >= updatePosition.top,
+    'release notification is anchored in the title screen top-right corner');
   await evaluate("document.querySelector('.fork-update-btn').click()");
   await waitFor("document.querySelector('.fork-update-dialog')?.textContent.includes('Download Update ZIP')");
   const updateDialog = await evaluate("({ text: document.querySelector('.fork-update-dialog').textContent, href: document.querySelector('.fork-update-download').href, checksum: document.querySelector('.fork-update-hash code').textContent })");
