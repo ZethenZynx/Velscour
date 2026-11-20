@@ -141,6 +141,9 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     frame(dt) {
       const p = world.player;
       if (!p) return;
+      // At ground level use a level upper cut: the stair-following sloped plane otherwise clips
+      // one side of the arena floor as it tracks the player along the spiral.
+      tw.arena = !tw.roof && p.x >= g.arenaStart - 0.25;
       if (!tw.roof && p.x >= g.XR) {
         // eased while walking; a blink or a teleport turns it at once (a lagging turn would leave him in the cutaway)
         const target = (p.x >= g.arenaStart ? g.theta(g.s(g.arenaStart)) : g.theta(g.s(p.x))) + Math.PI / 2;
@@ -829,7 +832,7 @@ function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
     c.fillStyle = col; c.beginPath(); c.arc(cx + wx * k, cy - wy * k, r, 0, TAU); c.fill();
   };
   c.save(); c.globalAlpha = terrainOpacity;
-  if (!tw.roof) { c.fillStyle = 'rgba(150,145,132,0.16)'; c.beginPath(); c.arc(cx, cy, g.arenaR * k, 0, TAU); c.fill(); }
+  if (!tw.roof) { c.fillStyle = 'rgba(150,145,132,0.16)'; c.beginPath(); c.arc(cx, cy, g.arenaWalkR * k, 0, TAU); c.fill(); }
   c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2;
   c.beginPath(); c.arc(cx, cy, g.rWall * k, 0, TAU); c.stroke();
   if (!tw.roof) {
@@ -851,7 +854,7 @@ function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
       if (m.x < g.XR || Math.abs(g.s(m.x) - g.s(p.x)) > 30) continue;
       dotStair(m.x, m.y, m.team === 'enemy' ? (m.rank !== 'normal' ? '#ffb040' : '#ff3030') : '#40ff60', 2);
     }
-    c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2; c.beginPath(); c.arc(cx, cy, g.arenaR * k, 0, TAU); c.stroke();
+    c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2; c.beginPath(); c.arc(cx, cy, g.arenaWalkR * k, 0, TAU); c.stroke();
     dotArena(g.arenaX, g.arenaY, world.boss && !world.boss.dead ? '#ff4020' : '#ff8040', big ? 6 : 3.5);
     if (p.x >= g.arenaStart) dotArena(p.x, p.y, '#ffffff', big ? 5 : 3.2);
     else dotStair(p.x, p.y, '#ffffff', big ? 5 : 3.2);

@@ -257,10 +257,16 @@ export async function buildTower3D(g) {
   disposeTower3D();
   const clip = new T.Plane(new T.Vector3(CUT_N[0], 0, CUT_N[1]), CUT_C), up = new T.Plane(new T.Vector3(0, -1, 0), 1e6), clips = [clip, up];
   const M = await materials(v, clips);
+  // Ground-floor backing uses the same variant texture but bypasses both cutaway planes. The
+  // upper-floor cut is intentionally allowed to trim the stairs, but must never erase the arena.
+  const arenaFloorMaterial = M.floor.clone();
+  arenaFloorMaterial.clippingPlanes = [];
+  arenaFloorMaterial.clipIntersection = false;
   const scene = new T.Scene(), root = new T.Group(), lightSrc = [], spin = [], flick = [];
   scene.add(root);
   const B = new Build(), climb = new Build(), roof = new Build(), front = new Build();   // front: drawn again over the sprites (drawTowerFront)
   const { rIn, rWall, rc, N, d, rise, H, L } = g, wallTop = H + 4, T2 = 1.6, rOut = rWall + T2;
+  const arenaFloorR = g.arenaFloorR;
   const th = (s) => g.theta(s);
 
   // `solid` gets the tower's masses as closed solids (no inner faces) for the stencil caps where the cutaway slices them
@@ -291,10 +297,10 @@ export async function buildTower3D(g) {
   // ---- the ground floor: paving in rings, a raised dais at the centre
   // Continuous stone substrate beneath the decorative rings and central mosaic. This guarantees
   // the arena has no rendering gaps between paving sections.
-  B.add('floor', worldUV(new T.CircleGeometry(rWall + 0.2, 96).rotateX(-Math.PI / 2).translate(0, -0.08, 0)));
+  B.add('floor', worldUV(new T.CircleGeometry(arenaFloorR, 96).rotateX(-Math.PI / 2).translate(0, -0.18, 0)));
   for (let i = 0; i < 96; i++) {
     const t0 = (i / 96) * Math.PI * 2, t1 = ((i + 1) / 96) * Math.PI * 2;
-    for (const [r0, r1] of [[3.2, 7], [7, 11], [11, rWall + 0.2]]) {
+    for (const [r0, r1] of [[3.2, 7], [7, 11], [11, arenaFloorR]]) {
       const p = [P(r0, t0, 0), P(r1, t0, 0), P(r1, t1, 0), P(r0, t1, 0)];
       B.quad('floor', ...p, UP, p.map((q) => [q[0] / 2, q[2] / 2]));
     }
@@ -476,7 +482,11 @@ export async function buildTower3D(g) {
 
   const shell = B.build(M, 'tower'), inner = climb.build(M, 'climb'), top = roof.build(M, 'roof'), fr = front.build(M, 'front');
   inner.add(fr); fr.traverse((o) => o.layers.enable(1));   // the railings and chandeliers: layer 1 is the front pass
-  root.add(shell, inner, top);
+  const arenaFloor = new T.Mesh(worldUV(new T.CircleGeometry(arenaFloorR, 96).rotateX(-Math.PI / 2).translate(0, -0.08, 0)), arenaFloorMaterial);
+  arenaFloor.name = 'tower:unclipped-ground-arena';
+  arenaFloor.frustumCulled = false;
+  arenaFloor.visible = false;
+  root.add(arenaFloor, shell, inner, top);
   // ---- the cut caps: where the cutaway slices a solid, a flat face of dressed stone on the cut. The solid set's back
   // faces count up and its front faces down in the stencil (behind the clip plane only); a quad on the plane fills
   // wherever the count isn't zero, i.e. where the cut runs inside stone (three.js's clipping-stencil technique). The
@@ -521,7 +531,7 @@ export async function buildTower3D(g) {
   const clouds = cloudLayer(v); scene.add(clouds.grp);
   const moonS = moonSprite(v); scene.add(moonS);
 
-  S = { g, v, M, scene, root, clip, up, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
+  S = { g, v, M, scene, root, clip, up, arenaFloor, arenaFloorMaterial, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
   return S;
 }
 const w16 = (w) => w / 1.6;
@@ -772,8 +782,10 @@ export function drawTower3D(ctx, tw) {
   S.root.rotation.y = tw.alpha;
   S.clip.constant = tw.roof ? 1e6 : CUT_C;
   // the upper cut, held on the hero (world/tower.js upCut), and its cap quad laid on it facing the camera
-  const [fx, fy, fz] = tw.focus, k = UP_K / Math.SQRT2, un = UPN.set(-(k + UP_D), -1, k - UP_D).normalize();
+  const [fx, fy, fz] = tw.focus, k = UP_K / Math.SQRT2;
+  const un = tw.arena ? UPN.set(0, -1, 0) : UPN.set(-(k + UP_D), -1, k - UP_D).normalize();
   S.up.setFromNormalAndCoplanarPoint(un, UPP.set(fx, fy + UP_H, fz));
+  S.arenaFloor.visible = !!tw.arena;
   if (tw.roof) S.up.constant = 1e6;
   S.upCap.position.copy(UPP); S.upCap.quaternion.setFromUnitVectors(UPZ, un.negate());
   if (S.roofOn !== tw.roof) {
@@ -837,6 +849,7 @@ export function disposeTower3D() {
   if (!S) return;
   S.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   for (const m of Object.values(S.M)) { m.map?.dispose(); m.bumpMap?.dispose(); m.emissiveMap?.dispose(); m.dispose(); }
+  S.arenaFloorMaterial.dispose();
   // this tower's own textures and materials outside M (the shared halo and the airships' materials stay)
   for (const m of [S.cap.material, S.upCap.material, S.moonS.material, ...S.clouds.list.map((c) => c.s.material)]) { m.map?.dispose(); m.dispose(); }
   S.scene.background?.dispose();
