@@ -289,6 +289,9 @@ export async function buildTower3D(g) {
     block(t0, t1, rWall, rOut, -14, -14, g.roofZ + 0.2, g.roofZ + 0.2);
   }
   // ---- the ground floor: paving in rings, a raised dais at the centre
+  // Continuous stone substrate beneath the decorative rings and central mosaic. This guarantees
+  // the arena has no rendering gaps between paving sections.
+  B.add('floor', worldUV(new T.CircleGeometry(rWall + 0.2, 96).rotateX(-Math.PI / 2).translate(0, -0.08, 0)));
   for (let i = 0; i < 96; i++) {
     const t0 = (i / 96) * Math.PI * 2, t1 = ((i + 1) / 96) * Math.PI * 2;
     for (const [r0, r1] of [[3.2, 7], [7, 11], [11, rWall + 0.2]]) {
@@ -353,7 +356,8 @@ export async function buildTower3D(g) {
     }
     railing(front, g, v, s0 - 0.2, s1, (s) => H, lightSrc);
   }
-  railing(front, g, v, 0, L, (s) => s * g.slope + rise + 0.06, lightSrc);
+  // The lowest turn opens onto the ground-floor arena; retain the railing on the upper spiral.
+  railing(front, g, v, Math.min(g.C, L), L, (s) => s * g.slope + rise + 0.06, lightSrc);
 
   // ---- ribs, windows, banners and lanterns on the wall
   const turnsAt = (t) => {   // the stair's heights where it passes angle t (one per turn)

@@ -1318,12 +1318,16 @@ export class Monster extends Creature {
     const w = this.world, p = w.player;
     if (!p || p.dead) return this.idle(dt);
     const t = this.pickTarget() || p;
-    const d = dist(this.x, this.y, t.x, t.y);
+    let d = dist(this.x, this.y, t.x, t.y);
     if (!this.awake) {
-      if (d > 9 || !w.map.los(this.x, this.y, t.x, t.y)) return this.idle(dt);
+      const wakeTarget = this.towerDormant ? p : t;
+      const wakeDistance = dist(this.x, this.y, wakeTarget.x, wakeTarget.y);
+      if (wakeDistance > 9 || !w.map.los(this.x, this.y, wakeTarget.x, wakeTarget.y)) return this.idle(dt);
       this.awake = true;
+      this.towerDormant = false;
       this.alertPack();
       if (w.onBossAwake) w.onBossAwake(this);
+      d = dist(this.x, this.y, t.x, t.y);
     }
     if (this.phase === 1 && this.hp < this.maxHp * 0.5) {
       this.phase = 2;

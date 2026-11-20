@@ -82,16 +82,28 @@ export function towerGeo(v) {
   const N = Math.round(v.turns * v.steps), d = C / v.steps, L = N * d, rise = v.pitch / v.steps, H = N * rise, slope = rise / d;
   const RT = rWall - 1.4;                                   // the roof's walkable radius, inside the parapet
   const AX = 48, XR = 96, GH = 2 * Math.ceil(rWall) + 8, AY = GH >> 1, YR = AY - (w >> 1);
-  const XT = XR + 6, X0 = XT + 6, X1 = X0 + L, XB = X1 + 7, GW = Math.ceil(XB) + 6;
+  const XT = XR + 6, X0 = XT + 6, X1 = X0 + L, XB = X1 + 7;
+  // The ground arena continues from the foot landing into the open well. Its left edge meets the
+  // landing at XB; using rc here makes that seam match the stair's landing radius exactly.
+  const arenaR = rc, arenaX = XB + arenaR, arenaY = YR + w / 2;
+  const GW = Math.ceil(arenaX + arenaR) + 3;
   const theta0 = Math.PI / 2;
   const g = {
     v, w, rIn, rWall, rc, C, N, d, L, rise, H, slope, RT, AX, AY, XR, GW, GH, YR, XT, X0, X1, XB, theta0,
+    arenaR, arenaX, arenaY, arenaStart: XB,
     roofZ: H + 6.5,                                         // the roof deck, over the dome
     s: (x) => X1 - x,                                       // tiles climbed along the stair's centre line
     z: (s) => Math.min(H, Math.max(0, s * slope + rise / 2)),  // feet on the treads, sliding smoothly up
     theta: (s) => theta0 - s / rc,
     r: (y) => rWall - (y - YR),
     onRoof: (x) => x < XR,
+  };
+  g.arenaPoint = (x, y, cameraAngle = 0, out = [0, 0, 0]) => {
+    const a = g.theta(g.s(g.arenaStart)) - cameraAngle, dx = x - g.arenaStart, dy = y - g.arenaY;
+    out[0] = Math.cos(a) * (g.arenaR - dx) - Math.sin(a) * dy;
+    out[1] = Math.sin(a) * (g.arenaR - dx) + Math.cos(a) * dy;
+    out[2] = 0;
+    return out;
   };
   g.sEnd = g.s(XT);                                         // the stairhead door
   g.alphaTop = g.theta(g.sEnd) + Math.PI / 2;               // the camera's turn on the roof: the door's at the far side
@@ -102,6 +114,8 @@ export function towerGeo(v) {
     if (x < XR) {
       const cx = x - AX, cy = y - AY, a = g.alphaTop, c = Math.cos(a), s = Math.sin(a);
       out[0] = cx * c - cy * s; out[1] = cx * s + cy * c; out[2] = g.roofZ;
+    } else if (x >= g.arenaStart) {
+      return g.arenaPoint(x, y, 0, out);
     } else {
       const s = g.s(x), t = g.theta(s), r = g.r(y);
       out[0] = r * Math.cos(t); out[1] = r * Math.sin(t); out[2] = g.z(s);
@@ -126,6 +140,12 @@ export function generateTower(depth, biome, seed, force = null) {
     const i = y * W + x; map.t[i] = 1;
     if (Math.hypot(dx, dy + g.rc) < 2.6) map.block[i] = 1;                               // the stairhead turret
     for (const a of [0, Math.PI / 2, Math.PI]) if (Math.hypot(dx - Math.cos(a) * g.RT * 0.68, dy - Math.sin(a) * g.RT * 0.68) < 1.0) map.block[i] = 1;   // braziers
+  }
+  // Keep the roof grid intact and add a connected ground-level arena disk beyond the stair strip.
+  for (let y = 0; y < g.GH; y++) for (let x = Math.floor(g.arenaStart); x < g.GW; x++) {
+    const dx = x + 0.5 - g.arenaX, dy = y + 0.5 - g.arenaY;
+    if (dx * dx + dy * dy > (g.arenaR - 0.35) ** 2) continue;
+    const i = y * W + x; map.t[i] = 1; map.v[i] = 0; map.block[i] = 0;
   }
   map.tower = g;
   const start = [g.XT + 2.5, g.YR + g.w / 2];

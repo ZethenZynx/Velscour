@@ -99,12 +99,15 @@ export function createTowerRun(world, gen, biome, onSuccess) {
   // the Air Pirates' sheets load with the level's looks
   if (world.looks) { const ids = world.looks.ids.bind(world.looks); world.looks.ids = () => [...ids(), ...PIRATE_IDS]; }
 
-  // ---- the warp: tile positions onto the helix (or the roof), seen by the camera turned to alpha
+  // ---- the warp: tile positions onto the helix, ground arena, or roof, seen by the camera turned to alpha
   const tw = world.tower = {
     g, v, alpha: g.theta(g.s(gen.start[0])) + Math.PI / 2, roof: false, focus: [0, 0, 0], dt: 0, ropes: [],
     raw(x, y, out, clip) {
       let cx, cy, z;
       if (x < g.XR) { cx = x - g.AX; cy = y - g.AY; z = g.roofZ; }
+      else if (x >= g.arenaStart) {
+        const q = g.arenaPoint(x, y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
+      }
       else {
         const s = g.X1 - x, t = g.theta0 - s / g.rc - tw.alpha, r = g.rWall - (y - g.YR);
         cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s);
@@ -134,15 +137,15 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       }
       return [x, y];
     },
-    /** Camera turn and framing: the hero's stretch of stair runs up-left, the stair ahead and the floor above in view. */
+    /** Camera turn and framing: follow the player through the stair and connected ground-floor arena. */
     frame(dt) {
       const p = world.player;
       if (!p) return;
       if (!tw.roof && p.x >= g.XR) {
         // eased while walking; a blink or a teleport turns it at once (a lagging turn would leave him in the cutaway)
-        const target = g.theta(g.s(p.x)) + Math.PI / 2;
+        const target = (p.x >= g.arenaStart ? g.theta(g.s(g.arenaStart)) : g.theta(g.s(p.x))) + Math.PI / 2;
         tw.alpha = dt && Math.abs(target - tw.alpha) < 0.5 ? tw.alpha + (target - tw.alpha) * (1 - Math.pow(0.00002, dt)) : target;
-        camera.leadX = -G.W / camera.zoom * (G.touch ? 0.1 : 0.17); camera.leadY = -G.H / camera.zoom * 0.1;   // the touch buttons sit on the right
+        camera.leadX = 0; camera.leadY = 0;
       } else {
         // the roof: pulled back, leaning toward its centre and the far side where the ships dock, or toward tw.look
         tw.alpha = g.alphaTop;
@@ -154,6 +157,9 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       // the hero in the camera frame (three.js axes): the lanterns nearest him get the lights; the upper cut holds on him
       let cx, cy, z;
       if (p.x < g.XR) { cx = p.x - g.AX; cy = p.y - g.AY; z = g.roofZ; }
+      else if (p.x >= g.arenaStart) {
+        const q = g.arenaPoint(p.x, p.y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
+      }
       else { const s = g.s(p.x), t = g.theta(s) - tw.alpha, r = g.r(p.y); cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s); }
       tw.focus[0] = cx; tw.focus[1] = z; tw.focus[2] = cy;
       warpMoved();
@@ -177,7 +183,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     id: 'serpentine_tower', type: 'tower', completed: false, failed: false, active: true, markers: [], route: [], stage: 0, escort: null, routeIndex: 0,
     shrine: { x: gen.start[0], y: gen.start[1], reach: 2, label: 'Tower Stair', use() {} },
     scenario: sc, variant: v, captain, phase: 'descend', wave: 0, waves: 0,
-    startX: gen.start[0], bottomX: gen.exit[0], chargeT: rand(14, 22), hookT: rand(8, 14), chargeD: 0, hookD: 0, dropCd: 0, guardian: null, top: null, hud: null,
+    startX: gen.start[0], bottomX: gen.exit[0], arenaX: g.arenaX, arenaY: g.arenaY, chargeT: rand(14, 22), hookT: rand(8, 14), chargeD: 0, hookD: 0, dropCd: 0, guardian: null, top: null, hud: null,
     get title() { return run.completed ? 'The Tower Is Cleared' : run.phase === 'descend' ? 'Descend the Stair' : run.phase === 'boss' ? `Defeat ${run.guardian?.name || 'the Tower Guardian'}` : 'The Exit Is Open'; },
     get description() {
       if (run.completed) return 'A portal opens at the foot of the tower. The way on is clear.';
@@ -255,10 +261,13 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     if (run.phase !== 'descend') return;
     run.phase = 'boss';
     const look = world.looks && world.looks.boss(biome.roster), arch = look?.arch || pick(biome.roster);
-    const m = makeMonster(world, arch, biome, lvl + 2, 'boss', run.bottomX, g.YR + g.w / 2, 0, look?.look);
-    world.add(m); world.boss = run.guardian = m; m.awake = true; m.hunter = true;
-    UI.centerMsg(m.name.toUpperCase(), 'Guardian of the Tower Stair', 3.2);
-    UI.log(`<b style="color:#ffb060">${m.name}</b> guards the ground-floor landing. Defeat it to open the exit.`, '#ffe2a0');
+    const m = makeMonster(world, arch, biome, lvl + 2, 'boss', g.arenaX, g.arenaY, 0, look?.look);
+    world.add(m); world.boss = run.guardian = m;
+    // Boss AI wakes itself in its normal aggro radius, or combat wakes it when struck. It must
+    // not use the global-hunter behavior, which otherwise pulls it up the entire staircase.
+    m.awake = false; m.hunter = false; m.towerDormant = true;
+    UI.centerMsg(m.name.toUpperCase(), 'Guardian of the Ground-Floor Arena', 3.2);
+    UI.log(`<b style="color:#ffb060">${m.name}</b> waits in the ground-floor arena. Defeat it to open the exit.`, '#ffe2a0');
     sfx('boss'); area(); UI.refresh();
   }
 
@@ -814,7 +823,13 @@ class Strike {
 // ------------------------------------------------------------------ minimap: the tower from above
 function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
   const g = tw.g, p = world.player, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.42, k = R / (g.rWall + 2);
+  const dotStair = (x, y, col, r) => { const a = -Math.PI / 2 + ((g.s(x) / g.C) % 1) * TAU, q = g.r(y) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
+  const dotArena = (x, y, col, r) => {
+    const [wx, wy] = g.arenaPoint(x, y);
+    c.fillStyle = col; c.beginPath(); c.arc(cx + wx * k, cy - wy * k, r, 0, TAU); c.fill();
+  };
   c.save(); c.globalAlpha = terrainOpacity;
+  if (!tw.roof) { c.fillStyle = 'rgba(150,145,132,0.16)'; c.beginPath(); c.arc(cx, cy, g.arenaR * k, 0, TAU); c.fill(); }
   c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2;
   c.beginPath(); c.arc(cx, cy, g.rWall * k, 0, TAU); c.stroke();
   if (!tw.roof) {
@@ -828,16 +843,18 @@ function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
   if (!tw.roof) {
     // Show the current turn along the descending stair above the translucent terrain and wall layer.
     const run = world.overworldScenario, progress = run?.altitude ?? 0, turns = progress / 100 * g.v.turns;
-    const a0 = -Math.PI / 2, rr = g.rc * k;
     c.fillStyle = '#ffe2a0'; c.font = `${big ? 20 : 11}px Cinzel, Georgia, serif`; c.textAlign = 'center';
     c.fillText(`Turn ${Math.min(Math.floor(turns) + 1, Math.ceil(g.v.turns))}/${Math.ceil(g.v.turns)}`, cx, cy + 4);
-    const dot = (x, y, col, r) => { const a = a0 + ((g.s(x) / g.C) % 1) * TAU, q = g.r(y) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
     for (const m of world.creatures) {
-      if (m.dead || m === p || m.clutter || m.x < g.XR || Math.abs(g.s(m.x) - g.s(p.x)) > 30) continue;
-      dot(m.x, m.y, m.team === 'enemy' ? (m.rank !== 'normal' ? '#ffb040' : '#ff3030') : '#40ff60', 2);
+      if (m.dead || m === p || m.clutter) continue;
+      if (m.x >= g.arenaStart) { if (m === world.boss) dotArena(m.x, m.y, '#ff4020', big ? 6 : 4); continue; }
+      if (m.x < g.XR || Math.abs(g.s(m.x) - g.s(p.x)) > 30) continue;
+      dotStair(m.x, m.y, m.team === 'enemy' ? (m.rank !== 'normal' ? '#ffb040' : '#ff3030') : '#40ff60', 2);
     }
-    dot(g.XB - 2.4, g.YR + g.w / 2, '#ff8040', big ? 6 : 3.5);
-    dot(p.x, p.y, '#ffffff', big ? 5 : 3.2);
+    c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2; c.beginPath(); c.arc(cx, cy, g.arenaR * k, 0, TAU); c.stroke();
+    dotArena(g.arenaX, g.arenaY, world.boss && !world.boss.dead ? '#ff4020' : '#ff8040', big ? 6 : 3.5);
+    if (p.x >= g.arenaStart) dotArena(p.x, p.y, '#ffffff', big ? 5 : 3.2);
+    else dotStair(p.x, p.y, '#ffffff', big ? 5 : 3.2);
     return;
   }
   const dot = (x, y, col, r) => { const dx = x - g.AX, dy = y - g.AY; c.fillStyle = col; c.beginPath(); c.arc(cx + (dx - dy) * k * 0.72, cy + (dx + dy) * k * 0.36, r, 0, TAU); c.fill(); };
