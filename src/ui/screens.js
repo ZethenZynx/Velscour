@@ -45,15 +45,23 @@ export function hide() {
 export function titleScreen() {
   G.mode = 'title';
   let updatesAvailable = [];
-  let changesTrigger = null;
-  let openChanges = () => {};
   const s = el('div', 'screen');
   s.classList.add('title-screen');
   s.innerHTML = `<img class="title-logo intro" src="assets/ui/logo.webp" alt="VELSCOUR PC"><div class="title-tag">A world built upon something that should have stayed dead. <b>PC EDITION</b></div>`;
-  const forkUpdateButton = el('button', 'btn fork-update-btn hidden', 'Update Available');
+  const updateNotices = el('div', 'title-update-notices');
+  updateNotices.setAttribute('aria-label', 'Game updates');
+  const forkUpdateButton = el('button', 'btn fork-update-btn hidden', 'Fork Release Available');
   forkUpdateButton.type = 'button';
-  forkUpdateButton.setAttribute('aria-label', 'Update Available from the Velscour PC fork');
-  s.appendChild(forkUpdateButton);
+  forkUpdateButton.setAttribute('aria-label', 'Download a new release from the Velscour PC fork');
+  const bundledUpdateButton = el('button', 'btn bundled-update-btn hidden', 'Update Available');
+  bundledUpdateButton.type = 'button';
+  bundledUpdateButton.setAttribute('aria-label', 'Reload to apply the latest game update');
+  bundledUpdateButton.onclick = () => {
+    if (!s.classList.contains('title-ready')) return;
+    initAudio(); sfx('ui'); showUpdateDialog(updatesAvailable);
+  };
+  updateNotices.append(forkUpdateButton, bundledUpdateButton);
+  s.appendChild(updateNotices);
   initTitleForkUpdater(forkUpdateButton);
   const menu = el('div', 'title-menu');
   const add = (label, fn, cls = 'btn big') => { const b = el('button', cls, label); b.onclick = () => { if (!s.classList.contains('title-ready')) return; initAudio(); sfx('ui'); goFullscreen(); fn(); }; menu.appendChild(b); return b; };
@@ -68,8 +76,7 @@ export function titleScreen() {
     });
     add(`Heroes <span style="font-size:13px;color:#a8977c">· ${used}/${CLASS_IDS.length}</span>`, () => classSelect(last ? last.classId : 'paladin'));
     add('Settings', settingsDialog, 'btn');
-    changesTrigger = add('Recent Changes', () => openChanges(), 'btn');
-    if (updatesAvailable.length) add('Update Available', () => showUpdateDialog(updatesAvailable), 'btn update-available');
+    bundledUpdateButton.classList.toggle('hidden', !updatesAvailable.length);
     add('Check for Updates', manuallyCheckForForkRelease, 'btn');
     add('Credits', () => creditsScreen(titleScreen), 'btn');
     add('How to Play', helpDialog, 'btn');
@@ -78,12 +85,10 @@ export function titleScreen() {
   s.refresh = fill;
   s.appendChild(menu);
   const changes = el('div', 'title-changes');
-  changes.hidden = true;
-  changes.setAttribute('aria-hidden', 'true');
-  changes.innerHTML = `<section class="recent-changes-window" role="dialog" aria-modal="true" aria-labelledby="recent-changes-title"><header><h2 id="recent-changes-title">Recent Changes</h2><button type="button" class="btn recent-changes-close" aria-label="Close Recent Changes">×</button></header><p class="recent-changes-status" aria-live="polite"></p><ul class="recent-changes-list"></ul></section>`;
+  changes.setAttribute('aria-label', 'Recent Changes');
+  changes.innerHTML = `<section class="recent-changes-window" aria-labelledby="recent-changes-title"><header><h2 id="recent-changes-title">Recent Changes</h2></header><p class="recent-changes-status" aria-live="polite"></p><ul class="recent-changes-list"></ul></section>`;
   const changesList = changes.querySelector('.recent-changes-list');
   const changesStatus = changes.querySelector('.recent-changes-status');
-  const changesClose = changes.querySelector('.recent-changes-close');
   const formatDate = (date) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return 'Date unavailable';
     return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -156,21 +161,6 @@ export function titleScreen() {
     else if (source.kind === 'cached') changesStatus.textContent = `Saved commits from ZethenZynx/Velscour-PC · refreshed ${updated}`;
     else changesStatus.textContent = 'Commit history is loaded from the public Velscour PC repository.';
   };
-  const closeChanges = () => {
-    changes.hidden = true;
-    changes.setAttribute('aria-hidden', 'true');
-    changesTrigger?.focus();
-  };
-  openChanges = () => {
-    changes.hidden = false;
-    changes.setAttribute('aria-hidden', 'false');
-    changesClose.focus();
-  };
-  changesClose.onclick = closeChanges;
-  changes.onclick = (event) => { if (event.target === changes) closeChanges(); };
-  changes.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeChanges(); }
-  });
   renderChanges(getCachedRecentChanges());
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
