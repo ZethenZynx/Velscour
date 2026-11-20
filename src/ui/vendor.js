@@ -4,7 +4,7 @@ import { el, fmtInt, escapeHtml, randi, pick, chance } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
 import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
-import { getItem, changed, renderInventory } from './inventory.js';
+import { getItem, changed, renderInventory, renderCharacter } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { emptyEquipSlot } from '../game/autoequip.js';
 import { noteFind } from '../game/reliquary.js';
@@ -63,7 +63,8 @@ export const Vendor = {
     this.shopSel = null;
     const v = VBY[vid];
     sfx('ui');
-    UI.openPanel('vendor', `${v.name} — ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : 'vendor-panel' });
+    UI.openPanel('vendor', `${v.name} - ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('character'); UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : 'vendor-panel' });
+    UI.openPanel('character', 'Character & Stats', renderCharacter, { cls: 'character-panel', order: 'first' });
     UI.openPanel('inventory', 'Backpack', renderInventory, { cls: 'inventory-panel' });
     return true;
   },

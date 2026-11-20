@@ -198,15 +198,46 @@ export const UI = {
   layoutPanels() {
     if (!this.panelsEl) return;
     const isPortrait = document.body.classList.contains('portrait') || window.innerHeight > window.innerWidth;
+    const trio = ['vendor', 'character', 'inventory'].every((name) => this.panels.has(name));
+    const wasTrio = this.panelsEl.classList.contains('vendor-trio');
+    const host = this.panelsEl.getBoundingClientRect();
+    this.panelsEl.classList.toggle('vendor-trio', trio);
+    this.panelsEl.classList.toggle('vendor-trio-stacked', trio && (isPortrait || !this.desktopPanels() || host.width < 1000));
+    if (wasTrio && !trio) {
+      for (const [, p] of this.panels) p.root.style.width = p.opts.width || '';
+    }
     if (isPortrait || !this.desktopPanels()) {
       for (const [, p] of this.panels) {
         p.root.style.left = '';
         p.root.style.top = '';
-        p.root.style.width = '';
+        p.root.style.width = p.opts.width || '';
       }
       return;
     }
-    const host = this.panelsEl.getBoundingClientRect();
+    if (trio && host.width >= 1000) {
+      const side = 12, gap = 10;
+      const available = Math.max(0, host.width - side * 2 - gap * 2);
+      const vendor = this.panels.get('vendor'), character = this.panels.get('character'), inventory = this.panels.get('inventory');
+      const vendorWidth = Math.floor(available * 0.38), characterWidth = Math.floor(available * 0.30);
+      const inventoryWidth = available - vendorWidth - characterWidth;
+      const widths = [vendorWidth, characterWidth, inventoryWidth];
+      const starts = [side, side + vendorWidth + gap, side + vendorWidth + gap + characterWidth + gap];
+      for (const [index, panel] of [vendor, character, inventory].entries()) {
+        panel.root.style.width = `${widths[index]}px`;
+        panel.root.style.left = `${starts[index]}px`;
+        const ph = panel.root.offsetHeight;
+        panel.root.style.top = `${Math.max(0, Math.min(10, host.height - ph))}px`;
+      }
+      return;
+    }
+    if (trio) {
+      for (const [, p] of this.panels) {
+        p.root.style.left = '';
+        p.root.style.top = '';
+        p.root.style.width = p.opts.width || '';
+      }
+      return;
+    }
     const inventory = this.panels.get('inventory');
     const partner = [...this.panels].find(([name]) => ['vendor', 'stash', 'reliquary', 'character', 'jewelbox'].includes(name));
     const canPair = inventory && partner && host.width >= inventory.root.offsetWidth + partner[1].root.offsetWidth + 22;
