@@ -1,5 +1,5 @@
 import { RECENT_CHANGES } from '../data/recent-changes.js';
-import { loadRecentChanges } from './recentchanges.js';
+import { loadRecentChanges, getRecentChangesState } from './recentchanges.js';
 import { UI } from '../ui/ui.js';
 import { escapeHtml } from '../core/util.js';
 
@@ -40,6 +40,15 @@ export function showUpdateDialog(items) {
 /** Check the live merged-change feed and show the update result from Settings. */
 export async function checkForGameUpdates() {
   const changes = await loadRecentChanges({ forceRefresh: true });
+  const feedState = getRecentChangesState();
+  if (feedState.kind === 'stale' || feedState.kind === 'unavailable') {
+    UI.dialog({
+      title: 'Update Check Failed',
+      html: `<p>Could not verify the latest changes from your Velscour PC repository (${escapeHtml(feedState.message || 'GitHub is unavailable')}). The game and saved characters are unchanged. Try again when you are online.</p>`,
+      buttons: [{ label: 'Done' }],
+    });
+    return [];
+  }
   const updates = changesAfterBundledBuild(changes);
   if (updates.length) showUpdateDialog(updates);
   else UI.dialog({

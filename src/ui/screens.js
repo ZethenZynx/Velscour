@@ -15,11 +15,12 @@ import { savedGearPreview } from '../core/gearart.js';
 import { attachTitleFx } from './titlefx.js';
 import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
+import { RECENT_CHANGES } from '../data/recent-changes.js';
 import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
 import { isProfaneName, validateCharName } from '../core/profanity.js';
 import { loadRecentChanges, getCachedRecentChanges, getRecentChangesState, RECENT_CHANGES_REFRESH_MS } from '../game/recentchanges.js';
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
-import { initTitleForkUpdater, manuallyCheckForForkRelease } from '../game/forkreleaseupdater.js';
+import { initTitleForkUpdater } from '../game/forkreleaseupdater.js';
 
 let current = null;
 let currentCleanup = null;
@@ -77,7 +78,7 @@ export function titleScreen() {
     add(`Heroes <span style="font-size:13px;color:#a8977c">· ${used}/${CLASS_IDS.length}</span>`, () => classSelect(last ? last.classId : 'paladin'));
     add('Settings', settingsDialog, 'btn');
     bundledUpdateButton.classList.toggle('hidden', !updatesAvailable.length);
-    add('Check for Updates', manuallyCheckForForkRelease, 'btn');
+    add('Check for Updates', checkForGameUpdates, 'btn');
     add('Credits', () => creditsScreen(titleScreen), 'btn');
     add('How to Play', helpDialog, 'btn');
   };
@@ -140,7 +141,13 @@ export function titleScreen() {
           meta.appendChild(link);
         }
         entry.append(badge, title, meta);
-        if (item.body) {
+        if (item.summary) {
+          const summary = document.createElement('p');
+          summary.className = 'recent-change-summary';
+          summary.textContent = item.summary;
+          entry.appendChild(summary);
+        }
+        if (item.body && item.body !== item.summary) {
           const details = document.createElement('details');
           details.className = 'recent-change-details';
           const summary = document.createElement('summary');
@@ -160,8 +167,15 @@ export function titleScreen() {
     else if (source.kind === 'unavailable') changesStatus.textContent = `Could not load commits from GitHub (${source.message || 'offline'}). Reopen this window when online.`;
     else if (source.kind === 'cached') changesStatus.textContent = `Saved commits from ZethenZynx/Velscour-PC · refreshed ${updated}`;
     else changesStatus.textContent = 'Commit history is loaded from the public Velscour PC repository.';
+    if (source.bundledFallback) {
+      if (source.kind === 'loading') changesStatus.textContent = 'Checking GitHub; showing the included change history.';
+      else if (source.kind === 'stale' || source.kind === 'unavailable') changesStatus.textContent = `GitHub unavailable (${source.message || 'offline'}); showing the included change history.`;
+      else changesStatus.textContent = 'Showing the included change history while GitHub has no cached commits.';
+    }
   };
-  renderChanges(getCachedRecentChanges());
+  const initialChanges = getCachedRecentChanges();
+  renderChanges(initialChanges.length ? initialChanges : RECENT_CHANGES,
+    initialChanges.length ? getRecentChangesState() : { kind: 'bundled', bundledFallback: true });
   s.appendChild(changes);
   const foot = el('div', 'title-foot');
   s.appendChild(foot);
@@ -171,10 +185,13 @@ export function titleScreen() {
   show(s);
   const refreshChanges = () => {
     const pending = loadRecentChanges();
-    renderChanges(getCachedRecentChanges(), getRecentChangesState());
+    const cached = getCachedRecentChanges();
+    renderChanges(cached.length ? cached : RECENT_CHANGES,
+      { ...getRecentChangesState(), bundledFallback: !cached.length });
     return pending.then((items) => {
     if (current !== s) return;
-    renderChanges(items);
+    renderChanges(items.length ? items : RECENT_CHANGES,
+      { ...getRecentChangesState(), bundledFallback: !items.length });
     const nextUpdates = changesAfterBundledBuild(items);
     const before = updatesAvailable.map((item) => `${item.date || ''}\u0000${item.title || ''}`).join('\n');
     const after = nextUpdates.map((item) => `${item.date || ''}\u0000${item.title || ''}`).join('\n');

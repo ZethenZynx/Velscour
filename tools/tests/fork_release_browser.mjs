@@ -67,20 +67,25 @@ function fakeFetchScript(mode, release) {
   return `(() => {
     window.VELSCOUR_TEST_MENU = true;
     window.__forkUpdaterBrowserErrors = [];
+    window.__githubRequests = { commits: 0, releases: 0 };
     window.addEventListener('error', (event) => { if (event.error) window.__forkUpdaterBrowserErrors.push(String(event.error.stack || event.error)); });
     window.addEventListener('unhandledrejection', (event) => window.__forkUpdaterBrowserErrors.push(String(event.reason?.stack || event.reason)));
     const originalFetch = window.fetch.bind(window);
     window.fetch = (input, options) => {
       const url = typeof input === 'string' ? input : input.url;
       if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/commits?sha=main&per_page=100') {
+        window.__githubRequests.commits++;
+        if (${JSON.stringify(mode)} === 'offline') return Promise.resolve(new Response('unavailable', { status: 503 }));
+        const update = ${JSON.stringify(mode)} === 'main-update';
         return Promise.resolve(new Response(JSON.stringify([{
           sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
           html_url: 'https://github.com/ZethenZynx/Velscour-PC/commit/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
           author: { login: 'ZethenZynx' },
-          commit: { author: { name: 'Velscour Test', date: '2026-11-19T12:00:00Z' }, message: 'Fix recent changes panel layout\\n\\nKeep the title screen history visible.' }
+          commit: { author: { name: 'Velscour Test', date: update ? '2026-11-19T12:00:00Z' : '2026-11-17T12:00:00Z' }, message: update ? 'Fix main branch update notification\\n\\nReport changes committed directly to the Velscour PC main branch.' : 'Align altar collision with marked base point\\n\\nMove the altar collision from the front of the floor seal to the lower-center stone base.' }
         }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
       if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases/latest') {
+        window.__githubRequests.releases++;
         if (${JSON.stringify(mode)} === 'offline') return Promise.resolve(new Response('unavailable', { status: 503 }));
         return Promise.resolve(new Response(${JSON.stringify(mode)} === 'no-release' ? '{}' : JSON.stringify(${payload}), {
           status: ${JSON.stringify(mode)} === 'no-release' ? 404 : 200,
@@ -99,6 +104,7 @@ async function installResponse(mode, release) {
 }
 
 async function reload(mode, release) {
+  try { await evaluate("localStorage.removeItem('velscour_recent_commits_v1'); localStorage.removeItem('velscour_recent_commits_retry_at_v1')"); } catch (_) { /* first navigation is still about:blank */ }
   await installResponse(mode, release);
   await send('Page.navigate', { url: `${globalThis.baseUrl}/index.html` });
   await sleep(250);
@@ -145,7 +151,7 @@ try {
 
   await reload('release', buildRelease('0.0.0-dev'));
   assert.equal(await evaluate("document.querySelector('.fork-update-btn').classList.contains('hidden')"), true, 'button stays hidden when up to date');
-  await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Fix recent changes panel layout'");
+  await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
   await evaluate("document.querySelector('.title-screen').classList.add('title-lit')");
   await waitFor("parseFloat(getComputedStyle(document.querySelector('.title-changes')).opacity) > 0.99");
   const titlePanel = await evaluate(`(() => {
@@ -166,8 +172,30 @@ try {
     'Recent Changes does not overlap the main menu');
   console.log('PASS: Recent Changes loads automatically in a scrollable left panel without a menu button or menu overlap.');
   await evaluate("[...document.querySelectorAll('.title-menu button')].find(button => button.textContent.includes('Check for Updates')).click()");
-  await waitFor("document.querySelector('.dialog-box')?.textContent.toLowerCase().includes('up to date')");
+  await waitFor("document.querySelector('.dialog-box')?.textContent.includes('No New Game Update Found')");
+  assert.ok(await evaluate('window.__githubRequests.commits') >= 2, 'manual title check requests the main-branch commit feed');
+  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'manual title check does not query the release endpoint');
   console.log('PASS: Title screen hides the release button when current and manual checking reports up to date.');
+  await evaluate("document.querySelector('.dialog-box button')?.click()");
+  await evaluate("import('/src/ui/screens.js').then(module => module.titleScreen())");
+  await waitFor("document.querySelectorAll('.title-changes').length === 1 && document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
+  assert.ok(await evaluate('window.__githubRequests.commits') >= 2, 'returning to the title screen reuses the successful cache instead of requesting GitHub again');
+  console.log('PASS: Returning to the title screen recreates one working Recent Changes panel using the cached feed.');
+
+  await reload('main-update', buildRelease('0.0.0-dev'));
+  await waitFor("!document.querySelector('.bundled-update-btn').classList.contains('hidden')");
+  const mainUpdatePosition = await evaluate(`(() => { const notices = document.querySelector('.title-update-notices').getBoundingClientRect();
+    const button = document.querySelector('.bundled-update-btn'), update = button.getBoundingClientRect();
+    return { right: notices.right, top: notices.top, buttonTop: update.top, width: innerWidth, text: button.textContent }; })()`);
+  assert.ok(mainUpdatePosition.right >= mainUpdatePosition.width - 30 && mainUpdatePosition.top < 40 && mainUpdatePosition.buttonTop >= mainUpdatePosition.top,
+    'main-branch update notice appears in the top-right corner');
+  assert.equal(mainUpdatePosition.text, 'Update Available');
+  await evaluate("document.querySelector('.bundled-update-btn').click()");
+  await waitFor("document.querySelector('.dialog-box')?.textContent.includes('Velscour Update Available')");
+  await evaluate("[...document.querySelectorAll('.dialog-box button')].find(button => button.textContent.includes('Later')).click()");
+  await evaluate("[...document.querySelectorAll('.title-menu button')].find(button => button.textContent.includes('Check for Updates')).click()");
+  await waitFor("document.querySelector('.dialog-box')?.textContent.includes('Velscour Update Available')");
+  console.log('PASS: New main-branch commit shows the top-right notice and both notice and menu open update details.');
 
   await reload('release', buildRelease('0.2.0'));
   await waitFor("!document.querySelector('.fork-update-btn').classList.contains('hidden')");
@@ -185,7 +213,9 @@ try {
   assert.equal(updateDialog.checksum, sha);
   console.log('PASS: New fork release reveals the title button and opens verified release details and fork-only ZIP link.');
 
-  await reload('offline');
+  await reload('offline', buildRelease('0.0.0-dev'));
+  await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
+  assert.ok(await evaluate("document.querySelector('.recent-changes-status').textContent.includes('included change history')"), 'offline first visit shows bundled history with a clear status');
   assert.equal(await evaluate("!!document.querySelector('.title-screen') && [...document.querySelectorAll('.title-menu button')].some(button => button.textContent.includes('Check for Updates'))"), true, 'game title remains usable after a failed release request');
   await evaluate("[...document.querySelectorAll('.title-menu button')].find(button => button.textContent.includes('Check for Updates')).click()");
   await waitFor("document.querySelector('.dialog-box')?.textContent.includes('Update Check Failed')");
