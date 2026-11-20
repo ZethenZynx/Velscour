@@ -1,8 +1,8 @@
 # THE ENDGAME: Heresies, Abyssal Rifts, Velscour Unbound, Infernal Marks
 
 What a hero does after Velscour falls (depth 100). Four systems, one unlock: **the Endgame opens for the whole browser
-(every hero) the first time any hero slays Velscour for real** (not the skull's practice fight). Before that the altar
-and the rift gate stand in town but refuse: *"Velscour still sits his throne."*
+(every hero) the first time any hero slays Velscour for real** (not the skull's practice fight). Before that, the Altar
+of Heresy and Malakor are hidden and inaccessible; the Abyssal Rift gate remains visible but sealed.
 
 Tests: `tools/tests/heresies.js`, `rifts.js`, `unbound.js`, `marks.js`, `rift_balance.js` (model, no play), plus the
 Marks columns in `endgame.js`. Data lives in `src/data/heresies.js`, `src/data/rifts.js`, additions to
@@ -19,12 +19,13 @@ Marks columns in `endgame.js`. Data lives in `src/data/heresies.js`, `src/data/r
 API: `endgame()` (cached, like `reliquary()`), `saveEndgame()`, `resetEndgameCache()`, `endgameUnlocked()`
 (record.unlocked, or the current hero's `c.cleared[FINAL_DEPTH]`), and `unlockEndgame()` (called from
 `game.buildDungeon`'s `onBossKilled` when `m.isVelscour && !world.practice && !world.unbound`). `fixEndgame` sanitizes
-this local record. Google account synchronization has been removed; progression is no longer read from or written to
-remote accounts.
+this local record. Town access to Malakor and the Altar uses `campaignVictoryRecorded()` (`record.unlocked` only), so
+visiting depth 101 or a legacy depth-clear marker alone cannot reveal them. Google account synchronization has been
+removed; progression is no longer read from or written to remote accounts.
 
 ## 1. Heresies (`src/data/heresies.js`, `src/game/heresies.js`, `src/ui/heresies.js`)
 Difficulty modifiers the player switches on at the **Altar of Heresy** in Herrington Hollow (a dark obelisk beside the
-plaza, `world.npcs` entry `{ altar: true, name: 'Altar of Heresy', use: () => Heresies.open() }`, drawn by `drawNpc` with
+plaza, added to `world.npcs` only after `campaignVictoryRecorded()`, drawn by `drawNpc` with
 `obelisk()` from happenings.js in Velscour's red, a skull glow when any Heresy is on). They are the hero's (`c.heresy =
 { on: ['twins', ...] }`, migrate adds `{ on: [] }`), take hold from the next level built, and apply in standard depths,
 the Endless Torment and the Eternal Breach. **Not** in Abyssal Rifts (the clock is the challenge and the honour board
@@ -62,10 +63,11 @@ bar (ticks at the milestones) and its rewards as chips, a note that they take ho
 built with another set it says the changes wait), one row per Heresy (the whole row is a switch: name, rank pips,
 description), the milestones, "Renounce all", and the three doors (Abyssal Rift `game.confirmRift()`, Velscour Unbound
 `game.enterUnbound()` with the key count, disabled under three keys, Infernal Marks `G.ui.marks.open()`). A toggle
-autosaves. On a touch screen: one column, 50x28 switches, 48 px doors, the body scrolls. Locked before the Endgame: the
-panel says so, the list is greyed and disabled, the rift door too. The altar itself is `t.altar` from `generateTown`
-(a reachable tile about 5.5 tiles from the plaza's centre), an obelisk grey while locked, red once open, glowing while a
-Heresy is on.
+autosaves. On a touch screen: one column, 50x28 switches, 48 px doors, the body scrolls. Before the Endgame, the panel
+cannot be opened and the altar is omitted from both towns' NPC lists. The altar itself is `t.altar` from `generateTown`
+(a reachable tile about 5.5 tiles from the plaza's centre), drawn red after unlock and glowing while a Heresy is on.
+Malakor's NPC is likewise omitted from both towns until the same campaign-clear flag is set; his vendor entry and
+trading system remain unchanged.
 
 Where they stop: Ambush Weather has no effect in BOSS ROOMs or the Breach (`ambushTick` skips them). Black Omens
 continues to apply in the infinite endgame; authored final-boss scenes remain excluded from ordinary happenings.

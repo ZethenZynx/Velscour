@@ -20,6 +20,7 @@ import { sheetItem, bannerKitItem, BANNER_KIT_PRICE, goldLvl } from '../data/ite
 import { SHEET_PRICE } from '../data/tabs.js';
 import { marksFree, deductMarks } from '../game/marks.js';
 import { Marks } from './marks.js';
+import { campaignVictoryRecorded } from '../game/endgame.js';
 
 const VBY = Object.fromEntries(VENDORS.map((v) => [v.id, v]));
 
@@ -52,6 +53,11 @@ export const Vendor = {
   },
 
   open(vid) {
+    if (vid === 'infernal' && !campaignVictoryRecorded()) {
+      UI.log('<b style="color:#ff5533">Malakor the Ash-Wanderer</b> will appear after Velscour is defeated at Depth 100.', '#ff8060');
+      sfx('error');
+      return false;
+    }
     UI.closeAll();
     this.active = vid;
     this.shopSel = null;
@@ -59,6 +65,7 @@ export const Vendor = {
     sfx('ui');
     UI.openPanel('vendor', `${v.name} — ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : 'vendor-panel' });
     UI.openPanel('inventory', 'Backpack', renderInventory, { cls: 'inventory-panel' });
+    return true;
   },
 
   render(body = null) {

@@ -237,6 +237,57 @@ try {
   assert.equal(inventoryCounts.gems, 30, 'new character Gem Bag slots render in the browser');
   assert.equal(inventoryCounts.error, '', 'inventory rendering introduces no browser exception');
   console.log('PASS: A new character opens the Backpack and renders its inventory and Gem Bag in the browser.');
+
+  const endgameTown = await evaluate(`(async () => {
+    const { game } = window.VELSCOUR;
+    const [{ G }, { campaignVictoryRecorded, unlockEndgame, resetEndgameCache }, { Heresies }, { Vendor }] = await Promise.all([
+      import('/src/state.js'), import('/src/game/endgame.js'), import('/src/ui/heresies.js'), import('/src/ui/vendor.js')
+    ]);
+    const character = G.char;
+    character.depth = 101; character.level = 100; character.cleared ||= {}; character.cleared[100] = true;
+    await game.enterTown();
+    const before = {
+      unlocked: campaignVictoryRecorded(),
+      altarVisible: G.world.npcs.some((n) => n.altar),
+      merchantVisible: G.world.npcs.some((n) => n.vendor?.id === 'infernal'),
+      altarOpened: Heresies.open(),
+      merchantOpened: Vendor.open('infernal'),
+    };
+    before.altarPanel = !!document.querySelector('.heresy-panel');
+    before.merchantPanel = !!document.querySelector('.vendor-panel');
+    unlockEndgame();
+    resetEndgameCache();
+    const persisted = campaignVictoryRecorded();
+    await game.enterTown();
+    const after = {
+      persisted,
+      altarVisible: G.world.npcs.some((n) => n.altar),
+      merchantVisible: G.world.npcs.some((n) => n.vendor?.id === 'infernal'),
+      otherVendors: G.world.npcs.filter((n) => n.vendor && n.vendor.id !== 'infernal').length,
+      altarOpened: Heresies.open(),
+      altarPanel: !!document.querySelector('.heresy-panel'),
+    };
+    Heresies.close();
+    after.merchantOpened = Vendor.open('infernal');
+    after.merchantPanel = !!document.querySelector('.vendor-panel');
+    return { before, after };
+  })()`);
+  assert.equal(endgameTown.before.unlocked, false, 'level 100 and depth 100 do not unlock campaign-gated town features');
+  assert.equal(endgameTown.before.altarVisible, false, 'Altar of Heresy is absent from town before the campaign clear');
+  assert.equal(endgameTown.before.merchantVisible, false, 'Malakor is absent from town before the campaign clear');
+  assert.equal(endgameTown.before.altarOpened, false, 'alternate Altar of Heresy UI path is blocked before the campaign clear');
+  assert.equal(endgameTown.before.merchantOpened, false, 'direct Malakor vendor opening is blocked before the campaign clear');
+  assert.equal(endgameTown.before.altarPanel, false, 'Altar of Heresy panel remains closed while locked');
+  assert.equal(endgameTown.before.merchantPanel, false, 'merchant panel remains closed while locked');
+  assert.equal(endgameTown.after.persisted, true, 'the existing campaign-clear flag persists after reloading its cached state');
+  assert.equal(endgameTown.after.altarVisible, true, 'the Altar of Heresy appears after the campaign clear');
+  assert.equal(endgameTown.after.merchantVisible, true, 'Malakor appears after the campaign clear');
+  assert.ok(endgameTown.after.otherVendors > 0, 'other town vendors remain available');
+  assert.equal(endgameTown.after.altarOpened, true, 'the unlocked Altar of Heresy still opens');
+  assert.equal(endgameTown.after.altarPanel, true, 'the unlocked Altar of Heresy panel renders');
+  assert.equal(endgameTown.after.merchantOpened, true, 'the unlocked Malakor vendor still opens');
+  assert.equal(endgameTown.after.merchantPanel, true, 'Malakor trading panel renders after unlock');
+  console.log('PASS: Altar and Malakor remain hidden and inaccessible at level/depth 100 until the saved Velscour defeat flag is set.');
 } finally {
   socket?.close();
   if (edge && edge.exitCode === null) {

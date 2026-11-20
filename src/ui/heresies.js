@@ -1,13 +1,13 @@
 // The Altar of Heresy panel (docs/ENDGAME.md): the Heresies to switch on, the rank and what it pays, the milestones,
 // and the Endgame's other doors (the Abyssal Rift gate, Velscour Unbound, the Infernal Marks). Every row is one big
-// toggle (one column on a phone). Heresies are available from the start; other Endgame doors remain gated.
+// toggle (one column on a phone). The panel is only available after the campaign clear.
 import { G } from '../state.js';
 import { el, escapeHtml } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI } from './ui.js';
 import { HERESIES, HERESY_MILESTONES, HERESY_MAX_RANK, heresyMods } from '../data/heresies.js';
 import { heresiesOf, heresyRankOf, setHeresy, worldRank } from '../game/heresies.js';
-import { endgameUnlocked } from '../game/endgame.js';
+import { endgameUnlocked, campaignVictoryRecorded } from '../game/endgame.js';
 import { keysOf, UNBOUND_KEYS, unboundReady } from '../game/unbound.js';
 import { marksTotal, marksFree } from '../game/marks.js';
 import { riftOpen } from '../game/rifts.js';
@@ -22,10 +22,16 @@ function rewardChips(rank) {
 export const Heresies = {
   active: false,
   open() {
+    if (!campaignVictoryRecorded()) {
+      UI.log('<b style="color:#20e0ff">The Altar of Heresy</b> remains sealed until Velscour is defeated at Depth 100.', '#a0f0ff');
+      sfx('error');
+      return false;
+    }
     UI.closeAll();
     this.active = true;
     sfx('ui');
     UI.openPanel('heresies', 'Altar of Heresy', (b) => this.render(b), { onClose: () => { this.active = false; }, cls: 'heresy-panel', width: 'min(680px, 96vw)' });
+    return true;
   },
   close() { UI.closePanel('heresies'); },
   render(body) {
@@ -41,7 +47,7 @@ export const Heresies = {
     // when they take hold (a level already built keeps the set it was built with)
     const here = w && w.kind === 'dungeon' && !w.rift && !w.unbound ? worldRank(w) : null;
     const built = here !== null && (w.heresy ? w.heresy.ids : []).join() !== on.join();
-    body.appendChild(el('div', 'hx-note', `Available from the start. They take hold from the <b>next level</b> you enter (every depth, the Endless Torment and the Eternal Breach), never in Abyssal Rifts or Velscour Unbound.${built ? ` <span class="hx-warn">This level was built at Heresy ${here}: your changes wait for the next one.</span>` : ''}`));
+    body.appendChild(el('div', 'hx-note', `Your choices take hold from the <b>next level</b> you enter (every depth, the Endless Torment and the Eternal Breach), never in Abyssal Rifts or Velscour Unbound.${built ? ` <span class="hx-warn">This level was built at Heresy ${here}: your changes wait for the next one.</span>` : ''}`));
     // one row per Heresy: the whole row is the toggle
     const list = el('div', 'hx-list');
     for (const H of HERESIES) {

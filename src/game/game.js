@@ -167,7 +167,7 @@ import { offerCommissions, setupCommissions, commissionClear, wantedBiomes, LINE
 import { titleScreen, hide as hideScreen, deathScreen, victoryScreen, pauseMenu, helpDialog } from '../ui/screens.js';
 import { LoadingScreen } from '../ui/loading.js';
 // the Endgame (docs/ENDGAME.md): Heresies, Abyssal Rifts, Velscour Unbound, Infernal Marks
-import { endgameUnlocked, unlockEndgame, endgame, canEarnInfernalMarks } from './endgame.js';
+import { endgameUnlocked, campaignVictoryRecorded, unlockEndgame, endgame, canEarnInfernalMarks } from './endgame.js';
 import { heresySpawns, heresyWorld, heresyBegin, heresyTick, heresiesOf, heresyRank, worldRank, MARKS_RANK } from './heresies.js';
 import { createRiftRun, riftTick, riftOpen, riftDepth, riftLevel, fmtTime, riftLeave, activatePylon, riftDeathPenalty, RIFT_QUOTA, RIFT_DENSITY } from './rifts.js';
 import { PYLONS } from '../data/rifts.js';
@@ -438,7 +438,9 @@ export const game = {
     t.map.seen.fill(0);
     const world = new World('town', { map: t.map, tileset, biome: TOWN_BIOME, depth: 0, townTiles, buildings: t.buildings, props: t.props, wallHangings: t.wallHangings });
     world.raining = rollTownWeather();
-    world.npcs = t.npcs.map((n) => ({ vendor: n.vendor, x: n.x, y: n.y, reach: 1.8, flip: n.flip, aura: n.aura, auraCol: n.auraCol, use: () => Vendor.open(n.vendor.id) }));
+    world.npcs = t.npcs
+      .filter((n) => n.vendor?.id !== 'infernal' || campaignVictoryRecorded())
+      .map((n) => ({ vendor: n.vendor, x: n.x, y: n.y, reach: 1.8, flip: n.flip, aura: n.aura, auraCol: n.auraCol, use: () => Vendor.open(n.vendor.id) }));
     // the storage chest, beside the well
     {
       let [x, y] = [t.start[0] + 1.5, t.start[1] - 0.5];
@@ -456,7 +458,7 @@ export const game = {
       world.npcs.push({ stash: true, jewelBox: true, name: 'Jewel Box', x: jx, y: jy, reach: 1.6, flip: false, use: () => JewelBox.open() });
     }
     // the Altar of Heresy (ui/heresies.js), a dark obelisk at the plaza's edge: the Endgame's door (docs/ENDGAME.md)
-    if (t.altar) world.npcs.push({ altar: true, name: 'Altar of Heresy', x: t.altar.x, y: t.altar.y, reach: 1.7, flip: false, use: () => Heresies.open() });
+    if (t.altar && campaignVictoryRecorded()) world.npcs.push({ altar: true, name: 'Altar of Heresy', x: t.altar.x, y: t.altar.y, reach: 1.7, flip: false, use: () => Heresies.open() });
     c.townVisitCount = (c.townVisitCount || 0) + 1;
     offerCommissions(c); // Town Commissions (game/commissions.js)
     // the townsfolk, visiting adventurers, little set pieces and (about one visit in four) a special event
@@ -554,7 +556,7 @@ export const game = {
     });
     world.raining = false;
     world.ambientFx = { type: 'sand', color: '#f3c778' };
-    world.npcs = t.npcs.map((n) => ({
+    world.npcs = t.npcs.filter((n) => n.vendor?.id !== 'infernal' || campaignVictoryRecorded()).map((n) => ({
       vendor: n.vendor,
       x: n.x,
       y: n.y,
@@ -576,7 +578,7 @@ export const game = {
     if (!t.map.walkable(jx, jy) || Math.hypot(jx - x, jy - y) < 1.2 || Math.hypot(jx - rx, jy - ry) < 1.2) [jx, jy] = t.map.randomNear(t.start[0], t.start[1] - 1, 2.5);
     world.npcs.push({ stash: true, jewelBox: true, name: 'Jewel Box', x: jx, y: jy, reach: 1.6, flip: false, use: () => JewelBox.open() });
 
-    if (t.altar) {
+    if (t.altar && campaignVictoryRecorded()) {
       world.npcs.push({ altar: true, name: 'Altar of Heresy', x: t.altar.x, y: t.altar.y, reach: 1.7, flip: false, use: () => Heresies.open() });
     }
 

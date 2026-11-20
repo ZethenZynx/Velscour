@@ -50,6 +50,8 @@ if (typeof addEventListener === 'function') addEventListener('velscour-overhaul-
 
 /** Has the Endgame opened: a hero on this browser defeated Velscour at the campaign finale. */
 export function endgameUnlocked(c = G.char) { return !!(endgame().unlocked || (c && c.cleared && c.cleared[FINAL_DEPTH])); }
+/** Authoritative campaign victory record; unlike cleared[FINAL_DEPTH], this is only written by Velscour's real defeat. */
+export function campaignVictoryRecorded() { return Number(endgame().unlocked) > 0; }
 /** Marks only come from an unlocked endgame activity, never campaign replay or town systems. */
 export function canEarnInfernalMarks(world = G.world, c = G.char) {
   if (!endgameUnlocked(c) || !world) return false;
