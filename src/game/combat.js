@@ -350,7 +350,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
         camera.shake(Math.min(G.settings?.shake ? 8 : 0, 2 + (dmg / tgt.maxHp) * 20));
       }
     } else if (byHero && showNum && dmg > 0) {
-      damageText(tgt.x, tgt.y, z, Math.max(1, shownDmg(dmg, tLvl)), crit ? 'crit' : o.dot ? 'dot' : 'hit', elem(el).glow);
+      damageText(tgt.x, tgt.y, z, Math.max(1, shownDmg(dmg, tLvl)), crit ? 'crit' : o.dot ? 'dot' : 'hit', elem(el).glow, tgt);
     }
   }
   if ((!o.dot || chance(0.15)) && showFx) {

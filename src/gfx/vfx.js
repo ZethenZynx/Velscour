@@ -6,6 +6,7 @@ import { camera, isoX, isoY, HW, HH, screenDirToTile } from '../core/view.js';
 import { makeCanvas, rand, TAU, shade, randi, pick, fmt, shuffle, clamp, colourSprites, measureCtx } from '../core/util.js';
 import { groundHidden } from './terrain.js';
 import { bonesReady, boneDeck, boneLook, drawBoneGib } from './bonegibs.js';
+import { damageNumberAboveBarZ } from '../game/damage-number-layout.mjs';
 
 export const ELEM = {
   phys: { name: 'Physical', core: '#ffffff', glow: '#e0d8c8', dark: '#7a7060', sfx: 'phys' },
@@ -649,10 +650,10 @@ export function floatText(x, y, z, text, color = '#fff', size = 14, opts = {}) {
 // Heavy serif numbers with a dark outline, rendered once at 1/PIX resolution for a chunky retro edge and cached.
 // Each damage element tints its own number; criticals use a slightly larger, brighter treatment.
 const DMG_STYLE = {
-  hit: { size: 19, life: 0.95, pop: 1.12, outline: 0.12 },
-  crit: { size: 26.5, life: 1.35, pop: 1.08, outline: 0.17 },
-  hurt: { size: 17, life: 1, pop: 1.1, outline: 0.13 },
-  dot: { size: 13, life: 0.85, pop: 1, outline: 0.12 },
+  hit: { size: 21, life: 0.95, pop: 1.12, outline: 0.12 },
+  crit: { size: 29.2, life: 1.35, pop: 1.08, outline: 0.17 },
+  hurt: { size: 18.7, life: 1, pop: 1.1, outline: 0.13 },
+  dot: { size: 14.3, life: 0.85, pop: 1, outline: 0.12 },
 };
 const PIX = 1.5;
 // Numbers are put together from glyphs baked once per style/colour (an outline layer and a fill layer, so every fill
@@ -726,13 +727,30 @@ function numSprite(text, style, color) {
 }
 
 /** A damage number. style: hit | crit (bleeds) | hurt (damage the hero takes) | dot (colour = element glow). */
-export function damageText(x, y, z, amount, style = 'hit', color = null) {
+export function damageText(x, y, z, amount, style = 'hit', color = null, target = null) {
   const S = DMG_STYLE[style];
   if (texts.length > 120) texts.shift();
   const crit = style === 'crit';
+  const hasEnemyBar = target && target.team === 'enemy' && (G.settings?.lifeBars !== false
+    ? target.targetable !== false
+    : target.hpShow > 0 && target.rank !== 'boss');
+  if (hasEnemyBar) {
+    const glyphHeight = glyphSet(style, color).h * PIX * (G.touch ? 0.8 : 1);
+    const nameHeight = target.rank === 'champion' || target.rank === 'unique' || target.depthQuestNameplate ? 16 : 0;
+    z = damageNumberAboveBarZ(z, {
+      spriteHeight: target.spriteH || target.artH || 40,
+      scale: target.scale || 1,
+      creatureZ: target.z || 0,
+      barHeight: target.rank === 'boss' ? 6 : 4,
+      barScale: G.barK || 1,
+      textHeight: glyphHeight,
+      zoom: camera.zoom,
+      labelHeight: nameHeight,
+    });
+  }
   texts.push({
     x, y, z: z + rand(-4, 6), text: fmt(amount), color: color || '#e0d8c8', style, life: S.life, max: S.life, dmg: true, comic: true,
-    vz: style === 'dot' ? 24 : crit ? 62 : rand(38, 50), dx: rand(-12, 12), vx: rand(-1, 1) * (crit ? 26 : 6),
+    vz: style === 'dot' ? 24 : crit ? 62 : rand(38, 50), dx: rand(-18, 18), vx: rand(-1, 1) * (crit ? 26 : 6),
     // A tiny, deterministic pixel burst is drawn directly with the number, avoiding particle objects.
     sparkAngle: crit ? rand(TAU) : 0,
     sparks: crit ? Math.min(3, Math.max(0, 72 - texts.length)) : 0,
