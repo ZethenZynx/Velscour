@@ -17,7 +17,7 @@ const imp = (p) => import(pathToFileURL(path.join(root, p)));
 await (await imp('src/gfx/seaofsand.js')).loadSeaOfSandPack();
 const { BIOME_BY_ID } = await imp('src/data/biomes.js');
 const { generateDunes, DREG } = await imp('src/world/dunes.js');
-const { DUNE_VARIANTS } = await imp('src/data/dunes.js');
+const { DUNE_VARIANTS, DUNE_WAYSTONE_COUNT } = await imp('src/data/dunes.js');
 const { ART_BY_ID } = await imp('src/data/bestiary.js');
 const OUT = path.join(root, 'tools/tests/out'); fs.mkdirSync(OUT, { recursive: true });
 
@@ -41,14 +41,17 @@ for (const v of DUNE_VARIANTS) {
 for (const id of ids) {
   const vi = DUNE_VARIANTS.findIndex((v) => v.id === id);
   let worst = 0, ms = 0, last = null;
+  const campLayouts = new Set();
   for (let s = 0; s < SEEDS; s++) {
-    const seed = 1000 + s * 7919 + vi * 131, t0 = performance.now(), gen = generateDunes(12, BIOME_BY_ID.sea_of_sand, seed, vi), m = gen.map, dv = gen.dunes;
+    const seed = 1000 + s * 7919 + vi * 131, depth = [1, 100, 456, 999][s % 4], t0 = performance.now(), gen = generateDunes(depth, BIOME_BY_ID.sea_of_sand, seed, vi), m = gen.map, dv = gen.dunes;
     ms = Math.max(ms, performance.now() - t0); last = gen;
     const tag = `${id} seed ${seed}`;
     if (gen.variant.id !== id) fail(`${tag}: built ${gen.variant.id}`);
-    if (!dv.okTrek) fail(`${tag}: the route does not join the start to ${dv.cut.join(' ')}`);
+    if (v_(id).dune.camps !== DUNE_WAYSTONE_COUNT) fail(`${tag}: variant config has ${v_(id).dune.camps} required waystones`);
+    if (dv.camps.length !== DUNE_WAYSTONE_COUNT) fail(`${tag}: generated ${dv.camps.length} waystones, expected ${DUNE_WAYSTONE_COUNT}`);
+    campLayouts.add(dv.camps.map((camp) => `${camp.x.toFixed(2)},${camp.y.toFixed(2)}`).join(';'));
+    if (!dv.okTrek) fail(`${tag}: the route does not join the start to every waystone and ${dv.cut.join(' ')}`);
     if (!dv.okTomb) fail(`${tag}: the tomb does not join its entrance to the burial chamber`);
-    if (dv.camps.length !== v_(id).dune.camps) fail(`${tag}: ${dv.camps.length} camps`);
     if (dv.rooms.filter((r) => r.room).length < 6 || dv.seals.length < 6) fail(`${tag}: rooms ${dv.rooms.filter((r) => r.room).length}, seals ${dv.seals.length}`);
     if (dv.E < 160) fail(`${tag}: the dunes are only ${dv.E} tiles across`);
     // the climb limit between walkable neighbours (3 levels), but for the oases' rims
@@ -78,6 +81,7 @@ for (const id of ids) {
       }
     }
   }
+  if (SEEDS > 1 && campLayouts.size < 2) fail(`${id}: waystone positions did not vary between generation seeds`);
   // the plan of the last seed
   const m = last.map, dv = last.dunes, W = m.w, H = m.h, PX = 2, img = Buffer.alloc(W * PX * H * PX * 3);
   const put = (x, y, c) => { for (let dy = 0; dy < PX; dy++) for (let dx = 0; dx < PX; dx++) { const o = ((y * PX + dy) * W * PX + x * PX + dx) * 3; img[o] = c[0]; img[o + 1] = c[1]; img[o + 2] = c[2]; } };

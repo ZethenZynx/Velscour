@@ -36,9 +36,16 @@ const arg = process.argv[2] || 'all', mobile = process.argv.includes('mobile'), 
         const w = G.world, run = w.overworldScenario, dv = w.cave?.dv;
         w.creatures = w.creatures.filter((c) => c === G.player || c.team === 'player'); w.rebuildGrid();
         const { isoX, isoY } = await import('/src/core/view.js'), p = G.player, pk = w.cave.pick(isoX(p.x, p.y), isoY(p.x, p.y));
-        return { built: dv?.v.id, scene: !!dunesScene(), camps: run.camps.length, pickErr: +Math.hypot(pk[0] - p.x, pk[1] - p.y).toFixed(2), camp: [run.camps[0].x, run.camps[0].y], plaza: dv.pyramid.plazaC, start: dv.start };
+        const waystoneProgress = [];
+        for (let won = 0; won <= 3; won++) {
+          run.camps.forEach((camp, i) => { camp.state = i < won ? 'done' : 'idle'; });
+          waystoneProgress.push(run.hud.progress);
+        }
+        run.camps.forEach((camp) => { camp.state = 'idle'; });
+        return { built: dv?.v.id, scene: !!dunesScene(), camps: run.camps.length, waystoneProgress, pickErr: +Math.hypot(pk[0] - p.x, pk[1] - p.y).toFixed(2), camp: [run.camps[0].x, run.camps[0].y], plaza: dv.pyramid.plazaC, start: dv.start };
       }, id);
       if (info.built !== id || !info.scene || info.pickErr > 0.6) { errors.push(`[dunes ${id}] map/scene/picking failed: ${JSON.stringify(info)}`); continue; }
+      if (info.camps !== 3 || JSON.stringify(info.waystoneProgress) !== JSON.stringify(['Waystones 0/3', 'Waystones 1/3', 'Waystones 2/3', 'Waystones 3/3'])) errors.push(`[dunes ${id}] waystone count/tracker mismatch: ${JSON.stringify(info)}`);
       await view(info.start[0], info.start[1], 0.9); await page.waitForTimeout(400); await shot(pre + id + '_arrive');
       await view(info.camp[0], info.camp[1] + 2); await step(2);
       const camp = await page.evaluate(() => { const r = window.VELSCOUR.G.world.overworldScenario; return { state: r.camps[0].state, foes: r.camps[0].foes.length + r.camps[0].objs.length + r.camps[0].marks.length }; });

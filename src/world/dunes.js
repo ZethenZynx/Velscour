@@ -16,12 +16,13 @@
 import { TileMap } from './map.js';
 import { RNG } from '../core/util.js';
 import { VZ, CAVE_S, vnoise } from './caverns.js';
-import { DUNE_VARIANTS, DUNE_ROSTER } from '../data/dunes.js';
+import { DUNE_VARIANTS, DUNE_ROSTER, DUNE_WAYSTONE_COUNT } from '../data/dunes.js';
 import { ART_BY_ID } from '../data/bestiary.js';
 import { seaOfSandObject } from '../gfx/seaofsand.js';
 import { SAND_H } from './overworld.js';
 
 const S = CAVE_S, LV = VZ / 4, KS = 16 / VZ, NV_ = DUNE_VARIANTS.length;
+const MIN_DUNE_SPAWN_GROUPS = 12;
 export const duneVariant = (seed, force) => DUNE_VARIANTS[force != null ? ((force % NV_) + NV_) % NV_ : (seed >>> 5) % NV_];
 export const DREG = { rock: 0, sand: 1, camp: 2, plaza: 3, oasis: 4, hall: 5, corridor: 6, chamber: 7, landing: 8 };
 const VIS_IN = { [DREG.hall]: 5.2, [DREG.corridor]: 3.6, [DREG.chamber]: 8.5, [DREG.landing]: 4.2 };
@@ -93,8 +94,8 @@ export function generateDunes(depth, biome, seed, force = null) {
   const start = [E - 16 + J(2), E - 16 + J(2)];
   const camps = [];
   const dxs = plazaC[0] - start[0], dys = plazaC[1] - start[1];
-  for (let i = 1; i <= D.camps; i++) {
-    const t = i / (D.camps + 1), side = i % 2 ? 1 : -1, lat = side * Math.sin(Math.PI * t) * rng.range(0.13, 0.2) * E;
+  for (let i = 1; i <= DUNE_WAYSTONE_COUNT; i++) {
+    const t = i / (DUNE_WAYSTONE_COUNT + 1), side = i % 2 ? 1 : -1, lat = side * Math.sin(Math.PI * t) * rng.range(0.13, 0.2) * E;
     let x = start[0] + dxs * t + lat * Math.SQRT1_2 + J(3), y = start[1] + dys * t - lat * Math.SQRT1_2 + J(3);
     x = clamp(x, 18, E - 18); y = clamp(y, 18, E - 18);
     if (!(x >= pc + half + 13 || y >= pc + half + 13)) { if (x < y) y = pc + half + 13; else x = pc + half + 13; }
@@ -508,7 +509,9 @@ export function generateDunes(depth, biome, seed, force = null) {
     n++;
   }
   for (const o of oases) spawns.push({ x: o.x + o.r + 2.5, y: o.y, n: rng.int(3, 4), rank: 'champion', zone: 'trek' });
-  for (let k = 0, t = 0; k < Math.round(E / 30) && t < 400; t++) {   // out among the dunes, off the route
+  const routeSpawnCount = spawns.filter((spawn) => spawn.zone === 'trek').length;
+  const offRouteTarget = Math.max(Math.round(E / 30), MIN_DUNE_SPAWN_GROUPS - routeSpawnCount);
+  for (let k = 0, t = 0; k < offRouteTarget && t < 400; t++) {   // off-route groups also preserve the existing minimum on shorter three-waystone routes
     const x = rng.range(14, E - 14), y = rng.range(14, E - 14), i = I(Math.floor(x), Math.floor(y));
     if (!walk[i] || map.block[i] || routeD[i] < 8 || routeD[i] > 30 || campD(x, y) < 8 || Math.hypot(x - start[0], y - start[1]) < 24) continue;
     spawns.push({ x, y, n: rng.int(2, 4), rank: k % 3 === 2 ? 'champion' : 'normal', zone: 'trek' }); k++;

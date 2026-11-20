@@ -16,6 +16,9 @@
 //    guardian and a tomb mid-boss;
 //  - camps and rooms: the checkpoints' and the tomb's names (their fights: game/dunes.js ENCOUNTERS).
 
+// Every surface Sea of Sand run has exactly three required waystone encounters, regardless of depth or variant.
+export const DUNE_WAYSTONE_COUNT = 3;
+
 // art the desert shares, by archetype (each variant adds its own)
 const BASE = {
   hound: ['ss_sandjackal_dune_stalker', 'ss_sandjackal_red_mane', 'carrion_jackal', 'ss_hyena_dustlaugh'],
@@ -36,7 +39,7 @@ const R = (more = {}) => Object.fromEntries(Object.keys({ ...BASE, ...more }).ma
 export const DUNE_VARIANTS = [
   { id: 'golden', name: 'The Golden Expanse', epithet: 'gold dunes at noon under the Great Pyramid of Khepra',
     floors: [0, 2, 4, 35], sand: null, sky: { haze: '#e9c98f', sun: '#fff1d0', sunI: 2.6, hemiSky: '#ffe6c0', hemiGround: '#a07840', amb: '#5a4630' },
-    dune: { wind: 0.6, amp: 1.25, wave: 26, ridges: 7, size: 176, camps: 7, oases: 2 },
+    dune: { wind: 0.6, amp: 1.25, wave: 26, ridges: 7, size: 176, camps: DUNE_WAYSTONE_COUNT, oases: 2 },
     pyramid: { name: 'The Great Pyramid of Khepra', half: 26, rise: 1.25, steps: 0, stone: '#d8b878', dark: '#9a7848', cap: '#ffd040', glyph: '#3a6ab8', torch: '#ffb060', fog: '#070503' },
     swap: { colorize: [40, 0.42], light: 0.06 }, tint: 'Gilded',
     roster: R({ beetle: ['ss_beetle_turquoise_borer'], cultist: ['hv_herald_4'] }),
@@ -46,7 +49,7 @@ export const DUNE_VARIANTS = [
     intro: 'Gold dunes roll away to the Great Pyramid of Khepra. Win the waystones, then face the guardian at the plaza.' },
   { id: 'red', name: 'The Red Erg', epithet: 'rust-red dunes at dusk round the Pyramid of the Scorpion King',
     floors: [7, 1, 23, 37], sand: null, sky: { haze: '#d9805a', sun: '#ffb070', sunI: 2.1, hemiSky: '#ffc8a0', hemiGround: '#7a3420', amb: '#4a2418' },
-    dune: { wind: 1.1, amp: 1.45, wave: 30, ridges: 9, size: 184, camps: 8, oases: 1 },
+    dune: { wind: 1.1, amp: 1.45, wave: 30, ridges: 9, size: 184, camps: DUNE_WAYSTONE_COUNT, oases: 1 },
     pyramid: { name: 'The Pyramid of the Scorpion King', half: 27, rise: 1.2, steps: 0, stone: '#c8805a', dark: '#7a4028', cap: '#ff7030', glyph: '#e8c060', torch: '#ff8040', fog: '#080302' },
     swap: { colorize: [10, 0.55], light: -0.02, contrast: 1.08 }, tint: 'Red',
     roster: R({ scorpion: ['ss_scorpion_embertail', 'eb_m062'], hound: ['ss_sandjackal_sunscar', 'ss_hyena_bloodtrack'], worm: ['red_rain_worm'] }),
@@ -56,7 +59,7 @@ export const DUNE_VARIANTS = [
     intro: 'The Red Erg burns at dusk. Win its obelisk trials and face the guardian at the plaza; the Scorpion King pyramid is a separate destination.' },
   { id: 'gypsum', name: 'The White Gypsum Sea', epithet: 'blinding white dunes round the Alabaster Pyramid',
     floors: [2, 58, 12, 35], sand: { sat: 0.2, light: 0.12, contrast: 0.7 }, sky: { haze: '#e8eef4', sun: '#ffffff', sunI: 2.3, bump: 0.25, hemiSky: '#eef2ff', hemiGround: '#b0a898', amb: '#5a5a62' },
-    dune: { wind: 0.3, amp: 1.1, wave: 22, ridges: 6, size: 168, camps: 6, oases: 2 },
+    dune: { wind: 0.3, amp: 1.1, wave: 22, ridges: 6, size: 168, camps: DUNE_WAYSTONE_COUNT, oases: 2 },
     pyramid: { name: 'The Alabaster Pyramid', half: 25, rise: 1.3, steps: 0, stone: '#f0eade', dark: '#a8a090', cap: '#e0f0ff', glyph: '#5a7ab0', torch: '#ffe0a0', fog: '#060608' },
     swap: { sat: 0.25, light: 0.16 }, tint: 'Pale',
     roster: R({ skeleton: ['bone_spearman', 'bonehelm_axer'], golem: ['ss_golem_saltpillar'], gargoyle: ['bone_owl'] }),
@@ -66,7 +69,7 @@ export const DUNE_VARIANTS = [
     intro: 'White gypsum dunes glare under the noon sun. The Alabaster Pyramid stands at their heart, sealed until every waystone is won.' },
   { id: 'obsidian', name: 'The Black Glass Desert', epithet: 'black volcanic sand and fused glass round the Obsidian Pyramid',
     floors: [57, 10, 36, 36], sand: { sat: 0.25, light: -0.2, contrast: 1.2 }, sky: { haze: '#6a6070', sun: '#ffd8b0', sunI: 2.4, hemiSky: '#d8c8c8', hemiGround: '#201818', amb: '#2a2428' },
-    dune: { wind: 1.4, amp: 1.35, wave: 28, ridges: 8, size: 180, camps: 7, oases: 1 },
+    dune: { wind: 1.4, amp: 1.35, wave: 28, ridges: 8, size: 180, camps: DUNE_WAYSTONE_COUNT, oases: 1 },
     pyramid: { name: 'The Obsidian Pyramid', half: 26, rise: 1.35, steps: 0, stone: '#3a343c', dark: '#16121a', cap: '#ff5020', glyph: '#ff7030', torch: '#ff6020', fog: '#050203' },
     swap: { sat: 0.2, light: -0.1, contrast: 1.3 }, tint: 'Obsidian',
     roster: R({ golem: ['basalt_maw'], hound: ['obsidian_ram_charger'], knight: ['obsidian_fang_dragoon'], cultist: ['pyre_lich', 'blueflame_horn_priest'] }),
@@ -76,7 +79,7 @@ export const DUNE_VARIANTS = [
     intro: 'Black sand and fused glass stretch to the Obsidian Pyramid. Fire still moves under the dunes.' },
   { id: 'moonlit', name: 'The Moonlit Barrens', epithet: 'silver dunes at midnight round the Pyramid of the Moon',
     floors: [9, 2, 4, 35], sand: { colorize: [214, 0.22], light: -0.06, contrast: 1.05 }, sky: { haze: '#1c2440', sun: '#a8c0ff', sunI: 1.5, hemiSky: '#5068a8', hemiGround: '#141828', amb: '#202840', night: true },
-    dune: { wind: 0.9, amp: 1.2, wave: 24, ridges: 7, size: 172, camps: 7, oases: 2 },
+    dune: { wind: 0.9, amp: 1.2, wave: 24, ridges: 7, size: 172, camps: DUNE_WAYSTONE_COUNT, oases: 2 },
     pyramid: { name: 'The Pyramid of the Moon', half: 25, rise: 1.3, steps: 0, stone: '#9aa4c0', dark: '#4a5068', cap: '#d8e8ff', glyph: '#8ad0ff', torch: '#9ab8ff', fog: '#03040a' },
     swap: { colorize: [218, 0.32], light: 0.02 }, tint: 'Moonlit',
     roster: R({ wraith: ['rime_lich', 'storm_lich'], zombie: ['ss_mummy_lanternbearer'], gargoyle: ['bone_owl'] }),
@@ -86,7 +89,7 @@ export const DUNE_VARIANTS = [
     intro: 'Midnight on the Barrens. The Pyramid of the Moon glows faintly on the horizon, and the dead walk the silver dunes.' },
   { id: 'saltflats', name: 'The Salt Flats of Ur', epithet: 'pale salt pans and pink dunes round the Salt Pyramid',
     floors: [58, 2, 13, 38], sand: { colorize: [350, 0.16], light: 0.1, contrast: 0.85 }, sky: { haze: '#f0d8d8', sun: '#fff0f0', sunI: 2.5, bump: 0.4, hemiSky: '#ffe4e4', hemiGround: '#b89090', amb: '#584848' },
-    dune: { wind: 0.2, amp: 0.95, wave: 20, ridges: 5, size: 188, camps: 8, oases: 1 },
+    dune: { wind: 0.2, amp: 0.95, wave: 20, ridges: 5, size: 188, camps: DUNE_WAYSTONE_COUNT, oases: 1 },
     pyramid: { name: 'The Salt Pyramid of Ur', half: 28, rise: 1.15, steps: 0, stone: '#ecdcdc', dark: '#a89090', cap: '#ffffff', glyph: '#c06080', torch: '#ffc8a0', fog: '#070506' },
     swap: { colorize: [350, 0.2], light: 0.14 }, tint: 'Salt',
     roster: R({ golem: ['ss_golem_saltpillar', 'ss_golem_lapisvein'], scorpion: ['ss_scorpion_saltclaw'], wraith: ['ss_wraith_saltworn'] }),
@@ -96,7 +99,7 @@ export const DUNE_VARIANTS = [
     intro: 'The Salt Flats of Ur glitter pink and white. The Salt Pyramid rises from the pans, sealed with the old kings inside.' },
   { id: 'copper', name: 'The Copper Dunes', epithet: 'copper-orange dunes round the stepped Ziggurat of the Sun',
     floors: [5, 1, 23, 30], sand: { colorize: [26, 0.35], light: 0, contrast: 1.06 }, sky: { haze: '#f0a868', sun: '#ffd8a0', sunI: 2.5, hemiSky: '#ffd6a8', hemiGround: '#8a4a20', amb: '#503020' },
-    dune: { wind: 1.2, amp: 1.4, wave: 28, ridges: 8, size: 184, camps: 8, oases: 2 },
+    dune: { wind: 1.2, amp: 1.4, wave: 28, ridges: 8, size: 184, camps: DUNE_WAYSTONE_COUNT, oases: 2 },
     pyramid: { name: 'The Ziggurat of the Sun', half: 27, rise: 1.0, steps: 7, stone: '#c89060', dark: '#7a5030', cap: '#ffc040', glyph: '#40a0a0', torch: '#ffa040', fog: '#070402' },
     swap: { colorize: [24, 0.6], light: -0.01, contrast: 1.12 }, tint: 'Copper',
     roster: R({ cultist: ['copper_sun_wizard', 'ss_djinn_sunstung'], knight: ['sandwyrm_dragoon'], hound: ['amber_sand_dragon'] }),
@@ -106,7 +109,7 @@ export const DUNE_VARIANTS = [
     intro: 'Copper dunes run like molten metal to the stepped Ziggurat of the Sun. Its priests left something burning inside.' },
   { id: 'bone', name: 'The Bone Wastes', epithet: 'grey ash dunes strewn with giant bones round the Ossuary Pyramid',
     floors: [29, 3, 28, 31], sand: { sat: 0.12, light: -0.06, contrast: 1.04 }, sky: { haze: '#b0aca0', sun: '#f0e8d8', sunI: 2.0, hemiSky: '#ece4d4', hemiGround: '#4a4640', amb: '#3a3834' },
-    dune: { wind: 0.7, amp: 1.2, wave: 25, ridges: 8, size: 176, camps: 7, oases: 1 },
+    dune: { wind: 0.7, amp: 1.2, wave: 25, ridges: 8, size: 176, camps: DUNE_WAYSTONE_COUNT, oases: 1 },
     pyramid: { name: 'The Ossuary Pyramid', half: 26, rise: 1.25, steps: 5, stone: '#a8a094', dark: '#5a5650', cap: '#e8e0d0', glyph: '#a83030', torch: '#c0ff80', fog: '#040504' },
     swap: { sat: 0.15, light: 0.04 }, tint: 'Ashen',
     roster: R({ skeleton: ['bone_cleaver', 'ram_skull_reaver', 'bonehelm_axer'], hound: ['barrow_bone_hound'], worm: ['bone_serpent'], golem: ['bell_golem'] }),
@@ -116,7 +119,7 @@ export const DUNE_VARIANTS = [
     intro: 'Grey ash dunes and the bones of giants. The Ossuary Pyramid is stacked from the dead of a forgotten war.' },
   { id: 'emerald', name: 'The Emerald Mirage', epithet: 'green-shadowed dunes and oases round the Pyramid of the Serpent',
     floors: [0, 2, 54, 41], sand: { colorize: [62, 0.3], light: 0.02 }, sky: { haze: '#c8d8a0', sun: '#f8ffd8', sunI: 2.4, hemiSky: '#e4f0c8', hemiGround: '#6a7040', amb: '#3a4630' },
-    dune: { wind: 1.0, amp: 1.15, wave: 24, ridges: 6, size: 180, camps: 7, oases: 4 },
+    dune: { wind: 1.0, amp: 1.15, wave: 24, ridges: 6, size: 180, camps: DUNE_WAYSTONE_COUNT, oases: 4 },
     pyramid: { name: 'The Pyramid of the Serpent', half: 26, rise: 1.25, steps: 0, stone: '#b8c08a', dark: '#5a6a40', cap: '#40ffa0', glyph: '#20a070', torch: '#80ffb0', fog: '#030604' },
     swap: { colorize: [150, 0.35], light: 0.02 }, tint: 'Jade',
     roster: R({ cultist: ['jade_serpent_sorceress', 'indigo_fang_priest'], worm: ['eb_m157', 'ss_worm_glassmaw'], hound: ['hv_beast_2'] }),
@@ -126,7 +129,7 @@ export const DUNE_VARIANTS = [
     intro: 'Oases where there should be none, and green shadows on the sand. Not all of the Emerald Mirage is really there.' },
   { id: 'storm', name: 'The Storm Sands', epithet: 'violet stormlit dunes round the Pyramid of the Djinn',
     floors: [3, 8, 23, 34], sand: { colorize: [36, 0.3], light: -0.1, contrast: 1.1 }, sky: { haze: '#7a6890', sun: '#e0d0ff', sunI: 1.9, hemiSky: '#d4c4f0', hemiGround: '#4a3830', amb: '#302838' },
-    dune: { wind: 1.5, amp: 1.5, wave: 32, ridges: 9, size: 188, camps: 9, oases: 1 },
+    dune: { wind: 1.5, amp: 1.5, wave: 32, ridges: 9, size: 188, camps: DUNE_WAYSTONE_COUNT, oases: 1 },
     pyramid: { name: 'The Pyramid of the Djinn', half: 28, rise: 1.3, steps: 0, stone: '#a89070', dark: '#584838', cap: '#c080ff', glyph: '#a060ff', torch: '#c090ff', fog: '#050308' },
     swap: { colorize: [275, 0.3], light: -0.03 }, tint: 'Storm',
     roster: R({ cultist: ['ss_djinn_bluehour', 'ss_djinn_cinderjar'], wraith: ['storm_lich', 'ss_wraith_drysea'], gargoyle: ['ss_roclet_ashplume'] }),
