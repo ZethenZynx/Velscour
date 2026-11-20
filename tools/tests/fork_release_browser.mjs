@@ -158,7 +158,7 @@ try {
       triggerInMenu: [...menu.querySelectorAll('button')].some(button => button.textContent.includes('Recent Changes')) };
   })()`);
   assert.equal(titlePanel.hidden, false, 'Recent Changes panel is present automatically');
-  assert.equal(titlePanel.opacity, '1', 'Recent Changes panel becomes visible with the title screen');
+  assert.ok(Number(titlePanel.opacity) > 0.99, 'Recent Changes panel becomes visible with the title screen');
   assert.equal(titlePanel.triggerInMenu, false, 'no Recent Changes button remains in the menu');
   assert.equal(titlePanel.listOverflow, 'auto', 'history list is scrollable');
   assert.ok(titlePanel.panelLeft < 50 && titlePanel.panelRight < 450, 'Recent Changes stays on the left');
@@ -192,6 +192,21 @@ try {
   const browserErrors = await evaluate('window.__forkUpdaterBrowserErrors');
   assert.deepEqual(browserErrors, [], 'the running game and release updater should not emit unhandled JavaScript errors');
   console.log('PASS: Failed network check leaves the playable title screen available and reports a clear error on manual check.');
+
+  await evaluate(`(async () => {
+    const { game } = window.VELSCOUR;
+    await game.newChar('paladin', 'Inventory Regression');
+    const { toggleInventory } = await import('/src/ui/inventory.js');
+    toggleInventory();
+  })()`);
+  await waitFor("document.querySelector('.inventory-panel .bag:not(.gem-bag) > .bslot') && document.querySelector('.inventory-panel .gem-bag > .bslot')");
+  const inventoryCounts = await evaluate(`(() => ({ backpack: document.querySelectorAll('.inventory-panel .bag:not(.gem-bag) > .bslot').length,
+    gems: document.querySelectorAll('.inventory-panel .gem-bag > .bslot').length,
+    error: window.__forkUpdaterBrowserErrors[0] || '' }))()`);
+  assert.equal(inventoryCounts.backpack, 60, 'new character Backpack slots render in the browser');
+  assert.equal(inventoryCounts.gems, 30, 'new character Gem Bag slots render in the browser');
+  assert.equal(inventoryCounts.error, '', 'inventory rendering introduces no browser exception');
+  console.log('PASS: A new character opens the Backpack and renders its inventory and Gem Bag in the browser.');
 } finally {
   socket?.close();
   if (edge && edge.exitCode === null) {

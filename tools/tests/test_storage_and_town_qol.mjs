@@ -48,6 +48,7 @@ function mockEl(tag = 'div') {
     querySelector: () => mockEl(),
     querySelectorAll: () => [],
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 }),
+    toDataURL: () => 'data:image/png;base64,',
     getContext: () => ({
       canvas: { width: 64, height: 64 },
       save() {}, restore() {}, clearRect() {}, fillRect() {}, strokeRect() {}, clip() {},
@@ -80,6 +81,7 @@ globalThis.document = {
   addEventListener: () => {},
 };
 globalThis.Image = class Image {
+  constructor() { this.style = {}; this.draggable = false; }
   set src(_v) { if (this.onload) setTimeout(() => this.onload(), 0); }
 };
 
@@ -94,7 +96,7 @@ const { newCharData, writeSave, listSaves, migrate } = await import('../../src/g
 const { makeGem, rollItem, GEM_TIERS } = await import('../../src/data/items.js');
 const { Player, addToBag } = await import('../../src/game/player.js');
 const { addToJewelBox, sortJewelBox } = await import('../../src/ui/jewelbox.js');
-const { socketGem } = await import('../../src/ui/inventory.js');
+const { socketGem, renderInventory } = await import('../../src/ui/inventory.js');
 const { Vendor, fuseAll, fuseGem } = await import('../../src/ui/vendor.js');
 const {
   GEM_BAG_COLS, GEM_BAG_BASE_ROWS, GEM_BAG_MAX_ROWS, gemBagRows, nextGemBagRowCost, buyGemBagRow,
@@ -120,6 +122,40 @@ UI.centerMsg = () => {};
 HUD.setArea = () => {};
 G.ui = UI;
 G.game = game;
+
+// 0. Backpack UI regression: creating the Gem Bag expansion control must not abort the whole render.
+{
+  const c = newCharData('paladin', 'Backpack Regression');
+  c.bag[0] = rollItem(10, { slot: 'head', rarity: 0 });
+  c.gemBag[1] = makeGem('ruby', 1);
+  for (const level of [1, 100]) {
+    c.level = level;
+    G.char = c;
+    G.player = new Player(c);
+    for (const world of [{ kind: 'dungeon', depth: 14 }, { kind: 'dungeon', depth: 101 }]) {
+      G.world = world;
+      const body = document.createElement('div');
+      assert.doesNotThrow(() => renderInventory(body), `Backpack renders at level ${level} in depth ${world.depth}`);
+      assert.equal(body.children.length, 1, 'inventory content is attached to the visible panel body');
+      const mid = body.children[0].children[0];
+      assert.equal(mid.children[1].children.length, c.bag.length, 'all Backpack slots render');
+      assert.equal(mid.children[4].children.length, c.gemBag.length, 'all Gem Bag slots render');
+      assert.equal(mid.children[1].children[0].children.length, 1, 'existing equipment renders as an item icon');
+      assert.equal(mid.children[4].children[1].children.length, 1, 'existing gems render as item icons');
+    }
+  }
+  const empty = newCharData('wizard', 'Empty Backpack');
+  G.char = empty; G.player = new Player(empty); G.world = { kind: 'dungeon', depth: 14 };
+  const emptyBody = document.createElement('div');
+  assert.doesNotThrow(() => renderInventory(emptyBody), 'empty inventory renders without requiring item data');
+  assert.equal(emptyBody.children[0].children[0].children[1].children.length, empty.bag.length, 'empty Backpack still shows every slot');
+  writeSave(c);
+  const saved = listSaves().find((hero) => hero.name === c.name);
+  assert.ok(saved?.bag[0] && saved.gemBag[1], 'saved equipment and gems remain available to render');
+  const savedBody = document.createElement('div');
+  G.char = saved; G.player = new Player(saved);
+  assert.doesNotThrow(() => renderInventory(savedBody), 'inventory from an existing save renders');
+}
 
 // 1. Save migration, lowercase keys, Gem Bag (30) + Jewel Box (300) + Hearthstone (1)
 {

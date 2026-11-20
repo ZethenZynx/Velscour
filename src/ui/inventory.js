@@ -969,6 +969,7 @@ function gemBagRowButton(c) {
   const cost = nextGemBagRowCost(c);
   const can = canBuyGemBagRow(c);
   const gold = Math.max(0, Number(c.gold) || 0);
+  const b = el('button', 'btn small bag-buy gem-bag-buy' + (can ? '' : ' poor'), '');
   b.disabled = !can;
   b.setAttribute('aria-label', `Buy Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS} for ${fmtInt(cost)} gold`);
   b.textContent = `+ Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS} (${fmtInt(cost)} gold)`;
