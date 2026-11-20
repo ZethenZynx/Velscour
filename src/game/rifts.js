@@ -149,7 +149,7 @@ export function riftWin(world, m) {
   c.rifts.best = Math.max(c.rifts.best || 0, tier);
   c.rifts.open = Math.max(c.rifts.open || 1, tier + jump);
   c.rifts.bestTime[tier] = Math.min(c.rifts.bestTime[tier] || 1e9, Math.round(time * 10) / 10);
-  const marks = grantMarks(riftMarks(tier), `for Tier ${tier}`);
+  const marks = grantMarks(riftMarks(tier), `for Tier ${tier}`, world);
 
   // The Grand Piñata Reward Hoard:
   const RW = riftReward(tier, first), lvl = 100;

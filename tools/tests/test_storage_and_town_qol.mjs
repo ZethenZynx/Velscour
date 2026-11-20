@@ -40,6 +40,8 @@ function mockEl(tag = 'div') {
     },
     appendChild(ch) { children.push(ch); return ch; },
     append(...chs) { children.push(...chs); },
+    setAttribute() {},
+    removeAttribute() {},
     remove() { node.isConnected = false; },
     addEventListener() {},
     removeEventListener() {},
@@ -95,10 +97,11 @@ const { addToJewelBox, sortJewelBox } = await import('../../src/ui/jewelbox.js')
 const { socketGem } = await import('../../src/ui/inventory.js');
 const { Vendor, fuseAll, fuseGem } = await import('../../src/ui/vendor.js');
 const {
-  GEM_BAG_COLS, GEM_BAG_BASE_ROWS, buyGemBagRow,
+  GEM_BAG_COLS, GEM_BAG_BASE_ROWS, GEM_BAG_MAX_ROWS, gemBagRows, nextGemBagRowCost, buyGemBagRow,
   buyStashRow, buyJewelBoxRow, buyReliquaryRow,
 } = await import('../../src/data/bag.js');
-const { grantMarks, marksFree, deductMarks } = await import('../../src/game/marks.js');
+const { grantMarks, marksFree, deductMarks, markBonuses } = await import('../../src/game/marks.js');
+const { endgame, resetEndgameCache, unlockEndgame } = await import('../../src/game/endgame.js');
 const { reliquary } = await import('../../src/game/reliquary.js');
 const { generateTown, VENDORS } = await import('../../src/world/town.js');
 const { walkOverProp } = await import('../../src/data/walkover.js');
@@ -190,32 +193,87 @@ G.game = game;
   assert.equal(c.jewelBox[0].tier, 5, 'sort by grade puts highest tier first');
 }
 
-// 3. Infernal Marks row expansions & lowercase reliquary key
+// 3. Endgame-only Infernal Marks, one-time mark reset, and gold-priced Gem Bag rows
 {
   store.clear();
+  store.set('velscour_endgame_v1', JSON.stringify({ v: 1, unlocked: 123, marks: { pts: 40, xp: 1234, spent: { life: 10, crit: 10, mf: 10, rift: 10 } }, bests: { wizard: { tier: 8, time: 60 } }, keysFound: 4, unboundWins: 2 }));
+  resetEndgameCache();
+  const migrated = endgame();
+  assert.equal(migrated.marks.pts, 0, 'one-time migration removes all previously held Marks account-wide');
+  assert.deepEqual(migrated.marks.spent, { life: 0, crit: 0, mf: 0, rift: 0 }, 'spent Marks and their permanent bonuses are reset');
+  assert.equal(migrated.marks.xp, 0, 'pre-policy Mark XP cannot carry campaign progress into endgame');
+  assert.deepEqual(markBonuses(), { life: 0, crit: 0, mf: 0, rift: 0, critDmg: 0 }, 'no old permanent Mark bonuses remain active');
+  assert.equal(migrated.unlocked, 123, 'endgame unlock remains intact');
+  assert.equal(migrated.bests.wizard.tier, 8, 'rift records remain intact');
+  assert.equal(JSON.parse(store.get('velscour_endgame_v1')).marksResetVersion, 1, 'Mark reset is persisted exactly once');
+
   const c = newCharData('paladin', 'Expander');
   G.char = c;
+  G.world = { kind: 'dungeon', depth: 101 };
+  unlockEndgame();
   grantMarks(100, 'test');
   const m0 = marksFree();
   assert.equal(m0, 100);
 
-  assert.equal(buyGemBagRow(c), true);
-  assert.equal(c.gemBag.length, 40, 'buyGemBagRow adds 10 slots');
-  assert.equal(marksFree(), 95, 'buyGemBagRow costs 5 Marks');
+  const savedGem = makeGem('ruby', 1); c.gemBag[0] = savedGem;
+  const gemCosts = [5000, 10000, 20000, 40000, 80000];
+  for (const [index, cost] of gemCosts.entries()) {
+    c.gold = cost - 1;
+    const beforeGold = c.gold, beforeSlots = c.gemBag.length;
+    assert.equal(buyGemBagRow(c), false, `row ${index + 4} cannot be bought without enough gold`);
+    assert.equal(c.gold, beforeGold, 'a failed purchase does not deduct gold');
+    assert.equal(c.gemBag.length, beforeSlots, 'a failed purchase does not add slots');
+    c.gold = cost;
+    assert.equal(nextGemBagRowCost(c), cost, `row ${index + 4} costs ${cost} gold`);
+    assert.equal(buyGemBagRow(c), true, `row ${index + 4} buys for its exact cost`);
+    assert.equal(c.gold, 0, 'successful purchase deducts exactly the displayed amount');
+    assert.equal(c.gemBag.length, beforeSlots + 10, 'each purchase adds exactly ten slots');
+    assert.equal(c.gemBag[0], savedGem, 'existing gems remain in place');
+  }
+  assert.equal(gemBagRows(c), GEM_BAG_MAX_ROWS, 'Gem Bag reaches its existing eight-row maximum');
+  assert.equal(nextGemBagRowCost(c), 0, 'no price is shown after reaching maximum capacity');
+  assert.equal(buyGemBagRow(c), false, 'maximum capacity cannot be expanded again');
+  assert.equal(marksFree(), m0, 'Gem Bag expansions no longer consume Infernal Marks');
+  writeSave(c);
+  const reloadedExpander = listSaves().find((save) => save.name === c.name);
+  assert.equal(reloadedExpander.gemBag.length, 80, 'purchased capacity survives save/load');
+  assert.deepEqual(reloadedExpander.gemBag[0], savedGem, 'stored gems survive save/load');
+  assert.equal(reloadedExpander.gold, c.gold, 'the post-purchase gold balance survives save/load');
+
+  // Legacy campaign farming and capped XP cannot grant or progress Marks.
+  G.world = { kind: 'dungeon', depth: 100 };
+  assert.equal(grantMarks(3, 'campaign test'), 0, 'direct Mark rewards are blocked in campaign depths');
+  game.awardFloorClear(51);
+  assert.equal(marksFree(), m0, 'campaign depth-clear rewards cannot grant Marks');
+  c.level = 100;
+  const { gainMarkXp, markXp } = await import('../../src/game/marks.js');
+  const player = new Player(c); G.player = player;
+  const oldMarkXp = endgame().marks.xp;
+  player.gainXp(markXp(), true);
+  assert.equal(marksFree(), m0, 'capped campaign XP cannot award Infernal Marks');
+  assert.equal(endgame().marks.xp, oldMarkXp, 'capped campaign XP does not advance Mark progress');
+  G.world = { kind: 'dungeon', depth: 101 };
+  game.awardFloorClear(101);
+  assert.equal(marksFree(), m0 + 1, 'an eligible endgame depth clear grants its Mark');
+  assert.equal(gainMarkXp(markXp(), G.world), 1, 'eligible post-campaign endgame XP can award a Mark');
+  assert.equal(grantMarks(1, 'rift test', { kind: 'dungeon', depth: 100, rift: {} }), 1, 'an unlocked Rift is an eligible endgame activity');
+  assert.equal(grantMarks(2, 'Unbound test', { kind: 'dungeon', depth: 100, unbound: true }), 2, 'Velscour Unbound is an eligible endgame activity');
+  assert.equal(marksFree(), m0 + 5, 'eligible endgame rewards are saved to the shared record');
+  G.world = { kind: 'dungeon', depth: 100 };
 
   assert.equal(buyStashRow(c), true);
   assert.equal(c.stash.length, 310, 'buyStashRow adds 10 slots');
-  assert.equal(marksFree(), 85, 'buyStashRow costs 10 Marks');
+  assert.equal(marksFree(), m0 + 5 - 10, 'buyStashRow still costs 10 Marks');
 
   assert.equal(buyJewelBoxRow(c), true);
   assert.equal(c.jewelBox.length, 310, 'buyJewelBoxRow adds 10 slots');
-  assert.equal(marksFree(), 80, 'buyJewelBoxRow costs 5 Marks');
+  assert.equal(marksFree(), m0 + 5 - 15, 'buyJewelBoxRow still costs 5 Marks');
 
   const r = reliquary(); // initialize
   const beforeTab = r.tabs[0].length;
   assert.equal(buyReliquaryRow(0), true);
   assert.equal(r.tabs[0].length, beforeTab + 12, 'buyReliquaryRow adds 12 slots to reliquary tab');
-  assert.equal(marksFree(), 70, 'buyReliquaryRow costs 10 Marks');
+  assert.equal(marksFree(), m0 + 5 - 25, 'buyReliquaryRow still costs 10 Marks');
   assert.ok(store.has('velscour_reliquary_v1'), 'reliquary saves to lowercase velscour_reliquary_v1');
 
   assert.equal(deductMarks(999), false, 'deductMarks refuses overspending');
@@ -242,6 +300,7 @@ G.game = game;
   const c = newCharData('necromancer', 'Shopper');
   G.char = c;
   G.player = new Player(c);
+  G.world = { kind: 'dungeon', depth: 101 };
   grantMarks(50, 'test');
 
   assert.ok(VENDORS.some((v) => v.id === 'infernal' && v.travelling), 'Malakor registered in VENDORS');

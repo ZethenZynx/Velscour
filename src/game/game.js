@@ -167,7 +167,7 @@ import { offerCommissions, setupCommissions, commissionClear, wantedBiomes, LINE
 import { titleScreen, hide as hideScreen, deathScreen, victoryScreen, pauseMenu, helpDialog } from '../ui/screens.js';
 import { LoadingScreen } from '../ui/loading.js';
 // the Endgame (docs/ENDGAME.md): Heresies, Abyssal Rifts, Velscour Unbound, Infernal Marks
-import { endgameUnlocked, unlockEndgame, endgame } from './endgame.js';
+import { endgameUnlocked, unlockEndgame, endgame, canEarnInfernalMarks } from './endgame.js';
 import { heresySpawns, heresyWorld, heresyBegin, heresyTick, heresiesOf, heresyRank, worldRank, MARKS_RANK } from './heresies.js';
 import { createRiftRun, riftTick, riftOpen, riftDepth, riftLevel, fmtTime, riftLeave, activatePylon, riftDeathPenalty, RIFT_QUOTA, RIFT_DENSITY } from './rifts.js';
 import { PYLONS } from '../data/rifts.js';
@@ -1510,13 +1510,13 @@ export const game = {
       c.cleared[depth] = true;
       c.deepest = Math.max(c.deepest || 0, depth);
       this.brokeThrough(depth);
-      const isEvery5Boss = (depth <= FINAL_DEPTH && depth % 5 === 0) || m.raid || m.isVelscour || depth === FINAL_DEPTH;
+      const isEvery5Boss = depth <= FINAL_DEPTH && depth % 5 === 0;
       if (first) {
         this.awardFloorClear(depth);
         recordDepth(world, depth);
       }
       const rewardText = first
-        ? (isEvery5Boss ? '+1 bonus skill point · the exit is open' : '+1 Infernal Mark · the exit is open')
+        ? (isEvery5Boss ? '+1 bonus skill point · the exit is open' : depth > FINAL_DEPTH ? '+1 Infernal Mark · the exit is open' : 'The exit is open')
         : 'The exit is open';
       UI.centerMsg(m.raid ? `${m.name} DEFEATED` : 'GUARDIAN SLAIN', rewardText, 3.5);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#40a0ff', 5));
@@ -1790,8 +1790,8 @@ export const game = {
     if (isBoss) {
       c.skillPoints++;
       UI.log(customContext ? `Bonus skill point for ${customContext}!` : `Bonus skill point for defeating the Depth ${depth} Boss!`, '#ffd860');
-    } else {
-      grantMarks(1, `for clearing Depth ${depth}`);
+    } else if (depth > FINAL_DEPTH) {
+      grantMarks(1, `for clearing Depth ${depth}`, G.world);
     }
   },
 
@@ -1800,7 +1800,10 @@ export const game = {
     const c = G.char, had = c.defiance && c.defiance.n;
     commissionClear(G.world);
     greedCleared(G.world, c); // the Greed lever pays into the Hoard (game/greed.js)
-    if (worldRank(G.world) >= MARKS_RANK && !G.world.markPaid) { G.world.markPaid = true; grantMarks(1, `for a depth cleared at Heresy rank ${worldRank(G.world)}`); } // (docs/ENDGAME.md)
+    if (worldRank(G.world) >= MARKS_RANK && !G.world.markPaid && canEarnInfernalMarks(G.world, c)) {
+      G.world.markPaid = true;
+      grantMarks(1, `for a depth cleared at Heresy rank ${worldRank(G.world)}`, G.world);
+    } // (docs/ENDGAME.md): rank rewards are endgame-only
     if (!clearDefiance(c, depth)) return;
     if (G.player) G.player.recompute();
     UI.log(`The wall is broken. <b style="color:#ff6a3a">Defiance ${had}</b> fades — Velscour takes note.`, '#ffb080');

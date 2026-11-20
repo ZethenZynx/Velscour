@@ -1,6 +1,6 @@
 // Storage expansions:
 // - Hero's Bag: 10 slots a row, 6 rows to start, up to 6 more bought with gold (5k..160k).
-// - Dedicated Gem Bag, Stash, Jewel Box, and Reliquary: expanded with Infernal Marks.
+// - Dedicated Gem Bag expands with progressive gold prices; the town vaults use endgame Marks.
 import { marksFree, deductMarks } from '../game/marks.js';
 import { reliquary, saveReliquary } from '../game/reliquary.js';
 
@@ -43,7 +43,7 @@ export function canBuyBagRow(c) { return !!c && nextRowCost(c) > 0 && c.gold >= 
 
 // --- GEM BAG (HERO'S GEM CARRIER) ---
 export const GEM_BAG_COLS = 10, GEM_BAG_BASE_ROWS = 3, GEM_BAG_MAX_ROWS = 8;
-export const GEM_BAG_ROW_MARK_COST = 5;
+export const GEM_BAG_ROW_GOLD_COST = [5000, 10000, 20000, 40000, 80000];
 
 export function gemBagRows(c) {
   if (!c || !Array.isArray(c.gemBag)) return GEM_BAG_BASE_ROWS;
@@ -51,18 +51,20 @@ export function gemBagRows(c) {
 }
 
 export function nextGemBagRowCost(c) {
-  return gemBagRows(c) < GEM_BAG_MAX_ROWS ? GEM_BAG_ROW_MARK_COST : 0;
+  return GEM_BAG_ROW_GOLD_COST[gemBagRows(c) - GEM_BAG_BASE_ROWS] || 0;
 }
 
 export function canBuyGemBagRow(c) {
-  return gemBagRows(c) < GEM_BAG_MAX_ROWS && marksFree() >= GEM_BAG_ROW_MARK_COST;
+  const cost = nextGemBagRowCost(c);
+  return !!c && cost > 0 && Number.isFinite(Number(c.gold)) && Number(c.gold) >= cost;
 }
 
 export function buyGemBagRow(c) {
   if (!c) return false;
+  const cost = nextGemBagRowCost(c);
+  if (!cost || !canBuyGemBagRow(c)) return false;
   if (!Array.isArray(c.gemBag)) c.gemBag = Array(GEM_BAG_COLS * GEM_BAG_BASE_ROWS).fill(null);
-  if (gemBagRows(c) >= GEM_BAG_MAX_ROWS) return false;
-  if (!deductMarks(GEM_BAG_ROW_MARK_COST)) return false;
+  c.gold = Number(c.gold) - cost;
   for (let i = 0; i < GEM_BAG_COLS; i++) c.gemBag.push(null);
   return true;
 }

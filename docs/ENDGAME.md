@@ -246,10 +246,13 @@ unless `opts.unbound` (the Crown, `crown: true`, only by `opts.id`), so `maybeRe
 counts them (41).
 
 ## 4. Infernal Marks (`src/game/marks.js`, `src/ui/marks.js`)
-Account-wide, endless. A Mark is earned by **XP past the level cap** (`Player.gainXp` at `MAX_LEVEL` hands the XP,
-after the out-levelling penalty, to `gainMarkXp(xp)`; one Mark costs `markXp() = xpToNext(MAX_LEVEL)`;
-the 2999 -> 3000 level's spare XP counts; the cap was 600 until October 30, 2026), by **rift clears** (`riftMarks(tier)`) and at **Heresy rank 20** (one per
-depth cleared). A Mark is saved at once (a float text "+1 INFERNAL MARK" over the hero, a ring, a chime and a log
+Account-wide, endless, and **locked until Velscour falls at campaign depth 100**. Marks are earned only during eligible
+endgame activities: XP past the level cap in endgame depths/activities (`Player.gainXp` at `MAX_LEVEL` hands the XP,
+after the out-levelling penalty, to `gainMarkXp(xp)`; one Mark costs `markXp() = xpToNext(MAX_LEVEL)`), **rift clears**
+(`riftMarks(tier)`), **Velscour Unbound**, and Heresy rank 20 depth clears in endgame depths. Campaign depths 1–100,
+including replay after the account unlock, never grant Marks or Mark XP. The endgame activity guard is shared by direct
+Mark grants and post-cap XP. Legacy shared Mark balances, spent bonuses, and partial Mark XP are cleared once; the unlock,
+rift records, keys, and Unbound progress remain. A Mark is saved at once (a float text "+1 INFERNAL MARK" over the hero, a ring, a chime and a log
 line); XP alone at most every 5 s and on `game.autosave` (`saveMarkXp`), so nothing is lost to a reload. At the cap
 the HUD's XP bar turns ember red and shows the progress to the next Mark (`capXp(c)`), and so does the character
 sheet's XP line. Four categories, points spent one at a time in the Marks panel (from the
@@ -274,7 +277,7 @@ count, the XP towards the next Mark, and per category its points, bonus, a bar o
 "Spend all (balanced)" and "Reset (free)". `grantMarks(n, why)` logs. Unspent Marks sit in `pts - sum(spent)`.
 Marks and progression remain local to this browser.
 Rate (`marks.js`, a level-3000 hero full-clearing a level): 0.04 Marks per depth at depths 6000-6560 (he out-levels the
-monsters: XP x0.1), 0.39 at 6600 (monster level 3003), 0.40 at 6800; Heresy rank 20 adds 1 per depth; a
+monsters: XP x0.1), 0.39 at 6600 (monster level 3003), 0.40 at 6800; Heresy rank 20 adds 1 per endgame depth; a
 rift clear `ceil(tier / 10)` (was tier / 4, 18 a clear at tier 70: rifts dwarfed XP and the Heresies; now 1 a clear to tier 10, 3 at tiers 21-30, where a hero of the tier's level meets the wall).
 
 ## Balance targets (checked by the tests and tools)

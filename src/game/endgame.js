@@ -5,19 +5,24 @@ import { G } from '../state.js';
 import { FINAL_DEPTH } from '../data/depth.js';
 
 const KEY = 'velscour_endgame_v1';
+const MARKS_RESET_VERSION = 1;
 export const MARK_CATS = ['life', 'crit', 'mf', 'rift'];
 let E = null;
 
-function blank() { return { v: 1, unlocked: 0, marks: { pts: 0, xp: 0, spent: { life: 0, crit: 0, mf: 0, rift: 0 } }, bests: {}, keysFound: 0, unboundWins: 0 }; }
+function blank() { return { v: 1, marksResetVersion: MARKS_RESET_VERSION, unlocked: 0, marks: { pts: 0, xp: 0, spent: { life: 0, crit: 0, mf: 0, rift: 0 } }, bests: {}, keysFound: 0, unboundWins: 0 }; }
 /** A record with every field present and sane (a damaged one keeps what it can). */
 export function fixEndgame(r) {
   const o = blank();
   if (!r || typeof r !== 'object') return o;
+  const resetLegacyMarks = (Number(r.marksResetVersion) || 0) < MARKS_RESET_VERSION;
+  o.marksResetVersion = MARKS_RESET_VERSION;
   o.unlocked = Number(r.unlocked) > 0 ? Number(r.unlocked) : 0;
   const m = r.marks && typeof r.marks === 'object' ? r.marks : {};
-  o.marks.pts = Math.max(0, Math.floor(Number(m.pts) || 0));
-  o.marks.xp = Math.max(0, Number(m.xp) || 0);
-  for (const k of MARK_CATS) o.marks.spent[k] = Math.max(0, Math.floor(Number(m.spent && m.spent[k]) || 0));
+  // One-time policy reset: old campaign-earned Marks, spent bonuses, and partial
+  // Mark XP are removed from the shared account record; other endgame data stays.
+  o.marks.pts = resetLegacyMarks ? 0 : Math.max(0, Math.floor(Number(m.pts) || 0));
+  o.marks.xp = resetLegacyMarks ? 0 : Math.max(0, Number(m.xp) || 0);
+  for (const k of MARK_CATS) o.marks.spent[k] = resetLegacyMarks ? 0 : Math.max(0, Math.floor(Number(m.spent && m.spent[k]) || 0));
   let sum = MARK_CATS.reduce((s, k) => s + o.marks.spent[k], 0);
   for (const k of MARK_CATS) if (sum > o.marks.pts) { const cut = Math.min(o.marks.spent[k], sum - o.marks.pts); o.marks.spent[k] -= cut; sum -= cut; }
   if (r.bests && typeof r.bests === 'object') for (const [cls, b] of Object.entries(r.bests)) if (b && Number(b.tier) > 0) o.bests[cls] = { tier: Math.floor(Number(b.tier)), time: Math.max(0, Number(b.time) || 0), at: Number(b.at) || 0 };
@@ -30,7 +35,9 @@ export function endgame() {
   if (E) return E;
   let r = null;
   try { r = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { r = null; }
+  const resetLegacyMarks = !!r && (Number(r.marksResetVersion) || 0) < MARKS_RESET_VERSION;
   E = fixEndgame(r);
+  if (resetLegacyMarks) saveEndgame(true);
   return E;
 }
 /** Write the record; quiet is retained for existing call sites. */
@@ -43,6 +50,11 @@ if (typeof addEventListener === 'function') addEventListener('velscour-overhaul-
 
 /** Has the Endgame opened: a hero on this browser defeated Velscour at the campaign finale. */
 export function endgameUnlocked(c = G.char) { return !!(endgame().unlocked || (c && c.cleared && c.cleared[FINAL_DEPTH])); }
+/** Marks only come from an unlocked endgame activity, never campaign replay or town systems. */
+export function canEarnInfernalMarks(world = G.world, c = G.char) {
+  if (!endgameUnlocked(c) || !world) return false;
+  return !!(world.rift || world.unbound || world.unboundExploration || (world.kind === 'dungeon' && Number(world.depth) > FINAL_DEPTH));
+}
 /** Velscour slain for real: the altar and the rift gate open for every hero. */
 export function unlockEndgame() {
   const r = endgame();

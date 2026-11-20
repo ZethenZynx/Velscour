@@ -968,25 +968,30 @@ function gemBagRowButton(c) {
   const next = rows + 1;
   const cost = nextGemBagRowCost(c);
   const can = canBuyGemBagRow(c);
-  const b = el('button', 'btn small bag-buy gem-bag-buy' + (can ? '' : ' poor'), `+ Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS} (${cost} Marks)`);
-  b.title = can ? `Buy another row of 10 gem slots for ${cost} Infernal Marks` : `Requires ${cost} unspent Infernal Marks (you have ${marksFree()})`;
+  const gold = Math.max(0, Number(c.gold) || 0);
+  b.disabled = !can;
+  b.setAttribute('aria-label', `Buy Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS} for ${fmtInt(cost)} gold`);
+  b.textContent = `+ Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS} (${fmtInt(cost)} gold)`;
+  b.title = can ? `Buy 10 more Gem Bag slots for ${fmtInt(cost)} gold` : `Costs ${fmtInt(cost)} gold; you have ${fmtInt(gold)} gold`;
   b.onclick = () => {
     sfx('ui');
     if (!canBuyGemBagRow(c)) {
-      UI.log(`You need ${cost} free Infernal Marks to buy row ${next}.`, '#ff8080');
+      UI.log(`Gem Bag row ${next} costs ${fmtInt(nextGemBagRowCost(c))} gold. You have ${fmtInt(Math.max(0, Number(c.gold) || 0))}.`, '#ff8080');
       return;
     }
     UI.dialog({
       title: `Gem Bag row ${next} of ${GEM_BAG_MAX_ROWS}`,
-      html: `<p>Expand your Gem Bag by 1 row (10 slots) for <b style="color:#ffd860">${cost} Infernal Marks</b>?</p>`,
+      html: `<p>Expand your Gem Bag by 1 row (10 slots) for <b class="gold-text">${fmtInt(cost)} gold</b>?</p>`,
       buttons: [
         { label: 'Cancel' },
-        { label: `Buy for ${cost} Marks`, cls: 'red', fn: () => {
+        { label: `Buy for ${fmtInt(cost)} gold`, cls: 'red', fn: () => {
           if (buyGemBagRow(c)) {
+            sfx('gold');
+            UI.log(`Gem Bag row <b>${next}</b> added for ${fmtInt(cost)} gold.`, '#ffd860');
             changed();
             const panel = UI.panels?.get('inventory');
             if (panel) renderInventory(panel.body);
-          }
+          } else { sfx('error'); UI.log(`Purchase failed. Row ${gemBagRows(c) + 1} costs ${fmtInt(nextGemBagRowCost(c))} gold; you have ${fmtInt(Math.max(0, Number(c.gold) || 0))}.`, '#ff8080'); }
         }},
       ],
     });

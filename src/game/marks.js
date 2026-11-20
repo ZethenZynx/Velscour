@@ -1,13 +1,13 @@
-// Infernal Marks (docs/ENDGAME.md): the account-wide progression past the level cap. A Mark comes from XP earned at
-// MAX_LEVEL (one per xpToNext(MAX_LEVEL), Player.gainXp), from Abyssal Rift clears (riftMarks) and from Heresy rank 20
-// (one per depth cleared). Each is spent on one of four categories; a category's bonus grows with diminishing returns
+// Infernal Marks (docs/ENDGAME.md): account-wide endgame progression after Velscour falls. Eligible post-cap XP,
+// Abyssal Rift clears, Velscour Unbound, and endgame Heresy rank 20 can grant Marks. Each is spent on one of four
+// categories; a category's bonus grows with diminishing returns
 // but no cap (eff: the n-th point adds 1/sqrt(1 + n/100) of the first's worth, so the 300th still adds half and the
 // 1000th ~30%). It used to approach a cap (97% of it by 500 points), and a player's 454th Vitality point read +0.00.
 // Vitality multiplies the whole life pool (after gear's life % and Fortitude) and Fortune is more drops (gear, gems and
 // Sigils, like the Greed lever): as plain life % and magic find they were lost beside gear's hundreds and thousands.
 // The points live in the local shared record (game/endgame.js).
 import { G } from '../state.js';
-import { endgame, saveEndgame, MARK_CATS } from './endgame.js';
+import { endgame, saveEndgame, MARK_CATS, canEarnInfernalMarks } from './endgame.js';
 import { xpToNext, MAX_LEVEL } from './player.js';
 import { sfx } from '../core/audio.js';
 import { floatText, addEffect, Ring } from '../gfx/vfx.js';
@@ -71,7 +71,8 @@ function changed() {
 }
 let xpDirty = false, xpSaved = 0;
 /** XP earned at the level cap: Marks when it adds up (saved at once), else saved at most every 5 s and on autosave. */
-export function gainMarkXp(xp) {
+export function gainMarkXp(xp, world = G.world) {
+  if (!canEarnInfernalMarks(world)) return 0;
   const m = endgame().marks;
   m.xp += Math.max(0, xp || 0);
   let n = 0;
@@ -89,9 +90,9 @@ export function saveMarkXp() {
 /** At the level cap: { xp, need } towards the next Mark (the HUD's XP bar, the character sheet), else null. */
 export const capXp = (c = G.char) => (c && c.level >= MAX_LEVEL ? { xp: endgame().marks.xp, need: markXp() } : null);
 /** Marks given outright (rift clears, Heresy milestones). */
-export function grantMarks(n, why = '') {
+export function grantMarks(n, why = '', world = G.world) {
   n = Math.max(0, Math.floor(n));
-  if (!n) return 0;
+  if (!n || !canEarnInfernalMarks(world)) return 0;
   endgame().marks.pts += n;
   changed();
   announce(n, why);

@@ -37,8 +37,8 @@ import { computeTalentBonuses, skillMorphFor, applySkillMorph } from '../data/ta
 import { relicProc } from './relicprocs.js';
 import { noteFind, codexMf } from './reliquary.js';
 import { markBonuses, gainMarkXp } from './marks.js';
+import { endgame, saveEndgame, canEarnInfernalMarks } from './endgame.js';
 import { heresyHero, heresyAllows } from './heresies.js';
-import { endgame, saveEndgame } from './endgame.js';
 
 // XP for the next level across the Level 1-100 progression curve.
 const xpCurve = (L) => (45 * L * L + 35 * L) * (1 + Math.pow(L / 25, 1.25));
@@ -326,13 +326,23 @@ export class Player extends Creature {
     const pen = !flat && diff > 5 ? Math.max(0.1, 1 - (diff - 5) * 0.1) : 1;
     const gain = Math.round(n * pen * (1 + this.st.xpPct / 100));
     if (gain > 0 && c.level < MAX_LEVEL) G.ui?.event?.({ category: 'experience.gained', text: `Gained ${gain} experience.`, meta: { data: { amount: gain } } });
-    if (c.level >= MAX_LEVEL) { if (gain > 0) G.ui?.event?.({ category: 'experience.milestone', text: `Added ${gain} progress toward an Infernal Mark.`, meta: { data: { amount: gain, target: 'Infernal Mark' } } }); gainMarkXp(gain); return; } // at the cap XP becomes Infernal Marks (game/marks.js)
+    if (c.level >= MAX_LEVEL) {
+      if (canEarnInfernalMarks(this.world, c)) {
+        if (gain > 0) G.ui?.event?.({ category: 'experience.milestone', text: `Added ${gain} progress toward an Infernal Mark.`, meta: { data: { amount: gain, target: 'Infernal Mark' } } });
+        gainMarkXp(gain, this.world);
+      }
+      return;
+    } // post-cap XP advances Marks only during eligible endgame activities
     c.xp += gain;
     while (c.level < MAX_LEVEL && c.xp >= xpToNext(c.level)) {
       c.xp -= xpToNext(c.level);
       this.levelUp();
     }
-    if (c.level >= MAX_LEVEL && c.xp > 0) { gainMarkXp(c.xp); c.xp = 0; } // the last level's spare XP counts too
+    if (c.level >= MAX_LEVEL && c.xp > 0) {
+      const overflow = c.xp;
+      c.xp = 0;
+      if (canEarnInfernalMarks(this.world, c)) gainMarkXp(overflow, this.world); // only endgame XP can become Mark progress
+    }
   }
   levelUp() {
     const c = this.char;

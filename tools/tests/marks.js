@@ -23,6 +23,13 @@ const { openGame, report } = require('./harness');
   const snap = async (s, name) => { await s(name); shots.push(name); };
   try {
     await page.evaluate(async () => { await window.VELSCOUR.game.newChar('paladin', 'Markbearer'); });
+    await page.evaluate(async () => {
+      const { G, game } = window.VELSCOUR;
+      const { unlockEndgame } = await import('/src/game/endgame.js');
+      unlockEndgame();
+      const eligibleWorld = { kind: 'dungeon', depth: 101 };
+      G.world = eligibleWorld; G.player.world = eligibleWorld;
+    });
     await page.waitForTimeout(400);
 
     // ---------------------------------------------- 1. XP past the cap
@@ -169,7 +176,7 @@ const { openGame, report } = require('./harness');
       const o = {};
       const base = { hp: p.maxHp, crit: p.st.critChance, critDmg: p.st.critDmg, mf: p.st.magicFind, drops: p.st.drops, rift: riftTime() };
       o.base = base;
-      o.grant = M.grantMarks(1000, 'for the test');
+      o.grant = M.grantMarks(1000, 'for the test', { kind: 'dungeon', depth: 101 });
       o.free0 = M.marksFree();
       o.spent100 = M.spendMark('life', 100) + M.spendMark('crit', 100) + M.spendMark('mf', 100) + M.spendMark('rift', 100);
       o.at100 = { life: p.maxHp / base.hp, crit: p.st.critChance - base.crit, critDmg: p.st.critDmg - base.critDmg, drops: p.st.drops - base.drops, mf: p.st.magicFind - base.mf, rift: riftTime() - base.rift, b: M.markBonuses() };
@@ -218,7 +225,7 @@ const { openGame, report } = require('./harness');
     check(sp.auto === 403 && Math.max(...sv) - Math.min(...sv) <= 1, `Spend all spreads 403 Marks: ${JSON.stringify(sp.spread)}`);
     console.log(`  sheet text: ${sp.text}`);
     const dm = sp.damaged;
-    check(dm.pts === 5 && dm.sum <= 5 && dm.xp === 0 && dm.spent.crit === 0 && dm.spent.mf === 0 && dm.bests === 0 && dm.keys === 0 && dm.unlocked === 0, `a damaged record is clamped: ${JSON.stringify(dm.spent)} of ${dm.pts}`);
+    check(dm.pts === 0 && dm.sum === 0 && dm.xp === 0 && dm.spent.crit === 0 && dm.spent.mf === 0 && dm.bests === 0 && dm.keys === 0 && dm.unlocked === 0, `legacy v1 Mark records are reset while malformed endgame data is clamped: ${JSON.stringify(dm.spent)} of ${dm.pts}`);
     // ---------------------------------------------- 3. shared across heroes, the panel
     const sh = await page.evaluate(async () => {
       const { G, game } = window.VELSCOUR;
@@ -227,7 +234,7 @@ const { openGame, report } = require('./harness');
       const S = await import('/src/game/save.js');
       const { MAX_LEVEL } = await import('/src/game/player.js');
       E.resetEndgameCache(); localStorage.removeItem('velscour_endgame_v1'); E.resetEndgameCache();
-      E.unlockEndgame(); M.grantMarks(240, 'test'); M.spendMark('life', 60); M.spendMark('crit', 20); M.spendMark('mf', 30);
+      E.unlockEndgame(); M.grantMarks(240, 'test', { kind: 'dungeon', depth: 101 }); M.spendMark('life', 60); M.spendMark('crit', 20); M.spendMark('mf', 30);
       G.char.level = MAX_LEVEL; G.player.recompute(); game.autosave();
       const pal = { life: G.player.marks.life, crit: G.player.marks.crit, id: G.char.id };
       await game.newChar('wizard', 'Second');
@@ -288,8 +295,8 @@ const { openGame, report } = require('./harness');
       const { MAX_LEVEL } = await import('/src/game/player.js');
       await game.newChar('ranger', 'Phone');
       document.querySelectorAll('.screen').forEach((s) => s.remove()); G.ui.modalCount = 0; G.ui.closeAll();
-      E.unlockEndgame(); M.grantMarks(312, 'test'); M.spendMark('life', 120); M.spendMark('crit', 41); M.spendMark('mf', 77);
-      G.char.level = MAX_LEVEL; G.player.recompute(); M.gainMarkXp(Math.round(M.markXp() * 0.63));
+      E.unlockEndgame(); M.grantMarks(312, 'test', { kind: 'dungeon', depth: 101 }); M.spendMark('life', 120); M.spendMark('crit', 41); M.spendMark('mf', 77);
+      G.char.level = MAX_LEVEL; G.player.recompute(); M.gainMarkXp(Math.round(M.markXp() * 0.63), { kind: 'dungeon', depth: 101 });
     });
     await P.page.waitForTimeout(500);
     await snap(P.shot, 'marks_phone_hud');
