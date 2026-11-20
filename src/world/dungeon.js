@@ -218,7 +218,7 @@ function generateCastleKeepLayout(depth, biome, tileset, seed, layout) {
     carveShrineSanctum(map, shrineRoom);
   }
   const eventCandidates = rooms.filter((r) => r !== startRoom && r !== guardianRoom && r !== shrineRoom && r.w >= 3 && r.h >= 3);
-  const eventRoom = !raid && eventCandidates.length ? rng.pick(eventCandidates.filter(r => r.w * r.h >= Math.max(...eventCandidates.map(q => q.w * q.h)) * 0.7)) : null;
+  const eventRoom = eventCandidates.length ? rng.pick(eventCandidates.filter(r => r.w * r.h >= Math.max(...eventCandidates.map(q => q.w * q.h)) * 0.7)) : null;
   if (eventRoom) { Object.assign(eventRoom, { theme: 'ritual', name: 'Omen Chamber', eventRoom: true }); carveEventSanctum(map, eventRoom); }
   if (!map.walkable(layout.start[0], layout.start[1]) ||
       !map.walkable(layout.guardian[0], layout.guardian[1]) ||

@@ -650,6 +650,12 @@ class Raid {
       this.wake();
     }
     if (!this.sealed && this.inside(p, 1.5)) this.seal();
+    // If a movement ability or knockback leaves the player outside a sealed arena,
+    // reopen the gate after a short grace period so the fight remains reachable.
+    if (this.sealed && this.gateTiles?.length && !this.inside(p, -0.5)) {
+      this.outT = (this.outT || 0) + dt;
+      if (this.outT > 3) { this.unseal(); this.outT = 0; }
+    } else this.outT = 0;
     this.t += dt;
     this.minHp = Math.min(this.minHp ?? 1, p.hp / p.maxHp);
     // the execute timer: after 3 minutes the boss winds up a killing blow nothing survives (the hero restarts the dungeon)

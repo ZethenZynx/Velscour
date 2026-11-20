@@ -20,6 +20,7 @@ import { configureEnemyVariety, updateEnemyVariety, executeEnemyAttack, enemyDam
 
 const LEASH = 10; // minions fight what's within this many tiles of the hero
 const CHASE = 1.3, CHASE_MAX = 4.6; // monsters' pursuit pace: x1.3, up to 4.6 tiles/s (the hero runs 4.2) unless faster already
+const RAISED_DEAD_CAP = 4, RAISED_DEAD_NEAR_CAP = 8;
 const PROJ_FX = { fire: 'fireball', cold: 'shard', light: 'spark', poison: 'blob', shadow: 'skull', arcane: 'orb', holy: 'bolt', blood: 'blob', acid: 'blob', phys: 'rock' };
 const POOL_FX = { fire: 'fire', cold: 'frost', poison: 'poison', acid: 'slime', shadow: 'void', arcane: 'void', blood: 'blood', light: 'storm', holy: 'holy', phys: 'poison' };
 
@@ -805,10 +806,18 @@ export class Monster extends Creature {
       case 'summonMinions': {
         this.cd = this.atkCd * 2;
         if (G.room && !G.game?.isDungeonAuthority(w.depth)) break;
-        for (let i = 0; i < 2; i++) {
+        let owned = 0, nearby = 0;
+        for (const c of w.creatures) {
+          if (c.dead || !c.raisedBy) continue;
+          if (c.raisedBy === this) owned++;
+          if (Math.abs(c.x - this.x) < 10 && Math.abs(c.y - this.y) < 10) nearby++;
+        }
+        const count = Math.max(0, Math.min(2, RAISED_DEAD_CAP - owned, RAISED_DEAD_NEAR_CAP - nearby));
+        for (let i = 0; i < count; i++) {
           const [x, y] = w.map.randomNear(this.x, this.y, 1.5);
           const m = makeMonster(w, 'skeleton', w.biome, this.level, 'normal', x, y);
           m.awake = true;
+          m.raisedBy = this;
           w.add(m);
           sparkle(x, y, 10, '#b040ff', 10, 0.4);
         }

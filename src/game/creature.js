@@ -253,6 +253,7 @@ export class Creature {
     if (s.slow && s.slow.t > 0) m *= 1 - s.slow.amt;
     if (this.curses.slow && this.curses.slow.t > 0) m *= 1 - this.curses.slow.amt;
     if (this.isPlayer && G.char && G.char.madT > 0) m *= 2; // MADNESS
+    if (this.isPlayer && this.pylonBuff?.id === 'velocity' && this.pylonBuff.timer > 0) m *= 1.8;
     if (this.isPlayer && this.world && this.world.dungeonAffixes && this.world.dungeonAffixes.includes('exhaustion')) m *= 0.85;
     if (this.affixSlowUntil > (this.world && this.world.time || 0)) m *= 0.7;
     if (this.dungeonSpeedMul) m *= this.dungeonSpeedMul;

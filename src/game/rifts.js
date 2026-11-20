@@ -11,6 +11,7 @@ import { rollItem, rollSigil, rollGem, rarityAt, ABYSSAL, RARITY_MYTHIC, goldPil
 import { hit } from './combat.js';
 import { RIFT_TIME, RIFT_QUOTA, RIFT_DENSITY, RIFT_GUARDIAN_HP, PYLONS, riftDepth, riftLevel, riftJump, riftWeight, riftReward, fmtTime, instabilitiesForTier } from '../data/rifts.js';
 import { markBonuses, grantMarks, riftMarks } from './marks.js';
+import { heroDamage } from './heroDamage.js';
 import { noteRiftBest, endgame } from './endgame.js';
 import { barred } from './leaderboard.js';
 
@@ -53,6 +54,11 @@ export function activatePylon(world, def) {
   addEffect(new Column(p.x, p.y, def.color, 1.5, 50, 300));
   sfx('holy'); sfx('boss');
   p.pylonBuff = { id: def.id, timer: def.dur, dur: def.dur, def };
+  // Cache the player's average main-attack hit; p.st.attack is not a player stat.
+  if (def.id === 'conduit') {
+    const attack = heroDamage(p).atk;
+    p.pylonBuff.zap = Number.isFinite(attack) && attack > 0 ? attack : 0;
+  }
   if (def.id === 'aegis') p.invuln = def.dur;
 }
 
@@ -112,11 +118,9 @@ export function riftTick(world, dt) {
         const target = targets[Math.floor(Math.random() * targets.length)];
         addEffect(new Bolt(p.x, p.y, 25, target.x, target.y, 25, '#30b0ff', 0.15, 4));
         sfx('spark');
-        hit(p, target, p.st.attack * 4.5 * (1 + (R.tier || 1) * 0.1), 'lightning');
+        hit(p, target, (b.zap || 0) * 4.5 * (1 + (R.tier || 1) * 0.1), 'light');
         sparkle(target.x, target.y, 10, '#30b0ff', 12, 0.5);
       }
-    } else if (b.id === 'velocity') {
-      p.speedMul = Math.max(p.speedMul || 1, 1.8);
     }
     if (b.timer <= 0) {
       UI.log(`<b style="color:${b.def.color}">${b.def.name}</b> has expired.`, '#ccc');

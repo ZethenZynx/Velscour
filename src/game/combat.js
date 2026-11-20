@@ -40,7 +40,8 @@ function bloodOf(c) {
  * o: { dot, crit:false to disallow, knock, ang, burn, poison, bleed, slow, freeze, stun, fear, leech, noArc, melee, aoe, silent, bossMul }
  */
 export function hit(src, tgt, amount, el = 'phys', o = {}) {
-  if (!tgt || tgt.dead || tgt.invuln > 0 || amount <= 0) return 0;
+  // Reject NaN as well as non-positive hits. NaN HP never reaches the death check.
+  if (!tgt || tgt.dead || tgt.invuln > 0 || !(amount > 0)) return 0;
   if (tgt.targetable === false && !o.force) return 0;
   if (tgt.clutter) {
     tgt.hp = 0;
