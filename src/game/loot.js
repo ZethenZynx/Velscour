@@ -3,7 +3,7 @@ import { G } from '../state.js';
 import { rand, chance, randi, TAU, pick, clamp, measureCtx, fmtInt } from '../core/util.js';
 import { isoX, isoY, camera } from '../core/view.js';
 import { sfx } from '../core/audio.js';
-import { spawn, glowSprite, sparkle, floatText, addLight, elem } from '../gfx/vfx.js';
+import { spawn, glowSprite, floatText, addLight, elem } from '../gfx/vfx.js';
 import { replacementIcon } from '../core/replacementart.js';
 import { pixelSprite, gemIcon, goldIcon, ringIcon } from '../gfx/pixelart.js';
 import { rollItem, rollGem, itemName, itemColor, goldPile, goldScale, MATERIALS, GEMS, potionItem, RARITY_COLORS, RARITY_RARE, RARITY_LEGENDARY, qualityAtDepth, SEAL_RARITY, SEALED_COLOR, SEAL_GAP } from '../data/items.js';
@@ -184,14 +184,7 @@ export class GroundItem {
     }
     if (this.t > 120 && this.kind !== 'item' && this.kind !== 'key') return false; // (an Abyssal Key waits)
     if (this.fades && this.t > this.fades && p.lootTarget !== this) return false;
-    // light pillars for good loot
-    if (this.kind === 'item' && this.item.rarity >= RARITY_RARE) {
-      const r = Math.min(5, this.item.sealed ? SEAL_RARITY : this.item.rarity);
-      addLight(this.x, this.y, 1.6 + r * 0.5, 0.6);
-      if (chance(dt * (r * 4))) sparkle(this.x, this.y, rand(4, 30), itemColor(this.item), 1, 0.2);
-    }
     if (this.kind.startsWith('orb')) addLight(this.x, this.y, 1.8, 0.7);
-    if (this.kind === 'key') { addLight(this.x, this.y, 2.6, 0.8, 30, KEY_COLOR); if (chance(dt * 10)) sparkle(this.x, this.y, rand(6, 34), KEY_COLOR, 1, 0.25); }
     return true;
   }
   icon() {
@@ -218,24 +211,8 @@ export class GroundItem {
     }
     const img = this.icon();
     if (!img) return;
-    if (this.kind === 'key') { // a cyan column of light reaching for the sky, like a top-rarity drop
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7;
-      const g = ctx.createLinearGradient(px, py - 110, px, py);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, KEY_COLOR);
-      ctx.fillStyle = g; ctx.fillRect(px - 9, py - 110, 18, 110);
-      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    }
     const art = this.kind === 'item' && !this.item.sealed && ((this.item.art && artIcon(this.item)) || gearIcon(this.item) || heldIcon(this.item));
     const s = this.kind === 'gold' ? 20 : art ? 30 : this.kind === 'key' ? 26 : 22;
-    if (this.kind === 'item' && this.item.rarity >= RARITY_RARE) {
-      const col = itemColor(this.item), r = Math.min(5, this.item.sealed ? SEAL_RARITY : this.item.rarity);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = Math.min(0.65, 0.25 + r * 0.08);
-      const g = ctx.createLinearGradient(px, py - 90, px, py);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, col);
-      ctx.fillStyle = g; ctx.fillRect(px - 3 - r, py - 90, 6 + r * 2, 90);
-      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    }
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath(); ctx.ellipse(px, py + 1, 9, 4, 0, 0, TAU); ctx.fill();
     ctx.save();
@@ -255,9 +232,6 @@ export function keyIcon(size = 48) {
   if (c) return c;
   c = document.createElement('canvas'); c.width = c.height = size;
   const x = c.getContext('2d'), s = size / 48;
-  const g = x.createRadialGradient(24 * s, 24 * s, 2, 24 * s, 24 * s, 26 * s);
-  g.addColorStop(0, 'rgba(32,224,255,0.5)'); g.addColorStop(1, 'rgba(32,224,255,0)');
-  x.fillStyle = g; x.fillRect(0, 0, size, size);
   x.save(); x.translate(24 * s, 24 * s); x.rotate(-0.7);
   x.strokeStyle = '#1a1c24'; x.lineWidth = 5 * s; x.lineCap = 'round';
   x.beginPath(); x.moveTo(-6 * s, 0); x.lineTo(17 * s, 0); x.stroke(); // the shaft
