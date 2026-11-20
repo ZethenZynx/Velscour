@@ -89,7 +89,7 @@ export const controls = {
     }
     let mag = Math.hypot(mx, my);
     if (mag > 0.15) {
-      let [tx, ty] = screenDirToTile(mx, my, p.x, p.y);
+      let [tx, ty] = screenDirToTile(mx, my);
       const l = Math.hypot(tx, ty);
       const k = Math.min(1, mag) / (l || 1);
       p.moveVec = [tx * k, ty * k];

@@ -257,19 +257,10 @@ export async function buildTower3D(g) {
   disposeTower3D();
   const clip = new T.Plane(new T.Vector3(CUT_N[0], 0, CUT_N[1]), CUT_C), up = new T.Plane(new T.Vector3(0, -1, 0), 1e6), clips = [clip, up];
   const M = await materials(v, clips);
-  // The bottom deck is a separate arena, like the rooftop deck: its own floor materials do not
-  // inherit the stair cutaway planes. This prevents either cut plane from erasing the arena.
-  const arenaMaterials = {};
-  for (const key of ['floor', 'paving', 'mosaic']) {
-    arenaMaterials[key] = M[key].clone();
-    arenaMaterials[key].clippingPlanes = [];
-    arenaMaterials[key].clipIntersection = false;
-  }
   const scene = new T.Scene(), root = new T.Group(), lightSrc = [], spin = [], flick = [];
   scene.add(root);
-  const B = new Build(), arenaDeck = new Build(), climb = new Build(), roof = new Build(), front = new Build();   // front: drawn again over the sprites (drawTowerFront)
+  const B = new Build(), climb = new Build(), roof = new Build(), front = new Build();   // front: drawn again over the sprites (drawTowerFront)
   const { rIn, rWall, rc, N, d, rise, H, L } = g, wallTop = H + 4, T2 = 1.6, rOut = rWall + T2;
-  const arenaFloorR = g.arenaFloorR, arenaDeckZ = 0;
   const th = (s) => g.theta(s);
 
   // `solid` gets the tower's masses as closed solids (no inner faces) for the stencil caps where the cutaway slices them
@@ -297,19 +288,19 @@ export async function buildTower3D(g) {
     B.quad('trim', P(rOut, t0, g.roofZ - 0.9), P(rOut, t1, g.roofZ - 0.9), P(rOut + 0.35, t1, g.roofZ - 0.4), P(rOut + 0.35, t0, g.roofZ - 0.4), [radial(t0, 0.7)[0], -0.7, radial(t0, 0.7)[2]], [[o0, 0], [o1, 0], [o1, 0.2], [o0, 0.2]]);
     block(t0, t1, rWall, rOut, -14, -14, g.roofZ + 0.2, g.roofZ + 0.2);
   }
-  // ---- the ground-floor arena: the same filled disk and concentric paving layout as the roof
-  arenaDeck.add('floor', worldUV(new T.CircleGeometry(arenaFloorR, 128).rotateX(-Math.PI / 2).translate(0, arenaDeckZ - 0.08, 0)));
-  for (let i = 0; i < 128; i++) {
-    const t0 = (i / 128) * Math.PI * 2, t1 = ((i + 1) / 128) * Math.PI * 2;
-    for (const [r0, r1] of [[0, 4], [4, 9], [9, arenaFloorR]]) {
-      const p = [P(r0, t0, arenaDeckZ), P(r1, t0, arenaDeckZ), P(r1, t1, arenaDeckZ), P(r0, t1, arenaDeckZ)];
-      arenaDeck.quad('paving', ...p, UP, p.map((q) => [q[0] / 2, q[2] / 2]));
+  // ---- the ground floor: paving in rings, a raised dais at the centre
+  for (let i = 0; i < 96; i++) {
+    const t0 = (i / 96) * Math.PI * 2, t1 = ((i + 1) / 96) * Math.PI * 2;
+    for (const [r0, r1] of [[3.2, 7], [7, 11], [11, rWall + 0.2]]) {
+      const p = [P(r0, t0, 0), P(r1, t0, 0), P(r1, t1, 0), P(r0, t1, 0)];
+      B.quad('floor', ...p, UP, p.map((q) => [q[0] / 2, q[2] / 2]));
     }
   }
-  lightSrc.push({ p: [0, arenaDeckZ + 1.2, 0], c: v.lantern, r: 7, i: 0.6 });
-  // Keep the guardian's spawn and the whole central combat area level; the roof's flat mosaic
-  // treatment is a better template here than the old raised dais, which put actors above the floor.
-  arenaDeck.add('mosaic', new T.CircleGeometry(5.2, 48).rotateX(-Math.PI / 2).translate(0, arenaDeckZ + 0.02, 0));
+  B.add('trim', worldUV(new T.CylinderGeometry(3.2, 3.4, 0.5, 48).translate(0, 0.25, 0)));
+  B.add('floor', worldUV(new T.CylinderGeometry(2.4, 2.4, 0.62, 48).translate(0, 0.31, 0), 0.5, 0.5));
+  B.add('metal', worldUV(new T.TorusGeometry(1.6, 0.12, 6, 40).rotateX(Math.PI / 2).translate(0, 0.66, 0)));
+  lightSrc.push({ p: [0, 1.2, 0], c: v.lantern, r: 7, i: 0.6 });
+  B.add('mosaic', new T.CircleGeometry(7.2, 48).rotateX(-Math.PI / 2).translate(0, 0.02, 0));
   extras(B, climb, g, v, lightSrc);
 
   // ---- the stair: treads with lit nosings, risers, a curb on the inner edge over the stringer, the soffit under it all
@@ -362,8 +353,7 @@ export async function buildTower3D(g) {
     }
     railing(front, g, v, s0 - 0.2, s1, (s) => H, lightSrc);
   }
-  // The lowest turn opens onto the ground-floor arena; retain the railing on the upper spiral.
-  railing(front, g, v, Math.min(g.C, L), L, (s) => s * g.slope + rise + 0.06, lightSrc);
+  railing(front, g, v, 0, L, (s) => s * g.slope + rise + 0.06, lightSrc);
 
   // ---- ribs, windows, banners and lanterns on the wall
   const turnsAt = (t) => {   // the stair's heights where it passes angle t (one per turn)
@@ -480,10 +470,9 @@ export async function buildTower3D(g) {
     lightSrc.push({ p: P(r, t, rz + 2.4), c: 0xff9a50, r: 9, i: 1.4, roof: true });
   }
 
-  const shell = B.build(M, 'tower'), arena = arenaDeck.build(arenaMaterials, 'ground-arena'), inner = climb.build(M, 'climb'), top = roof.build(M, 'roof'), fr = front.build(M, 'front');
+  const shell = B.build(M, 'tower'), inner = climb.build(M, 'climb'), top = roof.build(M, 'roof'), fr = front.build(M, 'front');
   inner.add(fr); fr.traverse((o) => o.layers.enable(1));   // the railings and chandeliers: layer 1 is the front pass
-  arena.visible = false;
-  root.add(arena, shell, inner, top);
+  root.add(shell, inner, top);
   // ---- the cut caps: where the cutaway slices a solid, a flat face of dressed stone on the cut. The solid set's back
   // faces count up and its front faces down in the stencil (behind the clip plane only); a quad on the plane fills
   // wherever the count isn't zero, i.e. where the cut runs inside stone (three.js's clipping-stencil technique). The
@@ -528,7 +517,7 @@ export async function buildTower3D(g) {
   const clouds = cloudLayer(v); scene.add(clouds.grp);
   const moonS = moonSprite(v); scene.add(moonS);
 
-  S = { g, v, M, arenaMaterials, scene, root, clip, up, arena, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
+  S = { g, v, M, scene, root, clip, up, climb: inner, roof: top, pool, hero, lightSrc, flick, spin, clouds, ships: [], t: 0, roofOn: false, amb, hemi, moon, caps, cap, upCap, moonS };
   return S;
 }
 const w16 = (w) => w / 1.6;
@@ -779,10 +768,8 @@ export function drawTower3D(ctx, tw) {
   S.root.rotation.y = tw.alpha;
   S.clip.constant = tw.roof ? 1e6 : CUT_C;
   // the upper cut, held on the hero (world/tower.js upCut), and its cap quad laid on it facing the camera
-  const [fx, fy, fz] = tw.focus, k = UP_K / Math.SQRT2;
-  const un = tw.arena ? UPN.set(0, -1, 0) : UPN.set(-(k + UP_D), -1, k - UP_D).normalize();
+  const [fx, fy, fz] = tw.focus, k = UP_K / Math.SQRT2, un = UPN.set(-(k + UP_D), -1, k - UP_D).normalize();
   S.up.setFromNormalAndCoplanarPoint(un, UPP.set(fx, fy + UP_H, fz));
-  S.arena.visible = !!tw.arena;
   if (tw.roof) S.up.constant = 1e6;
   S.upCap.position.copy(UPP); S.upCap.quaternion.setFromUnitVectors(UPZ, un.negate());
   if (S.roofOn !== tw.roof) {
@@ -790,8 +777,6 @@ export function drawTower3D(ctx, tw) {
     S.amb.intensity = tw.roof ? 1.9 : 1.1; S.hemi.intensity = tw.roof ? 1.3 : 0.55; S.moon.intensity = tw.roof ? 2.6 : 0.9;   // the open sky
     for (const o of S.root.children) if (o.userData.roof) o.visible = tw.roof;
   }
-  // The arena is built as an open deck, so the staircase cut caps must not cover it.
-  S.caps.visible = S.cap.visible = S.upCap.visible = !tw.roof && !tw.arena;
   // lanterns nearest the hero get the point lights; the rest glow on their own
   const ca = Math.cos(tw.alpha), sa = Math.sin(tw.alpha);
   const near = [];
@@ -848,7 +833,6 @@ export function disposeTower3D() {
   if (!S) return;
   S.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   for (const m of Object.values(S.M)) { m.map?.dispose(); m.bumpMap?.dispose(); m.emissiveMap?.dispose(); m.dispose(); }
-  for (const m of Object.values(S.arenaMaterials)) m.dispose();
   // this tower's own textures and materials outside M (the shared halo and the airships' materials stay)
   for (const m of [S.cap.material, S.upCap.material, S.moonS.material, ...S.clouds.list.map((c) => c.s.material)]) { m.map?.dispose(); m.dispose(); }
   S.scene.background?.dispose();
@@ -869,8 +853,7 @@ export const airshipsReady = () => !!AS;
 /**
  * Bring a ship to the roof (camera frame, tiles): kind galleon | ironclad | gasbag | cutter | hauler, docking at angle
  * phi (camera frame) with its starboard side to the roof. Returns a handle: state 'in' -> 'docked' (ramp down) ->
- * 'out' -> 'gone'; board() gives the boarding path, leave() sends it off, sink() burns it down. Setting rush hurries
- * the approach and the ramp.
+ * 'out' -> 'gone'; board() gives the boarding path, leave() sends it off, sink() burns it down.
  */
 export function spawnShip(kind, phi, g, o = {}) {
   if (!AS || !S) return null;
@@ -904,15 +887,13 @@ export function spawnShip(kind, phi, g, o = {}) {
       this.t += dt;
       const bob = Math.sin(t * 0.8 + phi) * 0.22;
       if (this.state === 'in') {
-        // rush (set by game/tower.js when the hero has nothing to fight): the rest of the approach takes 0.3 s
-        if (this.rush) { this.rushK ??= Math.max(1, (this.dur - this.t) / 0.3); this.t += dt * (this.rushK - 1); }
         const k = Math.min(1, this.t / this.dur), e = 1 - Math.pow(1 - k, 3);
         root.position.set(start[0] + (dock[0] - start[0]) * e, deckY + 9 * (1 - e) + bob, start[1] + (dock[1] - start[1]) * e);
         hold.rotation.z = -0.06 * (1 - k);
         if (k >= 1) { this.state = 'docked'; this.t = 0; }
       } else if (this.state === 'docked') {
         root.position.set(dock[0], deckY + bob, dock[1]);
-        this.ramp = Math.min(1, this.ramp + dt * (this.rush ? 6 : 0.8));
+        this.ramp = Math.min(1, this.ramp + dt * 0.8);
       } else if (this.state === 'out') {
         this.ramp = Math.max(0, this.ramp - dt * 1.5);
         const k = Math.min(1, this.t / 6), e = k * k;

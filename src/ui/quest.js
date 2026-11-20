@@ -33,7 +33,7 @@ export function renderQuest(body) {
     else if (b?.id === 'skyship') h += step(false, "The Sky Lanes lie beyond: the Air Pirates board the heroes' airship in waves, then their flagship comes.");
     else if (b?.sea) h += step(false, "The Pirate Seas lie beyond: the Black Tide's boats come up from astern to board the Lampwardens' Dawnwake, wave on wave.");
     else if (b?.id === 'dark_forest') h += step(false, 'The Dark Forest lies beyond: cross the open woods, defeat the Forest Guardian, and take the portal it leaves behind.');
-    else if (b?.tower) h += step(false, 'The Serpentine Tower lies beyond: descend the spiral stair and defeat its ground-floor guardian to open the exit.');
+    else if (b?.tower) h += step(false, 'The Serpentine Tower lies beyond: climb the spiral stair and defeat the boss on the roof to open the exit.');
     else if (b?.cave) h += step(false, "The Depth's Edge Caverns lie beyond: passages and caverns, a lake under a waterfall, and a long climb to the top of the falls.");
     else if (b?.overworld) h += step(false, 'A Forsaken Wilds scenario shrine guards the way forward.');
     h += step(false, `Or take the <b style="color:#c080ff">purple portal</b> into <b>THE ETERNAL BREACH</b>: Floor ${((c.breach && c.breach.best) || 0) + 1} awaits (each floor as deadly as ten depths).`);

@@ -243,7 +243,7 @@ export const BIOMES = [
     torch: '#7dffa0', fog: '#0a1a24',
   },
   {
-    // a wide stone tower traversed down a spiral stair to a ground-floor guardian
+    // a wide stone tower climbed up a spiral stair to a rooftop boss encounter
     // (world/tower.js, game/tower.js, gfx/tower3d.js, docs/SERPENTINE_TOWER.md)
     id: 'serpentine_tower', name: 'The Serpentine Tower', pack: 'town', overworld: true, tower: true,
     palette: null, dark: 0.3, light: 12,

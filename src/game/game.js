@@ -654,7 +654,7 @@ export const game = {
       : biome.id === 'throne' ? 'Cross the throne gauntlet and defeat Demon Lord Velscour at the campaign finale.'
       : biome.id === 'skyship' ? "Step out onto the heroes' airship. Hold the deck against the Air Pirates' boarding waves, their captains and their flagship; victory turns the gate into the exit."
       : biome.sea ? "Step out onto the Dawnwake, the Lampwardens' steam frigate. Hold her deck against the Black Tide's boarders, wave on wave, and their captain; victory opens the bell tower's door onward."
-      : biome.tower ? 'Enter at the tower stairhead and descend the spiral steps. A guardian waits at the ground-floor landing; defeat it to open the exit.'
+      : biome.tower ? 'Enter at the foot of the tower and climb the spiral steps. A boss awaits on the roof; defeat it to open the exit.'
       : biome.cave ? 'Follow the passages and caverns to the underground lake. At the foot of its waterfall a passage climbs a long, spiralling shaft to the top of the falls, where its masters wait.'
       : biome.overworld ? 'Activate the scenario shrine and complete its trial to open the exit.'
       : 'Find the exit. It is sealed until its guardian is slain.';
@@ -1671,7 +1671,7 @@ export const game = {
     else if (biome.id === 'sea_of_sand') UI.log(`Secure ${gen.scenarioCount} marked scenario area${gen.scenarioCount===1?'':'s'} to open the exit. Rewards improve with each clear.`, '#ffe2a0');
     else if (sky) UI.log(`${world.sky.v.name}: ${world.sky.v.story ? world.sky.v.blurb + ' Hold the deck.' : 'hold the deck against the Air Pirates\' boarding waves.'} ${world.sky.v.hazardText || ''}`, '#ffe2a0');
     else if (sea) UI.log(`${world.seaRun.variant.name}: ${world.seaRun.variant.blurb} Hold the Dawnwake's deck against the Black Tide's boarders.`, '#ffe2a0');
-    else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Descend the spiral stair; enemies wait along the way, and a guardian holds the ground-floor exit.`, '#ffe2a0');
+    else if (biome.tower) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. Climb the spiral stair; enemies wait along the way, then face the rooftop encounter.`, '#ffe2a0');
     else if (biome.cave) UI.log(`${gen.variant.name}: ${gen.variant.epithet}. The passages lead down to a lake under a great waterfall; the way on is a long climb to its top.`, '#ffe2a0');
     else if (forest) UI.log('The Dark Forest closes in. Follow the main path to its guardian, or explore the optional full-size labyrinths north and south for bonus treasure.', '#c8f0a0');
     else if (castle) UI.log('The Castle walls and buildings form the route ahead. Find your way through them to the throne room, where the Castle Guardian waits; defeating it opens the exit.', '#e8d0a8');

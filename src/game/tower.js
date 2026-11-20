@@ -1,8 +1,9 @@
 // THE SERPENTINE TOWER (docs/SERPENTINE_TOWER.md): the run. The stair is a strip of tiles (world/tower.js); this file
 // lays it onto the helix every frame (view.js setWarp) with the camera turned to keep the hero's stretch running
-// up-left, draws the 3D tower behind it all (gfx/tower3d.js) and directs the descent. Packs wait on the stairs above;
-// some drop onto the stair as the hero passes beneath. A guardian waits at the ground-floor landing, where its defeat
-// opens the exit portal.
+// up-left, draws the 3D tower behind it all (gfx/tower3d.js) and directs the climb: packs wait on the floors above and
+// some drop down onto the stair when the hero passes beneath, others charge up from behind out of the cutaway, and Air
+// Pirates throw grappling hooks onto the railing and climb over it. The stairhead door leads onto the roof, where one of
+// SCENARIOS plays out: three waves of bosses, then the last boss flies in on an airship. Its fall opens a portal.
 import { G } from '../state.js';
 import { UI } from '../ui/ui.js';
 import { HUD } from '../ui/hud.js';
@@ -10,7 +11,7 @@ import { camera, setWarp, warpMoved, isoX, isoY, HW, HH } from '../core/view.js'
 import { rand, chance, pick, clamp, TAU, shuffle, fmtInt } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { VZ, CUT_N, CUT_C, upCut } from '../world/tower.js';
-import { drawTower3D, drawTowerFront, tickTower3D, buildTower3D, disposeTower3D, spawnShip, airshipsReady } from '../gfx/tower3d.js';
+import { drawTower3D, drawTowerFront, tickTower3D, buildTower3D, disposeTower3D, spawnShip, loadAirships, airshipsReady } from '../gfx/tower3d.js';
 import { makeMonster, monsterBase } from './monster.js';
 import { makeRaidBoss, RAID_BOSSES } from './raid.js';
 import { depthLevel } from '../data/depth.js';
@@ -83,7 +84,7 @@ const FLAG = Math.PI, FAR = -Math.PI * 0.75, LEFT = Math.PI * 0.75, RIGHT = -Mat
 /** Turn the warp on for a tower level, off for any other (game.js setWorld). */
 export function useTower(world) {
   const tw = world && world.tower;
-  setWarp(tw ? tw.warp : null, tw ? tw.pick : null, tw ? tw.directionWarp : null);
+  setWarp(tw ? tw.warp : null, tw ? tw.pick : null);
   if (!tw) { camera.leadX = camera.leadY = 0; if (camera.zoomK !== 1) { camera.zoomK = 1; camera.computeZoom(); } disposeTower3D(); return; }
   tw.frame(0);
 }
@@ -95,21 +96,18 @@ export function createTowerRun(world, gen, biome, onSuccess) {
   const captain = sc.captain || pick(Object.keys(CAPTAIN_TPL));
   world.ambushT = Infinity;   // the tower directs its own ambushes
   const exit = world.portals.find((q) => q.type === 'exit');
-  if (exit) { exit.x = exit.y = -100; }   // the exit appears at the ground-floor landing after the guardian falls
+  if (exit) { exit.x = exit.y = -100; }   // the portal opens on the roof when the last boss falls
   // the Air Pirates' sheets load with the level's looks
   if (world.looks) { const ids = world.looks.ids.bind(world.looks); world.looks.ids = () => [...ids(), ...PIRATE_IDS]; }
 
-  // ---- the warp: tile positions onto the helix, ground arena, or roof, seen by the camera turned to alpha
+  // ---- the warp: tile positions onto the helix (or the roof), seen by the camera turned to alpha
   const tw = world.tower = {
     g, v, alpha: g.theta(g.s(gen.start[0])) + Math.PI / 2, roof: false, focus: [0, 0, 0], dt: 0, ropes: [],
     raw(x, y, out, clip) {
       let cx, cy, z;
       if (x < g.XR) { cx = x - g.AX; cy = y - g.AY; z = g.roofZ; }
-      else if (x >= g.arenaStart) {
-        const q = g.arenaPoint(x, y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
-      }
       else {
-        const s = g.X1 - x, t = g.theta0 - s / g.rc - tw.alpha, rawR = g.rWall - (y - g.YR), r = x >= g.X1 ? g.landingRadius(x, y) : rawR;
+        const s = g.X1 - x, t = g.theta0 - s / g.rc - tw.alpha, r = g.rWall - (y - g.YR);
         cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s);
         if (clip && (cx * CUT_N[0] + cy * CUT_N[1] < -CUT_C || upCut(cx, cy, z, tw.focus) < 0)) { out[0] = out[1] = 1e7; return out; }   // in the cutaway
       }
@@ -117,9 +115,6 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       return out;
     },
     warp: (x, y, out) => tw.raw(x, y, out, !tw.roof),
-    // Movement input should follow the real coordinate surface even where the visual cutaway
-    // hides geometry. Using the clipped render warp here can produce a singular direction matrix.
-    directionWarp: (x, y, out) => tw.raw(x, y, out, false),
     /** World px back to the tile position shown there: Newton steps from the flat inverse round the hero. */
     pick(wx, wy) {
       const p = world.player, a = [0, 0], b = [0, 0], c = [0, 0];
@@ -140,18 +135,15 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       }
       return [x, y];
     },
-    /** Camera turn and framing: follow the player through the stair and connected ground-floor arena. */
+    /** Camera turn and framing: the hero's stretch of stair runs up-left, the stair ahead and the floor above in view. */
     frame(dt) {
       const p = world.player;
       if (!p) return;
-      // At ground level use a level upper cut: the stair-following sloped plane otherwise clips
-      // one side of the arena floor as it tracks the player along the spiral.
-      tw.arena = !tw.roof && p.x >= g.arenaStart - 0.25;
       if (!tw.roof && p.x >= g.XR) {
         // eased while walking; a blink or a teleport turns it at once (a lagging turn would leave him in the cutaway)
-        const target = (p.x >= g.arenaStart ? g.theta(g.s(g.arenaStart)) : g.theta(g.s(p.x))) + Math.PI / 2;
+        const target = g.theta(g.s(p.x)) + Math.PI / 2;
         tw.alpha = dt && Math.abs(target - tw.alpha) < 0.5 ? tw.alpha + (target - tw.alpha) * (1 - Math.pow(0.00002, dt)) : target;
-        camera.leadX = 0; camera.leadY = 0;
+        camera.leadX = -G.W / camera.zoom * (G.touch ? 0.1 : 0.17); camera.leadY = -G.H / camera.zoom * 0.1;   // the touch buttons sit on the right
       } else {
         // the roof: pulled back, leaning toward its centre and the far side where the ships dock, or toward tw.look
         tw.alpha = g.alphaTop;
@@ -163,10 +155,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       // the hero in the camera frame (three.js axes): the lanterns nearest him get the lights; the upper cut holds on him
       let cx, cy, z;
       if (p.x < g.XR) { cx = p.x - g.AX; cy = p.y - g.AY; z = g.roofZ; }
-      else if (p.x >= g.arenaStart) {
-        const q = g.arenaPoint(p.x, p.y, tw.alpha); cx = q[0]; cy = q[1]; z = q[2];
-      }
-      else { const s = g.s(p.x), t = g.theta(s) - tw.alpha, r = p.x >= g.X1 ? g.landingRadius(p.x, p.y) : g.r(p.y); cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s); }
+      else { const s = g.s(p.x), t = g.theta(s) - tw.alpha, r = g.r(p.y); cx = r * Math.cos(t); cy = r * Math.sin(t); z = g.z(s); }
       tw.focus[0] = cx; tw.focus[1] = z; tw.focus[2] = cy;
       warpMoved();
     },
@@ -176,7 +165,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     minimap: (c, W, H, big, opacity) => minimap(world, tw, c, W, H, big, opacity),
   };
   void buildTower3D(g).catch((e) => console.warn(e));
-  // The old roof encounter data remains available for the roof scenery but is no longer part of this level route.
+  void loadAirships().catch((e) => console.warn('Airships unavailable', e));
 
   // ---- the stair's packs: some will drop from the floor above when the hero passes beneath them
   for (const m of world.creatures) {
@@ -187,22 +176,22 @@ export function createTowerRun(world, gen, biome, onSuccess) {
 
   const run = {
     id: 'serpentine_tower', type: 'tower', completed: false, failed: false, active: true, markers: [], route: [], stage: 0, escort: null, routeIndex: 0,
-    shrine: { x: gen.start[0], y: gen.start[1], reach: 2, label: 'Tower Stair', use() {} },
-    scenario: sc, variant: v, captain, phase: 'descend', wave: 0, waves: 0,
-    startX: gen.start[0], bottomX: gen.exit[0], arenaX: g.arenaX, arenaY: g.arenaY, chargeT: rand(14, 22), hookT: rand(8, 14), chargeD: 0, hookD: 0, dropCd: 0, guardian: null, top: null, hud: null,
-    get title() { return run.completed ? 'The Tower Is Cleared' : run.phase === 'descend' ? 'Descend the Stair' : run.phase === 'boss' ? `Defeat ${run.guardian?.name || 'the Tower Guardian'}` : 'The Exit Is Open'; },
+    shrine: { x: g.door[0], y: g.door[1], reach: 2, label: 'Stairhead', use() {} },
+    scenario: sc, variant: v, captain, phase: 'climb', wave: 0, waves: sc.waves.length,
+    chargeT: rand(14, 22), hookT: rand(8, 14), chargeS: 0, hookS: 0, dropCd: 0, top: null, hud: null,
+    get title() { return run.completed ? 'The Tower Is Taken' : run.phase === 'climb' ? 'Climb the Stair' : run.top?.final ? `Defeat ${capName(captain)}` : `Hold the Roof — ${sc.name}`; },
     get description() {
-      if (run.completed) return 'A portal opens at the foot of the tower. The way on is clear.';
-      if (run.phase === 'descend') return `Descend the spiral stair to the ground-floor guardian, ${run.altitude}% of the way down.`;
-      if (run.phase === 'boss') return `Defeat ${run.guardian?.name || 'the Tower Guardian'} to open the portal.`;
-      return 'The portal is open at the foot of the tower.';
+      if (run.completed) return 'A portal burns on the roof. The way on is open.';
+      if (run.phase === 'climb') return `Climb the stair to the stairhead door, ${run.altitude}% of the way up.`;
+      if (run.top?.final) return `${capName(captain)} has come aboard. End it.`;
+      return `${sc.intro} Wave ${Math.min(run.wave, 3)} of 3.`;
     },
-    get altitude() { const p = world.player; return run.phase !== 'descend' ? 100 : p ? Math.round(clamp((p.x - run.startX) / (run.bottomX - run.startX), 0, 1) * 100) : 0; },
+    get altitude() { const p = world.player; return run.phase !== 'climb' ? 100 : p ? Math.round(clamp(g.s(p.x) / g.sEnd, 0, 1) * 100) : 0; },
     get objective() {
       if (run.completed) return undefined;
-      if (run.phase === 'descend') { const p = world.player; return { x: Math.min(run.bottomX - 3, (p ? p.x : run.startX) + 5), y: g.YR + g.w / 2, reach: 0.8 }; }
-      if (run.phase === 'boss' && run.guardian && !run.guardian.dead) return { x: run.guardian.x, y: run.guardian.y, reach: 1.5 };
-      return null;
+      // a few tiles ahead up the middle of the stair (the door straight on would leave him in whatever lane a fight did)
+      if (run.phase === 'climb') { const p = world.player; return { x: Math.max(g.XT + 1, (p ? p.x : g.X1) - 5), y: g.door[1], reach: 0.8 }; }
+      return run.top && (run.top.idle || run.top.step === 'ship') ? { x: g.AX, y: g.AY + 2, reach: 3 } : null;
     },
     update(dt) {
       const p = world.player;
@@ -211,22 +200,21 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       tw.frame(dt);
       tickTower3D(dt, tw);
       tickRopes(world, tw, dt);
-      if (run.phase === 'descend') descend(dt);
-      else if (run.phase === 'boss' && run.guardian?.dead && !run.completed) winDescent();
+      if (run.phase === 'climb') climb(dt);
       else if (run.phase === 'top') roof(dt);
       // the lanterns and braziers light the 2D sprites too
-      if (run.phase === 'descend') {
+      if (run.phase === 'climb') {
         const s0 = g.s(p.x);
         for (let s = 4 + Math.round((s0 - 20 - 4) / 8.5) * 8.5; s < s0 + 22; s += 8.5) if (s > 0 && s < g.sEnd) addLight(g.X1 - s, g.YR + 0.15, 5.5, 0.75, 2.5 * VZ, '#' + v.lantern.toString(16).padStart(6, '0'));
         addLight(g.door[0], g.door[1], 6, 1, 70, '#ff8040');
       } else {
-        addLight(run.bottomX, g.YR + g.w / 2, 8, 1, 32, '#ff8040');
+        for (const ca of [0, Math.PI / 2, Math.PI]) addLight(g.AX + Math.cos(ca) * g.RT * 0.68, g.AY + Math.sin(ca) * g.RT * 0.68, 7, 1, 80, '#ff9a50');
       }
     },
   };
 
   // ---------------------------------------------------------------- the climb
-  function descend(dt) {
+  function climb(dt) {
     const p = world.player, sH = g.s(p.x);
     if (p.dead) return;
     // packs above drop down as the hero passes beneath them
@@ -242,48 +230,25 @@ export function createTowerRun(world, gen, biome, onSuccess) {
         break;
       }
     }
-    // a pack approaches from the cutaway behind the hero
-    // (each needs a stretch of stair descended since the last: a slow descent isn't buried, and nothing farms them)
-    const descended = p.x - run.startX;
-    if ((run.chargeT -= dt) <= 0 && descended > run.chargeD + 24) {
+    // a pack charges up the stair from behind, out of the cutaway
+    // (each needs a stretch of stair climbed since the last: a slow climb isn't buried, and nothing farms them)
+    if ((run.chargeT -= dt) <= 0 && sH > run.chargeS + 24) {
       run.chargeT = rand(26, 40) * Math.max(0.6, 1 - depth * 0.004);
-      if (descended > 12 && world.hostiles('player', p.x, p.y, 8).length < 6) { chargers(world, tw, biome, lvl, depth, true); run.chargeD = descended; }
+      if (sH > 12 && world.hostiles('player', p.x, p.y, 8).length < 6) { chargers(world, tw, biome, lvl, depth); run.chargeS = sH; }
     }
     // grappling hooks over the railing
-    if ((run.hookT -= dt) <= 0 && descended > run.hookD + 14) {
+    if ((run.hookT -= dt) <= 0 && sH > run.hookS + 14) {
       run.hookT = rand(16, 28) * Math.max(0.6, 1 - depth * 0.004);
-      if (descended > 6 && p.x < g.X1 - 8) {
-        run.hookD = descended;
+      if (sH > 6 && sH < g.sEnd - 8) {
+        run.hookS = sH;
         const n = 1 + (chance(0.5) ? 1 : 0) + (depth > 30 && chance(0.4) ? 1 : 0);
         for (let i = 0; i < n; i++) grapple(world, tw, clamp(p.x + rand(-7, 4), g.X0 + 2, g.X1 - 1), lvl, depth, i * 0.5);
         floatText(p.x, p.y, 90, 'Grappling hooks!', '#ffb060', 14, { life: 1.6 });
         sfx('door', 0.6);
       }
     }
-    if (p.x >= run.bottomX - 4.5 && !p.dead) startBottomBoss();
-  }
-
-  function startBottomBoss() {
-    if (run.phase !== 'descend') return;
-    run.phase = 'boss';
-    const look = world.looks && world.looks.boss(biome.roster), arch = look?.arch || pick(biome.roster);
-    const m = makeMonster(world, arch, biome, lvl + 2, 'boss', g.arenaX, g.arenaY, 0, look?.look);
-    world.add(m); world.boss = run.guardian = m;
-    // Boss AI wakes itself in its normal aggro radius, or combat wakes it when struck. It must
-    // not use the global-hunter behavior, which otherwise pulls it up the entire staircase.
-    m.awake = false; m.hunter = false; m.towerDormant = true;
-    UI.centerMsg(m.name.toUpperCase(), 'Guardian of the Ground-Floor Arena', 3.2);
-    UI.log(`<b style="color:#ffb060">${m.name}</b> waits in the ground-floor arena. Defeat it to open the exit.`, '#ffe2a0');
-    sfx('boss'); area(); UI.refresh();
-  }
-
-  function winDescent() {
-    run.completed = true; run.phase = 'done';
-    world.boss = null; world.raid = null;
-    UI.centerMsg('THE TOWER GUARDIAN FALLS', 'A portal opens at the foot of the steps', 3.5);
-    sfx('gate');
-    if (exit) { exit.x = run.bottomX; exit.y = g.YR + g.w / 2; addEffect(new Column(exit.x, exit.y, '#40a0ff', 1.2, 40, 400)); burst(exit.x, exit.y, 30, 'arcane', 30, 5); }
-    onSuccess(); area(); UI.refresh();
+    // the stairhead
+    if (p.x < g.XT + 2.8 && !p.dead) toRoof();   // through the stairhead door
   }
 
   function toRoof() {
@@ -293,13 +258,12 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     // the stair's drops come up (there's no way back down for them), but its gold goes straight into the purse and the
     // log says where the rest came from: a pile waiting on the roof looked like items left over from an earlier visit
     let gold = 0;
-    const lootList = Array.isArray(world.loot) ? world.loot : [];
-    const loot = lootList.filter((l) => {
+    const loot = world.loot.filter((l) => {
       if (l.x < g.XR) return false;
       if (l.kind === 'gold' && l.amount > 0) { gold += l.amount; return false; }
       return true;
     });
-    world.loot = lootList.filter((l) => l.x < g.XR || loot.includes(l));
+    world.loot = world.loot.filter((l) => l.x < g.XR || loot.includes(l));
     if (gold) { G.char.gold += gold; UI.log(`You gather ${fmtInt(gold)} gold left on the stair.`, '#ffd34a'); }
     const items = loot.filter((l) => l.kind === 'item').length;
     if (items) UI.log(`${items} item${items > 1 ? 's' : ''} you left on the stair ${items > 1 ? 'were' : 'was'} carried up to the roof.`, '#c8b890');
@@ -343,29 +307,20 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     if (!T || p.dead) return;
     T.t += dt;
     T.mobs = T.mobs.filter((m) => !m.dead && world.creatures.includes(m));
-    // nothing on the roof to fight: whatever is on its way hurries (boats, ramps, gangplanks, climbers), so the hero
-    // never stands about waiting for the next foe
-    T.calm = world.creatures.some((m) => m.team === 'enemy' && !m.dead && m.targetable !== false) ? 0 : (T.calm || 0) + dt;
-    T.hurry = T.calm > 0.05;
-    if (T.hurry) for (const s of [...T.ships, ...(T.step === 'ship' ? [T.flag, T.flag2] : [])]) if (s) s.rush = true;
     const busy = T.step.startsWith('wave') || T.step === 'final';
     // events while the fight is on
     if (busy || T.step === 'ship') for (const [k, rate] of Object.entries(sc.ev)) {
       T.ev[k] ??= rand(4, 60 / rate);
       if ((T.ev[k] -= dt) <= 0) { T.ev[k] = (60 / rate) * rand(0.7, 1.3); EVENTS[k]?.(); }
     }
-    if (T.step === 'intro') { if (T.t > 0.1 && !T.mobs.length) next('wave1'); return; }
+    if (T.step === 'intro') { if (T.t > (sc.ambush ? 1 : 3) && !T.mobs.length) next('wave1'); return; }
     if (T.step.startsWith('wave')) {
       const k = +T.step[4];
       if (!T.spawned) { T.spawned = true; spawnWave(k); }
-      // the flagship sets sail once the last wave is on the roof, so it is alongside when the roof is clear
-      if (k === 3 && !T.sailed && T.t > 2.5 && !held(FLAG) && !held(LEFT) && !(sc.second && held(FAR))) sail();
-      // the next wave is called while the last two of this one still stand (on the roof), so it is on its way in time
-      const left = T.mobs.filter((m) => m.waveMob === k);
-      if (T.t > 0.5 && left.length <= 2 && left.every((m) => m.targetable !== false)) { T.spawned = false; next(k < 3 ? 'rest' + (k + 1) : 'ship'); }
+      if (T.t > 2 && !T.mobs.some((m) => m.waveMob)) { T.spawned = false; next(k < 3 ? 'rest' + (k + 1) : 'ship'); }
       return;
     }
-    if (T.step.startsWith('rest')) { T.idle = true; if (T.t > 0.1) next('wave' + T.step[4]); return; }
+    if (T.step.startsWith('rest')) { T.idle = true; if (T.t > 3.5) next('wave' + T.step[4]); return; }
     if (T.step === 'ship') { arrival(dt); return; }
     if (T.step === 'final') {
       if (tw.look && T.final && !T.final.entering) tw.look = null;
@@ -376,8 +331,6 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     if (T.step === 'won' && sc.treasure && !T.barge && T.t > 4) treasure();
   }
   function next(step) { const T = run.top; T.step = step; T.t = 0; T.idle = step.startsWith('rest') || step === 'intro'; area(); }
-  /** A wave's boat still coming in to (or moored at) the dock at angle a. */
-  const held = (a) => run.top.ships.some((s) => (s.state === 'in' || s.state === 'docked') && Math.abs(Math.atan2(Math.sin(s.phi - a), Math.cos(s.phi - a))) < 0.6);
   const area = () => HUD.setArea(`Depth ${depth}`, `${v.name} · ${run.title}`);
 
   // ---- waves
@@ -402,7 +355,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
       else { const arch = pick(world.roster || biome.roster), m = makeMonster(world, arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, 0, 0, 0); world.add(m); list.push(m); }
     }
     if (sc.kegs) for (let i = 0; i < 2 + k; i++) list.push(pirate(0, 0, 'normal', AIR_ART.find((a) => a.id === 'ap_powder_keg_runner')));
-    for (const m of list) { m.waveMob = k; m.awake = true; m.hunter = true; T.mobs.push(m); }
+    for (const m of list) { m.waveMob = true; m.awake = true; m.hunter = true; T.mobs.push(m); }
     arrive(list, how);
   }
   /** Bring monsters onto the roof the way the wave says. */
@@ -464,12 +417,9 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     m.x = g.AX + Math.cos(a) * out; m.y = g.AY + Math.sin(a) * out; m.z = -260; m.alpha = 0; m.targetable = false;
     const rope = { x: hx, y: hy, z: top, m, t: -delay, phase: 'throw', from: [m.x, m.y, -360] };
     tw.ropes.push(rope);
-    let t = -delay, fast = 0;
+    let t = -delay;
     m.entering = (dt) => {
-      // the hero has nothing to fight: the rest of the climb takes half a second (the rope keeps pace)
-      if (!fast && run.top?.hurry) fast = Math.max(1, (2.45 - t) / 0.5);
-      if (fast > 1) rope.t += dt * (fast - 1);
-      t += dt * (fast || 1); m.animT += dt;
+      t += dt; m.animT += dt;
       if (t < 0.7) return;
       m.alpha = undefined; m.moving = true;
       if (t < 2.1) { const k = (t - 0.7) / 1.4; m.z = -260 + (top + 260) * k; rope.phase = 'climb'; }
@@ -492,7 +442,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
     if (!sh) { crew.forEach((m) => { const [x, y] = roofSpot(3, 8); m.x = x; m.y = y; enter(m, 'drop'); }); return; }
     run.top.ships.push(sh);
     crew.forEach((m) => { m.targetable = false; m.alpha = 0; m.x = -50; m.y = -50; m.entering = () => {}; });
-    let t = 0, sent = 0, lastT = -1;   // the first of the crew steps off as soon as the ramp is down
+    let t = 0, sent = 0, lastT = 0;
     const tick = {
       ground: true, draw() {},
       update(dt) {
@@ -505,7 +455,7 @@ export function createTowerRun(world, gen, biome, onSuccess) {
         }
         if (!sh.ready) return true;
         t += dt;
-        if (sent < crew.length && t - lastT > (run.top.hurry ? 0.15 : 0.55)) { walkOff(crew[sent], sh.board(sent % 3, 3), 2.6); sent++; lastT = t; }
+        if (sent < crew.length && t - lastT > 0.55) { walkOff(crew[sent], sh.board(sent % 3, 3), 2.6); sent++; lastT = t; }
         if (sent >= crew.length && t - lastT > 4) { sh.leave(); return false; }
         return true;
       },
@@ -515,16 +465,13 @@ export function createTowerRun(world, gen, biome, onSuccess) {
   /** Walk a monster along a boarding path ([camera-frame x, z, height] points) onto the roof. */
   function walkOff(m, path, speed, done) {
     const pts = path.map(([x, y, h]) => [g.AX + x, g.AY + y, (h - g.roofZ) * VZ]);
-    const seg = (j) => Math.max(0.01, Math.hypot(pts[j + 1][0] - pts[j][0], pts[j + 1][1] - pts[j][1]) + Math.abs(pts[j + 1][2] - pts[j][2]) / VZ);
-    let i = 0, f = 0, fast = 0;
+    let i = 0, f = 0;
     m.alpha = undefined; m.targetable = false; m.awake = true;
     [m.x, m.y, m.z] = pts[0];
     m.entering = (dt) => {
       m.animT += dt; m.moving = true;
-      const a = pts[i], b = pts[i + 1], len = seg(i);
-      // the hero has nothing to fight: the rest of the way takes half a second
-      if (!fast && run.top?.hurry) { let left = len * (1 - f); for (let j = i + 1; j < pts.length - 1; j++) left += seg(j); fast = Math.max(speed, left / 0.5); }
-      f += (fast || speed) * dt / len;
+      const a = pts[i], b = pts[i + 1], len = Math.max(0.01, Math.hypot(b[0] - a[0], b[1] - a[1]) + Math.abs(b[2] - a[2]) / VZ);
+      f += speed * dt / len;
       if (f >= 1) { f = 0; i++; if (i >= pts.length - 1) { [m.x, m.y] = map.nudge(b[0], b[1], 0.4); m.z = 0; m.entering = null; m.targetable = true; m.moving = false; m.cd = rand(0.2, 0.5); if (done) done(); return; } }
       const A = pts[i], Bp = pts[i + 1];
       m.x = A[0] + (Bp[0] - A[0]) * f; m.y = A[1] + (Bp[1] - A[1]) * f; m.z = A[2] + (Bp[2] - A[2]) * f;
@@ -533,20 +480,15 @@ export function createTowerRun(world, gen, biome, onSuccess) {
   }
 
   // ---- the last boss on its airship
-  function sail() {
-    const T = run.top;
-    T.sailed = true;
-    UI.centerMsg('A SAIL ON THE WIND', `${capName(captain)} comes for the tower`, 3.2);
-    sfx('boss');
-    const ship = T.early && T.early.state !== 'gone' ? null : sc.ship;
-    T.flag = ship && airshipsReady() ? spawnShip(ship, FLAG, g, { dur: 8, tint: sc.ghost ? 0x9fd8c0 : null, ghost: sc.ghost }) : T.early;
-    if (sc.second && airshipsReady()) T.flag2 = spawnShip(sc.second, FAR, g, { dur: 9, from: -1 });
-  }
   function arrival(dt) {
     const T = run.top;
-    if (!T.boarding) {
-      T.boarding = true; T.idle = false;
-      if (!T.sailed) sail();
+    if (!T.flag) {
+      T.idle = false;
+      UI.centerMsg('A SAIL ON THE WIND', `${capName(captain)} comes for the tower`, 3.2);
+      sfx('boss');
+      const ship = T.early && T.early.state !== 'gone' ? null : sc.ship;
+      T.flag = ship && airshipsReady() ? spawnShip(ship, FLAG, g, { dur: 8, tint: sc.ghost ? 0x9fd8c0 : null, ghost: sc.ghost }) : T.early;
+      if (sc.second && airshipsReady()) T.flag2 = spawnShip(sc.second, FAR, g, { dur: 9, from: -1 });
       for (let i = 0; i < (sc.escorts || 0); i++) boatIn(pick(['gasbag', 'cutter', 'hauler']), freeDock(), Array.from({ length: 3 }, () => { const m = pirate(0, 0); m.awake = true; m.hunter = true; T.mobs.push(m); return m; }));
       T.wait = 0;
     }
@@ -697,21 +639,18 @@ function dropDown(world, tw, m, delay) {
   };
 }
 /** A pack out of sight behind the hero, already running. */
-function chargers(world, tw, biome, lvl, depth, descending = false) {
+function chargers(world, tw, biome, lvl, depth) {
   const g = tw.g, p = world.player, arch = pick(world.roster || biome.roster), n = 2 + Math.floor(rand(0, 3)) + Math.floor(depth / 40);
-  // Spawn from the cutaway behind the hero: toward the foot when climbing, toward the stairhead when descending.
+  // the nearest stretch of stair behind him that the cutaway hides (none near the foot: then no pack this time)
   let x = null;
-  for (let k = 12; k <= 34 && x == null; k += 2) {
-    const q = p.x + (descending ? -k : k), withinStair = q > g.XT + 1 && q < g.XB - 1.5;
-    if (withinStair && tw.raw(q, g.YR + g.w / 2, [0, 0], true)[0] > 1e6 && tw.raw(q + (descending ? -2.5 : 2.5), g.YR + 1, [0, 0], true)[0] > 1e6) x = q;
-  }
+  for (let k = 12; k <= 34 && x == null; k += 2) { const q = p.x + k; if (q < g.XB - 1.5 && tw.raw(q, g.YR + g.w / 2, [0, 0], true)[0] > 1e6 && tw.raw(q + 2.5, g.YR + 1, [0, 0], true)[0] > 1e6) x = q; }
   if (x == null) return;
   for (let i = 0; i < n; i++) {
     const y = g.YR + rand(0.8, g.w - 0.8), rank = i === 0 && chance(0.25) ? 'champion' : 'normal';
     const m = makeMonster(world, arch, biome, lvl + (rank === 'normal' ? 0 : 1), rank, x + rand(0, 2.5), y, 0);
     world.add(m); m.awake = true; m.hunter = true;
   }
-  floatText(p.x, p.y, 90, descending ? 'Footsteps above!' : 'Footsteps on the stair behind!', '#ff9060', 13, { life: 1.8 });
+  floatText(p.x, p.y, 90, 'Footsteps on the stair behind!', '#ff9060', 13, { life: 1.8 });
   sfx('roar', 0.45);
 }
 /** A grappling hook flies up out of the well onto the railing; an Air Pirate climbs the rope and vaults over. */
@@ -829,42 +768,33 @@ class Strike {
 // ------------------------------------------------------------------ minimap: the tower from above
 function minimap(world, tw, c, W, H, big, terrainOpacity = 1) {
   const g = tw.g, p = world.player, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.42, k = R / (g.rWall + 2);
-  const dotStair = (x, y, col, r) => { const a = -Math.PI / 2 + ((g.s(x) / g.C) % 1) * TAU, q = (x >= g.X1 ? g.landingRadius(x, y) : g.r(y)) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
-  const dotArena = (x, y, col, r) => {
-    const [wx, wy] = g.arenaPoint(x, y);
-    c.fillStyle = col; c.beginPath(); c.arc(cx + wx * k, cy - wy * k, r, 0, TAU); c.fill();
-  };
+  const a0 = -Math.PI / 2; let turns = 0;
   c.save(); c.globalAlpha = terrainOpacity;
-  if (!tw.roof) { c.fillStyle = 'rgba(150,145,132,0.16)'; c.beginPath(); c.arc(cx, cy, g.arenaWalkR * k, 0, TAU); c.fill(); }
   c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2;
   c.beginPath(); c.arc(cx, cy, g.rWall * k, 0, TAU); c.stroke();
   if (!tw.roof) {
     c.beginPath(); c.arc(cx, cy, g.rIn * k, 0, TAU); c.stroke();
-    const run = world.overworldScenario, progress = run?.altitude ?? 0, turns = progress / 100 * g.v.turns;
+    // the stair climbed so far, as an arc that wraps once per turn
+    const s = clamp(g.s(p.x), 0, g.sEnd); turns = s / g.C;
     c.strokeStyle = 'rgba(255,200,110,0.8)'; c.lineWidth = (g.w * k) * 0.5;
-    const a0 = -Math.PI / 2, rr = g.rc * k;
-    c.beginPath(); c.arc(cx, cy, rr, a0, a0 - (turns % 1) * TAU, true); c.stroke();
+    const rr = g.rc * k;
+    c.beginPath(); c.arc(cx, cy, rr, a0, a0 + (turns % 1) * TAU); c.stroke();
   }
   c.restore();
   if (!tw.roof) {
-    // Show the current turn along the descending stair above the translucent terrain and wall layer.
-    const run = world.overworldScenario, progress = run?.altitude ?? 0, turns = progress / 100 * g.v.turns;
     c.fillStyle = '#ffe2a0'; c.font = `${big ? 20 : 11}px Cinzel, Georgia, serif`; c.textAlign = 'center';
     c.fillText(`Turn ${Math.min(Math.floor(turns) + 1, Math.ceil(g.v.turns))}/${Math.ceil(g.v.turns)}`, cx, cy + 4);
+    const dot = (x, y, col, r) => { const a = a0 + ((g.s(x) / g.C) % 1) * TAU, q = g.r(y) * k; c.fillStyle = col; c.beginPath(); c.arc(cx + Math.cos(a) * q, cy + Math.sin(a) * q, r, 0, TAU); c.fill(); };
     for (const m of world.creatures) {
-      if (m.dead || m === p || m.clutter) continue;
-      if (m.x >= g.arenaStart) { if (m === world.boss) dotArena(m.x, m.y, '#ff4020', big ? 6 : 4); continue; }
-      if (m.x < g.XR || Math.abs(g.s(m.x) - g.s(p.x)) > 30) continue;
-      dotStair(m.x, m.y, m.team === 'enemy' ? (m.rank !== 'normal' ? '#ffb040' : '#ff3030') : '#40ff60', 2);
+      if (m.dead || m === p || m.x < g.XR || Math.abs(g.s(m.x) - s) > 30) continue;
+      dot(m.x, m.y, m.team === 'enemy' ? (m.rank !== 'normal' ? '#ffb040' : '#ff3030') : '#40ff60', 2);
     }
-    c.strokeStyle = 'rgba(200,180,140,0.55)'; c.lineWidth = big ? 3 : 2; c.beginPath(); c.arc(cx, cy, g.arenaWalkR * k, 0, TAU); c.stroke();
-    dotArena(g.arenaX, g.arenaY, world.boss && !world.boss.dead ? '#ff4020' : '#ff8040', big ? 6 : 3.5);
-    if (p.x >= g.arenaStart) dotArena(p.x, p.y, '#ffffff', big ? 5 : 3.2);
-    else dotStair(p.x, p.y, '#ffffff', big ? 5 : 3.2);
+    dot(g.door[0], g.door[1], '#ff8040', big ? 6 : 3.5);
+    dot(p.x, p.y, '#ffffff', big ? 5 : 3.2);
     return;
   }
   const dot = (x, y, col, r) => { const dx = x - g.AX, dy = y - g.AY; c.fillStyle = col; c.beginPath(); c.arc(cx + (dx - dy) * k * 0.72, cy + (dx + dy) * k * 0.36, r, 0, TAU); c.fill(); };
   for (const po of world.portals) if (po.x < g.XR && po.x > 0) dot(po.x, po.y, po.active ? po.color : '#888', big ? 6 : 4);
-  for (const m of world.creatures) if (!m.dead && m !== p && !m.clutter && m.x < g.XR && m.x > -30) dot(m.x, m.y, m.team === 'enemy' ? (m.rank === 'boss' ? '#ff8000' : '#ff3030') : '#40ff60', m.rank === 'boss' ? 4 : 2);
+  for (const m of world.creatures) if (!m.dead && m !== p && m.x < g.XR && m.x > -30) dot(m.x, m.y, m.team === 'enemy' ? (m.rank === 'boss' ? '#ff8000' : '#ff3030') : '#40ff60', m.rank === 'boss' ? 4 : 2);
   dot(p.x, p.y, '#ffffff', big ? 5 : 3.2);
 }
