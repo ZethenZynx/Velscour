@@ -10,7 +10,7 @@ globalThis.fetch=async()=>({ok:true,json:async()=>pack});
 globalThis.Image=class { set src(_) { queueMicrotask(()=>this.onload?.()); } };
 const {loadSeaOfSandPack,seaOfSandFrames}=await import(pathToFileURL(path.join(root,'src/gfx/seaofsand.js')));
 const {BIOME_BY_ID}=await import(pathToFileURL(path.join(root,'src/data/biomes.js')));
-const {generateOverworld}=await import(pathToFileURL(path.join(root,'src/world/overworld.js')));
+const {generateOverworld,SEA_OF_SAND_OBJECTIVE_COUNT}=await import(pathToFileURL(path.join(root,'src/world/overworld.js')));
 const {SAND_SCATTER,SAND_TREES,SAND_CREATURES,SAND_BOSSES}=await import(pathToFileURL(path.join(root,'src/data/seaofsand.js')));
 const {rollSandScenarioRewards}=await import(pathToFileURL(path.join(root,'src/game/sandrewards.js')));
 await loadSeaOfSandPack();
@@ -25,10 +25,13 @@ if(second.items.length!==1||second.items[0].rarity!==3||second.items[0].slot!=='
 if(last.items.length!==2||last.items[0].rarity!==4||last.items[1].rarity!==5||Math.abs(last.mythicChance-.1)>1e-9)throw Error('five-beat reward roll mismatch');
 if(plain.items.length!==1||plain.items[0].rarity!==3)throw Error('five-beat plain reward mismatch');
 if(early.items.length!==1||early.items[0].rarity!==2||early.mythicChance!==0)throw Error('item level 10 reward should step down to a Rare, no Mythic');
-const biome=BIOME_BY_ID.sea_of_sand,counts=new Set(),routeShapes=new Set();let minCliffs=Infinity,minFree=Infinity;
+const biome=BIOME_BY_ID.sea_of_sand,counts=new Set(),scenarioIds=new Set(),routeShapes=new Set();let minCliffs=Infinity,minFree=Infinity;
+if(SEA_OF_SAND_OBJECTIVE_COUNT!==3)throw Error(`Sea of Sand objective count constant must be 3, got ${SEA_OF_SAND_OBJECTIVE_COUNT}`);
 for(let n=1;n<=100;n++){
   const gen=generateOverworld(13,biome,n*32+1),m=gen.map,I=(x,y)=>y*m.w+x;
   counts.add(gen.scenarioCount);
+  scenarioIds.add(gen.scenarioId);
+  if(gen.scenarioCount!==3||gen.scenarioSites.length!==3)throw Error(`seed ${n} generated ${gen.scenarioCount} required objectives`);
   if(n<=12)routeShapes.add(Array.from(m.v,(v,i)=>v===15?i:null).filter(i=>i!==null).join(','));
   minCliffs=Math.min(minCliffs,gen.props.filter(p=>p.spr.cliff).length);
   minFree=Math.min(minFree,m.block.reduce((sum,v)=>sum+!v,0));
@@ -36,7 +39,14 @@ for(let n=1;n<=100;n++){
   for(let a=0;a<q.length;a++){const i=q[a],x=i%m.w,y=(i/m.w)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,j=I(nx,ny);if(m.walkableTile(nx,ny)&&!seen[j]){seen[j]=1;q.push(j);}}}
   for(const [x,y] of [gen.exit,...gen.scenarioSites])if(!seen[I(Math.floor(x),Math.floor(y))])throw Error(`unreachable seed ${n} at ${x},${y}`);
 }
-if(counts.size!==5)throw Error('expected every one-to-five scenario area count');
+if(counts.size!==1||!counts.has(3))throw Error(`expected exactly three scenario areas for every seed, got ${[...counts]}`);
+if(scenarioIds.size<2)throw Error('repeated visits should vary the selected scenario objectives');
 if(minCliffs<100)throw Error(`cliff maze too sparse (${minCliffs})`);
 if(minFree<1800)throw Error(`not enough open combat area (${minFree})`);
-console.log('Sea of Sand generation OK',JSON.stringify({seeds:100,areaCounts:[...counts].sort(),minCliffs,minFree,frames:expected}));
+const {G}=await import(pathToFileURL(path.join(root,'src/state.js')));
+const {createSeaOfSandScenario}=await import(pathToFileURL(path.join(root,'src/game/seaofsand.js')));
+G.char={seaOfSandRuns:{'13':{seed:1,completed:2,rewarded:2}}};
+const resumeGen=generateOverworld(13,biome,0x71c03),resumeWorld={depth:13,biome,map:resumeGen.map,player:null,portals:[],props:[],npcs:[],chests:[],creatures:[],add(){},addLoot(){}};
+const resumed=createSeaOfSandScenario(resumeWorld,resumeGen,biome);
+if(resumed.total!==3||resumed.beat!==2||resumed.phase!=='areas')throw Error(`an existing two-area save must resume at the third of three (${resumed.beat}/${resumed.total}, ${resumed.phase})`);
+console.log('Sea of Sand generation OK',JSON.stringify({seeds:100,requiredObjectives:SEA_OF_SAND_OBJECTIVE_COUNT,areaCounts:[...counts].sort(),scenarioVariants:scenarioIds.size,resumedVisit:`${resumed.beat+1}/${resumed.total}`,minCliffs,minFree,frames:expected}));

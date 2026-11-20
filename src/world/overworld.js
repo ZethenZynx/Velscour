@@ -267,10 +267,11 @@ export function generateOverworld(depth,biome,seed,variant=null) {
 }
 
 
+export const SEA_OF_SAND_OBJECTIVE_COUNT = 3;
 function generateSeaOfSand(depth,biome,seed) {
   if (!seaOfSandFloorTiles().length) throw new Error('Sea of Sand art must load before generating its overworld.');
   const rng=new RNG(seed),map=new TileMap(W,H),floors=seaOfSandFloorTiles(),props=[];
-  const scenarioCount=1+((seed>>>5)%5),scenarioSites=SAND_SITES.slice(0,scenarioCount);
+  const scenarioCount=SEA_OF_SAND_OBJECTIVE_COUNT,scenarioSites=SAND_SITES.slice(0,scenarioCount);
   map.t.fill(1);map.losBlocks=true;
   const I=(x,y)=>y*W+x,dist=(x,y,p)=>Math.hypot(x-p[0],y-p[1]);
   const links=[[ENTRY,SAND_SITES[0]],[SAND_SITES[0],SAND_SITES[4]],[SAND_SITES[4],SAND_SITES[1]],

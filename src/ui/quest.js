@@ -29,7 +29,7 @@ export function renderQuest(body) {
     if (c.depth === FINAL_DEPTH) h += step(false, '<b style="color:#ff4020">Demon Lord Velscour</b> waits on his throne.');
     else if (isRaidDepth(c.depth) && !b?.overworld) h += step(false, '<b style="color:#ff6030">A BOSS ROOM</b> lies at the end of this depth.');
     if (regionOf(b)) h += step(false, regionOf(b).townLine);
-    else if (b?.id === 'sea_of_sand') h += step(false, 'A linked Sea of Sand route with one to five timed scenario areas lies beyond.');
+    else if (b?.id === 'sea_of_sand') h += step(false, 'A linked Sea of Sand route with three timed scenario areas lies beyond.');
     else if (b?.id === 'skyship') h += step(false, "The Sky Lanes lie beyond: the Air Pirates board the heroes' airship in waves, then their flagship comes.");
     else if (b?.sea) h += step(false, "The Pirate Seas lie beyond: the Black Tide's boats come up from astern to board the Lampwardens' Dawnwake, wave on wave.");
     else if (b?.id === 'dark_forest') h += step(false, 'The Dark Forest lies beyond: cross the open woods, defeat the Forest Guardian, and take the portal it leaves behind.');

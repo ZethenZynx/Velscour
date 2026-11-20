@@ -1,4 +1,4 @@
-// A Sea of Sand run chains one to five ordinary overworld scenarios through a
+// A Sea of Sand run chains three ordinary overworld scenarios through a
 // single cliff maze. The established scenario engines still own each beat.
 import { createOverworldScenario, WILD_SCENARIOS, wildScenario } from './overworld.js';
 import { makeMonster } from './monster.js';

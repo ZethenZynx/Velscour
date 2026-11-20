@@ -1,5 +1,10 @@
 # VELSCOUR: hand-off notes
 
+## November 20, 2026 - fixed Sea of Sand objective count
+- Sea of Sand now always generates exactly three required scenario areas. The existing seeded scenario selection still varies objective types between visits; the route HUD, quest tracker, and final guardian progression use the generated site count.
+- The generation regression test checks 100 seeds for exactly three reachable sites, scenario variety, map connectivity, and resuming an in-progress visit at area 3 of 3. Existing completed/rewarded progress is capped by the route's new total, without changing character save data or reward mechanics.
+- `node tools/tests/sea_of_sand_generation.mjs`, `node tools/tests/data_check.mjs`, syntax checks, and `git diff --check` pass. The in-browser `tools/tests/sea_of_sand.js` was updated but not run in this session.
+
 ## November 19, 2026 - unified dungeon NPC encounters and depth quests
 - Combined the existing captive, knight, peddler, wizard, witch and Greener encounters with sixteen new NPC types under the existing 50% optional encounter roll. The pool selects Common/Uncommon/Rare at 60/30/10, avoids repeating the last kind where possible, and permits at most one optional NPC encounter per depth.
 - Captive/escort scenario NPCs share the same per-character biome/depth claim. Rebuilding a claimed depth skips the random encounter and selects a different scenario instead of recreating an NPC quest. Old saves receive a normalized `npcEncounterDepths` map; no character data is reset.
