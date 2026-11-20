@@ -1,6 +1,7 @@
 // Headless browser integration test for the title release updater. No Playwright dependency.
 // Usage: node tools/tests/fork_release_browser.mjs [path-to-Edge-or-Chromium]
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -67,7 +68,7 @@ function fakeFetchScript(mode, release) {
   return `(() => {
     window.VELSCOUR_TEST_MENU = true;
     window.__forkUpdaterBrowserErrors = [];
-    window.__githubRequests = { commits: 0, releases: 0 };
+    window.__githubRequests = { commits: 0, manifests: 0 };
     window.addEventListener('error', (event) => { if (event.error) window.__forkUpdaterBrowserErrors.push(String(event.error.stack || event.error)); });
     window.addEventListener('unhandledrejection', (event) => window.__forkUpdaterBrowserErrors.push(String(event.reason?.stack || event.reason)));
     const originalFetch = window.fetch.bind(window);
@@ -84,12 +85,12 @@ function fakeFetchScript(mode, release) {
           commit: { author: { name: 'Velscour Test', date: update ? '2026-11-19T12:00:00Z' : '2026-11-17T12:00:00Z' }, message: update ? 'Fix main branch update notification\\n\\nReport changes committed directly to the Velscour PC main branch.' : 'Align altar collision with marked base point\\n\\nMove the altar collision from the front of the floor seal to the lower-center stone base.' }
         }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
-      if (url === 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases?per_page=10') {
-        window.__githubRequests.releases++;
+      if (url.startsWith('https://zethenzynx.github.io/Velscour-PC/version.json?')) {
+        window.__githubRequests.manifests++;
         if (${JSON.stringify(mode)} === 'offline') return Promise.resolve(new Response('unavailable', { status: 503 }));
-        return Promise.resolve(new Response(${JSON.stringify(mode)} === 'no-release' ? '[]' : JSON.stringify([${payload}]), {
+        return Promise.resolve(new Response(JSON.stringify(${payload}), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=3600' }
         }));
       }
       return originalFetch(input, options);
@@ -111,17 +112,18 @@ async function reload(mode, release) {
   await waitFor("document.querySelector('.title-screen') && [...document.querySelectorAll('.title-menu button')].some(button => button.textContent.includes('Check for Updates'))");
 }
 
-const sha = 'a'.repeat(64);
+const fixtureBytes = Buffer.from('A verified Velscour PC update package fixture.');
+const sha = crypto.createHash('sha256').update(fixtureBytes).digest('hex');
 const buildRelease = (version) => ({
-  tag_name: `v${version}`,
-  name: `Velscour PC ${version}`,
-  body: 'A fork-only test release with readable update notes.',
-  html_url: `https://github.com/ZethenZynx/Velscour-PC/releases/tag/v${version}`,
-  published_at: '2026-11-18T00:00:00Z',
-  assets: [
-    { name: `velscour-pc-v${version}.zip`, size: 8192, digest: `sha256:${sha}`, browser_download_url: `https://github.com/ZethenZynx/Velscour-PC/releases/download/v${version}/velscour-pc-v${version}.zip` },
-    { name: `velscour-pc-v${version}.zip.sha256`, browser_download_url: `https://github.com/ZethenZynx/Velscour-PC/releases/download/v${version}/velscour-pc-v${version}.zip.sha256` },
-  ],
+  schema: 1,
+  version,
+  buildId: 'a'.repeat(40),
+  downloadUrl: version === '0.0.0-dev' ? null : `https://github.com/ZethenZynx/Velscour-PC/releases/download/v${version}/velscour-pc-v${version}.zip`,
+  sha256: version === '0.0.0-dev' ? null : sha,
+  packageSize: version === '0.0.0-dev' ? null : fixtureBytes.length,
+  checksumUrl: version === '0.0.0-dev' ? null : `https://github.com/ZethenZynx/Velscour-PC/releases/download/v${version}/velscour-pc-v${version}.zip.sha256`,
+  releaseNotesUrl: `https://github.com/ZethenZynx/Velscour-PC/releases/tag/v${version}`,
+  publishedAt: '2026-11-18T00:00:00Z',
 });
 
 try {
@@ -174,7 +176,7 @@ try {
   await evaluate("[...document.querySelectorAll('.title-menu button')].find(button => button.textContent.includes('Check for Updates')).click()");
   await waitFor("document.querySelector('.dialog-box')?.textContent.includes('No New Game Update Found')");
   assert.ok(await evaluate('window.__githubRequests.commits') >= 2, 'manual title check requests the main-branch commit feed');
-  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'manual title check does not query the release endpoint');
+  assert.equal(await evaluate('window.__githubRequests.manifests'), 1, 'manual title check does not query another manifest during the cache window');
   console.log('PASS: Title screen hides the release button when current and manual checking reports up to date.');
   await evaluate("document.querySelector('.dialog-box button')?.click()");
   await evaluate("import('/src/ui/screens.js').then(module => module.titleScreen())");
@@ -207,20 +209,28 @@ try {
   await evaluate("document.querySelector('.fork-update-btn').click()");
   await waitFor("document.querySelector('.fork-update-dialog')?.textContent.includes('Download Update ZIP')");
   const updateDialog = await evaluate("({ text: document.querySelector('.fork-update-dialog').textContent, href: document.querySelector('.fork-update-download').href, checksum: document.querySelector('.fork-update-hash code').textContent })");
-  assert.match(updateDialog.text, /Installed:\s*Development build \(0\.0\.0-dev\)/);
+  assert.match(updateDialog.text, /Installed:\s*0\.0\.0-dev/);
   assert.match(updateDialog.text, /Available:\s*0\.2\.0/);
   assert.match(updateDialog.href, /^https:\/\/github\.com\/ZethenZynx\/Velscour-PC\/releases\/download\//);
   assert.equal(updateDialog.checksum, sha);
-  console.log('PASS: New fork release reveals the title button and opens verified release details and fork-only ZIP link.');
+  const verifyLocalFile = async (bytes) => evaluate("(()=>{const input=document.querySelector('.fork-update-file-input'), transfer=new DataTransfer(); transfer.items.add(new File([new Uint8Array(" + JSON.stringify(bytes) + ")], 'velscour-update.zip', {type:'application/zip'})); input.files=transfer.files; input.dispatchEvent(new Event('change',{bubbles:true})); return true;})()");
+  await verifyLocalFile([...fixtureBytes]);
+  await waitFor("document.querySelector('.fork-update-verify-status')?.classList.contains('verified')");
+  assert.match(await evaluate("document.querySelector('.fork-update-verify-status').textContent"), /safe to extract/i);
+  await verifyLocalFile([...fixtureBytes].map((byte, i) => i === 0 ? byte ^ 1 : byte));
+  await waitFor("document.querySelector('.fork-update-verify-status')?.classList.contains('verification-failed')");
+  assert.match(await evaluate("document.querySelector('.fork-update-verify-status').textContent"), /Do not extract/i);
+  assert.equal(await evaluate('window.__githubRequests.manifests'), 1, 'the updater does not query the GitHub API');
+  console.log('PASS: Static fork manifest offers a direct package link and only a verified local ZIP is approved for extraction.');
 
   await reload('no-release', buildRelease('0.0.0-dev'));
   await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");
   assert.equal(await evaluate("document.querySelector('.fork-update-btn').classList.contains('hidden')"), true, 'empty release list keeps the update notice hidden');
-  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'a repository with no releases returns one successful empty-list request');
+  assert.equal(await evaluate('window.__githubRequests.manifests'), 1, 'the current manifest is fetched once');
   await evaluate("import('/src/ui/screens.js').then(module => module.titleScreen())");
   await waitFor("document.querySelectorAll('.title-changes').length === 1");
-  assert.equal(await evaluate('window.__githubRequests.releases'), 1, 'reopening title screen reuses the cached no-release result');
-  console.log('PASS: No published releases use a cached HTTP 200 empty-list result without a 404 or false update notice.');
+  assert.equal(await evaluate('window.__githubRequests.manifests'), 1, 'reopening title screen reuses the cached current-version result');
+  console.log('PASS: A current static manifest hides the update notice without release/API lookups.');
 
   await reload('offline', buildRelease('0.0.0-dev'));
   await waitFor("document.querySelector('.title-changes .recent-change-entry strong')?.textContent === 'Align altar collision with marked base point'");

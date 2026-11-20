@@ -7,6 +7,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
+
+concurrency:
+  group: publish-pc-release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   package-and-publish:
@@ -20,6 +25,7 @@ jobs:
       - name: Package the tagged PC game
         env:
           RELEASE_TAG: ${{ github.ref_name }}
+          BUILD_ID: ${{ github.sha }}
         run: |
           set -euo pipefail
           stage="$RUNNER_TEMP/velscour-pc-release"
@@ -30,8 +36,12 @@ jobs:
           const file = process.argv[2];
           const version = process.env.VERSION;
           const source = fs.readFileSync(file, 'utf8');
-          const updated = source.replace(/GAME_VERSION\s*=\s*'[^']*'/, `GAME_VERSION = '${version}'`);
+          const buildId = process.env.BUILD_ID;
+          const updated = source
+            .replace(/GAME_VERSION\s*=\s*'[^']*'/, `GAME_VERSION = '${version}'`)
+            .replace(/GAME_BUILD_ID\s*=\s*'[^']*'/, `GAME_BUILD_ID = '${buildId}'`);
           if (updated === source) throw new Error('Could not stamp the release version');
+          if (updated.includes("GAME_BUILD_ID = 'development'")) throw new Error('Could not stamp the release build identifier');
           fs.writeFileSync(file, updated);
           NODE
           archive="velscour-pc-${RELEASE_TAG}.zip"
@@ -51,3 +61,30 @@ jobs:
             --title "Velscour PC ${RELEASE_TAG#v}" \
             --verify-tag \
             --generate-notes
+
+      - name: Publish the static Pages version manifest
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          BUILD_ID: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="velscour-pc-${RELEASE_TAG}.zip"
+          sha256="$(awk '{print $1}' "${archive}.sha256")"
+          size="$(stat -c '%s' "$archive")"
+          version="${RELEASE_TAG#v}"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          git fetch origin main
+          git checkout -B publish-version-manifest origin/main
+          node tools/write_version_manifest.mjs version.json "$version" "$BUILD_ID" \
+            "${base}/${archive}" "$sha256" "$size" "${base}/${archive}.sha256"
+          git add version.json
+          if git diff --cached --quiet; then
+            echo "The manifest already lists this version or a newer one."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Publish Velscour PC version ${version}"
+          git push origin HEAD:main
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"

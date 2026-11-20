@@ -1,10 +1,9 @@
-// Unlike `/releases/latest`, the list endpoint returns HTTP 200 with [] when this fork
-// has no published release, avoiding a predictable 404 on every fresh browser session.
-export const FORK_RELEASES_API = 'https://api.github.com/repos/ZethenZynx/Velscour-PC/releases?per_page=10';
+// The updater reads one cache-busted static manifest from this fork's GitHub Pages site.
+export const FORK_VERSION_MANIFEST_URL = 'https://zethenzynx.github.io/Velscour-PC/version.json';
 export const FORK_RELEASE_REPOSITORY = 'ZethenZynx/Velscour-PC';
 
-const RELEASE_PAGE_PREFIX = 'https://github.com/ZethenZynx/Velscour-PC/releases/';
-const DOWNLOAD_PREFIX = 'https://github.com/ZethenZynx/Velscour-PC/releases/download/';
+const RELEASE_DOWNLOAD_PREFIX = 'https://github.com/ZethenZynx/Velscour-PC/releases/download/';
+const SEMVER = /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/;
 
 export function compareVersions(left, right) {
   const parse = (value) => {
@@ -21,47 +20,47 @@ export function compareVersions(left, right) {
   return a.prerelease.localeCompare(b.prerelease, undefined, { numeric: true });
 }
 
-/** Accept only a published release and package hosted by this fork. */
-export function normalizeForkRelease(release) {
-  if (!release || release.draft || release.prerelease) return null;
-  const tag = String(release.tag_name || '').trim();
-  const version = tag.replace(/^v/i, '');
-  if (compareVersions(version, version) !== 0 || !/^v?\d+\.\d+\.\d+(?:-[\w.-]+)?$/i.test(tag)) return null;
-  if (release.html_url && (!String(release.html_url).startsWith(RELEASE_PAGE_PREFIX) || new URL(release.html_url).host !== 'github.com')) return null;
-  const assets = Array.isArray(release.assets) ? release.assets : [];
-  const archive = assets.find((asset) => {
-    if (!/\.zip$/i.test(String(asset?.name || ''))) return false;
-    const url = String(asset.browser_download_url || '');
-    return url.startsWith(DOWNLOAD_PREFIX) && new URL(url).host === 'github.com';
-  });
-  if (!archive) return null;
-  const digest = String(archive.digest || '').match(/^sha256:([a-f0-9]{64})$/i)?.[1]?.toLowerCase() || '';
-  if (!digest) return null;
-  const checksum = assets.find((asset) => {
-    const url = String(asset?.browser_download_url || '');
-    return String(asset?.name || '').toLowerCase() === `${archive.name}.sha256`.toLowerCase()
-      && url.startsWith(DOWNLOAD_PREFIX) && new URL(url).host === 'github.com';
-  });
-  return {
-    version,
-    tag,
-    name: String(release.name || `Velscour PC ${version}`),
-    body: String(release.body || ''),
-    publishedAt: String(release.published_at || ''),
-    pageUrl: release.html_url || `${RELEASE_PAGE_PREFIX}tag/${encodeURIComponent(tag)}`,
-    archive: {
-      name: String(archive.name),
-      url: String(archive.browser_download_url),
-      size: Number(archive.size) || 0,
-      sha256: digest,
-    },
-    checksumUrl: checksum ? String(checksum.browser_download_url) : '',
+/** Accept only the schema and release-package URLs published by this PC fork. */
+export function normalizeForkManifest(value) {
+  if (!value || value.schema !== 1 || !SEMVER.test(String(value.version || ''))) return null;
+  const buildId = String(value.buildId || '').trim();
+  if (!buildId || buildId.length > 100) return null;
+  const manifest = {
+    version: String(value.version),
+    buildId,
+    downloadUrl: null,
+    sha256: null,
+    packageSize: Number.isSafeInteger(value.packageSize) && value.packageSize > 0 ? value.packageSize : 0,
+    checksumUrl: '',
+    releaseNotesUrl: '',
+    publishedAt: String(value.publishedAt || ''),
   };
+  if (value.downloadUrl == null || value.downloadUrl === '') return manifest;
+
+  try {
+    const url = new URL(String(value.downloadUrl));
+    const tag = `v${manifest.version}`;
+    if (url.protocol !== 'https:' || url.host !== 'github.com' || !url.href.startsWith(RELEASE_DOWNLOAD_PREFIX)) return null;
+    if (url.pathname.split('/')[5] !== tag || !/\.zip$/i.test(url.pathname)) return null;
+    const sha256 = String(value.sha256 || '').toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(sha256) || !manifest.packageSize) return null;
+    manifest.downloadUrl = url.href;
+    manifest.sha256 = sha256;
+    const checksumUrl = new URL(String(value.checksumUrl || ''));
+    if (checksumUrl.protocol !== 'https:' || checksumUrl.host !== 'github.com' || !checksumUrl.href.startsWith(RELEASE_DOWNLOAD_PREFIX)
+      || checksumUrl.pathname.split('/')[5] !== tag || !checksumUrl.pathname.endsWith('.zip.sha256')) return null;
+    manifest.checksumUrl = checksumUrl.href;
+    const notesUrl = new URL(String(value.releaseNotesUrl || ''));
+    if (notesUrl.protocol !== 'https:' || notesUrl.host !== 'github.com' || !notesUrl.pathname.startsWith('/ZethenZynx/Velscour-PC/releases/')) return null;
+    manifest.releaseNotesUrl = notesUrl.href;
+  } catch (_) { return null; }
+  return manifest;
 }
 
-export function getReleaseUpdateState(release, installedVersion) {
-  if (!release) return { available: false, invalid: true };
-  const normalized = normalizeForkRelease(release);
-  if (!normalized) return { available: false, invalid: true };
-  return { ...normalized, available: compareVersions(normalized.version, installedVersion) > 0 };
+export function getReleaseUpdateState(manifestValue, installedVersion) {
+  const manifest = normalizeForkManifest(manifestValue);
+  if (!manifest) return { available: false, invalid: true };
+  const available = compareVersions(manifest.version, installedVersion) > 0;
+  if (available && (!manifest.downloadUrl || !manifest.sha256 || !manifest.packageSize)) return { ...manifest, available: false, invalid: true };
+  return { ...manifest, available };
 }
