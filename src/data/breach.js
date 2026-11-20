@@ -29,6 +29,28 @@ export const BREACH_CARRIERS = BREACH_ART.filter((a) => a.fly && a.h >= 54).map(
 
 export const MAX_BREACH_FLOOR = 50;
 
+/** Number of required non-Heart shrine objectives on an Eternal Breach floor. */
+export const breachObjectiveCount = (floor) => Math.min(5, Math.floor((Math.max(1, Number(floor) || 1) - 1) / 5) + 1);
+
+/**
+ * Island mix keeps one small starting island and one large Heart. The remaining islands
+ * scale with the objective count; medium islands carry scenario objectives and additional
+ * large islands carry boss objectives.
+ */
+export function breachIslandPlan(floor) {
+  const objectives = breachObjectiveCount(floor);
+  const bossObjectives = Math.floor((objectives - 1) / 2);
+  return {
+    objectives,
+    small: objectives,
+    medium: objectives - bossObjectives,
+    large: bossObjectives + 1,
+  };
+}
+
+/** The island placement area grows with the floor's objective count. */
+export const breachMapSpan = (floor) => 72 + (breachObjectiveCount(floor) - 1) * 10;
+
 /** Floor n of the Breach is as hard as standard depth 10n (capped at Depth 500). */
 export const breachDepth = (floor) => Math.min(MAX_BREACH_FLOOR * 10, Math.max(1, floor) * 10);
 

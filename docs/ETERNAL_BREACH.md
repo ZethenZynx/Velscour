@@ -4,7 +4,7 @@ A broken world floating in a violet void, entered through campaign milestones be
 its own monsters and bosses (none from the standard biomes), floors and rewards; it never enters a biome bag, the
 overworld guarantee or Velscour's teleport list, and dying there costs no Defiance and leaves the descent (`c.depth`) alone.
 
-Tests: `node tools/tests/breach_gen.mjs [seeds] [floor]` (no browser),
+Tests: `node tools/tests/breach_gen.mjs [seeds-per-tier] [floors,comma,separated]` (no browser),
 `node tools/tests/breach_progression.mjs` (campaign gate schedule),
 `node tools/tests/breach.js [town,progression,play,arrive,shots,rules] [floor]` and `node tools/tests/breach_dragon.js` (the wyrm).
 
@@ -26,11 +26,17 @@ Tests: `node tools/tests/breach_gen.mjs [seeds] [floor]` (no browser),
 - `c.breach = { best, cleared: {floor: times}, deaths, floor }` on the save (`migrate` adds it).
 
 ## The floor (`world/breach.js`)
-- **16 islands**: 3 large (r 10-12.5 tiles), 5 medium (6.5-8), 8 small (3.6-5), each a wobbly blob, thrown into a
-  118-tile square (each new one within 9 tiles of another) and cropped (maps come out ~118 x 118).
-- **Walkways**: a spanning tree over the islands (shortest gaps first) plus 4-6 loops, so there is more than one way
-  round. Each is a 2-tile path with a slight bend, climbing at most ~2.2 levels a tile; one that would cross another
-  island or walkway is dropped (a tree one retries the seed).
+- **Progressive size and objectives** (`breachObjectiveCount`, `breachIslandPlan`, `breachMapSpan` in `data/breach.js`):
+  floors 1-5 require 1 shrine objective, 6-10 require 2, 11-15 require 3, 16-20 require 4, and 21+ require 5.
+  The Heart is the final boss and does not count toward that number. Floors use 3, 5, 7, 9, or 11 islands
+  respectively. Each plan has one small island per objective count (one is the start), one large Heart plus up to two
+  large boss-objective islands, and medium scenario-objective islands for the remaining shrines. The placement span
+  grows from 72 to 112 tiles in ten-tile steps and maps are cropped to the generated islands.
+- **Walkways**: a spanning tree over the islands (shortest gaps first) plus a floor-scaled set of short alternate
+  connections. Tree connections are kept clear; optional loops can pass close beside other islands and may form
+  walkway junctions. Every required objective island gets at least two walkways, and generation retries if the realized
+  network lacks its floor-scaled minimum cycles or the real tile map cannot solve all wards. Each is a 2-tile path with
+  a slight bend, climbing at most ~2.2 levels a tile; a tree connection that fails retries the seed.
 - **Rounded edges** (`map.rounded`, `drawRounded` in gfx/terrain.js): on walkway tiles and on the islands' rim tiles
   every corner sticking out into the void is cut by a curve and every notch between two tiles filled by one (drawn by
   the later tile beside it, at its height and in its paving), with the rock faces following the curves, so walkways and

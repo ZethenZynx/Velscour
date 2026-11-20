@@ -1,6 +1,6 @@
-// THE ETERNAL BREACH (docs/ETERNAL_BREACH.md): a broken world floating in the void. Every floor is 16 height-mapped
-// islands (8 small, 5 medium, 3 large) joined by narrow stone walkways in a graph with loops, so there is more than one
-// way round. Medium and large islands carry a shrine (a scenario or a boss fight); the large island farthest from the
+// THE ETERNAL BREACH (docs/ETERNAL_BREACH.md): a broken world floating in the void. Floors grow from 3 to 11
+// height-mapped islands as their required objective count rises, joined by narrow stone walkways in a looped graph.
+// Medium and large islands carry a shrine (a scenario or a boss fight); the large island farthest from the
 // start holds the Breach Heart, the floor's final boss. A walkway leading on from a shrine island is warded until
 // that island's scenario is won (the ward belongs to the nearer island, counted in walkway hops from the start, so
 // the floor can always be finished). Island tops come from the Veilscar March pack, ruins (walls, arches, doors,
@@ -9,11 +9,10 @@
 // under the island's middle, so the islands hang in the void like broken-off rock.
 import { TileMap } from './map.js';
 import { RNG } from '../core/util.js';
-import { breachLooks, breachArch, breachPack } from '../data/breach.js';
+import { breachLooks, breachArch, breachPack, breachIslandPlan, breachMapSpan } from '../data/breach.js';
 
 const CLIMB = 4, DROP = 10;
-const KINDS = [['large', 3, 10, 12.5], ['medium', 5, 6.5, 8], ['small', 8, 3.6, 5]];
-const SPAN = 118;            // the square the islands are thrown into (the map is cropped to them)
+const RADII = { large: [10, 12.5], medium: [6.5, 8], small: [3.6, 5] };
 const N4 = [[0, -1, 1], [1, 0, 2], [0, 1, 4], [-1, 0, 8]];
 const OPEN = 0, WALL = 1, PIER = 2, ARCH = 3, DOOR = 4;
 const WALLISH = new Set([WALL, PIER, DOOR]);
@@ -64,13 +63,15 @@ export function generateBreach(floor, biome, tileset, walls2, seed) {
 
 function build(floor, biome, ts, ts2, seed) {
   const rng = new RNG(seed), noise = noiseFn(seed & 0xffff);
+  const plan = breachIslandPlan(floor), span = breachMapSpan(floor);
+  const kinds = ['large', 'medium', 'small'].map((name) => [name, plan[name], ...RADII[name]]);
 
   // ---------------------------------------------------------------- islands: large first, each new one near another
   const isl = [];
-  for (const [kind, n, r0, r1] of KINDS) for (let k = 0; k < n; k++) {
+  for (const [kind, n, r0, r1] of kinds) for (let k = 0; k < n; k++) {
     let ok = false;
     for (let t = 0; t < 600 && !ok; t++) {
-      const r = rng.range(r0, r1), rmax = r * 1.32, cx = rng.range(rmax + 3, SPAN - rmax - 3), cy = rng.range(rmax + 3, SPAN - rmax - 3);
+      const r = rng.range(r0, r1), rmax = r * 1.32, cx = rng.range(rmax + 3, span - rmax - 3), cy = rng.range(rmax + 3, span - rmax - 3);
       let near = !isl.length, clash = false;
       for (const o of isl) {
         const gap = Math.hypot(cx - o.cx, cy - o.cy) - rmax - o.rmax;
@@ -118,12 +119,16 @@ function build(floor, biome, ts, ts2, seed) {
   const cand = [];
   for (let a = 0; a < isl.length; a++) for (let b = a + 1; b < isl.length; b++) {
     const A = isl[a], B = isl[b], d = Math.hypot(A.cx - B.cx, A.cy - B.cy), gap = d - A.r - B.r;
-    if (gap < 15) cand.push({ a, b, d, gap });
+    if (gap < 22) cand.push({ a, b, d, gap });
   }
   cand.sort((p, q) => p.gap - q.gap);
   const par = isl.map((o, i) => i), find = (i) => (par[i] === i ? i : (par[i] = find(par[i])));
   const edges = [];
-  for (const e of cand) { const ra = find(e.a), rb = find(e.b); if (ra !== rb) { par[ra] = rb; e.mst = true; edges.push(e); } }
+  for (const e of cand) {
+    if (e.gap >= 15) break;
+    const ra = find(e.a), rb = find(e.b);
+    if (ra !== rb) { par[ra] = rb; e.mst = true; edges.push(e); }
+  }
   if (new Set(isl.map((o, i) => find(i))).size > 1) return null;
   // a line from A to B that passes over a third island would merge them
   const clear = (e) => isl.every((o, i) => {
@@ -131,9 +136,27 @@ function build(floor, biome, ts, ts2, seed) {
     const A = isl[e.a], B = isl[e.b], vx = B.cx - A.cx, vy = B.cy - A.cy, t = Math.max(0, Math.min(1, ((o.cx - A.cx) * vx + (o.cy - A.cy) * vy) / (vx * vx + vy * vy)));
     return Math.hypot(A.cx + vx * t - o.cx, A.cy + vy * t - o.cy) > o.rmax + 2;
   });
+  // Optional shortcuts may pass close beside an island. Using the generous placement
+  // envelope here suppressed almost every loop; this tighter clearance still leaves
+  // room for the two-tile walkway around the actual island footprint.
+  const clearLoop = (e) => isl.every((o, i) => {
+    if (i === e.a || i === e.b) return true;
+    const A = isl[e.a], B = isl[e.b], vx = B.cx - A.cx, vy = B.cy - A.cy, t = Math.max(0, Math.min(1, ((o.cx - A.cx) * vx + (o.cy - A.cy) * vy) / (vx * vx + vy * vy)));
+    return Math.hypot(A.cx + vx * t - o.cx, A.cy + vy * t - o.cy) > Math.max(o.r, o.rmax - 2);
+  });
   if (!edges.every(clear)) return null;
-  let loops = rng.int(4, 6);
-  for (const e of cand) if (!e.mst && loops > 0 && e.gap < 11 && clear(e)) { edges.push(e); loops--; }
+  // Scale alternate routes with the objective count. Small floors still get a cycle;
+  // larger networks seek several additional short connections.
+  let loops = rng.int(plan.objectives, plan.objectives + 2);
+  const degree = isl.map(() => 0);
+  for (const e of edges) { degree[e.a]++; degree[e.b]++; }
+  const shortcuts = cand.filter((e) => !e.mst && e.gap < 20 && clearLoop(e));
+  // Avoid making scenario and boss objectives mandatory dead ends. Give every medium
+  // or large island an alternate connection before spending remaining loop budget.
+  for (const e of shortcuts) if ((isl[e.a].kind !== 'small' && degree[e.a] < 2) || (isl[e.b].kind !== 'small' && degree[e.b] < 2)) {
+    edges.push(e); degree[e.a]++; degree[e.b]++; loops = Math.max(0, loops - 1);
+  }
+  for (const e of shortcuts) if (loops > 0 && !edges.includes(e)) { edges.push(e); loops--; }
 
   // ---------------------------------------------------------------- the start and the Heart
   const adj = isl.map(() => []);
@@ -266,7 +289,10 @@ function build(floor, biome, ts, ts2, seed) {
         if (!inb(xx, yy) || Math.hypot(xx + 0.5 - x, yy + 0.5 - y) > 1.02) continue;
         const i = id(xx, yy);
         if (own[i] === e.a || own[i] === e.b) continue;
-        if (own[i] >= 0 || (bridgeOf[i] >= 0 && bridgeOf[i] !== bridges.length) || Math.min(xx, yy, W - 1 - xx, H - 1 - yy) < 1) { bad = true; break; }
+        // Tree walkways must have their own clear corridor. Optional loop paths may cross
+        // an existing walkway: the shared tiles form a genuine junction instead of
+        // rejecting every useful short cut between neighboring islands.
+        if (own[i] >= 0 || (bridgeOf[i] >= 0 && bridgeOf[i] !== bridges.length && e.mst) || Math.min(xx, yy, W - 1 - xx, H - 1 - yy) < 1) { bad = true; break; }
         if (!tiles.has(i) || Math.abs(tiles.get(i) - 0.5) > Math.abs(t - 0.5)) tiles.set(i, t);
       }
     }
@@ -277,6 +303,13 @@ function build(floor, biome, ts, ts2, seed) {
     for (const [i, t] of tiles) { bridgeOf[i] = b.idx; hgt[i] = Math.round(hA + (hB - hA) * t); }
     bridges.push(b);
   }
+  // Rejected/crossing optional bridges must not quietly turn a loop map back into a tree.
+  // Retry the seed until the playable walkways retain at least one loop on every floor,
+  // with stronger loop coverage on the larger objective tiers.
+  const actualLoops = bridges.length - isl.length + 1;
+  const minimumLoops = Math.min(plan.objectives, Math.floor(isl.length / 2));
+  if (actualLoops < minimumLoops) return null;
+  if (isl.some((o) => o.shrine && !o.heart && bridges.filter((b) => b.a === o.idx || b.b === o.idx).length < 2)) return null;
   // a loop walkway that couldn't be laid is gone: count the hops again on the walkways there are, and the Heart still
   // may not be the only way to anything
   for (const o of isl) adj[o.idx] = [];
@@ -583,6 +616,37 @@ function build(floor, biome, ts, ts2, seed) {
     const gx = b.gate.reduce((s, i) => s + (i % W) + 0.5, 0) / Math.max(1, b.gate.length), gy = b.gate.reduce((s, i) => s + ((i / W) | 0) + 0.5, 0) / Math.max(1, b.gate.length);
     b.gateAt = [gx, gy];
   }
+  // Validate the real tile map with every ward initially closed. A graph-only check can
+  // miss gate tiles that overlap a shortcut or a ramp; reject those seeds here so players
+  // never get a generated floor whose first objective cannot be reached on foot.
+  {
+    const blocked = map.block.slice(), won = new Set();
+    for (const b of bridges) if (b.ward >= 0) for (const i of b.gate) blocked[i] = 1;
+    const startTile = id(Math.floor(start.cx), Math.floor(start.cy));
+    const flood = () => {
+      const seen = new Uint8Array(N), q = [startTile]; seen[startTile] = 1;
+      for (let k = 0; k < q.length; k++) {
+        const i = q[k], x = i % W, y = (i / W) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const xx = x + dx, yy = y + dy, j = id(xx, yy);
+          if (!inb(xx, yy) || seen[j] || map.t[j] !== 1 || blocked[j] || Math.abs(hgt[j] - hgt[i]) > CLIMB) continue;
+          seen[j] = 1; q.push(j);
+        }
+      }
+      return seen;
+    };
+    let seen;
+    for (let pass = 0; pass <= plan.objectives; pass++) {
+      seen = flood();
+      let opened = false;
+      for (const o of isl) if (o.shrine && !o.heart && !won.has(o.idx) && seen[id(Math.floor(o.cx), Math.floor(o.cy))]) {
+        won.add(o.idx); opened = true;
+        for (const b of bridges) if (b.ward === o.idx) for (const i of b.gate) blocked[i] = 0;
+      }
+      if (!opened) break;
+    }
+    if (won.size !== plan.objectives || isl.some((o) => !seen[id(Math.floor(o.cx), Math.floor(o.cy))])) return null;
+  }
   // an island's walkways (for sealing it during its fight)
   for (const o of isl) o.bridges = bridges.filter((b) => b.a === o.idx || b.b === o.idx).map((b) => b.idx);
   for (const o of isl) o.rimTiles = o.tiles.filter((i) => N4.some(([dx, dy]) => own[i + dx + dy * W] !== o.idx && bridgeOf[i + dx + dy * W] < 0) && !rock[i] && !map.block[i]);
@@ -599,5 +663,6 @@ function build(floor, biome, ts, ts2, seed) {
   return {
     map, props, buildings: [], wallHangings: [], torches: [], townTiles: null, looks, spawns, chests: chests.filter((c) => !c.drop),
     start: startAt, exit: exitAt, islands: isl, bridges, ruins, heart: heart.idx, startIsland: start.idx, seed,
+    objectives: plan.objectives, loops: actualLoops, span,
   };
 }

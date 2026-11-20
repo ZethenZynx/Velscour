@@ -1547,7 +1547,7 @@ This fork previously included a separate tower-defense game, which was removed a
 - **Request:** add "THE ETERNAL BREACH" from the two uploads in `assets/` (`The_Eternal_Breach_Biome_Pack/`,
   `The_Eternal_Breach_Expanded_Pack/`): a purple portal in Herrington Hollow; auto-play turned on in town asks
   Standard Adventure Portal or the Breach; a broken world floating in the void with a purple nebula, height mapping,
-  floating islands joined by pathways (8 small, 5 medium, 3 large, non-linear but all reachable), buildings/dungeons on
+  floating islands joined by looped pathways (3-11 islands scaling with 1-5 shrine objectives), buildings/dungeons on
   some, shrines on the medium and large islands starting scenarios and boss fights that block the way on until won;
   only the Breach's own 200 monsters and 30 bosses; arrivals out of the ground, over the edges, from the sky, dropped
   by a large flier that flies off, plus 8 more of my own; floor n as hard as depth 10n, deadly when under-levelled;
@@ -1557,7 +1557,7 @@ This fork previously included a separate tower-defense game, which was removed a
   `biomepack.py`, which now reads unzipped folders; the 230 creatures as six enemy atlases and the generated
   `src/data/breachroster.js` with an AI archetype per creature), `src/data/breach.js` (bestiary entries flagged
   `breach`, kept out of every regular draw; `breachLooks`, `breachArch`, the reward table), `src/world/breach.js` (the
-  floor: 16 islands, walkway graph with loops, altitudes, plateaus, crags, ruined chapels from both packs' walls, arches
+  floor: progressive 3-11 island plans, a looped walkway graph, altitudes, plateaus, crags, ruined chapels from both packs' walls, arches
   and doors, wards across walkways, cone undersides `map.under`), `src/gfx/breach.js` (nebula void, undersides with
   stalactites/roots/crystal, wards, carriers), `src/game/breach.js` (12 arrivals, 12 scenarios + 2 boss fights + the
   Heart with shield phases, wards and scenario locks, stragglers, ambient arrivals, rewards), game.js
