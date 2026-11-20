@@ -6,13 +6,14 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#090706">
-  <title>VELSCOUR - Bestiary Compendium</title>
-  <link rel="icon" href="assets/ui/icon.png">
+  <title>VELSCOUR WIKI — Bestiary Compendium (1,090+ Monsters &amp; Bosses)</title>
+  <link rel="icon" type="image/png" href="assets/ui/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:wght@400;500;700&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="css/wiki.css">
   <style>
     :root {
       --bg: #090706;
@@ -189,16 +190,11 @@
       font-size: 15px;
     }
 
-    /* Sticky Control Toolbar */
+    /* Control Toolbar */
     .toolbar-sticky {
-      position: sticky;
-      top: 0;
-      z-index: 50;
       background: rgba(13, 9, 7, 0.96);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
       padding: 14px 20px;
     }
 
@@ -567,10 +563,10 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.86);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      z-index: 100;
+      z-index: 260;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -931,31 +927,25 @@
 </head>
 
 <body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="bestiary"></script>
 
-  <!-- Header -->
-  <header>
-    <div class="header-top">
-      <div class="brand-wrap">
-        <img class="brand-logo" src="assets/ui/velscour_contact_skull.png" alt="Velscour">
-        <div class="brand-titles">
-          <h1>VELSCOUR · <span>BESTIARY</span></h1>
-          <p>Compendium of every fiend, guardian, and colossus of the Abyss</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <a href="classes.html" class="btn-action">Hero Classes</a>
-        <a href="index.html" class="btn-action"
-          style="color:var(--gold-bright);border-color:var(--gold);">Play Game →</a>
+  <!-- Wiki Page Hero -->
+  <section class="wiki-page-hero">
+    <div class="wiki-page-hero-inner">
+      <span class="wiki-eyebrow">Creature Compendium of the Abyss</span>
+      <h1 class="wiki-page-title">BESTIARY <span>COMPENDIUM</span></h1>
+      <p class="wiki-page-desc">
+        Every fiend, undead horror, Eternal Breach titan, and colossal guardian of Velscour PC — with live sprite rendering and 29 biome palette swaps.
+      </p>
+      <div class="wiki-stats-ribbon">
+        <div class="wiki-stat-badge"><span>Total Catalogue:</span> <b id="stat-total">1,090+</b></div>
+        <div class="wiki-stat-badge"><span>Bosses &amp; Guardians:</span> <b id="stat-bosses">280</b></div>
+        <div class="wiki-stat-badge"><span>AI Archetypes:</span> <b>22+ Base</b></div>
+        <div class="wiki-stat-badge"><span>Expansions:</span> <b>8 Biome Packs</b></div>
+        <div class="wiki-stat-badge"><span>Palette Swaps:</span> <b>29 Biome Tints</b></div>
       </div>
     </div>
-    <div class="stats-ribbon">
-      <div class="stat-badge"><span>Total Catalogue:</span> <b id="stat-total">1,090+</b></div>
-      <div class="stat-badge"><span>Bosses & Guardians:</span> <b id="stat-bosses">280</b></div>
-      <div class="stat-badge"><span>Archetypes:</span> <b>22+ Base</b></div>
-      <div class="stat-badge"><span>Expansions:</span> <b>8 Biome Packs</b></div>
-      <div class="stat-badge"><span>Palette Swaps:</span> <b>29 Biome Tints</b></div>
-    </div>
-  </header>
+  </section>
 
   <!-- Sticky Controls Toolbar -->
   <div class="toolbar-sticky">
@@ -978,7 +968,7 @@
           <option value="depths_edge">Depths Edge & Catacombs (60)</option>
           <option value="air">The Pirate Skies (40)</option>
           <option value="heavenly">The Heavenly Sanctum (60)</option>
-          <option value="velscour">Lords of Velscour (Demon Lord)</option>
+          <option value="dagyr">Lords of Velscour (Demon Lord)</option>
         </select>
 
         <select class="filter-select" id="filter-rank" title="Filter by Encounter Rank">
@@ -1148,14 +1138,14 @@
     </div>
   </div>
 
-  <!-- Back to top button -->
-  <button id="back-to-top" aria-label="Back to Top">▲</button>
-
   <!-- ES Module Script -->
   <script type="module">
+    import { mountWikiShell, getQueryParam } from './src/wiki/wiki-shell.js';
     import { BESTIARY, SWAPS } from './src/data/bestiary.js';
     import { ARCH, ARCH_MOVES, GORE } from './src/data/enemies.js';
     import { enemyImage, loadArtFor } from './src/core/enemyart.js';
+
+    mountWikiShell({ active: 'bestiary' });
 
     // Descriptions for combat abilities
     const MOVE_INFO = {
@@ -1218,7 +1208,7 @@
 
     // Expansion category helper
     function getExpansion(sheet, id) {
-      if (id === 'va_velscour') return { key: 'velscour', name: 'Lords of Velscour' };
+      if (id === 'va_Velscour') return { key: 'dagyr', name: 'Lords of Velscour' };
       if (sheet.startsWith('set1/')) return { key: 'set1', name: 'Set 1: Undead & Demonic' };
       if (sheet.startsWith('set2/')) return { key: 'set2', name: 'Set 2: Giants & Colossi' };
       if (sheet.startsWith('set3/')) return { key: 'set3', name: 'Set 3: Lords of the Deep & Arena' };
@@ -1232,9 +1222,9 @@
 
     // Assemble the full catalogue (injecting Demon Lord Velscour)
     const VELSCOUR_LORD = {
-      id: 'va_velscour',
+      id: 'va_Velscour',
       name: 'Demon Lord Velscour',
-      arch: 'velscour',
+      arch: 'dagyr',
       sheet: 'replacements',
       h: 94,
       boss: true,
@@ -1300,7 +1290,6 @@
     const swapSelect = document.getElementById('filter-swap');
     const sortSelect = document.getElementById('filter-sort');
     const resetBtn = document.getElementById('btn-reset');
-    const backToTopBtn = document.getElementById('back-to-top');
 
     // Modal DOM Elements
     const modalEl = document.getElementById('detail-modal');
@@ -1687,27 +1676,29 @@
         if (e.key === 'Escape') closeModal();
         if (e.key === 'ArrowLeft') navigateModal(-1);
         if (e.key === 'ArrowRight') navigateModal(1);
-      } else if (e.key === '/' && document.activeElement !== searchInput) {
+      } else if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
         e.preventDefault();
         searchInput.focus();
       }
     });
 
-    // Back to top scroll listener
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 400) {
-        backToTopBtn.classList.add('visible');
-      } else {
-        backToTopBtn.classList.remove('visible');
-      }
-    });
+    // Apply initial URL query parameters (?q=, ?exp=, ?rank=, ?id=)
+    const initQ = getQueryParam('q');
+    const initExp = getQueryParam('exp');
+    const initRank = getQueryParam('rank');
+    const initId = getQueryParam('id');
 
-    backToTopBtn.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    if (initQ) searchInput.value = initQ;
+    if (initExp) expSelect.value = initExp;
+    if (initRank) rankSelect.value = initRank;
 
     // Initial render
     applyFilters();
+
+    if (initId) {
+      const target = CATALOGUE.find((m) => m.id.toLowerCase() === initId.toLowerCase());
+      if (target) setTimeout(() => openModal(target), 60);
+    }
   </script>
 </body>
 

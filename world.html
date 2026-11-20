@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <meta name="description" content="Explore Velscour PC's four-act, 100-depth campaign, environments, endgame activities, and dungeon affixes using data from the game.">
+  <title>Velscour PC Wiki — World &amp; Environments</title>
+  <link rel="icon" href="assets/ui/icon.png">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    .atlas-stats,.atlas-controls,.atlas-jumps,.atlas-tags{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+    .atlas-controls{margin:16px 0}.atlas-controls input[type=range]{flex:1;min-width:180px;accent-color:var(--gold)}
+    .atlas-controls input[type=number]{width:92px}.atlas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+    .atlas-card{padding:17px;background:var(--card-bg);border:1px solid var(--border-highlight);border-radius:8px}
+    .atlas-card h3{font:700 17px var(--font-title);color:var(--gold-bright);margin:5px 0 9px}.atlas-card p{color:var(--text-dim);line-height:1.5}
+    .atlas-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:14px 0}
+    .atlas-row{padding:12px 14px;background:var(--panel);border:1px solid var(--border-soft);border-radius:6px}
+    .atlas-row b{color:var(--text)}.atlas-row small{display:block;color:var(--text-dim);margin-top:4px;line-height:1.45}
+    .atlas-search{width:min(400px,100%);padding:10px 12px;background:#0c0907;color:var(--text);border:1px solid var(--border-highlight);border-radius:4px}
+    .atlas-filter{padding:9px;background:#0c0907;color:var(--text);border:1px solid var(--border-highlight);border-radius:4px}
+    .atlas-tab[hidden],.atlas-empty[hidden]{display:none!important}.atlas-count{color:var(--text-dim);font-size:13px}
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="world"></script>
+  <section class="wiki-page-hero"><div class="wiki-page-hero-inner">
+    <span class="wiki-eyebrow">A data-driven atlas of the PC game</span>
+    <h1 class="wiki-page-title">WORLD &amp; <span>ENVIRONMENTS</span></h1>
+    <p class="wiki-page-desc">Browse the campaign, endlessly progressing depths, environments, and endgame systems in this fork. Values and names on this page are read from Velscour PC's game data.</p>
+    <div class="atlas-stats">
+      <span class="wiki-stat-badge"><b id="world-act-count">—</b> Campaign Acts</span>
+      <span class="wiki-stat-badge">Campaign Finale: Depth <b id="world-final-depth">—</b></span>
+      <span class="wiki-stat-badge"><b id="world-biome-count">—</b> Environments</span>
+      <span class="wiki-stat-badge"><b id="world-affix-count">—</b> Dungeon Affixes</span>
+    </div>
+  </div></section>
+  <main class="wiki-main">
+    <div class="wiki-tabs" role="tablist" aria-label="World topics">
+      <button class="wiki-tab-btn active" type="button" role="tab" data-tab="campaign" aria-selected="true">Campaign</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="environments" aria-selected="false">Environments</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="endgame" aria-selected="false">Endgame</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="affixes" aria-selected="false">Dungeon Affixes</button>
+    </div>
+    <section class="atlas-tab" id="panel-campaign" role="tabpanel">
+      <div class="wiki-section-header"><h2>Campaign Depth Explorer</h2><span class="wiki-section-sub">Progression and boss milestones from this fork's depth data</span></div>
+      <div class="atlas-controls"><button class="wiki-pill" type="button" data-step="-5">−5</button><button class="wiki-pill" type="button" data-step="-1">−1</button><label class="wiki-badge gold" for="depth-number">Depth</label><input id="depth-number" type="number" min="1" value="1"><input id="depth-slider" type="range" min="1" value="1" aria-label="Campaign depth"><button class="wiki-pill" type="button" data-step="1">+1</button><button class="wiki-pill" type="button" data-step="5">+5</button></div>
+      <div class="atlas-grid" id="depth-readout" aria-live="polite"></div>
+      <div class="atlas-jumps" id="depth-jumps"></div>
+      <div class="wiki-section-header"><h2>Acts</h2><span class="wiki-section-sub">Act spans and finales are read from the campaign definition</span></div>
+      <div class="atlas-grid" id="acts-grid"></div>
+      <div class="wiki-section-header"><h2>Campaign Boss Milestones</h2><span class="wiki-section-sub">Boss placements from the current campaign schedule</span></div>
+      <div class="atlas-list" id="boss-list"></div>
+    </section>
+    <section class="atlas-tab" id="panel-environments" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Environments</h2><span class="atlas-count" id="biome-count"></span></div>
+      <div class="atlas-controls"><input class="atlas-search" id="biome-search" type="search" placeholder="Search environments, regions, or themes"><select class="atlas-filter" id="biome-filter" aria-label="Filter environment type"><option value="all">All types</option><option value="dungeon">Dungeons</option><option value="overworld">Overworlds</option><option value="town">Towns</option><option value="special">Special areas</option></select></div>
+      <div class="atlas-grid" id="biome-grid"></div><p class="atlas-empty" id="biome-empty" hidden>No environments match this search.</p>
+    </section>
+    <section class="atlas-tab" id="panel-endgame" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Beyond the Campaign</h2><span class="wiki-section-sub">Endgame activities remain separate from campaign progression</span></div>
+      <div class="atlas-grid" id="endgame-grid"></div>
+      <div class="wiki-section-header"><h2>Dungeon Random Events</h2><span class="wiki-section-sub">Names and event categories are read from the game event catalog</span></div>
+      <div class="atlas-controls"><input class="atlas-search" id="event-search" type="search" placeholder="Search dungeon events"></div>
+      <div class="atlas-grid" id="event-grid"></div>
+    </section>
+    <section class="atlas-tab" id="panel-affixes" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Dungeon Affixes</h2><span class="atlas-count" id="affix-count"></span></div>
+      <div class="atlas-controls"><input class="atlas-search" id="affix-search" type="search" placeholder="Search affix names and descriptions"></div>
+      <div class="atlas-list" id="affix-list"></div><p class="atlas-empty" id="affix-empty" hidden>No affixes match this search.</p>
+    </section>
+  </main>
+  <script type="module">
+    import { mountWikiShell, escapeHtml } from './src/wiki/wiki-shell.js';
+    import { ACTS, FINAL_DEPTH, ENDGAME_START_DEPTH, MAX_DEPTH, SUPERBOSS_DEPTHS, depthLevel, superbossForDepth } from './src/data/depth.js';
+    import { BIOME_BY_ID, BIOMES, BETA_BIOMES, TOWN_BIOME, ACT2_TOWN_BIOME, BREACH_BIOME, SCORPION_KING_PYRAMID_BIOME, biomesForDepth } from './src/data/biomes.js';
+    import { DUNGEON_AFFIXES, MAX_AFFIX_SECTIONS, AFFIX_DEPTH_INTERVAL } from './src/data/dungeonaffixes.js';
+    import { DUNGEON_EVENTS } from './src/game/dungeonevents.js';
+    import { HERESIES, HERESY_MAX_RANK, HERESY_MILESTONES } from './src/data/heresies.js';
+    import { MAX_BREACH_FLOOR, breachObjectiveCount } from './src/data/breach.js';
+    import { RIFT_INSTABILITIES, PYLONS } from './src/data/rifts.js';
+    import { MAX_UNBOUND_DEPTH } from './src/game/unbound.js';
+    import { RAID_BOSSES } from './src/game/raid.js';
+    import { RARITY, qualityAtDepth } from './src/data/items.js';
+
+    mountWikiShell({ active: 'world' });
+    const $ = (id) => document.getElementById(id);
+    const biomeById = BIOME_BY_ID;
+    const allBiomes = [...new Map([TOWN_BIOME, ACT2_TOWN_BIOME, ...BIOMES, ...BETA_BIOMES, BREACH_BIOME, SCORPION_KING_PYRAMID_BIOME].filter(Boolean).map((b) => [b.id, b])).values()];
+    $('world-act-count').textContent = String(ACTS.length);
+    $('world-final-depth').textContent = String(FINAL_DEPTH);
+    $('world-biome-count').textContent = String(allBiomes.length);
+    $('world-affix-count').textContent = String(DUNGEON_AFFIXES.length);
+
+    const raidById = Object.fromEntries(RAID_BOSSES.map((b) => [b.id, b]));
+    const bossName = (key) => raidById[key]?.name || ({ velscour: 'Velscour' }[key]) || String(key || 'Unknown').replaceAll('_', ' ');
+    $('acts-grid').innerHTML = ACTS.map((a) => `<article class="atlas-card"><span class="wiki-badge gold">Act ${a.act} · Depths ${a.start}–${a.end}</span><h3>${escapeHtml(a.name)}</h3><p>Finale at depth ${a.finaleDepth}: <b>${escapeHtml(bossName(a.finaleBoss))}</b>${a.midBoss ? `<br>Mid-act encounter: ${escapeHtml(bossName(a.midBoss))}` : ''}</p></article>`).join('');
+    const milestones = Object.entries(SUPERBOSS_DEPTHS).map(([depth, key]) => ({ depth: Number(depth), key })).sort((a,b)=>a.depth-b.depth);
+    $('boss-list').innerHTML = milestones.map((m) => `<div class="atlas-row"><b>Depth ${m.depth} · ${escapeHtml(bossName(m.key))}</b><small>${ACTS.find((a) => m.depth >= a.start && m.depth <= a.end)?.name || 'Campaign'}${m.depth === FINAL_DEPTH ? ' · Campaign finale' : ''}</small></div>`).join('');
+
+    const depthSlider = $('depth-slider'), depthNumber = $('depth-number');
+    depthSlider.max = String(FINAL_DEPTH); depthNumber.max = String(FINAL_DEPTH);
+    function updateDepth(raw) {
+      const d = Math.max(1, Math.min(FINAL_DEPTH, Math.round(Number(raw) || 1)));
+      depthSlider.value = depthNumber.value = String(d);
+      const act = ACTS.find((a) => d >= a.start && d <= a.end) || ACTS[0];
+      const boss = superbossForDepth(d);
+      const rarity = RARITY[qualityAtDepth(d)] || RARITY[0];
+      const available = (biomesForDepth(d) || []).map((id) => biomeById[id]).filter(Boolean);
+      $('depth-readout').innerHTML = `<article class="atlas-card"><span class="wiki-eyebrow">Current Act</span><h3>Act ${act.act}: ${escapeHtml(act.name)}</h3><p>Depth ${d} of ${FINAL_DEPTH}${d === FINAL_DEPTH ? ' · Campaign finale' : ''}</p></article><article class="atlas-card"><span class="wiki-eyebrow">Encounter &amp; Progression</span><h3>${boss ? escapeHtml(bossName(boss)) : 'Campaign floor'}</h3><p>Character progression level: ${depthLevel(d)}. ${boss ? 'Boss encounter scheduled at this depth.' : 'Explore the generated floor and follow the active objectives.'}</p></article><article class="atlas-card"><span class="wiki-eyebrow">Ground Gear</span><h3 style="color:${escapeHtml(rarity.color)}">${escapeHtml(rarity.name)}</h3><p>Current depth quality reference. Eligible environments: ${available.length ? available.map((b)=>escapeHtml(b.name)).join(', ') : 'set-piece area'}.</p></article>`;
+      const url = new URL(location.href); url.searchParams.set('depth', String(d)); history.replaceState({}, '', url);
+    }
+    depthSlider.addEventListener('input', () => updateDepth(depthSlider.value));
+    depthNumber.addEventListener('change', () => updateDepth(depthNumber.value));
+    document.querySelectorAll('[data-step]').forEach((b)=>b.addEventListener('click',()=>updateDepth(Number(depthSlider.value)+Number(b.dataset.step))));
+    const jumps = [...new Set([1, ...ACTS.map(a=>a.start), ...ACTS.map(a=>a.finaleDepth), FINAL_DEPTH])].sort((a,b)=>a-b);
+    $('depth-jumps').innerHTML = jumps.map((d)=>`<button class="wiki-pill" type="button" data-depth="${d}">Depth ${d}</button>`).join('');
+    $('depth-jumps').addEventListener('click',(e)=>{const b=e.target.closest('[data-depth]');if(b)updateDepth(b.dataset.depth)});
+    const queryDepth = Number(new URLSearchParams(location.search).get('depth')) || 1;
+    updateDepth(queryDepth);
+
+    function renderBiomes() {
+      const q = $('biome-search').value.trim().toLowerCase(), type = $('biome-filter').value;
+      const rows = allBiomes.filter((b)=>{
+        const isTown=!!b.town, isOver=!!b.overworld;
+        const kind=isTown?'town':isOver?'overworld':(b.id==='breach'||b.id==='scorpion_king_pyramid')?'special':'dungeon';
+        return (type==='all'||type===kind) && (!q||`${b.name} ${b.id} ${(b.adj||[]).join(' ')} ${b.el||''}`.toLowerCase().includes(q));
+      });
+      $('biome-count').textContent=`${rows.length} of ${allBiomes.length}`;
+      $('biome-grid').innerHTML=rows.map((b)=>`<article class="atlas-card"><span class="wiki-badge">${b.town?'Town':b.overworld?'Overworld':(['breach','scorpion_king_pyramid'].includes(b.id)?'Special area':'Dungeon')}</span><h3>${escapeHtml(b.name)}</h3><p>${escapeHtml((b.adj||[]).join(' · ') || 'A region of Velscour.')}</p><div class="atlas-tags"><span class="wiki-badge gold">${escapeHtml((b.el||'physical').toUpperCase())}</span><span class="wiki-badge">${escapeHtml(b.id)}</span></div></article>`).join('');
+      $('biome-empty').hidden=rows.length>0;
+    }
+    $('biome-search').addEventListener('input',renderBiomes); $('biome-filter').addEventListener('change',renderBiomes); renderBiomes();
+    const biomeQuery=new URLSearchParams(location.search).get('q'); if(biomeQuery){$('biome-search').value=biomeQuery;renderBiomes()}
+
+    const endgame = [
+      {title:'Infinite Depth Progression',text:`The fixed campaign ends at depth ${FINAL_DEPTH}. Endless endgame depths begin at ${ENDGAME_START_DEPTH}; the depth system has no designed finite cap (safe integer ceiling ${MAX_DEPTH.toLocaleString()}).`},
+      {title:'Dungeon Affixes',text:`The affix system defines ${DUNGEON_AFFIXES.length} affixes. Campaign/endgame affix selection follows the live depth and completion-streak rules.`},
+      {title:'Altar of Heresy',text:`${HERESIES.length} heresies are defined, with a maximum combined rank of ${HERESY_MAX_RANK}. Milestones and effects are calculated from the game's heresy data.`},
+      {title:'Abyssal Rifts',text:`Rift runs use the game's current quota, timer, instability, and pylon systems (${RIFT_INSTABILITIES.length} instability entries; ${PYLONS.length} pylon types).`},
+      {title:'Eternal Breach',text:`The Breach has ${MAX_BREACH_FLOOR} floors. Its objective count scales from ${breachObjectiveCount(1)} at the opening through ${breachObjectiveCount(MAX_BREACH_FLOOR)} at the final floor.`},
+      {title:'Unbound Exploration',text:`The Unbound system has a maximum depth of ${MAX_UNBOUND_DEPTH} and retains its own access and key-spending rules.`},
+    ];
+    $('endgame-grid').innerHTML=endgame.map((x)=>`<article class="atlas-card"><span class="wiki-eyebrow">Endgame System</span><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.text)}</p></article>`).join('');
+    function renderEvents(){const query=$('event-search').value.trim().toLowerCase();const routeEvent=new URLSearchParams(location.search).get('event');const rows=DUNGEON_EVENTS.filter(e=>(!query||`${e.name} ${e.id} ${e.category} ${e.rarity}`.toLowerCase().includes(query))&&(!routeEvent||e.id===routeEvent));$('event-grid').innerHTML=rows.map(e=>`<article class="atlas-card"><span class="wiki-badge gold">${escapeHtml(e.category)} · ${escapeHtml(e.rarity)}</span><h3>${escapeHtml(e.name)}</h3><p>Dungeon event · ${escapeHtml(e.mode||e.id)}</p></article>`).join('');}
+    const eventQuery=new URLSearchParams(location.search).get('event');if(eventQuery){const event=DUNGEON_EVENTS.find(e=>e.id===eventQuery);if(event)$('event-search').value=event.name;}
+    $('event-search').addEventListener('input',renderEvents);renderEvents();
+
+    function renderAffixes(){const q=$('affix-search').value.trim().toLowerCase();const rows=DUNGEON_AFFIXES.filter(a=>`${a.name} ${a.desc} ${a.id}`.toLowerCase().includes(q));$('affix-count').textContent=`${rows.length} of ${DUNGEON_AFFIXES.length}`;$('affix-list').innerHTML=rows.map(a=>`<div class="atlas-row"><b>${escapeHtml(a.name||a.id)}</b><small>${escapeHtml(a.desc||'Dungeon modifier')}</small></div>`).join('');$('affix-empty').hidden=rows.length>0;}
+    const affixQuery=new URLSearchParams(location.search).get('q');if(affixQuery)$('affix-search').value=affixQuery;$('affix-search').addEventListener('input',renderAffixes);renderAffixes();
+    const tabButtons=[...document.querySelectorAll('.wiki-tab-btn[data-tab]')], panels=[...document.querySelectorAll('.atlas-tab')];
+    function setTab(tab){if(!panels.some(p=>p.id===`panel-${tab}`))tab='campaign';tabButtons.forEach(b=>{const on=b.dataset.tab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});panels.forEach(p=>p.hidden=p.id!==`panel-${tab}`);const u=new URL(location.href);u.searchParams.set('tab',tab);history.replaceState({},'',u);}
+    tabButtons.forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    const wanted=new URLSearchParams(location.search).get('tab');if(wanted)setTab(wanted);
+  </script>
+</body>
+</html>

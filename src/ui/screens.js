@@ -85,6 +85,19 @@ export function titleScreen() {
   fill();
   s.refresh = fill;
   s.appendChild(menu);
+  const wikiBtn = el('a', 'title-wiki-btn');
+  wikiBtn.id = 'title-wiki-btn';
+  wikiBtn.href = new URL('wiki.html', window.location.href).href;
+  wikiBtn.target = '_blank';
+  wikiBtn.rel = 'noopener noreferrer';
+  wikiBtn.title = 'Open the Velscour PC Wiki in a new tab';
+  wikiBtn.setAttribute('aria-label', 'Open the Velscour PC Wiki in a new tab');
+  wikiBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Wiki</span>`;
+  wikiBtn.addEventListener('click', (event) => {
+    if (!s.classList.contains('title-ready')) { event.preventDefault(); return; }
+    initAudio(); sfx('ui');
+  });
+  s.appendChild(wikiBtn);
   const changes = el('div', 'title-changes');
   changes.setAttribute('aria-label', 'Recent Changes');
   changes.innerHTML = `<section class="recent-changes-window" aria-labelledby="recent-changes-title"><header><h2 id="recent-changes-title">Recent Changes</h2></header><p class="recent-changes-status" aria-live="polite"></p><ul class="recent-changes-list"></ul></section>`;

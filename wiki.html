@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <title>VELSCOUR WIKI — Official Compendium of Classes, Skills, Talents, Gear, Bestiary & Lore</title>
+  <meta name="description" content="The Velscour PC Wiki & Compendium: explore all 19 hero classes, 684 skills, 456 passive talents & morphs, 1,090+ monsters, gear, relics, biomes, and dark gothic lore.">
+  <link rel="icon" type="image/png" href="assets/ui/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    .hub-hero {
+      position: relative;
+      padding: 54px 20px 46px;
+      text-align: center;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: radial-gradient(circle at 50% 24%, rgba(62, 18, 10, 0.58) 0%, rgba(9, 7, 6, 0.96) 76%);
+    }
+
+    #hub-embers {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .hub-hero-inner {
+      position: relative;
+      z-index: 2;
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .hub-logo {
+      max-width: 440px;
+      width: 82%;
+      height: auto;
+      filter: drop-shadow(0 0 28px rgba(255, 80, 20, 0.45));
+    }
+
+    .hub-kicker {
+      font-family: var(--font-title);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--gold);
+      text-transform: uppercase;
+      background: rgba(24, 15, 10, 0.85);
+      border: 1px solid var(--border-highlight);
+      padding: 4px 14px;
+      border-radius: 20px;
+    }
+
+    .hub-subtitle {
+      font-size: 17px;
+      color: var(--text);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    /* Hero Search Box */
+    .hub-search-wrap {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      margin-top: 8px;
+    }
+
+    .hub-search-input {
+      width: 100%;
+      background: rgba(20, 13, 10, 0.95);
+      border: 1.5px solid var(--gold-dim);
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 17px;
+      padding: 14px 18px 14px 44px;
+      outline: none;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .hub-search-input:focus {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 22px rgba(212, 175, 55, 0.35), 0 10px 34px rgba(0, 0, 0, 0.85);
+    }
+
+    .hub-search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 17px;
+      pointer-events: none;
+    }
+
+    .hub-search-results {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #140d0a;
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+      text-align: left;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.94);
+      display: none;
+      z-index: 90;
+    }
+
+    .hub-search-results.open {
+      display: block;
+    }
+
+    .hub-quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      align-items: center;
+    }
+
+    .hub-chip {
+      background: rgba(24, 16, 11, 0.85);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 2px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.16s;
+    }
+
+    .hub-chip:hover {
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    /* Live Telemetry Counters */
+    .hub-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      width: 100%;
+      max-width: 960px;
+      margin-top: 18px;
+    }
+
+    .hub-metric-card {
+      background: rgba(18, 12, 9, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hub-metric-card b {
+      font-family: var(--font-title);
+      font-size: 20px;
+      color: var(--gold-bright);
+      line-height: 1.2;
+    }
+
+    .hub-metric-card span {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-dim);
+    }
+
+    /* Portal Grid */
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .portal-card {
+      background: linear-gradient(160deg, #1c130e 0%, #120b08 100%);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--portal-accent, var(--gold)), transparent);
+      opacity: 0.75;
+    }
+
+    .portal-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 175, 55, 0.14);
+    }
+
+    .portal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .portal-icon {
+      font-size: 28px;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: rgba(10, 6, 4, 0.75);
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .portal-title {
+      font-family: var(--font-title);
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--gold-bright);
+      text-transform: uppercase;
+    }
+
+    .portal-desc {
+      color: var(--text-dim);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .portal-sublinks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .portal-sublink {
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      background: rgba(10, 6, 4, 0.7);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .portal-sublink:hover {
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    .portal-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-title);
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    /* Quick Class Roster Strip */
+    .roster-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+      gap: 10px;
+    }
+
+    .roster-mini {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.16s, background 0.16s;
+    }
+
+    .roster-mini:hover {
+      background: var(--card-hover);
+      border-color: var(--border-highlight);
+    }
+
+    .roster-mini-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .roster-mini-name {
+      font-family: var(--font-title);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .roster-mini-links {
+      display: flex;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+
+    .roster-mini-links a {
+      background: #110b08;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 7px;
+      color: var(--text-dim);
+    }
+
+    .roster-mini-links a:hover {
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    /* Campaign Acts Strip */
+    .acts-timeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .act-mini-card {
+      background: linear-gradient(180deg, #19110d 0%, #110b08 100%);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .act-mini-card .act-num {
+      font-family: var(--font-title);
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      color: var(--crimson-bright);
+      text-transform: uppercase;
+    }
+
+    .act-mini-card h3 {
+      font-family: var(--font-title);
+      font-size: 15.5px;
+      color: var(--gold-bright);
+    }
+
+    .official-banner {
+      margin-top: 36px;
+      background: linear-gradient(135deg, rgba(58, 20, 12, 0.65) 0%, rgba(20, 13, 9, 0.92) 100%);
+      border: 1px solid var(--gold-dim);
+      border-radius: 8px;
+      padding: 24px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="hub"></script>
+
+  <!-- Hero Section -->
+  <section class="hub-hero">
+    <canvas id="hub-embers"></canvas>
+    <div class="hub-hero-inner">
+      <span class="hub-kicker">Velscour PC Game Reference</span>
+      <img class="hub-logo" src="assets/ui/logo.webp" alt="VELSCOUR PC">
+      <p class="hub-subtitle">
+        Every stat, skill formula, passive talent morph, heirloom, monster sprite, dungeon biome, and chronicle of the Abyss — read from this fork’s current game data.
+      </p>
+
+      <div class="hub-search-wrap" id="hub-search-wrap">
+        <span class="hub-search-icon">🔍</span>
+        <input type="search" id="hub-search-input" class="hub-search-input" autocomplete="off"
+          placeholder="Search anything in Velscour (e.g. Paladin, Blessed Hammer, Starfall, Velscour, Sekhmun)...">
+        <div class="hub-search-results" id="hub-search-results"></div>
+      </div>
+
+      <div class="hub-quick-chips">
+        <span>Try:</span>
+        <button class="hub-chip" data-q="Blessed Hammer">Blessed Hammer</button>
+        <button class="hub-chip" data-q="Monk">Monk</button>
+        <button class="hub-chip" data-q="Crown of the Demon Lord">Crown of the Demon Lord</button>
+        <button class="hub-chip" data-q="Starfall">Starfall Glyphword</button>
+        <button class="hub-chip" data-q="Sekhmun">Pharaoh Sekhmun</button>
+        <button class="hub-chip" data-q="Eternal Breach">Eternal Breach</button>
+        <button class="hub-chip" data-q="Homunculus">Homunculus</button>
+      </div>
+
+      <div class="hub-metrics">
+        <div class="hub-metric-card"><b id="m-classes">19</b><span>Playable Classes</span></div>
+        <div class="hub-metric-card"><b id="m-skills">684</b><span>Active Skills</span></div>
+        <div class="hub-metric-card"><b id="m-talents">456</b><span>Talent Nodes</span></div>
+        <div class="hub-metric-card"><b id="m-monsters">1,090</b><span>Monsters &amp; Bosses</span></div>
+        <div class="hub-metric-card"><b id="m-relics">89</b><span>Relics &amp; Sets</span></div>
+        <div class="hub-metric-card"><b id="m-biomes">36</b><span>Biomes &amp; Realms</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Wiki Hub Content -->
+  <main class="wiki-main">
+
+    <div class="wiki-section-header">
+      <h2>📚 Compendium Archives</h2>
+      <span class="wiki-section-sub">Explore the Velscour PC compendium</span>
+    </div>
+
+    <div class="portal-grid">
+      <!-- 1. Hero Classes -->
+      <div class="portal-card" style="--portal-accent: #ffd860;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">Champions of the Hollow</span>
+              <div class="portal-title"><a href="classes.html">Hero Classes</a></div>
+            </div>
+            <div class="portal-icon">🛡️</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Inspect all 19 playable classes with living idle animations, starting attributes, per-level Life &amp; Mana growth, favored weaponry, 4 specialization trees, and kill-charged Ultimate abilities.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="classes.html?id=paladin">Paladin</a>
+            <a class="portal-sublink" href="classes.html?id=wizard">Wizard</a>
+            <a class="portal-sublink" href="classes.html?id=necromancer">Necromancer</a>
+            <a class="portal-sublink" href="classes.html?id=barbarian">Barbarian</a>
+            <a class="portal-sublink" href="classes.html?id=monk">Monk</a>
+            <a class="portal-sublink" href="classes.html?id=arcane_sorcerer">Astronomer</a>
+          </div>
+          <a href="classes.html" class="portal-cta">Browse All 19 Classes →</a>
+        </div>
+      </div>
+
+      <!-- 2. Active Skills -->
+      <div class="portal-card" style="--portal-accent: #ff6214;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">76 Specialization Trees</span>
+              <div class="portal-title"><a href="skills.html">Skills &amp; Ultimates</a></div>
+            </div>
+            <div class="portal-icon">⚡</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Interactive database of all 684 active class skills, 19 Ultimates, and summoned minions. Preview live Lv 1–20 rank scaling for damage, mana/rage cost, cooldowns, Bard musical notation, and Astronomer star charts.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="skills.html?view=trees">3×3 Class Trees</a>
+            <a class="portal-sublink" href="skills.html?view=all">All 684 Skills Table</a>
+            <a class="portal-sublink" href="skills.html?view=ultimates">19 Class Ultimates</a>
+            <a class="portal-sublink" href="skills.html?view=summons">Summons &amp; Pets</a>
+          </div>
+          <a href="skills.html" class="portal-cta">Open Skill Compendium →</a>
+        </div>
+      </div>
+
+      <!-- 3. Passive Talent Trees -->
+      <div class="portal-card" style="--portal-accent: #b066ff;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">Interactive Build Planner</span>
+              <div class="portal-title"><a href="talents.html">Talent Trees</a></div>
+            </div>
+            <div class="portal-icon">🌟</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Plan builds with the interactive 5-tier Talent Calculator across all 19 classes (456 total nodes). Test mutually exclusive Choice A/B Skill Morphs, Lv 45 Apex Keystones, and share build URLs.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="talents.html#paladin">Build Calculator</a>
+            <a class="portal-sublink" href="talents.html?tab=compendium&filter=morph">Skill Morphs</a>
+            <a class="portal-sublink" href="talents.html?tab=compendium&filter=keystone">Apex Keystones</a>
+          </div>
+          <a href="talents.html" class="portal-cta">Launch Talent Calculator →</a>
+        </div>
+      </div>
+
+      <!-- 4. Bestiary -->
+      <div class="portal-card" style="--portal-accent: #e02838;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">Fiends &amp; Guardians</span>
+              <div class="portal-title"><a href="bestiary.html">Bestiary</a></div>
+            </div>
+            <div class="portal-icon">💀</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Catalogue of over 1,090 monsters, undead horrors, Eternal Breach titans, and colossal bosses. Features live pixel/painted canvas sprites, AI combat profiles, and 29 biome palette swap previews.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="world.html?tab=campaign&amp;depth=100">Velscour at the Campaign Finale</a>
+            <a class="portal-sublink" href="bestiary.html?rank=boss">280+ Bosses</a>
+            <a class="portal-sublink" href="bestiary.html?exp=breach">Eternal Breach</a>
+            <a class="portal-sublink" href="bestiary.html?exp=sea_of_sand">Sea of Sand</a>
+          </div>
+          <a href="bestiary.html" class="portal-cta">Explore Full Bestiary →</a>
+        </div>
+      </div>
+
+      <!-- 5. Gear & Relics -->
+      <div class="portal-card" style="--portal-accent: #ff9f40;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">Arsenal &amp; Reliquary</span>
+              <div class="portal-title"><a href="gear.html">Gear &amp; Relics</a></div>
+            </div>
+            <div class="portal-icon">🗡️</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Complete itemization reference: 20 Quality Tiers (up to Abyssal), Weapons, Off-Hands, Armor, 41 Named Heirlooms, 6 Covenant Sets, 18 Sigil Glyphwords, Gems, 20 Sigil Stones, Affixes, and Ring Augments.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="gear.html?tab=heirlooms">41 Heirlooms</a>
+            <a class="portal-sublink" href="gear.html?tab=covenants">6 Covenant Sets</a>
+            <a class="portal-sublink" href="gear.html?tab=glyphwords">18 Glyphwords</a>
+            <a class="portal-sublink" href="gear.html?tab=gems">Gems &amp; 20 Sigils</a>
+            <a class="portal-sublink" href="gear.html?tab=affixes">Affixes &amp; Rings</a>
+          </div>
+          <a href="gear.html" class="portal-cta">Inspect Arsenal &amp; Relics →</a>
+        </div>
+      </div>
+
+      <!-- 6. World & Acts -->
+      <div class="portal-card" style="--portal-accent: #4aa8ff;">
+        <div>
+          <div class="portal-head">
+            <div>
+              <span class="wiki-eyebrow">Atlas of the Descent</span>
+              <div class="portal-title"><a href="world.html">World &amp; Acts</a></div>
+            </div>
+            <div class="portal-icon">🗺️</div>
+          </div>
+          <p class="portal-desc" style="margin-top:10px;">
+            Guide to the four campaign acts (Depths 1–100), environments, endless endgame activities, 257 dungeon affixes, and the Altar of Heresy.
+          </p>
+        </div>
+        <div>
+          <div class="portal-sublinks" style="margin-bottom:12px;">
+            <a class="portal-sublink" href="world.html?tab=campaign">4 Campaign Acts</a>
+            <a class="portal-sublink" href="world.html?tab=biomes">Environments &amp; Regions</a>
+            <a class="portal-sublink" href="world.html?tab=endgame">Rifts &amp; Heresies</a>
+            <a class="portal-sublink" href="world.html?tab=affixes">Dungeon Affixes</a>
+          </div>
+          <a href="world.html" class="portal-cta">Chart the World of Velscour →</a>
+        </div>
+      </div>
+
+      <!-- 7. Lore & Folk -->
+      <div class="portal-card" style="--portal-accent: #66e044; grid-column: 1 / -1;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: center;">
+          <div>
+            <div class="portal-head">
+              <div>
+                <span class="wiki-eyebrow">Chronicles of the Hollow &amp; The Deep</span>
+                <div class="portal-title"><a href="lore.html">Lore, Tyrants &amp; Townsfolk</a></div>
+              </div>
+              <div class="portal-icon">📜</div>
+            </div>
+            <p class="portal-desc" style="margin-top:10px;">
+              Uncover the history of Demon Lord Velscour's entombment beneath Herrington Hollow, the High Reliquary, the 48+ Raid Lords &amp; Superbosses of the Deep, the 9 Sanctuary Artisans, Royal Court &amp; Knights, and the 30 Boarding Chronicles of the Pirate Skies.
+            </p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; justify-content:space-between;">
+            <div class="portal-sublinks">
+              <a class="portal-sublink" href="lore.html?tab=mythos">The Mythos of Velscour</a>
+              <a class="portal-sublink" href="lore.html?tab=lords">48+ Raid Lords &amp; Superbosses</a>
+              <a class="portal-sublink" href="lore.html?tab=folk">Herrington Hollow Artisans &amp; Folk</a>
+              <a class="portal-sublink" href="lore.html?tab=skystories">30 Tales of the Sky Lanes</a>
+            </div>
+            <a href="lore.html" class="portal-cta">Read the Chronicles →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump: All 19 Classes -->
+    <div class="wiki-section-header" style="margin-top:42px;">
+      <h2>⚔️ Quick-Jump: All 19 Hero Classes</h2>
+      <span class="wiki-section-sub">Jump directly to any class's dossier, active skill trees, or passive talent calculator</span>
+    </div>
+    <div class="roster-strip" id="hub-class-roster"></div>
+
+    <!-- Campaign Acts 1-4 Overview -->
+    <div class="wiki-section-header" style="margin-top:42px;">
+      <h2>🔥 The Descent: Campaign Acts I – IV (Depths 1–100)</h2>
+      <span class="wiki-section-sub"><a href="world.html?tab=campaign">View full Act boss mechanics &amp; biome schedules →</a></span>
+    </div>
+    <div class="acts-timeline" id="hub-acts-timeline"></div>
+
+    <!-- Official Homepage & Play Banner -->
+    <div class="official-banner">
+      <div>
+        <span class="wiki-eyebrow">Game Wiki</span>
+        <h3 style="font-family:var(--font-title); font-size:22px; color:#fff; margin-top:2px;">Return to Velscour PC</h3>
+        <p style="color:var(--text-dim); font-size:15px; margin-top:4px;">Use the button to return to your game. The Wiki opens alongside it, so your current session stays available.</p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <a href="index.html" class="btn-wiki-play" style="padding:11px 22px; font-size:13px;">⚔️ Return to Game</a>
+        
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { mountWikiShell, searchWikiIndex, ensureOmniIndex, escapeHtml, ELEMENT_INFO } from './src/wiki/wiki-shell.js';
+    import { ACTIVE_CLASS_IDS, CLASSES } from './src/wiki/wiki-data.js';
+    import { ACTS } from './src/data/depth.js';
+
+    mountWikiShell({ active: 'hub' });
+    document.getElementById('m-classes').textContent = ACTIVE_CLASS_IDS.length.toLocaleString();
+
+    // Update exact live telemetry counts asynchronously without blocking initial page script execution
+    Promise.all([
+      import('./src/data/skills.js'),
+      import('./src/data/talents.js'),
+      import('./src/data/bestiary.js'),
+      import('./src/data/relics.js'),
+      import('./src/data/biomes.js'),
+    ]).then(([skillsMod, talentsMod, bestiaryMod, relicsMod, biomesMod]) => {
+      document.getElementById('m-skills').textContent = Object.keys(skillsMod.SKILLS).length.toLocaleString();
+      document.getElementById('m-talents').textContent = Object.keys(talentsMod.TALENTS).length.toLocaleString();
+      document.getElementById('m-monsters').textContent = ((bestiaryMod.BESTIARY.length + 1)).toLocaleString();
+      const relicCount = relicsMod.HEIRLOOMS.length + relicsMod.COVENANTS.reduce((s, c) => s + c.pieces.length, 0) + relicsMod.GLYPHWORDS.length;
+      document.getElementById('m-relics').textContent = relicCount.toLocaleString();
+      document.getElementById('m-biomes').textContent = Object.keys(biomesMod.BIOME_BY_ID).length.toLocaleString();
+    });
+
+    // Populate Quick-Jump 19 Class Roster
+    const rosterEl = document.getElementById('hub-class-roster');
+    rosterEl.innerHTML = ACTIVE_CLASS_IDS.map((id) => {
+      const cls = CLASSES[id];
+      const elInfo = ELEMENT_INFO[cls.element] || ELEMENT_INFO.phys;
+      return `
+        <div class="roster-mini">
+          <div class="roster-mini-top">
+            <a href="classes.html?id=${encodeURIComponent(id)}" class="roster-mini-name" style="color:${cls.color || '#fff'}">${escapeHtml(cls.name)}</a>
+            <span style="font-size:11.5px; color:${elInfo.color}">${elInfo.icon} ${cls.primary.toUpperCase()}</span>
+          </div>
+          <div class="roster-mini-links">
+            <a href="classes.html?id=${encodeURIComponent(id)}">Overview</a>
+            <a href="skills.html?class=${encodeURIComponent(id)}">Skills</a>
+            <a href="talents.html#${encodeURIComponent(id)}">Talents</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Populate Acts 1-6 Timeline
+    const BOSS_LABELS = {
+      valdric: 'Ser Valdric',
+      colossus: 'Ossuarch',
+      ambrecoil: 'Ambrecoil',
+      sekhmun: 'Pharaoh Sekhmun',
+      kaela: 'Kaela',
+      hollowmere: 'Hollowmere',
+      ophaniel: 'Ophaniel',
+      aurion: 'Aurion',
+      kragmaul: 'Kragmaul',
+      velscour: 'Demon Lord Velscour',
+    };
+    const actsEl = document.getElementById('hub-acts-timeline');
+    actsEl.innerHTML = ACTS.map((a) => `
+      <a href="world.html?tab=campaign" class="act-mini-card" style="text-decoration:none; color:inherit;">
+        <span class="act-num">Act ${a.act} · Depths ${a.start}–${a.end}</span>
+        <h3>${escapeHtml(a.name)}</h3>
+        <div style="font-size:12.5px; color:var(--text-dim);">
+          ${a.midBoss ? `Mid-Boss: <b style="color:var(--text);">${escapeHtml(BOSS_LABELS[a.midBoss] || a.midBoss)}</b><br>` : ''}
+          Finale (D${a.finaleDepth}): <b style="color:var(--gold-bright);">${escapeHtml(BOSS_LABELS[a.finaleBoss] || a.finaleBoss)}</b>
+        </div>
+      </a>
+    `).join('');
+
+    // Hero Search Bar logic
+    const hubWrap = document.getElementById('hub-search-wrap');
+    const hubInput = document.getElementById('hub-search-input');
+    const hubResults = document.getElementById('hub-search-results');
+
+    async function runHubSearch() {
+      const q = hubInput.value.trim();
+      if (!q) {
+        hubResults.classList.remove('open');
+        hubResults.innerHTML = '';
+        return;
+      }
+      const res = await searchWikiIndex(q, 16);
+      if (hubInput.value.trim() !== q) return;
+      if (!res.length) {
+        hubResults.innerHTML = `<div class="wiki-omni-empty">No entries matched "<b>${escapeHtml(q)}</b>"</div>`;
+        hubResults.classList.add('open');
+        return;
+      }
+      hubResults.innerHTML = res.map((r) => `
+        <a href="${r.href}" class="wiki-omni-item">
+          <div class="wiki-omni-item-main">
+            <span class="wiki-omni-item-title">${escapeHtml(r.title)}</span>
+            <span class="wiki-omni-item-sub">${escapeHtml(r.sub)}</span>
+          </div>
+          <span class="wiki-omni-badge">${escapeHtml(r.badge)}</span>
+        </a>
+      `).join('');
+      hubResults.classList.add('open');
+    }
+
+    hubInput.addEventListener('focus', () => { ensureOmniIndex(); if (hubInput.value.trim()) runHubSearch(); });
+    hubInput.addEventListener('input', runHubSearch);
+    hubInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const first = hubResults.querySelector('.wiki-omni-item');
+        if (first) window.location.href = first.getAttribute('href');
+      } else if (e.key === 'Escape') {
+        hubResults.classList.remove('open');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!hubWrap.contains(e.target)) hubResults.classList.remove('open');
+    });
+
+    document.querySelectorAll('.hub-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        hubInput.value = chip.dataset.q || '';
+        hubInput.focus();
+        runHubSearch();
+      });
+    });
+
+    // Live Rising Embers Canvas
+    const canvas = document.getElementById('hub-embers');
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, dpr = 1;
+    const embers = [];
+
+    function resize() {
+      W = canvas.parentElement.clientWidth;
+      H = canvas.parentElement.clientHeight;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const rand = (a, b) => Math.random() * (b - a) + a;
+    function makeEmber(init = false) {
+      const life = rand(4, 9);
+      return {
+        x: rand(0, canvas.width),
+        y: init ? rand(0, canvas.height) : canvas.height + rand(10, 35),
+        vx: rand(-10, 10),
+        vy: rand(24, 64),
+        t: init ? rand(0, life) : 0,
+        life,
+        sz: rand(0.9, 2.2),
+        seed: rand(0, 100),
+      };
+    }
+    for (let i = 0; i < 75; i++) embers.push(makeEmber(true));
+
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < embers.length; i++) {
+        const e = embers[i];
+        e.t += dt;
+        const u = e.t / e.life;
+        if (u >= 1 || e.y < -20) { embers[i] = makeEmber(false); continue; }
+        e.x += (e.vx + Math.sin(now * 0.002 + e.seed) * 12) * dt * dpr;
+        e.y -= e.vy * dt * dpr;
+        const alpha = (u < 0.1 ? u / 0.1 : u > 0.8 ? (1 - u) / 0.2 : 1) * 0.75;
+        ctx.fillStyle = `rgba(255, ${Math.round(180 - 110 * u)}, ${Math.round(60 * (1 - u))}, ${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.sz * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
+

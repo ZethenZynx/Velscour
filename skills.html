@@ -1,0 +1,2244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <title>VELSCOUR WIKI — Active Skills, Ultimates &amp; Summons Compendium</title>
+  <meta name="description" content="Explore all 684 active skills across 19 hero classes and 76 specialization trees, 19 Class Ultimates, and 127 Summons & Companions in Velscour PC with live rank & hero-level scaling.">
+  <link rel="icon" type="image/png" href="assets/ui/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    /* ======================================================================
+       SKILLS, ULTIMATES & SUMMONS COMPENDIUM — PAGE STYLES
+       ====================================================================== */
+    .skills-scaling-bar {
+      position: sticky;
+      top: 99px;
+      z-index: 120;
+      background: rgba(16, 10, 8, 0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-highlight);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.78);
+    }
+
+    .scaling-controls-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 18px;
+    }
+
+    .scaling-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preset-btns {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .btn-preset {
+      background: #170f0b;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--font-title);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-preset:hover {
+      border-color: var(--border-highlight);
+      color: #fff;
+    }
+
+    .btn-preset.active {
+      background: rgba(212, 175, 55, 0.18);
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    .scaling-telemetry {
+      font-size: 13px;
+      color: var(--text-dim);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 14px;
+    }
+
+    .scaling-telemetry b {
+      color: var(--gold-bright);
+      font-family: var(--font-title);
+    }
+
+    /* Class Selector Pills */
+    .class-pills-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    .class-pills-label {
+      font-family: var(--font-title);
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cls-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    /* Class Overview + Ultimate Banner */
+    .class-banner-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .class-overview-card,
+    .class-ult-banner {
+      background: linear-gradient(155deg, rgba(28, 18, 13, 0.96) 0%, rgba(15, 10, 8, 0.98) 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: 7px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .class-overview-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .class-overview-title {
+      font-family: var(--font-title);
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .class-crosslinks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-crosslink {
+      background: linear-gradient(180deg, #281911 0%, #160d09 100%);
+      border: 1px solid var(--border-highlight);
+      color: var(--gold-bright);
+      font-family: var(--font-title);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      padding: 6px 11px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.16s;
+    }
+
+    .btn-crosslink:hover {
+      border-color: var(--gold);
+      background: linear-gradient(180deg, #3a2417 0%, #22130c 100%);
+      color: #fff;
+    }
+
+    .class-meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: center;
+    }
+
+    .ult-banner-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .ult-icon-frame {
+      width: 66px;
+      height: 66px;
+      border-radius: 7px;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 18px rgba(212, 175, 55, 0.35);
+      flex-shrink: 0;
+      overflow: hidden;
+      background: #0a0605;
+    }
+
+    .ult-icon-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ult-kicker {
+      font-family: var(--font-title);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .ult-title-name {
+      font-family: var(--font-title);
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      color: #fff;
+      margin-top: 1px;
+    }
+
+    /* 4 Specialization Trees 2x2 Grid */
+    .trees-quad-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .skill-tree-panel {
+      background: linear-gradient(180deg, #17100c 0%, #100b08 100%);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+    }
+
+    .skill-tree-head {
+      padding: 12px 16px;
+      background: rgba(28, 18, 12, 0.92);
+      border-bottom: 2px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .skill-tree-title {
+      font-family: var(--font-title);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+    }
+
+    .skill-tree-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .tree-matrix {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .tree-tier-row {
+      display: grid;
+      grid-template-columns: 54px repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      position: relative;
+    }
+
+    .tree-tier-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #130c09;
+      border: 1px solid rgba(112, 72, 40, 0.4);
+      border-radius: 5px;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .tree-tier-badge .tier-lv {
+      font-family: var(--font-title);
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .tree-tier-badge .tier-lbl {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Individual 3x3 Skill Cell */
+    .tree-skill-node {
+      background: #19110d;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 9px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      text-align: left;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    /* Prerequisite arrow connector from parent row */
+    .tree-skill-node.has-prereq::before {
+      content: '▼';
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      line-height: 1;
+      color: var(--gold-dim);
+      pointer-events: none;
+      text-shadow: 0 1px 4px #000;
+    }
+
+    .tree-skill-node:hover {
+      background: #241812;
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.72), 0 0 12px rgba(212, 175, 55, 0.18);
+    }
+
+    .tree-skill-node.selected {
+      border-color: var(--gold-bright);
+      background: #281a12;
+      box-shadow: 0 0 0 1px var(--gold), 0 6px 20px rgba(212, 175, 55, 0.28);
+    }
+
+    .snode-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .snode-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 5px;
+      border: 1px solid #5e4026;
+      flex-shrink: 0;
+      background: #080504;
+      object-fit: cover;
+    }
+
+    .snode-title-wrap {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .snode-name {
+      font-family: var(--font-title);
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.22;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .snode-kind {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .snode-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: auto;
+    }
+
+    .mini-chip {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(10, 6, 4, 0.8);
+      border: 1px solid rgba(90, 58, 36, 0.55);
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .mini-chip.mana {
+      color: #84c5ff;
+      border-color: rgba(80, 155, 255, 0.45);
+    }
+
+    .mini-chip.rage {
+      color: #ff9c4a;
+      border-color: rgba(255, 130, 45, 0.5);
+    }
+
+    .mini-chip.free {
+      color: #95f576;
+      border-color: rgba(102, 224, 68, 0.45);
+    }
+
+    .mini-chip.cd {
+      color: #dfd0bc;
+    }
+
+    .mini-chip.grant {
+      color: var(--gold-bright);
+      border-color: rgba(212, 175, 55, 0.55);
+      background: rgba(58, 40, 12, 0.55);
+    }
+
+    .snode-dmg-line {
+      font-size: 11.5px;
+      color: var(--gold-bright);
+      font-weight: 700;
+      border-top: 1px solid rgba(90, 58, 36, 0.3);
+      padding-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Pinned Skill Inspector / Modal */
+    .wiki-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 450;
+      background: rgba(4, 3, 2, 0.82);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .wiki-modal-backdrop.open {
+      display: flex;
+    }
+
+    .wiki-modal-card {
+      width: 100%;
+      max-width: 760px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, #1b120d 0%, #100a07 100%);
+      border: 1.5px solid var(--gold-dim);
+      border-radius: 8px;
+      padding: 22px 24px;
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.95), 0 0 28px rgba(212, 175, 55, 0.18);
+      position: relative;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border-radius: 5px;
+      border: 1px solid var(--border-highlight);
+      background: #170f0b;
+      color: var(--text-dim);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close-btn:hover {
+      color: #fff;
+      border-color: var(--gold);
+      background: #2a1a12;
+    }
+
+    .dossier-head {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-right: 40px;
+      margin-bottom: 14px;
+    }
+
+    .dossier-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 7px;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+      flex-shrink: 0;
+      background: #080504;
+    }
+
+    .dossier-title {
+      font-family: var(--font-title);
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--gold-bright);
+      letter-spacing: 1px;
+    }
+
+    .dossier-desc-box {
+      background: rgba(10, 6, 4, 0.72);
+      border: 1px solid var(--border-highlight);
+      border-left: 3px solid var(--gold);
+      border-radius: 5px;
+      padding: 13px 15px;
+      font-size: 16px;
+      line-height: 1.55;
+      color: #f3e8d6;
+      margin: 12px 0;
+    }
+
+    .dossier-desc-box b {
+      color: var(--gold-bright);
+    }
+
+    .dossier-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .dossier-stat-cell {
+      background: #140d09;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 8px 10px;
+    }
+
+    .dossier-stat-cell .k {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-family: var(--font-title);
+    }
+
+    .dossier-stat-cell .v {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    .morph-links-box {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .morph-link-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 5px;
+      background: #150e0a;
+      border: 1px solid var(--border);
+      margin-top: 6px;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .morph-link-row:hover {
+      border-color: var(--gold);
+      background: #21150f;
+    }
+
+    /* All 612 Skills Table / Cards */
+    .compendium-skill-row {
+      cursor: pointer;
+    }
+
+    .skill-cell-main {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 200px;
+    }
+
+    .skill-cell-main img {
+      width: 44px;
+      height: 44px;
+      border-radius: 5px;
+      border: 1px solid #5e4026;
+      flex-shrink: 0;
+      background: #080504;
+    }
+
+    .skill-desc-html b {
+      color: var(--gold-bright);
+    }
+
+    /* Ultimates Grid */
+    .ult-card {
+      background: linear-gradient(160deg, #1b120d 0%, #110b08 100%);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    }
+
+    .ult-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.72);
+    }
+
+    /* Summons Grid */
+    .summon-card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .summon-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 6px;
+      border: 1px solid var(--border-highlight);
+      background: #090605;
+      flex-shrink: 0;
+    }
+
+    .summon-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: rgba(10, 6, 4, 0.65);
+      border: 1px solid rgba(90, 58, 36, 0.45);
+      border-radius: 5px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .summon-metrics .m-lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      font-family: var(--font-title);
+    }
+
+    .summon-metrics .m-val {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--gold-bright);
+    }
+
+    .empty-state-box {
+      padding: 42px 20px;
+      text-align: center;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 1080px) {
+      .class-banner-grid,
+      .trees-quad-grid {
+        grid-template-columns: 1fr;
+      }
+      .skills-scaling-bar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .tree-tier-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding-top: 20px;
+      }
+      .tree-tier-badge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        flex-direction: row;
+        gap: 6px;
+        padding: 1px 8px;
+        height: 18px;
+      }
+      .snode-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+      }
+      .snode-icon {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="skills"></script>
+  <section class="wiki-page-hero">
+    <div class="wiki-page-hero-inner">
+      <span class="wiki-eyebrow">Combat Grimoire &amp; Companion Bestiary</span>
+      <h1 class="wiki-page-title">ACTIVE SKILLS, <span>ULTIMATES &amp; SUMMONS</span></h1>
+      <p class="wiki-page-desc">
+        Every hero commands four 3×3 specialization trees unlocked at Levels 1, 12, and 30, scaling to Rank 20
+        (25+ with gear) alongside a kill-charged Class Ultimate and summoned war-companions. Drag the live sliders
+        below to inspect real-time damage, costs, durations, and breakpoints at any rank and hero level.
+      </p>
+      <div class="wiki-stats-ribbon" id="hero-telemetry-ribbon">
+        <span class="wiki-stat-badge"><b id="stat-cls-count">17</b> Hero Classes</span>
+        <span class="wiki-stat-badge"><b id="stat-tree-count">68</b> Specialization Trees</span>
+        <span class="wiki-stat-badge"><b id="stat-skill-count">684</b> Active Skills</span>
+        <span class="wiki-stat-badge"><b id="stat-ult-count">17</b> Class Ultimates</span>
+        <span class="wiki-stat-badge"><b id="stat-sum-count">127</b> Summons &amp; Companions</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="wiki-main">
+    <!-- Live Scaling Toolbar -->
+    <section class="wiki-toolbar skills-scaling-bar" aria-label="Live Skill Scaling Controls">
+      <div class="scaling-controls-grid">
+        <div class="scaling-group">
+          <div class="wiki-slider-box">
+            <label for="slider-skill-rank">Skill Rank</label>
+            <input type="range" id="slider-skill-rank" min="1" max="25" value="1">
+            <span class="wiki-slider-val" id="lbl-skill-rank">Lv 1</span>
+          </div>
+          <div class="preset-btns" id="rank-presets">
+            <button type="button" class="btn-preset active" data-rank="1">Lv 1</button>
+            <button type="button" class="btn-preset" data-rank="10">Lv 10</button>
+            <button type="button" class="btn-preset" data-rank="20" title="Base Skill Cap (MAX_SKILL_LEVEL = 20)">Lv 20 Cap</button>
+            <button type="button" class="btn-preset" data-rank="25" title="Rank 20 + +5 All Skills Gear">Lv 25 (+Gear)</button>
+          </div>
+        </div>
+
+        <div class="scaling-group">
+          <div class="wiki-slider-box">
+            <label for="slider-hero-lvl">Hero Ref Level</label>
+            <input type="range" id="slider-hero-lvl" min="1" max="100" value="50">
+            <span class="wiki-slider-val" id="lbl-hero-lvl">Lv 50</span>
+          </div>
+          <div class="preset-btns" id="hero-presets">
+            <button type="button" class="btn-preset" data-hlvl="1">Lv 1</button>
+            <button type="button" class="btn-preset active" data-hlvl="50">Lv 50</button>
+            <button type="button" class="btn-preset" data-hlvl="100">Lv 100</button>
+          </div>
+        </div>
+
+        <div class="scaling-telemetry" id="scaling-telemetry-readout">
+          <span>Weapon Ref: <b id="lbl-weapon-ref">151</b> avg</span>
+          <span id="lbl-rank-note">Base Rank 1 / 20</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 Sub-Tabs -->
+    <div class="wiki-tabs" role="tablist" aria-label="Skills Compendium Views">
+      <button type="button" class="wiki-tab-btn active" data-view="trees">
+        🌳 Class Skill Trees <span class="wiki-nav-count">76 Trees</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-view="all">
+        ⚡ All Active Skills <span class="wiki-nav-count" id="tab-count-skills">684</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-view="ultimates">
+        ☄️ Class Ultimates <span class="wiki-nav-count">17</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-view="summons">
+        🐺 Summons &amp; Companions <span class="wiki-nav-count" id="tab-count-summons">127</span>
+      </button>
+    </div>
+
+    <!-- Dynamic View Container -->
+    <div id="skills-view-root"></div>
+  </main>
+
+  <!-- Detailed Skill Dossier Modal -->
+  <div class="wiki-modal-backdrop" id="skill-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="skill-modal-title">
+    <div class="wiki-modal-card" id="skill-modal-content"></div>
+  </div>
+
+  <script type="module">
+    import { mountWikiShell, escapeHtml, getQueryParam, ELEMENT_INFO } from './src/wiki/wiki-shell.js';
+    import { ACTIVE_CLASS_IDS, CLASSES, ATTRS, DMG_TUNE, DMG_TUNE_AT } from './src/wiki/wiki-data.js';
+    import {
+      SKILLS,
+      CLASS_SKILLS,
+      ROW_LEVELS,
+      MAX_SKILL_LEVEL,
+      GRANTS,
+      grantedSkillsAt,
+      isMovementSkill,
+      skillBaseDamage,
+      manaCost,
+      rageCost,
+      whirlwindRageCost,
+      whirlwindRageRate,
+      cooldown,
+      useTime,
+      weaponCoef,
+      buffAmount,
+      curseAmount,
+      skillDuration,
+      skillRange,
+      ricochetCount,
+      describe,
+    } from './src/data/skills.js';
+    import { SUMMONS } from './src/data/summons.js';
+    import { weaponRef, logCurve } from './src/data/depth.js';
+    import { ULTIMATES, SMITE_KILLS } from './src/game/smite.js';
+    import { CLASS_TALENTS, morphMatchesSkill } from './src/data/talents.js';
+    import { skillIconURL, ultimateIconURL, preloadSkillSheets, onSkillSheetLoad } from './src/ui/icons.js';
+    import { A, loadImage } from './src/core/assets.js';
+    import { loadPetArt } from './src/core/enemyart.js';
+    import { SLIME_READY } from './src/gfx/slimeart.js';
+
+    // Mount unified Wiki navigation shell
+    mountWikiShell({ active: 'skills' });
+
+    // Ensure A.classes has non-null placeholder canvases immediately so procedural class-sprite summons never fail
+    for (const cid of ACTIVE_CLASS_IDS) {
+      if (!A.classes[cid]) {
+        const ph = document.createElement('canvas');
+        ph.width = 48;
+        ph.height = 64;
+        A.classes[cid] = ph;
+      }
+    }
+
+    // Precompute exact free level-up grant map across all classes (captures GRANTS + Dragoon Spearstorm grants)
+    const GRANT_LEVEL_BY_SKILL = {};
+    for (const cid of ACTIVE_CLASS_IDS) {
+      for (let lv = 1; lv <= 100; lv++) {
+        for (const sid of grantedSkillsAt(cid, lv)) {
+          if (GRANT_LEVEL_BY_SKILL[sid] === undefined) GRANT_LEVEL_BY_SKILL[sid] = lv;
+        }
+      }
+    }
+
+    // Precompute summon ownership (active skills, talent morph swaps, and summon pools)
+    const SUMMON_SOURCES = {};
+    for (const key of Object.keys(SUMMONS)) {
+      SUMMON_SOURCES[key] = { skills: [], morphs: [], pools: [] };
+    }
+    for (const sk of Object.values(SKILLS)) {
+      if (sk.m?.sum && SUMMON_SOURCES[sk.m.sum]) {
+        SUMMON_SOURCES[sk.m.sum].skills.push(sk);
+      }
+    }
+    for (const cid of ACTIVE_CLASS_IDS) {
+      for (const branch of (CLASS_TALENTS[cid] || [])) {
+        for (const node of branch.nodes) {
+          const sw = node.morph?.sumSwap;
+          if (sw && SUMMON_SOURCES[sw]) {
+            SUMMON_SOURCES[sw].morphs.push(node);
+          }
+        }
+      }
+    }
+    for (const [poolKey, def] of Object.entries(SUMMONS)) {
+      if (Array.isArray(def.pool)) {
+        for (const memberKey of def.pool) {
+          if (SUMMON_SOURCES[memberKey]) SUMMON_SOURCES[memberKey].pools.push(poolKey);
+        }
+      }
+    }
+
+    // Populate live hero counts
+    const ALL_SKILLS_LIST = ACTIVE_CLASS_IDS.flatMap((cid) => CLASS_SKILLS[cid] || []);
+    const ALL_SUMMON_ENTRIES = Object.entries(SUMMONS);
+    const totalTrees = ACTIVE_CLASS_IDS.reduce((s, cid) => s + (CLASSES[cid]?.trees?.length || 0), 0);
+
+    document.getElementById('stat-cls-count').textContent = String(ACTIVE_CLASS_IDS.length);
+    document.getElementById('stat-tree-count').textContent = String(totalTrees);
+    document.getElementById('stat-skill-count').textContent = String(ALL_SKILLS_LIST.length);
+    document.getElementById('stat-ult-count').textContent = String(ACTIVE_CLASS_IDS.filter((c) => ULTIMATES[c]).length);
+    document.getElementById('stat-sum-count').textContent = String(ALL_SUMMON_ENTRIES.length);
+    document.getElementById('tab-count-skills').textContent = String(ALL_SKILLS_LIST.length);
+    document.getElementById('tab-count-summons').textContent = String(ALL_SUMMON_ENTRIES.length);
+
+    const SKILL_KINDS = [
+      'melee', 'proj', 'aoe', 'nova', 'beam', 'chain', 'orbit', 'whirl',
+      'summon', 'buff', 'curse', 'leap', 'dash', 'blink', 'trap', 'rain',
+      'strike', 'fissure', 'wall', 'zone', 'cyclone', 'corpse', 'heal',
+    ];
+
+    const KIND_LABELS = {
+      melee: 'Melee Strike', proj: 'Projectile', aoe: 'Ground AoE', nova: 'Nova',
+      beam: 'Channeled Beam', chain: 'Chain Arc', orbit: 'Orbit / Spiral', whirl: 'Whirlwind',
+      summon: 'Summon', buff: 'Buff / Aura', curse: 'Curse / Hex', leap: 'Leap',
+      dash: 'Dash', blink: 'Teleport / Blink', trap: 'Trap', rain: 'Sky Rain',
+      strike: 'Sky Strike', fissure: 'Ground Fissure', wall: 'Barrier Wall', zone: 'Persistent Zone',
+      cyclone: 'Cyclone', corpse: 'Corpse Skill', heal: 'Healing',
+    };
+
+    const AI_LABELS = {
+      melee: 'Melee Brawler',
+      ranged: 'Ranged Caster / Marksman',
+      turret: 'Stationary Sentry / Turret',
+      aura: 'Totem / Banner / Ward',
+      follow: 'Escort Companion',
+      exploder: 'Volatile Detonator',
+    };
+
+    // Parse initial URL query state
+    const rawView = getQueryParam('view', '');
+    const rawClass = getQueryParam('class', '');
+    const rawQ = getQueryParam('q', '').trim();
+    const validClass = ACTIVE_CLASS_IDS.includes(rawClass) ? rawClass : 'paladin';
+
+    // Smart initial view resolution when arriving from Omni-Search (?class=paladin&q=Blessed+Hammer)
+    let initialView = ['trees', 'all', 'ultimates', 'summons'].includes(rawView) ? rawView : 'trees';
+    let autoOpenSkillId = null;
+
+    if (!rawView && rawQ) {
+      const qLow = rawQ.toLowerCase();
+      if (rawClass && ACTIVE_CLASS_IDS.includes(rawClass)) {
+        const exactInClass = (CLASS_SKILLS[rawClass] || []).find((s) => s.name.toLowerCase() === qLow);
+        if (exactInClass) {
+          initialView = 'trees';
+          autoOpenSkillId = exactInClass.id;
+        } else {
+          initialView = 'all';
+        }
+      } else {
+        initialView = 'all';
+      }
+    }
+
+    const state = {
+      view: initialView,
+      classId: validClass,
+      rank: Math.max(1, Math.min(25, Number(getQueryParam('rank', '1')) || 1)),
+      heroLvl: Math.max(1, Math.min(100, Number(getQueryParam('hlvl', '50')) || 50)),
+      selectedSkillId: autoOpenSkillId,
+      // All-skills compendium filters
+      q: rawQ,
+      filterClass: rawClass && ACTIVE_CLASS_IDS.includes(rawClass) && initialView === 'all' ? rawClass : 'all',
+      filterEl: getQueryParam('el', 'all'),
+      filterKind: getQueryParam('kind', 'all'),
+      filterTag: getQueryParam('tag', 'all'),
+      allDisplayMode: 'table', // 'table' | 'cards'
+      // Ultimates filters
+      ultSearch: '',
+      ultStat: 'all',
+      // Summons filters
+      sumSearch: initialView === 'summons' ? rawQ : '',
+      sumRole: 'all',
+      sumEl: 'all',
+      summonIconGen: 0,
+    };
+
+    // Preload active class sheets immediately
+    preloadSkillSheets(state.classId);
+
+    // Background art enrichment for procedural summon icons
+    Promise.all(
+      ACTIVE_CLASS_IDS.map((cid) =>
+        loadImage(`assets/sprites/classes/${cid}.webp`)
+          .then((img) => { A.classes[cid] = img; })
+          .catch(() => {})
+      )
+    ).then(() => {
+      A.classScaled = {};
+      state.summonIconGen++;
+      refreshLiveIcons();
+    });
+
+    loadPetArt().then(() => {
+      state.summonIconGen++;
+      refreshLiveIcons();
+    }).catch(() => {});
+
+    SLIME_READY.then(() => {
+      setTimeout(() => {
+        state.summonIconGen++;
+        refreshLiveIcons();
+      }, 280);
+    });
+
+    onSkillSheetLoad(() => {
+      refreshLiveIcons();
+    });
+
+    // =========================================================================
+    // FORMULAS & FORMATTERS (100% synced with skills.js, depth.js & player.js)
+    // =========================================================================
+
+    function classTuneAt(cls, heroLvl) {
+      const T = DMG_TUNE[cls];
+      return T ? logCurve(DMG_TUNE_AT.map((L, i) => [L, T[i]]), heroLvl) : 1;
+    }
+
+    /**
+     * Realistic reference [minDmg, maxDmg] at Skill Rank `rank` and Hero Level `heroLvl`,
+     * combining `skillBaseDamage(sk, rank)`, `weaponRef(heroLvl)`, `weaponCoef(sk)`,
+     * primary attribute scaling, and `DMG_TUNE` class multiplier.
+     */
+    function computeRefSkillDmg(sk, rank, heroLvl) {
+      const C = CLASSES[sk.classId] || CLASSES.paladin;
+      const base = skillBaseDamage(sk, rank);
+      const wc = weaponCoef(sk);
+      const wAvg = weaponRef(heroLvl);
+      const wLo = wAvg * 0.85;
+      const wHi = wAvg * 1.15;
+      const primStat = (C.base?.[C.primary] || 20) + (heroLvl - 1) * 3;
+      const strStat = C.primary === 'str' ? primStat : (C.base?.str || 14) + Math.floor((heroLvl - 1) * 0.5);
+      const intStat = C.primary === 'int' ? primStat : (C.base?.int || 14) + Math.floor((heroLvl - 1) * 0.5);
+      const elBonus = (sk.el === 'phys' ? strStat : intStat) * 0.25;
+      const primBonus = primStat * 0.28;
+      const mult = (1 + (primBonus + elBonus) / 100) * classTuneAt(sk.classId, heroLvl) * (sk.m.pow ?? 1);
+      const lo = Math.max(1, Math.round((base * 0.85 + wLo * wc) * mult));
+      const hi = Math.max(2, Math.round((base * 1.15 + wHi * wc) * mult));
+      return [lo, hi];
+    }
+
+    function getCostInfo(sk, rank) {
+      if (sk.classId === 'barbarian' && sk.kind === 'whirl') {
+        const start = Math.round(whirlwindRageCost(rank));
+        const rate = Math.round(whirlwindRageRate(rank));
+        return { kind: 'rage', short: `${start} Rage (${rate}/s)`, full: `${start} Rage + ${rate} Rage/s` };
+      }
+      const rc = rageCost(sk, rank);
+      if (rc > 0) {
+        return { kind: 'rage', short: `${rc} Rage`, full: `${rc} Rage` };
+      }
+      const mc = manaCost(sk, rank);
+      if (mc > 0) {
+        const fmtMc = Number.isInteger(mc) ? String(mc) : mc.toFixed(1);
+        return { kind: 'mana', short: `${fmtMc} Mana`, full: `${fmtMc} Mana` };
+      }
+      return { kind: 'free', short: 'Free', full: '0 Mana (Free)' };
+    }
+
+    function getSkillHeadlineMetric(sk, rank, dmgRange) {
+      if (sk.kind === 'heal') {
+        const pct = Math.round((sk.m.amt || 20) * (1 + 0.04 * (rank - 1)));
+        return `Heals ${pct}% Max Life`;
+      }
+      if (sk.kind === 'buff' && !sk.m.pulse) {
+        return `+${buffAmount(sk, rank)}% (${Math.round(skillDuration(sk, rank))}s)`;
+      }
+      if (sk.kind === 'curse' && !(sk.m.curse || []).some((c) => ['decay', 'bomb', 'doom'].includes(c))) {
+        return `-${curseAmount(sk, rank)}% / ${Math.round(skillDuration(sk, rank))}s`;
+      }
+      if (sk.m.astro === 'mirror') return '8 Star Clones · Invuln';
+      if (sk.m.astro === 'align') return 'Planetary Alignment';
+      if (sk.m.astro === 'conjunction') return '4 Zodiac Boons + Meteors';
+      const elInfo = ELEMENT_INFO[sk.el] || ELEMENT_INFO.phys;
+      return `${dmgRange[0].toLocaleString()}–${dmgRange[1].toLocaleString()} ${elInfo.name}`;
+    }
+
+    function getSummonIconUrl(sumKey, def) {
+      const directSkill = SUMMON_SOURCES[sumKey]?.skills?.[0];
+      if (directSkill) return skillIconURL(directSkill);
+      return skillIconURL({
+        id: `wiki_sum_${sumKey}_${state.summonIconGen}`,
+        classId: 'necromancer',
+        kind: 'summon',
+        el: def.el || 'phys',
+        fx: 'totem',
+        m: { sum: sumKey },
+      });
+    }
+
+    function elBadgeHtml(elKey) {
+      const info = ELEMENT_INFO[elKey] || ELEMENT_INFO.phys;
+      return `<span class="wiki-badge" style="color:${info.color};border-color:${info.color}55">${info.icon} ${escapeHtml(info.name)}</span>`;
+    }
+
+    function syncUrlParams() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', state.view);
+      if (state.view === 'trees') {
+        url.searchParams.set('class', state.classId);
+        url.searchParams.delete('q');
+      } else if (state.view === 'all') {
+        if (state.filterClass !== 'all') url.searchParams.set('class', state.filterClass);
+        else url.searchParams.delete('class');
+        if (state.q.trim()) url.searchParams.set('q', state.q.trim());
+        else url.searchParams.delete('q');
+      } else if (state.view === 'summons') {
+        url.searchParams.delete('class');
+        if (state.sumSearch.trim()) url.searchParams.set('q', state.sumSearch.trim());
+        else url.searchParams.delete('q');
+      } else {
+        url.searchParams.delete('class');
+        url.searchParams.delete('q');
+      }
+      window.history.replaceState(null, '', url.toString());
+    }
+
+    // =========================================================================
+    // LIVE SCALING CONTROLS & ICON REFRESH
+    // =========================================================================
+
+    const rankSlider = document.getElementById('slider-skill-rank');
+    const heroSlider = document.getElementById('slider-hero-lvl');
+    const lblRank = document.getElementById('lbl-skill-rank');
+    const lblHero = document.getElementById('lbl-hero-lvl');
+    const lblWeaponRef = document.getElementById('lbl-weapon-ref');
+    const lblRankNote = document.getElementById('lbl-rank-note');
+    const rootEl = document.getElementById('skills-view-root');
+
+    function updateScalingReadouts() {
+      rankSlider.value = String(state.rank);
+      heroSlider.value = String(state.heroLvl);
+      lblRank.textContent = `Lv ${state.rank}`;
+      lblHero.textContent = `Lv ${state.heroLvl}`;
+      lblWeaponRef.textContent = String(Math.round(weaponRef(state.heroLvl)));
+      if (state.rank > MAX_SKILL_LEVEL) {
+        lblRankNote.innerHTML = `<b style="color:#84c5ff">Rank ${MAX_SKILL_LEVEL} + ${state.rank - MAX_SKILL_LEVEL} Gear</b>`;
+      } else if (state.rank === MAX_SKILL_LEVEL) {
+        lblRankNote.innerHTML = `<b>Max Base Cap (${MAX_SKILL_LEVEL}/${MAX_SKILL_LEVEL})</b>`;
+      } else {
+        lblRankNote.textContent = `Base Rank ${state.rank} / ${MAX_SKILL_LEVEL}`;
+      }
+
+      document.querySelectorAll('#rank-presets .btn-preset').forEach((b) => {
+        b.classList.toggle('active', Number(b.dataset.rank) === state.rank);
+      });
+      document.querySelectorAll('#hero-presets .btn-preset').forEach((b) => {
+        b.classList.toggle('active', Number(b.dataset.hlvl) === state.heroLvl);
+      });
+    }
+
+    function refreshLiveIcons() {
+      document.querySelectorAll('img[data-skill-id]').forEach((img) => {
+        const sk = SKILLS[img.dataset.skillId];
+        if (sk) img.src = skillIconURL(sk);
+      });
+      document.querySelectorAll('img[data-sum-key]').forEach((img) => {
+        const key = img.dataset.sumKey;
+        const def = SUMMONS[key];
+        if (def) img.src = getSummonIconUrl(key, def);
+      });
+    }
+
+    function refreshScaledValuesInPlace() {
+      updateScalingReadouts();
+      if (state.view === 'trees') {
+        document.querySelectorAll('[data-live-node]').forEach((card) => {
+          const sk = SKILLS[card.dataset.liveNode];
+          if (!sk) return;
+          const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+          const cost = getCostInfo(sk, state.rank);
+          const costEl = card.querySelector('.js-node-cost');
+          const dmgEl = card.querySelector('.js-node-dmg');
+          if (costEl) {
+            costEl.textContent = cost.short;
+            costEl.className = `mini-chip js-node-cost ${cost.kind}`;
+          }
+          if (dmgEl) dmgEl.textContent = getSkillHeadlineMetric(sk, state.rank, dmg);
+        });
+      } else if (state.view === 'all') {
+        document.querySelectorAll('[data-live-skill-row]').forEach((row) => {
+          const sk = SKILLS[row.dataset.liveSkillRow];
+          if (!sk) return;
+          const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+          const cost = getCostInfo(sk, state.rank);
+          const cd = cooldown(sk);
+          const costCell = row.querySelector('.js-row-cost');
+          const descCell = row.querySelector('.js-row-desc');
+          if (costCell) {
+            costCell.innerHTML = `<span class="mini-chip ${cost.kind}">${escapeHtml(cost.short)}</span>${cd ? ` <span class="mini-chip cd">⏱ ${cd}s</span>` : ''}`;
+          }
+          if (descCell) {
+            descCell.innerHTML = describe(sk, state.rank, dmg);
+          }
+        });
+      }
+
+      // Also live-update open Skill Dossier Modal if open
+      if (modalBackdrop.classList.contains('open') && state.selectedSkillId && SKILLS[state.selectedSkillId]) {
+        renderModalContent(SKILLS[state.selectedSkillId]);
+      }
+    }
+
+    rankSlider.addEventListener('input', () => {
+      state.rank = Number(rankSlider.value) || 1;
+      refreshScaledValuesInPlace();
+    });
+
+    heroSlider.addEventListener('input', () => {
+      state.heroLvl = Number(heroSlider.value) || 50;
+      refreshScaledValuesInPlace();
+    });
+
+    document.querySelectorAll('#rank-presets .btn-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.rank = Number(btn.dataset.rank) || 1;
+        refreshScaledValuesInPlace();
+      });
+    });
+
+    document.querySelectorAll('#hero-presets .btn-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.heroLvl = Number(btn.dataset.hlvl) || 50;
+        refreshScaledValuesInPlace();
+      });
+    });
+
+    // Sub-tab switching
+    function setActiveTabButtons() {
+      document.querySelectorAll('.wiki-tab-btn[data-view]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.view === state.view);
+      });
+    }
+
+    document.querySelectorAll('.wiki-tab-btn[data-view]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.view = btn.dataset.view;
+        setActiveTabButtons();
+        syncUrlParams();
+        renderActiveView();
+      });
+    });
+
+    // =========================================================================
+    // VIEW 1: CLASS SKILL TREES (4 TREES × 3×3 MATRIX + ULTIMATE BANNER)
+    // =========================================================================
+
+    function renderTreesView() {
+      const clsId = state.classId;
+      const cls = CLASSES[clsId];
+      const ult = ULTIMATES[clsId] || ULTIMATES.paladin;
+      const clsElInfo = ELEMENT_INFO[cls.element] || ELEMENT_INFO.phys;
+      const ultElInfo = ELEMENT_INFO[ult.el] || ELEMENT_INFO.phys;
+      const primAttr = ATTRS[cls.primary] || ATTRS.str;
+      const clsSkills = CLASS_SKILLS[clsId] || [];
+
+      preloadSkillSheets(clsId);
+
+      const pillsHtml = ACTIVE_CLASS_IDS.map((cid) => {
+        const c = CLASSES[cid];
+        const eInfo = ELEMENT_INFO[c.element] || ELEMENT_INFO.phys;
+        const isAct = cid === clsId ? 'active' : '';
+        return `
+          <button type="button" class="wiki-pill ${isAct}" data-select-class="${cid}">
+            <span class="cls-dot" style="color:${c.color};background:${c.color}"></span>
+            <span>${escapeHtml(c.name)}</span>
+            <span style="opacity:0.7;font-size:11px">${eInfo.icon}</span>
+          </button>
+        `;
+      }).join('');
+
+      // Render 4 specialization trees (each 3 rows x 3 cols)
+      const roman = ['I', 'II', 'III', 'IV'];
+      const treesHtml = cls.trees.map((treeName, tIdx) => {
+        const treeSkills = clsSkills.filter((s) => s.tree === tIdx);
+        // Dominant element in this tree for accent border
+        const elCounts = {};
+        for (const s of treeSkills) elCounts[s.el] = (elCounts[s.el] || 0) + 1;
+        const domEl = Object.entries(elCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || cls.element;
+        const domInfo = ELEMENT_INFO[domEl] || clsElInfo;
+
+        let rowsHtml = '';
+        for (let row = 0; row < 3; row++) {
+          const reqLv = ROW_LEVELS[row];
+          const rowSkills = treeSkills.filter((s) => s.row === row).sort((a, b) => a.col - b.col);
+          const cellsHtml = rowSkills.map((sk) => {
+            const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+            const cost = getCostInfo(sk, state.rank);
+            const cd = cooldown(sk);
+            const grantLv = GRANT_LEVEL_BY_SKILL[sk.id];
+            const skEl = ELEMENT_INFO[sk.el] || ELEMENT_INFO.phys;
+            const prereqSk = sk.prereq ? SKILLS[sk.prereq] : null;
+            const isSel = state.selectedSkillId === sk.id ? 'selected' : '';
+
+            return `
+              <button type="button"
+                class="tree-skill-node ${sk.prereq ? 'has-prereq' : ''} ${isSel}"
+                data-live-node="${sk.id}"
+                data-open-skill="${sk.id}"
+                title="${escapeHtml(sk.name)}${prereqSk ? ` · Requires ${prereqSk.name}` : ''} — Click to inspect full dossier">
+                <div class="snode-top">
+                  <img class="snode-icon" data-skill-id="${sk.id}" src="${skillIconURL(sk)}" alt="${escapeHtml(sk.name)}">
+                  <div class="snode-title-wrap">
+                    <div class="snode-name">${escapeHtml(sk.name)}</div>
+                    <div class="snode-kind" style="color:${skEl.color}">${skEl.icon} ${escapeHtml(KIND_LABELS[sk.kind] || sk.kind)}</div>
+                  </div>
+                </div>
+                <div class="snode-chips">
+                  <span class="mini-chip js-node-cost ${cost.kind}">${escapeHtml(cost.short)}</span>
+                  ${cd ? `<span class="mini-chip cd">⏱ ${cd}s</span>` : ''}
+                  ${sk.m.free ? `<span class="mini-chip free" title="Primary / Generator Skill">Basic</span>` : ''}
+                  ${grantLv !== undefined ? `<span class="mini-chip grant" title="Automatically granted for free at Hero Level ${grantLv}">🎁 Free Lv ${grantLv}</span>` : ''}
+                </div>
+                <div class="snode-dmg-line js-node-dmg">${escapeHtml(getSkillHeadlineMetric(sk, state.rank, dmg))}</div>
+              </button>
+            `;
+          }).join('');
+
+          rowsHtml += `
+            <div class="tree-tier-row">
+              <div class="tree-tier-badge">
+                <span class="tier-lv">Lv ${reqLv}</span>
+                <span class="tier-lbl">Row ${row + 1}</span>
+              </div>
+              ${cellsHtml}
+            </div>
+          `;
+        }
+
+        return `
+          <article class="skill-tree-panel">
+            <div class="skill-tree-head" style="border-bottom-color:${domInfo.color}88">
+              <div>
+                <div class="skill-tree-title">Tree ${roman[tIdx] || tIdx + 1}: ${escapeHtml(treeName)}</div>
+                <div class="skill-tree-sub">+1.5% Synergy damage per point invested in sibling ${escapeHtml(treeName)} skills</div>
+              </div>
+              ${elBadgeHtml(domEl)}
+            </div>
+            <div class="tree-matrix">
+              ${rowsHtml}
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      rootEl.innerHTML = `
+        <div class="class-pills-wrap">
+          <div class="class-pills-label">
+            <span>Select Hero Class (${ACTIVE_CLASS_IDS.length} Playable Classes)</span>
+            <span>Click any skill tile for full formulas, rank table &amp; talent morphs</span>
+          </div>
+          <div class="wiki-pills">${pillsHtml}</div>
+        </div>
+
+        <div class="class-banner-grid">
+          <div class="class-overview-card">
+            <div class="class-overview-head">
+              <div>
+                <div class="ult-kicker" style="color:${cls.color}">Hero Specialization Dossier</div>
+                <h2 class="class-overview-title">${escapeHtml(cls.name)}</h2>
+              </div>
+              <div class="class-crosslinks">
+                <a class="btn-crosslink" href="talents.html#${encodeURIComponent(clsId)}">🌟 Talent Calculator</a>
+                <a class="btn-crosslink" href="classes.html?id=${encodeURIComponent(clsId)}">🛡️ Class Profile</a>
+              </div>
+            </div>
+            <p style="color:var(--text-dim);font-size:14.8px">${escapeHtml(cls.desc)}</p>
+            <div class="class-meta-strip">
+              ${elBadgeHtml(cls.element)}
+              <span class="wiki-badge gold">Primary: ${escapeHtml(primAttr.short)} (+1% Skill Dmg/pt)</span>
+              <span class="wiki-badge">Weapon: ${escapeHtml(cls.weapon)}${cls.offhand ? ` + ${escapeHtml(cls.offhand)}` : ' (Dual-Wield Capable)'}</span>
+              <span class="wiki-badge emerald">${Object.keys(GRANT_LEVEL_BY_SKILL).filter((k) => k.startsWith(clsId + '.')).length} Free Level-Up Grants</span>
+            </div>
+          </div>
+
+          <div class="class-ult-banner" style="border-color:${ult.color}88">
+            <div class="ult-banner-top">
+              <div class="ult-icon-frame" style="border-color:${ult.color}">
+                <img src="${ultimateIconURL(clsId, 64)}" alt="${escapeHtml(ult.name)}">
+              </div>
+              <div>
+                <div class="ult-kicker">[F] Class Ultimate · ${escapeHtml(ult.title)}</div>
+                <div class="ult-title-name" style="color:${ult.color}">${escapeHtml(ult.name)}</div>
+                <div class="class-meta-strip" style="margin-top:5px">
+                  ${elBadgeHtml(ult.el)}
+                  <span class="wiki-badge gold">Scales: ${escapeHtml(ult.stat.toUpperCase())}</span>
+                  <span class="wiki-badge">Radius: ${ult.r} tiles</span>
+                  <span class="wiki-badge crimson">Charge: ${SMITE_KILLS} Kills</span>
+                </div>
+              </div>
+            </div>
+            <p style="color:var(--text);font-size:14.5px">${escapeHtml(ult.desc)}</p>
+          </div>
+        </div>
+
+        <div class="trees-quad-grid">
+          ${treesHtml}
+        </div>
+      `;
+
+      // Bind class pill clicks
+      rootEl.querySelectorAll('[data-select-class]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.classId = btn.dataset.selectClass;
+          state.selectedSkillId = null;
+          syncUrlParams();
+          renderTreesView();
+        });
+      });
+
+      // Bind skill tile clicks
+      rootEl.querySelectorAll('[data-open-skill]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const sk = SKILLS[btn.dataset.openSkill];
+          if (sk) openSkillModal(sk);
+        });
+      });
+    }
+
+    // =========================================================================
+    // VIEW 2: ALL 684 SKILLS SEARCHABLE COMPENDIUM
+    // =========================================================================
+
+    function renderAllSkillsView() {
+      const clsOptions = `<option value="all">All ${ACTIVE_CLASS_IDS.length} Classes</option>` + ACTIVE_CLASS_IDS.map((cid) =>
+        `<option value="${cid}" ${state.filterClass === cid ? 'selected' : ''}>${escapeHtml(CLASSES[cid].name)}</option>`
+      ).join('');
+
+      const elements = ['phys', 'fire', 'cold', 'light', 'poison', 'shadow', 'arcane', 'holy', 'acid', 'blood'];
+      const elOptions = `<option value="all">All Elements</option>` + elements.map((e) => {
+        const info = ELEMENT_INFO[e];
+        return `<option value="${e}" ${state.filterEl === e ? 'selected' : ''}>${info.icon} ${escapeHtml(info.name)}</option>`;
+      }).join('');
+
+      const kindOptions = `<option value="all">All 23 Skill Kinds</option>` + SKILL_KINDS.map((k) =>
+        `<option value="${k}" ${state.filterKind === k ? 'selected' : ''}>${escapeHtml(KIND_LABELS[k] || k)} (${k})</option>`
+      ).join('');
+
+      rootEl.innerHTML = `
+        <div class="wiki-toolbar">
+          <div class="wiki-toolbar-row">
+            <div class="wiki-search-field">
+              <input type="search" id="all-skills-search" value="${escapeHtml(state.q)}"
+                placeholder="Search 684 skills by name, tree, effect, summon, note, or mechanic...">
+            </div>
+            <select class="wiki-select" id="filter-skill-class">${clsOptions}</select>
+            <select class="wiki-select" id="filter-skill-el">${elOptions}</select>
+            <select class="wiki-select" id="filter-skill-kind">${kindOptions}</select>
+            <select class="wiki-select" id="filter-skill-tag">
+              <option value="all" ${state.filterTag === 'all' ? 'selected' : ''}>All Mechanics / Tags</option>
+              <option value="free" ${state.filterTag === 'free' ? 'selected' : ''}>Basic / Generator (free)</option>
+              <option value="rage" ${state.filterTag === 'rage' ? 'selected' : ''}>Rage-Spending (Barbarian)</option>
+              <option value="movement" ${state.filterTag === 'movement' ? 'selected' : ''}>Movement (Blink / Dash / Leap)</option>
+              <option value="note" ${state.filterTag === 'note' ? 'selected' : ''}>Musical Note (Bard Score)</option>
+              <option value="astro" ${state.filterTag === 'astro' ? 'selected' : ''}>Astral / Cosmos (Astronomer)</option>
+              <option value="granted" ${state.filterTag === 'granted' ? 'selected' : ''}>Free Level-Up Grant</option>
+            </select>
+          </div>
+          <div class="wiki-toolbar-row" style="justify-content:space-between">
+            <span class="wiki-section-sub" id="all-skills-count-lbl">Filtering...</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button type="button" class="wiki-pill ${state.allDisplayMode === 'table' ? 'active' : ''}" id="btn-mode-table">📋 Table</button>
+              <button type="button" class="wiki-pill ${state.allDisplayMode === 'cards' ? 'active' : ''}" id="btn-mode-cards">🃏 Cards</button>
+              <button type="button" class="wiki-pill" id="btn-clear-skill-filters">Reset Filters</button>
+            </div>
+          </div>
+        </div>
+        <div id="all-skills-results"></div>
+      `;
+
+      const searchInput = document.getElementById('all-skills-search');
+      const selClass = document.getElementById('filter-skill-class');
+      const selEl = document.getElementById('filter-skill-el');
+      const selKind = document.getElementById('filter-skill-kind');
+      const selTag = document.getElementById('filter-skill-tag');
+
+      const updateResults = () => {
+        state.q = searchInput.value;
+        state.filterClass = selClass.value;
+        state.filterEl = selEl.value;
+        state.filterKind = selKind.value;
+        state.filterTag = selTag.value;
+        syncUrlParams();
+        renderAllSkillsResults();
+      };
+
+      searchInput.addEventListener('input', updateResults);
+      selClass.addEventListener('change', updateResults);
+      selEl.addEventListener('change', updateResults);
+      selKind.addEventListener('change', updateResults);
+      selTag.addEventListener('change', updateResults);
+
+      document.getElementById('btn-mode-table').addEventListener('click', () => {
+        state.allDisplayMode = 'table';
+        renderAllSkillsView();
+      });
+      document.getElementById('btn-mode-cards').addEventListener('click', () => {
+        state.allDisplayMode = 'cards';
+        renderAllSkillsView();
+      });
+      document.getElementById('btn-clear-skill-filters').addEventListener('click', () => {
+        state.q = '';
+        state.filterClass = 'all';
+        state.filterEl = 'all';
+        state.filterKind = 'all';
+        state.filterTag = 'all';
+        syncUrlParams();
+        renderAllSkillsView();
+      });
+
+      renderAllSkillsResults();
+    }
+
+    function filterSkillsList() {
+      const q = state.q.trim().toLowerCase();
+      const terms = q ? q.split(/\s+/).filter(Boolean) : [];
+
+      return ALL_SKILLS_LIST.filter((sk) => {
+        if (state.filterClass !== 'all' && sk.classId !== state.filterClass) return false;
+        if (state.filterEl !== 'all' && sk.el !== state.filterEl) return false;
+        if (state.filterKind !== 'all' && sk.kind !== state.filterKind) return false;
+        if (state.filterTag !== 'all') {
+          if (state.filterTag === 'free' && !sk.m.free && sk.id !== 'barbarian.0.0') return false;
+          if (state.filterTag === 'rage' && !(sk.classId === 'barbarian' && (sk.m.rage || sk.kind === 'whirl'))) return false;
+          if (state.filterTag === 'movement' && !isMovementSkill(sk)) return false;
+          if (state.filterTag === 'note' && !sk.m.note) return false;
+          if (state.filterTag === 'astro' && !sk.m.astro) return false;
+          if (state.filterTag === 'granted' && GRANT_LEVEL_BY_SKILL[sk.id] === undefined) return false;
+        }
+        if (terms.length) {
+          const cls = CLASSES[sk.classId];
+          const treeName = cls?.trees?.[sk.tree] || '';
+          const sumName = sk.m?.sum && SUMMONS[sk.m.sum] ? SUMMONS[sk.m.sum].name : '';
+          const plainDesc = describe(sk, state.rank, [10, 20]).replace(/<[^>]+>/g, ' ').toLowerCase();
+          const hay = `${sk.name} ${sk.id} ${cls?.name || ''} ${treeName} ${sk.kind} ${sk.el} ${sumName} ${plainDesc}`.toLowerCase();
+          for (const t of terms) {
+            if (!hay.includes(t)) return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function renderAllSkillsResults() {
+      const matches = filterSkillsList();
+      const countLbl = document.getElementById('all-skills-count-lbl');
+      const container = document.getElementById('all-skills-results');
+      if (countLbl) {
+        countLbl.innerHTML = `Showing <b style="color:var(--gold-bright)">${matches.length}</b> of <b>${ALL_SKILLS_LIST.length}</b> active skills (scaled at <b>Skill Lv ${state.rank}</b> · <b>Hero Lv ${state.heroLvl}</b>)`;
+      }
+
+      // Preload sheets for visible classes
+      const visClasses = new Set(matches.slice(0, 60).map((s) => s.classId));
+      for (const cid of visClasses) preloadSkillSheets(cid);
+
+      if (!matches.length) {
+        container.innerHTML = `<div class="empty-state-box">No active skills matched your current filters. Try clearing or broadening your search terms.</div>`;
+        return;
+      }
+
+      if (state.allDisplayMode === 'cards') {
+        container.innerHTML = `<div class="wiki-grid-wide">${matches.map((sk) => {
+          const cls = CLASSES[sk.classId];
+          const treeName = cls?.trees?.[sk.tree] || `Tree ${sk.tree + 1}`;
+          const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+          const cost = getCostInfo(sk, state.rank);
+          const cd = cooldown(sk);
+          const grantLv = GRANT_LEVEL_BY_SKILL[sk.id];
+          return `
+            <article class="wiki-card compendium-skill-row" data-live-skill-row="${sk.id}" data-open-skill="${sk.id}">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div class="skill-cell-main">
+                  <img data-skill-id="${sk.id}" src="${skillIconURL(sk)}" alt="${escapeHtml(sk.name)}">
+                  <div>
+                    <div style="font-family:var(--font-title);font-weight:800;font-size:15.5px;color:var(--gold-bright)">${escapeHtml(sk.name)}</div>
+                    <div style="font-size:12.5px;color:var(--text-dim)">
+                      <span style="color:${cls.color};font-weight:700">${escapeHtml(cls.name)}</span> · ${escapeHtml(treeName)} · Lv ${sk.reqLevel}
+                    </div>
+                  </div>
+                </div>
+                ${elBadgeHtml(sk.el)}
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px" class="js-row-cost">
+                <span class="mini-chip ${cost.kind}">${escapeHtml(cost.short)}</span>
+                ${cd ? `<span class="mini-chip cd">⏱ ${cd}s</span>` : ''}
+                <span class="mini-chip">${escapeHtml(KIND_LABELS[sk.kind] || sk.kind)}</span>
+                ${grantLv !== undefined ? `<span class="mini-chip grant">🎁 Free Lv ${grantLv}</span>` : ''}
+              </div>
+              <div class="skill-desc-html js-row-desc" style="font-size:14.2px;color:var(--text)">${describe(sk, state.rank, dmg)}</div>
+            </article>
+          `;
+        }).join('')}</div>`;
+      } else {
+        container.innerHTML = `
+          <div class="wiki-table-wrap">
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th>Skill</th>
+                  <th>Class &amp; Tree</th>
+                  <th>Unlock</th>
+                  <th>Element &amp; Kind</th>
+                  <th>Cost &amp; CD</th>
+                  <th>Live Effect (Rank ${state.rank} · Hero Lv ${state.heroLvl})</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${matches.map((sk) => {
+                  const cls = CLASSES[sk.classId];
+                  const treeName = cls?.trees?.[sk.tree] || `Tree ${sk.tree + 1}`;
+                  const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+                  const cost = getCostInfo(sk, state.rank);
+                  const cd = cooldown(sk);
+                  const grantLv = GRANT_LEVEL_BY_SKILL[sk.id];
+                  return `
+                    <tr class="compendium-skill-row" data-live-skill-row="${sk.id}" data-open-skill="${sk.id}">
+                      <td>
+                        <div class="skill-cell-main">
+                          <img data-skill-id="${sk.id}" src="${skillIconURL(sk)}" alt="${escapeHtml(sk.name)}" loading="lazy">
+                          <div>
+                            <div style="font-family:var(--font-title);font-weight:700;color:var(--gold-bright)">${escapeHtml(sk.name)}</div>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+                              ${sk.m.free ? `<span class="mini-chip free">Basic</span>` : ''}
+                              ${isMovementSkill(sk) ? `<span class="mini-chip">Movement</span>` : ''}
+                              ${sk.m.note ? `<span class="mini-chip" style="color:#ffd88a">♫ Note</span>` : ''}
+                              ${sk.m.astro ? `<span class="mini-chip" style="color:#7ad0ff">✦ Cosmos</span>` : ''}
+                              ${grantLv !== undefined ? `<span class="mini-chip grant">🎁 Lv ${grantLv}</span>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <a href="skills.html?view=trees&class=${encodeURIComponent(sk.classId)}" data-jump-tree="${sk.classId}" style="font-weight:700;color:${cls.color}">${escapeHtml(cls.name)}</a>
+                        <div style="font-size:12.5px;color:var(--text-dim)">${escapeHtml(treeName)}</div>
+                      </td>
+                      <td style="white-space:nowrap">
+                        <span class="wiki-badge">Lv ${sk.reqLevel}</span>
+                        ${sk.prereq && SKILLS[sk.prereq] ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">Req: ${escapeHtml(SKILLS[sk.prereq].name)}</div>` : ''}
+                      </td>
+                      <td style="white-space:nowrap">
+                        ${elBadgeHtml(sk.el)}
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:3px">${escapeHtml(KIND_LABELS[sk.kind] || sk.kind)}</div>
+                      </td>
+                      <td style="white-space:nowrap" class="js-row-cost">
+                        <span class="mini-chip ${cost.kind}">${escapeHtml(cost.short)}</span>
+                        ${cd ? `<div style="margin-top:3px"><span class="mini-chip cd">⏱ ${cd}s CD</span></div>` : ''}
+                      </td>
+                      <td class="skill-desc-html js-row-desc" style="min-width:290px;font-size:14px">${describe(sk, state.rank, dmg)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      container.querySelectorAll('[data-jump-tree]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          state.classId = link.dataset.jumpTree;
+          state.view = 'trees';
+          setActiveTabButtons();
+          syncUrlParams();
+          renderActiveView();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+
+      container.querySelectorAll('[data-open-skill]').forEach((row) => {
+        row.addEventListener('click', () => {
+          const sk = SKILLS[row.dataset.openSkill];
+          if (sk) openSkillModal(sk);
+        });
+      });
+    }
+
+    // =========================================================================
+    // VIEW 3: 19 CLASS ULTIMATES SHOWCASE
+    // =========================================================================
+
+    function formatUltTraits(opts = {}) {
+      const traits = [];
+      if (opts.knock) traits.push(`Knockback (${opts.knock})`);
+      if (opts.stun) traits.push(typeof opts.stun === 'number' ? `Stun (${opts.stun}s)` : 'Stuns');
+      if (opts.freeze) traits.push('Freezes');
+      if (opts.burn) traits.push('Ignites');
+      if (opts.bleed) traits.push('Bleeds');
+      if (opts.poison) traits.push('Poisons');
+      if (opts.slow) traits.push(`Slows (${opts.slow}s)`);
+      if (opts.leech) traits.push(`${Math.round(opts.leech * 100)}% Life Leech`);
+      if (opts.silent) traits.push('Silences');
+      return traits;
+    }
+
+    function renderUltimatesView() {
+      rootEl.innerHTML = `
+        <div class="wiki-toolbar">
+          <div class="wiki-toolbar-row" style="justify-content:space-between">
+            <div class="wiki-search-field" style="max-width:420px">
+              <input type="search" id="ult-search-input" value="${escapeHtml(state.ultSearch)}"
+                placeholder="Filter 19 Class Ultimates by name, class, element, or crowd control...">
+            </div>
+            <div class="wiki-pills" id="ult-stat-pills">
+              ${['all', 'str', 'dex', 'int', 'vit'].map((st) => `
+                <button type="button" class="wiki-pill ${state.ultStat === st ? 'active' : ''}" data-ult-stat="${st}">
+                  ${st === 'all' ? 'All Primary Stats' : st.toUpperCase()}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div style="font-size:13.5px;color:var(--text-dim);border-top:1px solid rgba(112,72,40,0.28);padding-top:8px">
+            <b style="color:var(--gold-bright)">Meter Charge Rules:</b> Requires <b>${SMITE_KILLS} Normal Kills</b> to reach 100% charge
+            (Champions count <b>3×</b> · Uniques <b>6×</b> · Bosses &amp; Raid Lords <b>12×</b>). Press <b>[F]</b> to arm and target on the battlefield.
+            Strikes scale with each class's primary attribute and guarantee heavy minimum health chunks by foe rank (100% Normal · 45% Champion · 32% Unique · 12% Boss).
+          </div>
+        </div>
+        <div class="wiki-grid-wide" id="ult-cards-grid"></div>
+      `;
+
+      const renderGrid = () => {
+        const q = state.ultSearch.trim().toLowerCase();
+        const filtered = ACTIVE_CLASS_IDS.filter((cid) => {
+          const u = ULTIMATES[cid];
+          const cls = CLASSES[cid];
+          if (!u || !cls) return false;
+          if (state.ultStat !== 'all' && u.stat !== state.ultStat) return false;
+          if (q) {
+            const hay = `${u.name} ${u.title} ${cls.name} ${u.el} ${u.stat} ${u.desc} ${formatUltTraits(u.opts).join(' ')}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        const grid = document.getElementById('ult-cards-grid');
+        if (!filtered.length) {
+          grid.innerHTML = `<div class="empty-state-box" style="grid-column:1/-1">No Class Ultimates matched your filter.</div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered.map((cid) => {
+          const u = ULTIMATES[cid];
+          const cls = CLASSES[cid];
+          const traits = formatUltTraits(u.opts);
+          return `
+            <article class="ult-card" style="border-top:3px solid ${u.color}">
+              <div class="ult-banner-top">
+                <div class="ult-icon-frame" style="border-color:${u.color}">
+                  <img src="${ultimateIconURL(cid, 64)}" alt="${escapeHtml(u.name)}">
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span class="ult-kicker">[F] ${escapeHtml(u.title)}</span>
+                    <a href="classes.html?id=${encodeURIComponent(cid)}" class="wiki-badge" style="color:${cls.color};border-color:${cls.color}66">🛡️ ${escapeHtml(cls.name)}</a>
+                  </div>
+                  <h3 class="ult-title-name" style="color:${u.color}">${escapeHtml(u.name)}</h3>
+                </div>
+              </div>
+
+              <p style="color:var(--text);font-size:15px;line-height:1.5">${escapeHtml(u.desc)}</p>
+
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto">
+                ${elBadgeHtml(u.el)}
+                <span class="wiki-badge gold">Scales: ${escapeHtml(u.stat.toUpperCase())}</span>
+                <span class="wiki-badge">AoE Radius: ${u.r} tiles</span>
+                <span class="wiki-badge crimson">${SMITE_KILLS} Kill Charge</span>
+                ${traits.map((t) => `<span class="wiki-badge violet">${escapeHtml(t)}</span>`).join('')}
+              </div>
+
+              <div style="display:flex;gap:10px;padding-top:8px;border-top:1px solid rgba(90,58,36,0.35);font-size:13px">
+                <a href="skills.html?view=trees&class=${encodeURIComponent(cid)}" data-ult-to-trees="${cid}">🌳 ${escapeHtml(cls.name)} Skill Trees →</a>
+                <a href="talents.html#${encodeURIComponent(cid)}" style="margin-left:auto">🌟 ${escapeHtml(cls.name)} Talents →</a>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-ult-to-trees]').forEach((a) => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            state.classId = a.dataset.ultToTrees;
+            state.view = 'trees';
+            setActiveTabButtons();
+            syncUrlParams();
+            renderActiveView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        });
+      };
+
+      document.getElementById('ult-search-input').addEventListener('input', (e) => {
+        state.ultSearch = e.target.value;
+        renderGrid();
+      });
+
+      document.querySelectorAll('[data-ult-stat]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.ultStat = btn.dataset.ultStat;
+          document.querySelectorAll('[data-ult-stat]').forEach((b) => b.classList.toggle('active', b === btn));
+          renderGrid();
+        });
+      });
+
+      renderGrid();
+    }
+
+    // =========================================================================
+    // VIEW 4: SUMMONS & COMPANIONS COMPENDIUM (127 MINIONS, TOTEMS & TURRETS)
+    // =========================================================================
+
+    function formatSummonTraits(def) {
+      const parts = [];
+      if (def.atk) {
+        const a = def.atk;
+        let main = `Primary: ${(a.type || 'melee').toUpperCase()}`;
+        if (a.cd) main += ` (${a.cd}s CD`;
+        if (a.range) main += `, ${a.range}t range`;
+        if (a.cd) main += `)`;
+        const flags = [];
+        if (a.n > 1) flags.push(`×${a.n} hits/targets`);
+        if (a.aoe) flags.push(`${a.aoe}t cleave`);
+        if (a.pierce) flags.push('Pierces');
+        if (a.home) flags.push('Homing');
+        if (a.exp) flags.push('Explodes');
+        if (a.chain) flags.push(`Chains +${a.chain}`);
+        if (a.bleed) flags.push('Bleed');
+        if (a.burn) flags.push('Burn');
+        if (a.poison) flags.push('Poison');
+        if (a.freeze) flags.push('Freeze');
+        if (a.slow) flags.push('Slow');
+        if (a.stun) flags.push('Stun');
+        if (a.leech) flags.push(`${Math.round(a.leech * 100)}% Leech for Hero`);
+        if (a.stat || a.buff) flags.push(`+${a.amt || 20}% ${(a.stat || a.buff).toUpperCase()}${a.as ? `, +${a.as}% AS` : ''}${a.regen ? `, +${a.regen}% Regen` : ''}`);
+        if (a.type === 'heal' || a.heal) flags.push(`Heals allies (${a.r || 5}t)`);
+        if (a.curse) flags.push(`Curse: ${a.curse.toUpperCase()} (${a.r || 4}t)`);
+        if (flags.length) main += ` · ${flags.join(', ')}`;
+        parts.push(main);
+      }
+      if (def.spell) {
+        const sp = def.spell;
+        if (sp.type === 'spawn') parts.push(`Spell: Spawns ${SUMMONS[sp.what]?.name || sp.what} every ${sp.cd}s (max ${sp.max})`);
+        else if (sp.type === 'buff') parts.push(`Aura Spell: +${sp.amt}% DMG${sp.as ? ` & +${sp.as}% AS` : ''} (${sp.r}t)`);
+        else if (sp.type === 'heal') parts.push(`Heal Spell: Mends allies within ${sp.r}t (${sp.cd}s CD)`);
+        else if (sp.type === 'curse') parts.push(`Hex Spell: Inflicts ${sp.curse.toUpperCase()} within ${sp.r}t (${sp.cd}s CD)`);
+        else parts.push(`Secondary Spell: ${sp.type.toUpperCase()}${sp.fx ? ` (${sp.fx})` : ''} every ${sp.cd}s`);
+      }
+      if (def.aura) {
+        const eInfo = ELEMENT_INFO[def.aura.el] || ELEMENT_INFO.fire;
+        parts.push(`Passive Aura: ${eInfo.name} burn (${def.aura.r}t radius)`);
+      }
+      if (Array.isArray(def.pool)) {
+        parts.push(`Random Pool (${def.pool.length} variants): ${def.pool.slice(0, 5).map((k) => SUMMONS[k]?.name || k).join(', ')}${def.pool.length > 5 ? '…' : ''}`);
+      }
+      return parts;
+    }
+
+    function renderSummonsView() {
+      const elements = ['phys', 'fire', 'cold', 'light', 'poison', 'shadow', 'arcane', 'holy', 'acid'];
+      rootEl.innerHTML = `
+        <div class="wiki-toolbar">
+          <div class="wiki-toolbar-row">
+            <div class="wiki-search-field">
+              <input type="search" id="sum-search-input" value="${escapeHtml(state.sumSearch)}"
+                placeholder="Search ${ALL_SUMMON_ENTRIES.length} summons, skeletal legions, totems, turrets, slimes &amp; knights...">
+            </div>
+            <select class="wiki-select" id="sum-role-select">
+              <option value="all" ${state.sumRole === 'all' ? 'selected' : ''}>All AI Roles</option>
+              <option value="melee" ${state.sumRole === 'melee' ? 'selected' : ''}>Melee Brawlers</option>
+              <option value="ranged" ${state.sumRole === 'ranged' ? 'selected' : ''}>Ranged Casters &amp; Archers</option>
+              <option value="turret" ${state.sumRole === 'turret' ? 'selected' : ''}>Turrets &amp; Sentries</option>
+              <option value="aura" ${state.sumRole === 'aura' ? 'selected' : ''}>Totems, Banners &amp; Wards</option>
+              <option value="follow" ${state.sumRole === 'follow' ? 'selected' : ''}>Escort Companions</option>
+              <option value="exploder" ${state.sumRole === 'exploder' ? 'selected' : ''}>Volatile Detonators</option>
+            </select>
+            <select class="wiki-select" id="sum-el-select">
+              <option value="all" ${state.sumEl === 'all' ? 'selected' : ''}>All Elements</option>
+              ${elements.map((e) => `<option value="${e}" ${state.sumEl === e ? 'selected' : ''}>${ELEMENT_INFO[e].icon} ${escapeHtml(ELEMENT_INFO[e].name)}</option>`).join('')}
+            </select>
+            <button type="button" class="wiki-pill" id="sum-reset-btn">Reset</button>
+          </div>
+          <div class="wiki-section-sub" id="sum-count-lbl"></div>
+        </div>
+        <div class="wiki-grid" id="summons-cards-grid"></div>
+      `;
+
+      const renderGrid = () => {
+        const q = state.sumSearch.trim().toLowerCase();
+        const filtered = ALL_SUMMON_ENTRIES.filter(([key, def]) => {
+          const el = def.el || def.atk?.el || 'phys';
+          if (state.sumRole !== 'all' && (def.ai || 'melee') !== state.sumRole) return false;
+          if (state.sumEl !== 'all' && el !== state.sumEl) return false;
+          if (q) {
+            const src = SUMMON_SOURCES[key];
+            const srcNames = [
+              ...(src?.skills || []).map((s) => `${s.name} ${CLASSES[s.classId]?.name || ''}`),
+              ...(src?.morphs || []).map((m) => `${m.name} ${CLASSES[m.classId]?.name || ''}`),
+            ].join(' ');
+            const hay = `${def.name} ${key} ${def.ai || ''} ${el} ${def.desc || ''} ${srcNames} ${formatSummonTraits(def).join(' ')}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        document.getElementById('sum-count-lbl').innerHTML =
+          `Showing <b style="color:var(--gold-bright)">${filtered.length}</b> of <b>${ALL_SUMMON_ENTRIES.length}</b> summoned companions, totems &amp; constructs`;
+
+        const grid = document.getElementById('summons-cards-grid');
+        if (!filtered.length) {
+          grid.innerHTML = `<div class="empty-state-box" style="grid-column:1/-1">No summons or companions matched your search.</div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered.map(([key, def]) => {
+          const el = def.el || def.atk?.el || 'phys';
+          const hpPct = Math.round((def.hp ?? 0.5) * 100);
+          const dmgPct = Math.round((def.dmg ?? 1) * 100);
+          const spdTxt = def.static ? 'Static' : String(def.spd ?? 3);
+          const traits = formatSummonTraits(def);
+          const src = SUMMON_SOURCES[key];
+
+          const srcBadges = [];
+          for (const sk of (src?.skills || [])) {
+            const cls = CLASSES[sk.classId];
+            srcBadges.push(`<button type="button" class="mini-chip grant" style="cursor:pointer" data-open-skill="${sk.id}">⚡ ${escapeHtml(cls?.name || '')}: ${escapeHtml(sk.name)}</button>`);
+          }
+          for (const mNode of (src?.morphs || [])) {
+            const cls = CLASSES[mNode.classId];
+            srcBadges.push(`<a class="mini-chip" style="color:#d5a6ff;border-color:rgba(176,102,255,0.5)" href="talents.html?class=${encodeURIComponent(mNode.classId)}&q=${encodeURIComponent(mNode.name)}#${encodeURIComponent(mNode.classId)}">🌟 Morph: ${escapeHtml(mNode.name)} (${escapeHtml(cls?.name || '')})</a>`);
+          }
+          if (!srcBadges.length && src?.pools?.length) {
+            for (const pk of src.pools) {
+              srcBadges.push(`<span class="mini-chip">🎲 Pool: ${escapeHtml(SUMMONS[pk]?.name || pk)}</span>`);
+            }
+          }
+
+          return `
+            <article class="wiki-card">
+              <div class="summon-card-head">
+                <img class="summon-icon" data-sum-key="${escapeHtml(key)}" src="${getSummonIconUrl(key, def)}" alt="${escapeHtml(def.name)}" loading="lazy">
+                <div style="min-width:0;flex:1">
+                  <div style="font-family:var(--font-title);font-size:15.5px;font-weight:800;color:var(--gold-bright)">${escapeHtml(def.name)}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">
+                    ${elBadgeHtml(el)}
+                    <span class="wiki-badge">${escapeHtml(AI_LABELS[def.ai] || def.ai || 'Melee')}</span>
+                    ${def.taunt ? `<span class="wiki-badge crimson">Taunts</span>` : ''}
+                    ${def.fly ? `<span class="wiki-badge">Flying</span>` : ''}
+                    ${def.targetable === false ? `<span class="wiki-badge emerald">Invulnerable</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="summon-metrics">
+                <div>
+                  <div class="m-lbl">Max Life</div>
+                  <div class="m-val">${hpPct}% Hero</div>
+                </div>
+                <div>
+                  <div class="m-lbl">Dmg Scale</div>
+                  <div class="m-val">${dmgPct > 0 ? `${dmgPct}%` : 'Support'}</div>
+                </div>
+                <div>
+                  <div class="m-lbl">Speed</div>
+                  <div class="m-val">${escapeHtml(spdTxt)}</div>
+                </div>
+              </div>
+
+              ${def.desc ? `<p style="font-size:14px;color:var(--text)">${escapeHtml(def.desc)}</p>` : ''}
+
+              <div style="font-size:12.8px;color:var(--text-dim);display:flex;flex-direction:column;gap:3px">
+                ${traits.map((t) => `<div>• ${escapeHtml(t)}</div>`).join('')}
+              </div>
+
+              ${srcBadges.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:6px;border-top:1px solid rgba(90,58,36,0.32)">${srcBadges.join('')}</div>` : ''}
+            </article>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-open-skill]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const sk = SKILLS[btn.dataset.openSkill];
+            if (sk) openSkillModal(sk);
+          });
+        });
+      };
+
+      const sInput = document.getElementById('sum-search-input');
+      const rSel = document.getElementById('sum-role-select');
+      const eSel = document.getElementById('sum-el-select');
+
+      sInput.addEventListener('input', () => {
+        state.sumSearch = sInput.value;
+        syncUrlParams();
+        renderGrid();
+      });
+      rSel.addEventListener('change', () => { state.sumRole = rSel.value; renderGrid(); });
+      eSel.addEventListener('change', () => { state.sumEl = eSel.value; renderGrid(); });
+      document.getElementById('sum-reset-btn').addEventListener('click', () => {
+        state.sumSearch = '';
+        state.sumRole = 'all';
+        state.sumEl = 'all';
+        syncUrlParams();
+        renderSummonsView();
+      });
+
+      renderGrid();
+    }
+
+    // =========================================================================
+    // DETAILED SKILL DOSSIER MODAL (WITH RANK TABLE & TALENT MORPH CROSS-LINKS)
+    // =========================================================================
+
+    const modalBackdrop = document.getElementById('skill-modal-backdrop');
+    const modalContent = document.getElementById('skill-modal-content');
+
+    function getMatchingTalentsForSkill(sk) {
+      const branches = CLASS_TALENTS[sk.classId] || [];
+      const out = [];
+      for (const b of branches) {
+        for (const node of b.nodes) {
+          if (node.morph && morphMatchesSkill(node.morph, sk)) {
+            out.push({ node, branchName: b.name });
+          } else if (node.skillMult) {
+            const sm = node.skillMult;
+            const treeOk = sm.tree === null || sm.tree === undefined || (Array.isArray(sm.tree) ? sm.tree.includes(sk.tree) : sm.tree === sk.tree);
+            const kindOk = !sm.kind || (Array.isArray(sm.kind) ? sm.kind.includes(sk.kind) : sm.kind === sk.kind);
+            const skOk = !sm.skills || sm.skills.includes(sk.name);
+            if (treeOk && kindOk && skOk) out.push({ node, branchName: b.name });
+          }
+        }
+      }
+      return out;
+    }
+
+    function renderModalContent(sk) {
+      const cls = CLASSES[sk.classId];
+      const treeName = cls?.trees?.[sk.tree] || `Tree ${sk.tree + 1}`;
+      const dmg = computeRefSkillDmg(sk, state.rank, state.heroLvl);
+      const cost = getCostInfo(sk, state.rank);
+      const cd = cooldown(sk);
+      const uTime = useTime(sk);
+      const rng = skillRange(sk);
+      const wc = weaponCoef(sk);
+      const dur = skillDuration(sk, state.rank);
+      const grantLv = GRANT_LEVEL_BY_SKILL[sk.id];
+      const prereqSk = sk.prereq ? SKILLS[sk.prereq] : null;
+      const matchingTalents = getMatchingTalentsForSkill(sk);
+
+      // Rank comparison rows: 1, 5, 10, 15, 20, 25
+      const sampleRanks = [1, 5, 10, 15, 20, 25];
+      const rankRowsHtml = sampleRanks.map((r) => {
+        const rDmg = computeRefSkillDmg(sk, r, state.heroLvl);
+        const rCost = getCostInfo(sk, r);
+        const isCur = r === state.rank;
+        return `
+          <tr style="${isCur ? 'background:rgba(212,175,55,0.14);font-weight:700' : ''}">
+            <td>Lv ${r}${r === 20 ? ' (Cap)' : r > 20 ? ' (+Gear)' : ''}${isCur ? ' ★' : ''}</td>
+            <td>${escapeHtml(getSkillHeadlineMetric(sk, r, rDmg))}</td>
+            <td>${Math.round(skillBaseDamage(sk, r) * 10) / 10}</td>
+            <td>${escapeHtml(rCost.short)}</td>
+            <td>${sk.m.ricochet ? `${ricochetCount(sk, r)} foes` : dur > 0 ? `${Math.round(skillDuration(sk, r) * 10) / 10}s` : '—'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      modalContent.innerHTML = `
+        <button type="button" class="modal-close-btn" id="btn-close-skill-modal" aria-label="Close">✕</button>
+        <div class="dossier-head">
+          <img class="dossier-icon" data-skill-id="${sk.id}" src="${skillIconURL(sk)}" alt="${escapeHtml(sk.name)}">
+          <div>
+            <div style="font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:${cls.color};font-family:var(--font-title);font-weight:700">
+              ${escapeHtml(cls.name)} · ${escapeHtml(treeName)} (Row ${sk.row + 1}, Col ${sk.col + 1})
+            </div>
+            <h2 class="dossier-title" id="skill-modal-title">${escapeHtml(sk.name)}</h2>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px">
+              ${elBadgeHtml(sk.el)}
+              <span class="wiki-badge">${escapeHtml(KIND_LABELS[sk.kind] || sk.kind)}</span>
+              <span class="wiki-badge">${sk.attack ? '⚔️ Weapon Attack' : '✨ Spell'}</span>
+              ${sk.m.free ? `<span class="wiki-badge emerald">Basic / Generator</span>` : ''}
+              ${grantLv !== undefined ? `<span class="wiki-badge gold">🎁 Free Grant @ Lv ${grantLv}</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="dossier-desc-box">
+          <div style="font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-family:var(--font-title);margin-bottom:4px">
+            Live Description (Skill Rank ${state.rank} · Hero Ref Lv ${state.heroLvl})
+          </div>
+          <div>${describe(sk, state.rank, dmg)}</div>
+        </div>
+
+        <div class="dossier-stats-grid">
+          <div class="dossier-stat-cell">
+            <div class="k">Required Level</div>
+            <div class="v">Hero Lv ${sk.reqLevel}</div>
+          </div>
+          <div class="dossier-stat-cell">
+            <div class="k">Resource Cost</div>
+            <div class="v">${escapeHtml(cost.full)}</div>
+          </div>
+          <div class="dossier-stat-cell">
+            <div class="k">Cooldown</div>
+            <div class="v">${cd ? `${cd}s` : 'None'}</div>
+          </div>
+          <div class="dossier-stat-cell">
+            <div class="k">Cast / Use Time</div>
+            <div class="v">${uTime ? `${uTime}s` : 'Instant (0s)'}</div>
+          </div>
+          <div class="dossier-stat-cell">
+            <div class="k">Weapon Coef</div>
+            <div class="v">${Math.round(wc * 100)}% Weapon Dmg</div>
+          </div>
+          <div class="dossier-stat-cell">
+            <div class="k">Effective Range</div>
+            <div class="v">${rng >= 90 ? 'Self / nearby allies' : `${Math.round(rng * 10) / 10} tiles`}</div>
+          </div>
+          ${prereqSk ? `
+            <div class="dossier-stat-cell">
+              <div class="k">Prerequisite</div>
+              <div class="v"><a href="#" data-modal-prereq="${prereqSk.id}">${escapeHtml(prereqSk.name)}</a></div>
+            </div>
+          ` : ''}
+          ${sk.m.ricochet ? `
+            <div class="dossier-stat-cell">
+              <div class="k">Ricochet Targets</div>
+              <div class="v">${ricochetCount(sk, state.rank)} / ${sk.m.ricochet} max</div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div style="margin-top:14px">
+          <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">
+            Rank Progression Breakpoints (at Hero Ref Lv ${state.heroLvl})
+          </div>
+          <div class="wiki-table-wrap">
+            <table class="wiki-table" style="font-size:13.2px">
+              <thead>
+                <tr>
+                  <th>Skill Rank</th>
+                  <th>Scaled Output</th>
+                  <th>Raw Base Dmg</th>
+                  <th>Resource Cost</th>
+                  <th>${sk.m.ricochet ? 'Ricochets' : 'Duration'}</th>
+                </tr>
+              </thead>
+              <tbody>${rankRowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+
+        ${matchingTalents.length ? `
+          <div class="morph-links-box">
+            <div style="font-family:var(--font-title);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">
+              Synergistic Passive Talents &amp; Skill Morphs (${matchingTalents.length})
+            </div>
+            ${matchingTalents.map(({ node, branchName }) => {
+              const kindBadge = node.row === 4 ? 'Apex Keystone' : node.choice ? `Skill Morph (${node.choice})` : 'Synergy Passive';
+              return `
+                <a class="morph-link-row" href="talents.html?class=${encodeURIComponent(sk.classId)}&q=${encodeURIComponent(node.name)}#${encodeURIComponent(sk.classId)}">
+                  <div>
+                    <div style="font-family:var(--font-title);font-weight:700;color:var(--gold-bright);font-size:14px">
+                      🌟 ${escapeHtml(node.name)} <span style="font-weight:400;font-size:12px;color:var(--text-dim)">(${escapeHtml(branchName)} · Lv ${node.reqLevel})</span>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-dim);margin-top:2px">${node.desc(node.maxRank)}</div>
+                  </div>
+                  <span class="wiki-badge violet" style="flex-shrink:0">${escapeHtml(kindBadge)}</span>
+                </a>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('btn-close-skill-modal').addEventListener('click', closeSkillModal);
+      modalContent.querySelectorAll('[data-modal-prereq]').forEach((a) => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const pSk = SKILLS[a.dataset.modalPrereq];
+          if (pSk) openSkillModal(pSk);
+        });
+      });
+    }
+
+    function openSkillModal(sk) {
+      state.selectedSkillId = sk.id;
+      document.querySelectorAll('.tree-skill-node').forEach((el) => {
+        el.classList.toggle('selected', el.dataset.openSkill === sk.id);
+      });
+      preloadSkillSheets(sk.classId);
+      renderModalContent(sk);
+      modalBackdrop.classList.add('open');
+    }
+
+    function closeSkillModal() {
+      modalBackdrop.classList.remove('open');
+    }
+
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) closeSkillModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) {
+        closeSkillModal();
+      }
+    });
+
+    // =========================================================================
+    // BOOTSTRAP
+    // =========================================================================
+
+    function renderActiveView() {
+      updateScalingReadouts();
+      setActiveTabButtons();
+      if (state.view === 'trees') renderTreesView();
+      else if (state.view === 'all') renderAllSkillsView();
+      else if (state.view === 'ultimates') renderUltimatesView();
+      else if (state.view === 'summons') renderSummonsView();
+    }
+
+    renderActiveView();
+
+    // If deep-linked to an exact skill (?class=paladin&q=Blessed+Hammer), open its dossier immediately
+    if (autoOpenSkillId && SKILLS[autoOpenSkillId]) {
+      openSkillModal(SKILLS[autoOpenSkillId]);
+    }
+  </script>
+</body>
+</html>
+

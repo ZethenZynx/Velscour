@@ -1,0 +1,1759 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <title>VELSCOUR WIKI — Interactive Talent Tree Calculator &amp; 456-Node Compendium</title>
+  <meta name="description" content="Plan and share Velscour PC character builds with the interactive 5-Tier Passive Talent Calculator across all 19 classes, or search all 456 passive talents, exclusive A/B skill morphs, and apex keystones.">
+  <link rel="icon" type="image/png" href="assets/ui/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    /* ======================================================================
+       PASSIVE TALENT CALCULATOR & 456-NODE COMPENDIUM — PAGE STYLES
+       ====================================================================== */
+    .cls-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .class-pills-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .class-pills-label {
+      font-family: var(--font-title);
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* Points Counter & Build Actions Bar */
+    .calc-points-bar {
+      position: sticky;
+      top: 99px;
+      z-index: 120;
+      background: rgba(16, 10, 8, 0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-highlight);
+      border-radius: 6px;
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.78);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 18px;
+    }
+
+    .points-status-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 18px;
+    }
+
+    .points-counter-pill {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      background: #120b08;
+      border: 1px solid var(--gold-dim);
+      padding: 6px 14px;
+      border-radius: 5px;
+    }
+
+    .points-counter-pill .pts-big {
+      font-family: var(--font-title);
+      font-size: 19px;
+      font-weight: 900;
+      color: var(--gold-bright);
+    }
+
+    .points-meter-track {
+      width: 130px;
+      height: 8px;
+      background: #0b0705;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .points-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #b8860b 0%, #ffe57f 100%);
+      transition: width 0.2s ease;
+    }
+
+    .points-meter-fill.sandbox {
+      background: linear-gradient(90deg, #9b4dff 0%, #ff6ad5 100%);
+    }
+
+    .sandbox-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--text);
+      user-select: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      background: #140d0a;
+      border: 1px solid var(--border);
+    }
+
+    .sandbox-toggle:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .sandbox-toggle input {
+      accent-color: var(--gold);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .calc-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-calc-action {
+      background: linear-gradient(180deg, #281911 0%, #150c08 100%);
+      border: 1px solid var(--border-highlight);
+      color: var(--text);
+      font-family: var(--font-title);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      padding: 7px 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.16s;
+      text-decoration: none;
+    }
+
+    .btn-calc-action:hover {
+      border-color: var(--gold);
+      color: #fff;
+      background: linear-gradient(180deg, #3a2417 0%, #20120b 100%);
+    }
+
+    .btn-calc-action.gold {
+      background: linear-gradient(180deg, #4b3312 0%, #281908 100%);
+      border-color: var(--gold);
+      color: var(--gold-bright);
+    }
+
+    .btn-calc-action.gold:hover {
+      background: linear-gradient(180deg, #634418 0%, #36220a 100%);
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-calc-action.danger:hover {
+      border-color: var(--crimson-bright);
+      color: #ffb0a4;
+    }
+
+    /* 3-Branch Tree Grid */
+    .talent-branches-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .tbranch-panel {
+      background: linear-gradient(180deg, #17100c 0%, #0f0a07 100%);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.62);
+    }
+
+    .tbranch-head {
+      padding: 12px 15px;
+      background: rgba(28, 18, 12, 0.95);
+      border-bottom: 2px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .tbranch-name {
+      font-family: var(--font-title);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .tbranch-pts {
+      font-family: var(--font-title);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-bright);
+      background: rgba(10, 6, 4, 0.72);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .tbranch-tiers {
+      padding: 14px 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .ttier-block {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Vertical connector between tiers */
+    .ttier-block:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 11px;
+      background: linear-gradient(180deg, var(--border-highlight), var(--gold-dim));
+    }
+
+    .ttier-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-family: var(--font-title);
+      padding: 0 2px;
+    }
+
+    .ttier-nodes-single {
+      display: flex;
+      justify-content: center;
+    }
+
+    .ttier-nodes-single .tnode-card {
+      width: 100%;
+      max-width: 270px;
+    }
+
+    .ttier-nodes-choice {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+      align-items: center;
+      gap: 6px;
+    }
+
+    .vs-divider {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #120b08;
+      border: 1px solid var(--border-highlight);
+      color: var(--gold);
+      font-family: var(--font-title);
+      font-size: 9.5px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Talent Node Card */
+    .tnode-card {
+      background: #18100c;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 9px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+      text-align: left;
+    }
+
+    .tnode-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-highlight);
+      background: #221711;
+    }
+
+    .tnode-card.avail {
+      border-color: rgba(212, 175, 55, 0.55);
+      background: #1d130e;
+    }
+
+    .tnode-card.avail:hover {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+    }
+
+    .tnode-card.invested {
+      background: linear-gradient(155deg, #2a1b10 0%, #19100a 100%);
+      border-color: var(--gold);
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.24), inset 0 0 12px rgba(212, 175, 55, 0.08);
+    }
+
+    .tnode-card.maxed {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 18px rgba(255, 229, 127, 0.34), inset 0 0 14px rgba(212, 175, 55, 0.14);
+    }
+
+    .tnode-card.prereq-locked {
+      opacity: 0.58;
+      background: #120c09;
+    }
+
+    .tnode-card.choice-locked {
+      opacity: 0.36;
+      filter: grayscale(0.75);
+      border-style: dashed;
+      background: #100a08;
+    }
+
+    .tnode-card.selected-inspect {
+      outline: 2px solid var(--cyan);
+      outline-offset: 1px;
+    }
+
+    .tnode-icon-wrap {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+
+    .tnode-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 5px;
+      border: 1px solid #6b4b2a;
+      display: block;
+      background: #080504;
+    }
+
+    .tnode-keystone .tnode-icon {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+    }
+
+    .tnode-rank-pill {
+      position: absolute;
+      bottom: -5px;
+      right: -5px;
+      font-family: var(--font-title);
+      font-size: 10px;
+      font-weight: 900;
+      padding: 0 5px;
+      border-radius: 4px;
+      background: #0d0806;
+      border: 1px solid var(--border-highlight);
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .tnode-card.invested .tnode-rank-pill {
+      color: var(--gold-bright);
+      border-color: var(--gold);
+      background: #24160a;
+    }
+
+    .tnode-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .tnode-title {
+      font-family: var(--font-title);
+      font-size: 11.8px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.22;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .tnode-tag-line {
+      font-size: 10.2px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tnode-minus-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(220, 75, 50, 0.6);
+      background: rgba(50, 12, 8, 0.9);
+      color: #ff9c8a;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .tnode-minus-btn:hover {
+      background: #9e2414;
+      color: #fff;
+    }
+
+    /* Inspector + Live Build Summary Split Grid */
+    .calc-bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .inspector-panel,
+    .summary-panel {
+      background: linear-gradient(180deg, #18100c 0%, #110b08 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: 7px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .panel-kicker {
+      font-family: var(--font-title);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .rank-desc-box {
+      background: rgba(10, 6, 4, 0.72);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: 5px;
+      padding: 10px 13px;
+      font-size: 14.5px;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .rank-desc-box.next {
+      border-left-color: var(--cyan);
+      opacity: 0.92;
+    }
+
+    .rank-desc-box b {
+      color: var(--gold-bright);
+    }
+
+    .stat-bonuses-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .stat-bonus-item {
+      background: #140d09;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13.8px;
+      font-weight: 600;
+      color: #f2e5d0;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .stat-bonus-item::before {
+      content: '✦';
+      color: var(--gold);
+      font-size: 11px;
+    }
+
+    .morph-summary-card {
+      background: #150e0a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 11px 13px;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .skill-link-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      color: var(--gold-bright);
+      text-decoration: none;
+      transition: all 0.14s;
+    }
+
+    .skill-link-chip:hover {
+      background: rgba(212, 175, 55, 0.25);
+      border-color: var(--gold-bright);
+      color: #fff;
+    }
+
+    /* Floating Hover Tooltip (Desktop) */
+    .talent-hover-tooltip {
+      position: fixed;
+      z-index: 500;
+      pointer-events: none;
+      max-width: 340px;
+      background: rgba(14, 9, 7, 0.98);
+      border: 1.5px solid var(--gold);
+      border-radius: 6px;
+      padding: 11px 13px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.94);
+      font-size: 13.5px;
+      line-height: 1.45;
+      display: none;
+    }
+
+    .talent-hover-tooltip b {
+      color: var(--gold-bright);
+    }
+
+    /* Toast Notification */
+    .wiki-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 600;
+      background: linear-gradient(180deg, #2d1d10 0%, #170e08 100%);
+      border: 1.5px solid var(--gold);
+      color: var(--gold-bright);
+      font-family: var(--font-title);
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .wiki-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .empty-state-box {
+      padding: 36px 18px;
+      text-align: center;
+      background: rgba(12, 8, 6, 0.55);
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1160px) {
+      .talent-branches-grid {
+        grid-template-columns: 1fr;
+      }
+      .calc-bottom-grid {
+        grid-template-columns: 1fr;
+      }
+      .calc-points-bar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .ttier-nodes-choice {
+        grid-template-columns: 1fr;
+      }
+      .vs-divider {
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="talents"></script>
+  <section class="wiki-page-hero">
+    <div class="wiki-page-hero-inner">
+      <span class="wiki-eyebrow">5-Tier Branching Build Planner &amp; Morph Archive</span>
+      <h1 class="wiki-page-title">PASSIVE TALENT TREES <span>&amp; SKILL MORPHS</span></h1>
+      <p class="wiki-page-desc">
+        Every class commands three 5-tier passive branches (8 nodes per branch, 24 per class, 456 total). Heroes earn
+        <b>+1 Talent Point every 5 levels</b> (20 points at Level 100). Tier 2 (Lv 10) and Tier 4 (Lv 30) present
+        mutually exclusive <b>Choice A vs Choice B Skill Morphs</b>, culminating in Tier 5 (Lv 45) <b>Apex Keystones</b>.
+      </p>
+      <div class="wiki-stats-ribbon">
+        <span class="wiki-stat-badge"><b id="stat-t-classes">17</b> Hero Classes</span>
+        <span class="wiki-stat-badge"><b id="stat-t-branches">51</b> Talent Branches</span>
+        <span class="wiki-stat-badge"><b id="stat-t-nodes">456</b> Total Talent Nodes</span>
+        <span class="wiki-stat-badge"><b id="stat-t-morphs">204</b> Exclusive Skill Morphs</span>
+        <span class="wiki-stat-badge"><b id="stat-t-keystones">102</b> Apex Keystones</span>
+        <span class="wiki-stat-badge"><b>20</b> Points @ Lv 100 (+1 / 5 Lvs)</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="wiki-main">
+    <div class="wiki-tabs" role="tablist" aria-label="Talent Tree Sections">
+      <button type="button" class="wiki-tab-btn active" data-tab="calculator">
+        🧮 Interactive Build Calculator <span class="wiki-nav-count">19 Classes</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="compendium">
+        📜 All Talents Compendium <span class="wiki-nav-count" id="tab-count-talents">456</span>
+      </button>
+    </div>
+
+    <div id="talents-view-root"></div>
+  </main>
+
+  <div class="talent-hover-tooltip" id="talent-hover-tip"></div>
+  <div class="wiki-toast" id="wiki-toast"></div>
+
+  <script type="module">
+    import { mountWikiShell, escapeHtml, getQueryParam, ELEMENT_INFO } from './src/wiki/wiki-shell.js';
+    import { ACTIVE_CLASS_IDS, CLASSES } from './src/wiki/wiki-data.js';
+    import {
+      TALENTS,
+      CLASS_TALENTS,
+      TALENT_ROW_LEVELS,
+      getTalents,
+      talentPointsSpent,
+      getSiblingChoice,
+      isTalentLockedByChoice,
+      isTalentPrereqMet,
+      canLearnTalent,
+      learnTalent,
+      respecTalents,
+      computeTalentBonuses,
+      morphMatchesSkill,
+    } from './src/data/talents.js';
+    import { CLASS_SKILLS } from './src/data/skills.js';
+    import { statLabel } from './src/data/items.js';
+    import { talentIconURL, preloadSkillSheets, onSkillSheetLoad } from './src/ui/icons.js';
+
+    mountWikiShell({ active: 'talents' });
+
+    const MAX_STANDARD_POINTS = 20;
+
+    // Build flat 456-node list across active classes
+    const ALL_TALENT_NODES = [];
+    for (const cid of ACTIVE_CLASS_IDS) {
+      for (const branch of (CLASS_TALENTS[cid] || [])) {
+        for (const node of branch.nodes) {
+          ALL_TALENT_NODES.push({ node, branchName: branch.name, branchEl: branch.el });
+        }
+      }
+    }
+
+    document.getElementById('stat-t-classes').textContent = String(ACTIVE_CLASS_IDS.length);
+    document.getElementById('stat-t-branches').textContent = String(ACTIVE_CLASS_IDS.length * 3);
+    document.getElementById('stat-t-nodes').textContent = String(ALL_TALENT_NODES.length);
+    document.getElementById('stat-t-morphs').textContent = String(ALL_TALENT_NODES.filter((x) => x.node.row === 1 || x.node.row === 3).length);
+    document.getElementById('stat-t-keystones').textContent = String(ALL_TALENT_NODES.filter((x) => x.node.row === 4).length);
+    document.getElementById('tab-count-talents').textContent = String(ALL_TALENT_NODES.length);
+
+    const TIER_META = [
+      { row: 0, title: 'Tier 1 · Lv 1 [Max 5]', sub: 'Foundation Passive' },
+      { row: 1, title: 'Tier 2 · Lv 10 [Max 3]', sub: 'Exclusive Skill Morph (A vs B)' },
+      { row: 2, title: 'Tier 3 · Lv 20 [Max 5]', sub: 'Synergy Mastery (Req ≥1 in Tier 2)' },
+      { row: 3, title: 'Tier 4 · Lv 30 [Max 3]', sub: 'Major Skill Morph (Req ≥2 in Tier 3)' },
+      { row: 4, title: 'Tier 5 · Lv 45 [Max 1]', sub: 'Apex Keystone (Req ≥2 in Tier 4)' },
+    ];
+
+    // =========================================================================
+    // BUILD ENCODING / DECODING & SIMULATED CHARACTER STATE
+    // =========================================================================
+
+    const buildsByClass = {}; // classId -> { [nodeId]: rank }
+
+    function ensureClassBuild(cid) {
+      if (!buildsByClass[cid]) buildsByClass[cid] = {};
+      return buildsByClass[cid];
+    }
+
+    function makeSimChar(cid, sandbox) {
+      const talents = ensureClassBuild(cid);
+      const spent = Object.values(talents).reduce((a, v) => a + (Number(v) || 0), 0);
+      return {
+        classId: cid,
+        level: 100,
+        talents,
+        talentPoints: sandbox ? 999 : Math.max(0, MAX_STANDARD_POINTS - spent),
+      };
+    }
+
+    function encodeBuildRanks(cid) {
+      const branches = CLASS_TALENTS[cid] || [];
+      const tMap = ensureClassBuild(cid);
+      const groups = branches.map((b) =>
+        b.nodes.map((n) => Math.max(0, Math.min(n.maxRank, Number(tMap[n.id]) || 0))).join('')
+      );
+      const full = groups.join('-');
+      if (/^[0-]+$/.test(full)) return '';
+      return full;
+    }
+
+    function decodeHashIntoState(hashRaw) {
+      const clean = String(hashRaw || '').replace(/^#/, '').trim();
+      if (!clean) return null;
+      const [clsPart, ranksPart] = clean.split(':');
+      if (!ACTIVE_CLASS_IDS.includes(clsPart)) return null;
+
+      const tMap = {};
+      if (ranksPart) {
+        const digits = ranksPart.replace(/[^0-9]/g, '');
+        const branches = CLASS_TALENTS[clsPart] || [];
+        let cursor = 0;
+        for (const b of branches) {
+          for (const node of b.nodes) {
+            const d = Number(digits[cursor++] || 0);
+            if (d > 0) {
+              const sib = getSiblingChoice(node);
+              if (!sib || !tMap[sib.id]) {
+                tMap[node.id] = Math.min(node.maxRank, d);
+              }
+            }
+          }
+        }
+        // Validate top-down prerequisites per branch
+        const tempChar = { classId: clsPart, level: 100, talents: tMap, talentPoints: 999 };
+        for (const b of branches) {
+          for (let r = 1; r <= 4; r++) {
+            for (const node of b.nodes.filter((n) => n.row === r)) {
+              if (tMap[node.id] && !isTalentPrereqMet(tempChar, node)) {
+                delete tMap[node.id];
+              }
+            }
+          }
+        }
+      }
+      buildsByClass[clsPart] = tMap;
+      const total = Object.values(tMap).reduce((a, v) => a + v, 0);
+      return { classId: clsPart, total };
+    }
+
+    // Parse initial URL query + hash
+    const rawTab = getQueryParam('tab', '');
+    const rawClass = getQueryParam('class', '');
+    const rawQ = getQueryParam('q', '').trim();
+    const rawFilter = getQueryParam('filter', 'all');
+
+    const decodedHash = decodeHashIntoState(window.location.hash);
+    let initialClass = decodedHash?.classId || (ACTIVE_CLASS_IDS.includes(rawClass) ? rawClass : 'paladin');
+    let initialTab = ['calculator', 'compendium'].includes(rawTab) ? rawTab : 'calculator';
+    let initialSelectedNodeId = null;
+
+    // Handle deep-links from Omni-Search or Skills page (?class=paladin&q=Archon+of+Light#paladin)
+    if (rawQ && !rawTab) {
+      const qLow = rawQ.toLowerCase();
+      if (ACTIVE_CLASS_IDS.includes(initialClass)) {
+        const matchInCls = (CLASS_TALENTS[initialClass] || [])
+          .flatMap((b) => b.nodes)
+          .find((n) => n.name.toLowerCase() === qLow);
+        if (matchInCls) {
+          initialTab = 'calculator';
+          initialSelectedNodeId = matchInCls.id;
+        } else {
+          initialTab = 'compendium';
+        }
+      } else {
+        initialTab = 'compendium';
+      }
+    }
+
+    const state = {
+      tab: initialTab,
+      classId: initialClass,
+      sandbox: (decodedHash?.total || 0) > MAX_STANDARD_POINTS,
+      selectedNodeId: initialSelectedNodeId || `${initialClass}.0.${CLASS_TALENTS[initialClass][0].nodes[0].key}`,
+      // Compendium filters
+      q: rawQ,
+      compClass: rawClass && ACTIVE_CLASS_IDS.includes(rawClass) && initialTab === 'compendium' ? rawClass : 'all',
+      compEl: 'all',
+      compFilter: ['all', 'morph', 'keystone', 'passive'].includes(rawFilter) ? rawFilter : 'all',
+    };
+
+    preloadSkillSheets(state.classId);
+
+    onSkillSheetLoad(() => {
+      document.querySelectorAll('img[data-talent-id]').forEach((img) => {
+        const node = TALENTS[img.dataset.talentId];
+        if (node) img.src = talentIconURL(node);
+      });
+    });
+
+    // =========================================================================
+    // HELPERS: STAT LABELS, AFFECTED SKILLS, PREREQ MESSAGES & TOASTS
+    // =========================================================================
+
+    function showToast(msg) {
+      const el = document.getElementById('wiki-toast');
+      el.textContent = msg;
+      el.classList.add('visible');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove('visible'), 2600);
+    }
+
+    function elBadgeHtml(elKey) {
+      const info = ELEMENT_INFO[elKey] || ELEMENT_INFO.phys;
+      return `<span class="wiki-badge" style="color:${info.color};border-color:${info.color}55">${info.icon} ${escapeHtml(info.name)}</span>`;
+    }
+
+    function formatTalentStatLine(statKey, rawVal, classTrees) {
+      const v = Math.round(rawVal * 100) / 100;
+      const custom = {
+        manaMax: `+${v} Maximum Mana`,
+        mana: `+${v} Maximum Mana`,
+        manaRegenPct: `+${v}% Mana Regeneration`,
+        allStats: `+${v} to All Attributes`,
+        armor: `+${v} Armor`,
+        life: `+${v} Maximum Life`,
+      };
+      if (custom[statKey]) return custom[statKey];
+      return statLabel(statKey, v, classTrees);
+    }
+
+    function getAffectedSkillsForNode(node) {
+      const clsSkills = CLASS_SKILLS[node.classId] || [];
+      if (node.morph) {
+        const matched = clsSkills.filter((sk) => morphMatchesSkill(node.morph, sk));
+        if (matched.length) return matched;
+      }
+      if (node.skillMult) {
+        const sm = node.skillMult;
+        return clsSkills.filter((sk) => {
+          const treeOk = sm.tree === null || sm.tree === undefined || (Array.isArray(sm.tree) ? sm.tree.includes(sk.tree) : sm.tree === sk.tree);
+          const kindOk = !sm.kind || (Array.isArray(sm.kind) ? sm.kind.includes(sk.kind) : sm.kind === sk.kind);
+          const skOk = !sm.skills || sm.skills.includes(sk.name);
+          return treeOk && kindOk && skOk;
+        });
+      }
+      return [];
+    }
+
+    function getWhyCannotInvest(simChar, node) {
+      const cur = getTalents(simChar)[node.id] || 0;
+      if (cur >= node.maxRank) return `Max rank reached (${node.maxRank}/${node.maxRank})`;
+      if (isTalentLockedByChoice(simChar, node)) {
+        const sib = getSiblingChoice(node);
+        return `Mutually exclusive — locked by ${sib ? sib.name : 'sibling choice'}`;
+      }
+      if (!isTalentPrereqMet(simChar, node)) {
+        if (node.row === 1) return 'Requires ≥ 1 point in Tier 1 of this branch';
+        if (node.row === 2) return 'Requires ≥ 1 point in a Tier 2 Morph of this branch';
+        if (node.row === 3) return 'Requires ≥ 2 points in Tier 3 of this branch';
+        if (node.row === 4) return 'Requires ≥ 2 points in a Tier 4 Morph of this branch';
+        return 'Branch prerequisite not met';
+      }
+      if ((simChar.talentPoints || 0) <= 0) {
+        return '20 / 20 Talent Points spent (enable Sandbox Mode for uncapped points)';
+      }
+      return null;
+    }
+
+    function computeRequiredHeroLevel(simChar) {
+      const tMap = getTalents(simChar);
+      const spent = talentPointsSpent(simChar);
+      if (spent <= 0) return 1;
+      let maxNodeLv = 1;
+      for (const [id, r] of Object.entries(tMap)) {
+        if (r > 0 && TALENTS[id]) maxNodeLv = Math.max(maxNodeLv, TALENTS[id].reqLevel || 1);
+      }
+      return Math.max(spent * 5, maxNodeLv);
+    }
+
+    function syncBrowserUrl() {
+      const url = new URL(window.location.href);
+      if (state.tab === 'compendium') {
+        url.searchParams.set('tab', 'compendium');
+        if (state.compClass !== 'all') url.searchParams.set('class', state.compClass);
+        else url.searchParams.delete('class');
+        if (state.q.trim()) url.searchParams.set('q', state.q.trim());
+        else url.searchParams.delete('q');
+        if (state.compFilter !== 'all') url.searchParams.set('filter', state.compFilter);
+        else url.searchParams.delete('filter');
+      } else {
+        url.searchParams.delete('tab');
+        url.searchParams.delete('q');
+        url.searchParams.delete('filter');
+        url.searchParams.delete('class');
+        const encoded = encodeBuildRanks(state.classId);
+        url.hash = encoded ? `#${state.classId}:${encoded}` : `#${state.classId}`;
+      }
+      window.history.replaceState(null, '', url.toString());
+    }
+
+    // =========================================================================
+    // POINT INVESTMENT & SAFE REFUND / AUTO-PRUNING LOGIC
+    // =========================================================================
+
+    function investTalentNode(node, toMax = false) {
+      state.selectedNodeId = node.id;
+      const simChar = makeSimChar(state.classId, state.sandbox);
+      const why = getWhyCannotInvest(simChar, node);
+      if (why) {
+        renderCalculatorView();
+        return;
+      }
+      const steps = toMax ? node.maxRank : 1;
+      for (let i = 0; i < steps; i++) {
+        if (!canLearnTalent(simChar, node)) break;
+        learnTalent(simChar, node.id);
+      }
+      syncBrowserUrl();
+      renderCalculatorView();
+    }
+
+    function refundTalentNode(node, allRanks = false) {
+      state.selectedNodeId = node.id;
+      const simChar = makeSimChar(state.classId, state.sandbox);
+      const tMap = getTalents(simChar);
+      const cur = tMap[node.id] || 0;
+      if (cur <= 0) {
+        renderCalculatorView();
+        return;
+      }
+
+      if (allRanks || cur <= 1) delete tMap[node.id];
+      else tMap[node.id] = cur - 1;
+
+      // Top-down prerequisite integrity check in the same branch; auto-prune invalidated higher tiers
+      const branch = CLASS_TALENTS[node.classId]?.[node.branch];
+      const prunedNames = [];
+      if (branch) {
+        for (let r = 1; r <= 4; r++) {
+          for (const higher of branch.nodes.filter((n) => n.row === r)) {
+            if ((tMap[higher.id] || 0) > 0 && !isTalentPrereqMet(simChar, higher)) {
+              prunedNames.push(higher.name);
+              delete tMap[higher.id];
+            }
+          }
+        }
+      }
+
+      if (prunedNames.length) {
+        showToast(`Refunded dependent higher tier(s): ${prunedNames.join(', ')}`);
+      }
+      syncBrowserUrl();
+      renderCalculatorView();
+    }
+
+    function resetCurrentClassBuild() {
+      const simChar = makeSimChar(state.classId, state.sandbox);
+      const refunded = respecTalents(simChar);
+      buildsByClass[state.classId] = simChar.talents;
+      syncBrowserUrl();
+      renderCalculatorView();
+      if (refunded > 0) showToast(`Reset ${CLASSES[state.classId].name} build (${refunded} points refunded).`);
+    }
+
+    async function copyShareableBuildLink() {
+      syncBrowserUrl();
+      const encoded = encodeBuildRanks(state.classId);
+      const shareUrl = new URL(window.location.href);
+      shareUrl.search = '';
+      shareUrl.hash = encoded ? `#${state.classId}:${encoded}` : `#${state.classId}`;
+      const text = shareUrl.toString();
+
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('✓ Shareable build link copied to clipboard!');
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('✓ Shareable build link copied to clipboard!');
+      }
+    }
+
+    // =========================================================================
+    // FLOATING HOVER TOOLTIP
+    // =========================================================================
+
+    const hoverTip = document.getElementById('talent-hover-tip');
+
+    function showNodeHoverTip(e, node, simChar) {
+      if (window.matchMedia('(pointer: coarse)').matches) return;
+      const rank = getTalents(simChar)[node.id] || 0;
+      const sib = getSiblingChoice(node);
+      const why = getWhyCannotInvest(simChar, node);
+      const elInfo = ELEMENT_INFO[node.el] || ELEMENT_INFO.phys;
+
+      let html = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span style="font-family:var(--font-title);font-weight:900;font-size:14.5px;color:${elInfo.color}">${escapeHtml(node.name)}</span>
+          <span class="wiki-badge gold">Rank ${rank}/${node.maxRank}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin:3px 0 6px">
+          Req. Hero Lv ${node.reqLevel}${sib ? ` · <span style="color:#ffb86c">VS ${escapeHtml(sib.name)}</span>` : ''}
+        </div>
+        <div style="color:var(--text)">${node.desc(Math.max(1, rank))}</div>
+      `;
+      if (rank > 0 && rank < node.maxRank) {
+        html += `<div style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(112,72,40,0.4);font-size:12.2px;color:#a8d4ff"><b>Next Rank (${rank + 1}/${node.maxRank}):</b> ${node.desc(rank + 1)}</div>`;
+      }
+      if (why && rank < node.maxRank) {
+        html += `<div style="margin-top:6px;font-size:11.5px;color:#ff8575">${escapeHtml(why)}</div>`;
+      } else {
+        html += `<div style="margin-top:6px;font-size:11px;color:var(--emerald)">Left-click: +1 (Shift: Max) · Right-click: −1</div>`;
+      }
+
+      hoverTip.innerHTML = html;
+      hoverTip.style.display = 'block';
+      moveNodeHoverTip(e);
+    }
+
+    function moveNodeHoverTip(e) {
+      if (hoverTip.style.display !== 'block') return;
+      const pad = 16;
+      const rect = hoverTip.getBoundingClientRect();
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+      if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - pad;
+      if (y + rect.height > window.innerHeight - 10) y = Math.max(10, window.innerHeight - rect.height - 10);
+      hoverTip.style.left = `${x}px`;
+      hoverTip.style.top = `${y}px`;
+    }
+
+    function hideNodeHoverTip() {
+      hoverTip.style.display = 'none';
+    }
+
+    // =========================================================================
+    // TAB 1: INTERACTIVE 3-BRANCH TALENT TREE CALCULATOR
+    // =========================================================================
+
+    const rootEl = document.getElementById('talents-view-root');
+
+    function renderNodeCardHtml(node, simChar) {
+      const tMap = getTalents(simChar);
+      const rank = tMap[node.id] || 0;
+      const lockedChoice = isTalentLockedByChoice(simChar, node);
+      const prereqOk = isTalentPrereqMet(simChar, node);
+      const canAdd = canLearnTalent(simChar, node);
+      const elInfo = ELEMENT_INFO[node.el] || ELEMENT_INFO.phys;
+
+      const classes = ['tnode-card'];
+      if (node.row === 4) classes.push('tnode-keystone');
+      if (rank > 0) classes.push('invested');
+      if (rank >= node.maxRank) classes.push('maxed');
+      if (rank === 0 && canAdd) classes.push('avail');
+      if (lockedChoice) classes.push('choice-locked');
+      else if (rank === 0 && !prereqOk) classes.push('prereq-locked');
+      if (state.selectedNodeId === node.id) classes.push('selected-inspect');
+
+      const kindShort = node.row === 4
+        ? `Keystone ${node.choice}`
+        : node.choice
+        ? `Morph ${node.choice}`
+        : 'Passive';
+
+      return `
+        <div class="${classes.join(' ')}" data-node-id="${node.id}" role="button" tabindex="0"
+          aria-label="${escapeHtml(node.name)} Rank ${rank} of ${node.maxRank}">
+          <div class="tnode-icon-wrap">
+            <img class="tnode-icon" data-talent-id="${node.id}" src="${talentIconURL(node)}" alt="${escapeHtml(node.name)}">
+            <span class="tnode-rank-pill">${rank}/${node.maxRank}</span>
+          </div>
+          <div class="tnode-body">
+            <div class="tnode-title">${escapeHtml(node.name)}</div>
+            <div class="tnode-tag-line">
+              <span style="color:${elInfo.color}">${elInfo.icon}</span>
+              <span>${lockedChoice ? 'Locked' : escapeHtml(kindShort)}</span>
+            </div>
+          </div>
+          ${rank > 0 ? `<button type="button" class="tnode-minus-btn" data-refund-node="${node.id}" title="Refund 1 rank (Right-click)">−</button>` : ''}
+        </div>
+      `;
+    }
+
+    function renderInspectorHtml(node, simChar) {
+      if (!node) {
+        return `<div class="empty-state-box">Click or hover any talent node in the 3 branches above to inspect its current &amp; next-rank scaling.</div>`;
+      }
+      const rank = getTalents(simChar)[node.id] || 0;
+      const sib = getSiblingChoice(node);
+      const lockedChoice = isTalentLockedByChoice(simChar, node);
+      const why = getWhyCannotInvest(simChar, node);
+      const branch = CLASS_TALENTS[node.classId]?.[node.branch];
+      const affectedSkills = getAffectedSkillsForNode(node);
+      const tierLabel = TIER_META[node.row]?.sub || 'Passive Talent';
+
+      return `
+        <div class="panel-kicker">
+          <span>Selected Node Dossier</span>
+          <span>${escapeHtml(branch?.name || '')} · Lv ${node.reqLevel}</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:14px">
+          <img data-talent-id="${node.id}" src="${talentIconURL(node)}" alt="${escapeHtml(node.name)}"
+            style="width:60px;height:60px;border-radius:6px;border:2px solid var(--gold);background:#080504;flex-shrink:0">
+          <div style="min-width:0;flex:1">
+            <h3 style="font-family:var(--font-title);font-size:19px;font-weight:900;color:var(--gold-bright)">${escapeHtml(node.name)}</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
+              ${elBadgeHtml(node.el)}
+              <span class="wiki-badge gold">Rank ${rank} / ${node.maxRank}</span>
+              <span class="wiki-badge violet">${escapeHtml(tierLabel)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${sib ? `
+          <div style="margin-top:10px;font-size:13px;color:${lockedChoice ? '#ff7d6e' : '#ffcb7d'}">
+            ⚖️ Mutually Exclusive Choice with <b>${escapeHtml(sib.name)}</b> (investing in one permanently locks the other until refunded).
+          </div>
+        ` : ''}
+
+        <div class="rank-desc-box">
+          <div style="font-size:11px;font-family:var(--font-title);text-transform:uppercase;letter-spacing:0.8px;color:var(--gold);margin-bottom:3px">
+            ${rank > 0 ? `Current Rank (${rank} / ${node.maxRank})` : `Rank 1 Preview (Uninvested — 0 / ${node.maxRank})`}
+          </div>
+          <div>${node.desc(Math.max(1, rank))}</div>
+        </div>
+
+        ${rank > 0 && rank < node.maxRank ? `
+          <div class="rank-desc-box next">
+            <div style="font-size:11px;font-family:var(--font-title);text-transform:uppercase;letter-spacing:0.8px;color:var(--cyan);margin-bottom:3px">
+              Next Rank (${rank + 1} / ${node.maxRank})
+            </div>
+            <div>${node.desc(rank + 1)}</div>
+          </div>
+        ` : ''}
+
+        ${affectedSkills.length ? `
+          <div style="margin-top:12px">
+            <div style="font-size:11.5px;font-family:var(--font-title);text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);margin-bottom:6px">
+              Affected Active Skills (${affectedSkills.length})
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${affectedSkills.map((sk) => `
+                <a class="skill-link-chip" href="skills.html?class=${encodeURIComponent(sk.classId)}&q=${encodeURIComponent(sk.name)}">
+                  ⚡ ${escapeHtml(sk.name)}
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <button type="button" class="btn-calc-action gold" id="insp-btn-add" ${why ? 'disabled style="opacity:0.45;cursor:not-allowed"' : ''}>
+            + Invest 1 Pt
+          </button>
+          ${node.maxRank > 1 ? `
+            <button type="button" class="btn-calc-action" id="insp-btn-max" ${why ? 'disabled style="opacity:0.45;cursor:not-allowed"' : ''}>
+              Max (${node.maxRank})
+            </button>
+          ` : ''}
+          <button type="button" class="btn-calc-action danger" id="insp-btn-sub" ${rank <= 0 ? 'disabled style="opacity:0.45;cursor:not-allowed"' : ''}>
+            − Refund 1 Pt
+          </button>
+          ${why ? `<span style="font-size:12.5px;color:#ff8a7a">${escapeHtml(why)}</span>` : ''}
+        </div>
+      `;
+    }
+
+    function renderBuildSummaryHtml(simChar) {
+      const cls = CLASSES[simChar.classId];
+      const bonuses = computeTalentBonuses(simChar);
+      const tMap = getTalents(simChar);
+      const spent = talentPointsSpent(simChar);
+
+      const statLines = [];
+      for (const [k, val] of Object.entries(bonuses.stats)) {
+        if (!val) continue;
+        statLines.push(formatTalentStatLine(k, val, cls.trees));
+      }
+      for (const sm of bonuses.skillMults) {
+        if (sm.skills?.length) {
+          statLines.push(`+${sm.pct}% ${sm.skills.join(', ')} Damage`);
+        } else if (sm.tree !== null && sm.tree !== undefined) {
+          const tNames = (Array.isArray(sm.tree) ? sm.tree : [sm.tree]).map((i) => cls.trees[i] || `Tree ${i + 1}`).join(' & ');
+          statLines.push(`+${sm.pct}% ${tNames} Skill Damage`);
+        } else if (sm.kind) {
+          const kNames = (Array.isArray(sm.kind) ? sm.kind : [sm.kind]).join('/');
+          statLines.push(`+${sm.pct}% ${kNames.toUpperCase()} Skill Damage`);
+        } else {
+          statLines.push(`+${sm.pct}% Skill Damage`);
+        }
+      }
+      if (bonuses.knightCapPlus > 0) {
+        statLines.push(`+${bonuses.knightCapPlus} Maximum Knight Order Companions`);
+      }
+      if (bonuses.cheatDeath) {
+        const cd = bonuses.cheatDeath;
+        statLines.push(`Cheat Death (${cd.name}): Heals ${Math.round(cd.healPct * 100)}% Max Life (${cd.cd}s CD)`);
+      }
+      for (const ok of bonuses.onKill) {
+        const elName = ELEMENT_INFO[ok.el]?.name || ok.el;
+        statLines.push(`On Kill (${ok.status}): Explodes for ${Math.round(ok.pctMaxHp * 100)}% Max HP ${elName} Dmg`);
+      }
+
+      // Unlocked Skill Morphs & Apex Keystones
+      const investedSpecialNodes = [];
+      for (const branch of (CLASS_TALENTS[simChar.classId] || [])) {
+        for (const node of branch.nodes) {
+          const r = tMap[node.id] || 0;
+          if (r > 0 && (node.choice || node.morph || node.row === 4)) {
+            investedSpecialNodes.push({ node, rank: r, branchName: branch.name });
+          }
+        }
+      }
+
+      if (spent === 0) {
+        return `
+          <div class="panel-kicker">
+            <span>Live Build Summary</span>
+            <span>0 Points Allocated</span>
+          </div>
+          <div class="empty-state-box">
+            Left-click nodes in the <b>${escapeHtml(cls.name)}</b> talent branches above to allocate points (Shift+click to max, Right-click to refund).
+            Your aggregated passive stats, active Skill Morphs, and Apex Keystones will appear here live!
+          </div>
+        `;
+      }
+
+      return `
+        <div class="panel-kicker">
+          <span>Live Build Summary — ${escapeHtml(cls.name)}</span>
+          <span>${spent} Point${spent === 1 ? '' : 's'} Allocated</span>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-family:var(--font-title);text-transform:uppercase;letter-spacing:0.9px;color:var(--text-dim)">
+            Aggregated Passive Bonuses (${statLines.length})
+          </div>
+          ${statLines.length
+            ? `<div class="stat-bonuses-list">${statLines.map((line) => `<div class="stat-bonus-item">${escapeHtml(line)}</div>`).join('')}</div>`
+            : `<div style="font-size:13.5px;color:var(--text-muted);margin-top:6px">No flat/percentage stat lines unlocked yet.</div>`
+          }
+        </div>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-family:var(--font-title);text-transform:uppercase;letter-spacing:0.9px;color:var(--gold)">
+            Unlocked Skill Morphs &amp; Apex Keystones (${investedSpecialNodes.length})
+          </div>
+          ${investedSpecialNodes.length
+            ? investedSpecialNodes.map(({ node, rank, branchName }) => {
+                const affected = getAffectedSkillsForNode(node);
+                const badgeCls = node.row === 4 ? 'crimson' : 'violet';
+                const badgeTxt = node.row === 4 ? 'Apex Keystone' : `Skill Morph (${node.choice || 'Passive'})`;
+                return `
+                  <div class="morph-summary-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <img data-talent-id="${node.id}" src="${talentIconURL(node)}" alt="" style="width:32px;height:32px;border-radius:4px;border:1px solid var(--gold-dim)">
+                        <div>
+                          <div style="font-family:var(--font-title);font-weight:800;color:var(--gold-bright);font-size:14.5px">${escapeHtml(node.name)}</div>
+                          <div style="font-size:11.5px;color:var(--text-muted)">${escapeHtml(branchName)} · Rank ${rank}/${node.maxRank}</div>
+                        </div>
+                      </div>
+                      <span class="wiki-badge ${badgeCls}">${escapeHtml(badgeTxt)}</span>
+                    </div>
+                    <div style="font-size:13.8px;color:var(--text)" class="rank-desc-inline">${node.desc(rank)}</div>
+                    ${affected.length ? `
+                      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:2px">
+                        ${affected.map((sk) => `
+                          <a class="skill-link-chip" href="skills.html?class=${encodeURIComponent(sk.classId)}&q=${encodeURIComponent(sk.name)}">
+                            ⚡ ${escapeHtml(sk.name)}
+                          </a>
+                        `).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')
+            : `<div style="font-size:13.5px;color:var(--text-muted);margin-top:6px">Invest in Tier 2 (Lv 10), Tier 4 (Lv 30), or Tier 5 (Lv 45) choice nodes to unlock build-defining Skill Morphs &amp; Keystones.</div>`
+          }
+        </div>
+      `;
+    }
+
+    function renderCalculatorView() {
+      hideNodeHoverTip();
+      const cid = state.classId;
+      const cls = CLASSES[cid];
+      preloadSkillSheets(cid);
+
+      if (!state.selectedNodeId || !TALENTS[state.selectedNodeId] || TALENTS[state.selectedNodeId].classId !== cid) {
+        state.selectedNodeId = CLASS_TALENTS[cid]?.[0]?.nodes?.[0]?.id || null;
+      }
+
+      const simChar = makeSimChar(cid, state.sandbox);
+      const spent = talentPointsSpent(simChar);
+      const reqHeroLv = computeRequiredHeroLevel(simChar);
+      const meterPct = state.sandbox
+        ? Math.min(100, Math.round((spent / 39) * 100))
+        : Math.min(100, Math.round((spent / MAX_STANDARD_POINTS) * 100));
+
+      const pillsHtml = ACTIVE_CLASS_IDS.map((id) => {
+        const c = CLASSES[id];
+        const eInfo = ELEMENT_INFO[c.element] || ELEMENT_INFO.phys;
+        const clsSpent = Object.values(buildsByClass[id] || {}).reduce((a, v) => a + (Number(v) || 0), 0);
+        return `
+          <button type="button" class="wiki-pill ${id === cid ? 'active' : ''}" data-calc-class="${id}">
+            <span class="cls-dot" style="color:${c.color};background:${c.color}"></span>
+            <span>${escapeHtml(c.name)}</span>
+            ${clsSpent > 0 ? `<span class="wiki-nav-count" style="color:var(--gold-bright)">${clsSpent}</span>` : `<span style="opacity:0.65;font-size:11px">${eInfo.icon}</span>`}
+          </button>
+        `;
+      }).join('');
+
+      const branches = CLASS_TALENTS[cid] || [];
+      const branchesHtml = branches.map((b) => {
+        const bInfo = ELEMENT_INFO[b.el] || ELEMENT_INFO.phys;
+        const bPts = b.nodes.reduce((sum, n) => sum + (getTalents(simChar)[n.id] || 0), 0);
+
+        const tiersHtml = TIER_META.map((tm) => {
+          const rowNodes = b.nodes.filter((n) => n.row === tm.row);
+          if (rowNodes.length === 2) {
+            return `
+              <div class="ttier-block">
+                <div class="ttier-header">
+                  <span>${escapeHtml(tm.title)}</span>
+                  <span style="color:var(--gold-dim)">Choice A vs B</span>
+                </div>
+                <div class="ttier-nodes-choice">
+                  ${renderNodeCardHtml(rowNodes[0], simChar)}
+                  <div class="vs-divider" title="Mutually Exclusive Choice">VS</div>
+                  ${renderNodeCardHtml(rowNodes[1], simChar)}
+                </div>
+              </div>
+            `;
+          }
+          return `
+            <div class="ttier-block">
+              <div class="ttier-header">
+                <span>${escapeHtml(tm.title)}</span>
+                <span>${escapeHtml(tm.sub)}</span>
+              </div>
+              <div class="ttier-nodes-single">
+                ${rowNodes[0] ? renderNodeCardHtml(rowNodes[0], simChar) : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <section class="tbranch-panel">
+            <div class="tbranch-head" style="border-bottom-color:${bInfo.color}99">
+              <span class="tbranch-name" style="color:${bInfo.color}">${bInfo.icon} ${escapeHtml(b.name)}</span>
+              <span class="tbranch-pts">${bPts} pt${bPts === 1 ? '' : 's'}</span>
+            </div>
+            <div class="tbranch-tiers">
+              ${tiersHtml}
+            </div>
+          </section>
+        `;
+      }).join('');
+
+      const selectedNode = state.selectedNodeId ? TALENTS[state.selectedNodeId] : null;
+
+      rootEl.innerHTML = `
+        <div class="class-pills-wrap">
+          <div class="class-pills-label">
+            <span>Select Hero Class (${ACTIVE_CLASS_IDS.length} Classes)</span>
+            <span>Left-click: +1 Rank (Shift+click: Max) · Right-click or [−]: Refund 1 Rank</span>
+          </div>
+          <div class="wiki-pills">${pillsHtml}</div>
+        </div>
+
+        <div class="calc-points-bar">
+          <div class="points-status-wrap">
+            <div class="points-counter-pill">
+              <span style="font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);font-family:var(--font-title)">Spent:</span>
+              <span class="pts-big">${spent} / ${state.sandbox ? '∞' : MAX_STANDARD_POINTS}</span>
+              <span style="font-size:12.5px;color:var(--text-dim)">Points</span>
+            </div>
+
+            <div class="points-meter-track" title="Talent Point Budget">
+              <div class="points-meter-fill ${state.sandbox ? 'sandbox' : ''}" style="width:${meterPct}%"></div>
+            </div>
+
+            <div style="font-size:13.5px;color:var(--text-dim)">
+              ${spent > MAX_STANDARD_POINTS
+                ? `<span class="wiki-badge violet">Sandbox Build (${spent} pts · Exceeds Lv 100 Cap)</span>`
+                : `Required Hero Level: <b style="color:var(--gold-bright);font-family:var(--font-title)">Lv ${reqHeroLv}</b>`
+              }
+            </div>
+
+            <label class="sandbox-toggle" title="Allow spending beyond the normal 20-point Level 100 cap">
+              <input type="checkbox" id="chk-sandbox-mode" ${state.sandbox ? 'checked' : ''}>
+              <span>Sandbox Mode (Uncapped)</span>
+            </label>
+          </div>
+
+          <div class="calc-actions">
+            <button type="button" class="btn-calc-action gold" id="btn-copy-build">🔗 Copy Build Link</button>
+            <button type="button" class="btn-calc-action danger" id="btn-reset-build">↺ Reset Build</button>
+            <a class="btn-calc-action" href="skills.html?view=trees&class=${encodeURIComponent(cid)}">⚡ ${escapeHtml(cls.name)} Skills</a>
+          </div>
+        </div>
+
+        <div class="talent-branches-grid">
+          ${branchesHtml}
+        </div>
+
+        <div class="calc-bottom-grid">
+          <div class="inspector-panel" id="calc-inspector-box">
+            ${renderInspectorHtml(selectedNode, simChar)}
+          </div>
+          <div class="summary-panel" id="calc-summary-box">
+            ${renderBuildSummaryHtml(simChar)}
+          </div>
+        </div>
+      `;
+
+      // Bind class selector pills
+      rootEl.querySelectorAll('[data-calc-class]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.classId = btn.dataset.calcClass;
+          state.selectedNodeId = CLASS_TALENTS[state.classId]?.[0]?.nodes?.[0]?.id || null;
+          syncBrowserUrl();
+          renderCalculatorView();
+        });
+      });
+
+      // Sandbox toggle
+      document.getElementById('chk-sandbox-mode').addEventListener('change', (e) => {
+        state.sandbox = e.target.checked;
+        renderCalculatorView();
+      });
+
+      // Copy & Reset buttons
+      document.getElementById('btn-copy-build').addEventListener('click', copyShareableBuildLink);
+      document.getElementById('btn-reset-build').addEventListener('click', resetCurrentClassBuild);
+
+      // Node left-click, right-click, minus button, and hover tooltip
+      rootEl.querySelectorAll('[data-refund-node]').forEach((mBtn) => {
+        mBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const node = TALENTS[mBtn.dataset.refundNode];
+          if (node) refundTalentNode(node, e.shiftKey);
+        });
+      });
+
+      rootEl.querySelectorAll('[data-node-id]').forEach((card) => {
+        const node = TALENTS[card.dataset.nodeId];
+        if (!node) return;
+
+        card.addEventListener('click', (e) => {
+          investTalentNode(node, e.shiftKey || e.ctrlKey || e.metaKey);
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          refundTalentNode(node, e.shiftKey);
+        });
+
+        card.addEventListener('mouseenter', (e) => showNodeHoverTip(e, node, simChar));
+        card.addEventListener('mousemove', moveNodeHoverTip);
+        card.addEventListener('mouseleave', hideNodeHoverTip);
+      });
+
+      // Inspector action buttons
+      const addBtn = document.getElementById('insp-btn-add');
+      const maxBtn = document.getElementById('insp-btn-max');
+      const subBtn = document.getElementById('insp-btn-sub');
+      if (addBtn && selectedNode) addBtn.addEventListener('click', () => investTalentNode(selectedNode, false));
+      if (maxBtn && selectedNode) maxBtn.addEventListener('click', () => investTalentNode(selectedNode, true));
+      if (subBtn && selectedNode) subBtn.addEventListener('click', () => refundTalentNode(selectedNode, false));
+    }
+
+    // =========================================================================
+    // TAB 2: ALL 456 TALENTS SEARCHABLE COMPENDIUM
+    // =========================================================================
+
+    function renderCompendiumView() {
+      hideNodeHoverTip();
+      const elements = ['phys', 'fire', 'cold', 'light', 'poison', 'shadow', 'arcane', 'holy', 'blood', 'acid'];
+
+      rootEl.innerHTML = `
+        <div class="wiki-toolbar">
+          <div class="wiki-toolbar-row">
+            <div class="wiki-search-field">
+              <input type="search" id="comp-search-input" value="${escapeHtml(state.q)}"
+                placeholder="Search all 456 passive talents, morphed skill names, keystones, stats, or mechanics...">
+            </div>
+            <select class="wiki-select" id="comp-class-select">
+              <option value="all">All 19 Classes</option>
+              ${ACTIVE_CLASS_IDS.map((cid) => `<option value="${cid}" ${state.compClass === cid ? 'selected' : ''}>${escapeHtml(CLASSES[cid].name)}</option>`).join('')}
+            </select>
+            <select class="wiki-select" id="comp-el-select">
+              <option value="all">All Elements</option>
+              ${elements.map((e) => `<option value="${e}" ${state.compEl === e ? 'selected' : ''}>${ELEMENT_INFO[e].icon} ${escapeHtml(ELEMENT_INFO[e].name)}</option>`).join('')}
+            </select>
+            <button type="button" class="wiki-pill" id="comp-reset-btn">Reset</button>
+          </div>
+          <div class="wiki-toolbar-row" style="justify-content:space-between">
+            <div class="wiki-pills" id="comp-filter-pills">
+              <button type="button" class="wiki-pill ${state.compFilter === 'all' ? 'active' : ''}" data-cfilter="all">All Nodes (456)</button>
+              <button type="button" class="wiki-pill ${state.compFilter === 'morph' ? 'active' : ''}" data-cfilter="morph">Skill Morphs · Rows 2 &amp; 4 (204)</button>
+              <button type="button" class="wiki-pill ${state.compFilter === 'keystone' ? 'active' : ''}" data-cfilter="keystone">Apex Keystones · Row 5 (102)</button>
+              <button type="button" class="wiki-pill ${state.compFilter === 'passive' ? 'active' : ''}" data-cfilter="passive">Foundation &amp; Synergy Passives (102)</button>
+            </div>
+            <span class="wiki-section-sub" id="comp-count-lbl"></span>
+          </div>
+        </div>
+        <div class="wiki-grid-wide" id="comp-results-grid"></div>
+      `;
+
+      const updateCompResults = () => {
+        const q = state.q.trim().toLowerCase();
+        const terms = q ? q.split(/\s+/).filter(Boolean) : [];
+
+        const matches = ALL_TALENT_NODES.filter(({ node, branchName }) => {
+          if (state.compClass !== 'all' && node.classId !== state.compClass) return false;
+          if (state.compEl !== 'all' && (node.el || 'phys') !== state.compEl) return false;
+          if (state.compFilter === 'morph' && !(node.row === 1 || node.row === 3)) return false;
+          if (state.compFilter === 'keystone' && node.row !== 4) return false;
+          if (state.compFilter === 'passive' && !(node.row === 0 || node.row === 2)) return false;
+
+          if (terms.length) {
+            const clsName = CLASSES[node.classId]?.name || '';
+            const plainDesc = node.desc(node.maxRank).replace(/<[^>]+>/g, ' ').toLowerCase();
+            const skillNames = getAffectedSkillsForNode(node).map((s) => s.name).join(' ');
+            const tierTag = node.row === 4 ? 'keystone apex' : node.choice ? 'morph choice' : 'passive synergy';
+            const hay = `${node.name} ${clsName} ${branchName} ${node.el || ''} ${skillNames} ${tierTag} ${plainDesc}`.toLowerCase();
+            for (const t of terms) {
+              if (!hay.includes(t)) return false;
+            }
+          }
+          return true;
+        });
+
+        document.getElementById('comp-count-lbl').innerHTML =
+          `Showing <b style="color:var(--gold-bright)">${matches.length}</b> of <b>${ALL_TALENT_NODES.length}</b> talent nodes`;
+
+        const visClasses = new Set(matches.slice(0, 60).map((m) => m.node.classId));
+        for (const cid of visClasses) preloadSkillSheets(cid);
+
+        const grid = document.getElementById('comp-results-grid');
+        if (!matches.length) {
+          grid.innerHTML = `<div class="empty-state-box" style="grid-column:1/-1">No passive talents matched your search filters.</div>`;
+          return;
+        }
+
+        grid.innerHTML = matches.map(({ node, branchName }) => {
+          const cls = CLASSES[node.classId];
+          const sib = getSiblingChoice(node);
+          const affected = getAffectedSkillsForNode(node);
+          const badgeCls = node.row === 4 ? 'crimson' : node.choice ? 'violet' : 'gold';
+          const badgeTxt = node.row === 4
+            ? `Apex Keystone (${node.choice})`
+            : node.choice
+            ? `Skill Morph (${node.choice})`
+            : `Tier ${node.row + 1} Passive`;
+
+          return `
+            <article class="wiki-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div style="display:flex;align-items:center;gap:11px;min-width:0">
+                  <img data-talent-id="${node.id}" src="${talentIconURL(node)}" alt="${escapeHtml(node.name)}" loading="lazy"
+                    style="width:48px;height:48px;border-radius:5px;border:1px solid #6b4b2a;background:#080504;flex-shrink:0">
+                  <div style="min-width:0">
+                    <div style="font-family:var(--font-title);font-weight:800;font-size:15.5px;color:var(--gold-bright)">${escapeHtml(node.name)}</div>
+                    <div style="font-size:12.5px;color:var(--text-dim)">
+                      <span style="color:${cls.color};font-weight:700">${escapeHtml(cls.name)}</span> · ${escapeHtml(branchName)} · Lv ${node.reqLevel}
+                    </div>
+                  </div>
+                </div>
+                <span class="wiki-badge ${badgeCls}" style="flex-shrink:0">${escapeHtml(badgeTxt)}</span>
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;gap:5px">
+                ${elBadgeHtml(node.el)}
+                <span class="wiki-badge">Max Rank: ${node.maxRank}</span>
+                ${sib ? `<span class="wiki-badge" title="Mutually Exclusive Sibling">VS ${escapeHtml(sib.name)}</span>` : ''}
+              </div>
+
+              <div style="font-size:14.2px;color:var(--text);line-height:1.48" class="rank-desc-inline">
+                ${node.desc(node.maxRank)}
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid rgba(90,58,36,0.35)">
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                  ${affected.slice(0, 4).map((sk) => `
+                    <a class="skill-link-chip" href="skills.html?class=${encodeURIComponent(sk.classId)}&q=${encodeURIComponent(sk.name)}">
+                      ⚡ ${escapeHtml(sk.name)}
+                    </a>
+                  `).join('')}
+                </div>
+                <button type="button" class="btn-calc-action" style="padding:4px 9px;font-size:10.5px" data-open-in-calc="${node.id}">
+                  🧮 Open in Calculator →
+                </button>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-open-in-calc]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const node = TALENTS[btn.dataset.openInCalc];
+            if (!node) return;
+            state.classId = node.classId;
+            state.selectedNodeId = node.id;
+            state.tab = 'calculator';
+            syncTabButtons();
+            syncBrowserUrl();
+            renderActiveTab();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        });
+      };
+
+      const sInput = document.getElementById('comp-search-input');
+      const cSel = document.getElementById('comp-class-select');
+      const eSel = document.getElementById('comp-el-select');
+
+      sInput.addEventListener('input', () => {
+        state.q = sInput.value;
+        syncBrowserUrl();
+        updateCompResults();
+      });
+      cSel.addEventListener('change', () => {
+        state.compClass = cSel.value;
+        syncBrowserUrl();
+        updateCompResults();
+      });
+      eSel.addEventListener('change', () => {
+        state.compEl = eSel.value;
+        updateCompResults();
+      });
+
+      document.querySelectorAll('[data-cfilter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.compFilter = btn.dataset.cfilter;
+          document.querySelectorAll('[data-cfilter]').forEach((b) => b.classList.toggle('active', b === btn));
+          syncBrowserUrl();
+          updateCompResults();
+        });
+      });
+
+      document.getElementById('comp-reset-btn').addEventListener('click', () => {
+        state.q = '';
+        state.compClass = 'all';
+        state.compEl = 'all';
+        state.compFilter = 'all';
+        syncBrowserUrl();
+        renderCompendiumView();
+      });
+
+      updateCompResults();
+    }
+
+    // =========================================================================
+    // TAB NAVIGATION & HASHCHANGE SYNC
+    // =========================================================================
+
+    function syncTabButtons() {
+      document.querySelectorAll('.wiki-tab-btn[data-tab]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === state.tab);
+      });
+    }
+
+    document.querySelectorAll('.wiki-tab-btn[data-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.tab = btn.dataset.tab;
+        syncTabButtons();
+        syncBrowserUrl();
+        renderActiveTab();
+      });
+    });
+
+    window.addEventListener('hashchange', () => {
+      const parsed = decodeHashIntoState(window.location.hash);
+      if (parsed) {
+        state.classId = parsed.classId;
+        if (parsed.total > MAX_STANDARD_POINTS) state.sandbox = true;
+        if (state.tab === 'calculator') renderCalculatorView();
+      }
+    });
+
+    function renderActiveTab() {
+      syncTabButtons();
+      if (state.tab === 'calculator') renderCalculatorView();
+      else renderCompendiumView();
+    }
+
+    renderActiveTab();
+  </script>
+</body>
+</html>
+

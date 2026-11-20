@@ -1,0 +1,2585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <title>VELSCOUR WIKI — Gear, Relics, Covenants, Glyphwords, Gems &amp; Itemization</title>
+  <meta name="description" content="Fork-data Velscour PC Gear & Itemization Compendium: explore all 20 equipment tiers, Heirlooms & Velscour Unbound Spoils, 6 Covenant Sets, 18 Glyphwords, 21 Gem Types, 20 Sigil Stones, 51 Gear Affixes, 22 Legendary Powers, and 15 Ring Skill Augments.">
+  <link rel="icon" type="image/png" href="assets/ui/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    /* ==========================================================================
+       GEAR & ITEMIZATION WIKI — PAGE-SPECIFIC GOTHIC STYLING
+       ========================================================================== */
+    :root {
+      --heirloom: #d9b45a;
+      --heirloom-bright: #ffe394;
+      --covenant: #35e0b8;
+      --covenant-dim: rgba(53, 224, 184, 0.25);
+      --glyphword: #f2e2b0;
+      --unbound: #ff4a32;
+    }
+
+    .gear-toolbar-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .gear-search-wrap {
+      flex: 1 1 280px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .gear-search-wrap .search-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .gear-search-wrap input {
+      width: 100%;
+      background: #110b08;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 15px;
+      padding: 9px 36px 9px 34px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .gear-search-wrap input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+    }
+
+    .gear-search-clear {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 15px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: none;
+    }
+
+    .gear-search-clear.visible {
+      display: inline-block;
+    }
+
+    .gear-search-clear:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Item Level Preview Control Bar */
+    .gear-ilvl-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      background: linear-gradient(180deg, #1a110c 0%, #110b08 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: 5px;
+      padding: 7px 13px;
+    }
+
+    .gear-ilvl-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gear-ilvl-main label {
+      font-family: var(--font-title);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+
+    .gear-ilvl-main input[type="range"] {
+      accent-color: var(--gold);
+      width: 150px;
+      cursor: pointer;
+    }
+
+    .gear-ilvl-readout {
+      font-family: var(--font-title);
+      font-weight: 900;
+      font-size: 15px;
+      color: var(--gold-bright);
+      min-width: 66px;
+      text-align: center;
+      background: rgba(8, 5, 3, 0.8);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .gear-ilvl-presets {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .gear-preset-btn {
+      background: #140d0a;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--font-title);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .gear-preset-btn:hover {
+      border-color: var(--border-highlight);
+      color: #fff;
+    }
+
+    .gear-preset-btn.active {
+      border-color: var(--gold);
+      color: var(--gold-bright);
+      background: #2b1b10;
+    }
+
+    .gear-ilvl-telemetry {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 16px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      padding-top: 8px;
+      border-top: 1px solid rgba(90, 58, 36, 0.3);
+    }
+
+    .gear-ilvl-telemetry b {
+      color: var(--text);
+    }
+
+    .swatch-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    /* Tab Count Badges */
+    .tab-count {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 9px;
+      background: rgba(8, 5, 3, 0.72);
+      border: 1px solid rgba(112, 72, 40, 0.45);
+      color: var(--text-dim);
+    }
+
+    .wiki-tab-btn.active .tab-count {
+      color: var(--gold-bright);
+      border-color: rgba(212, 175, 55, 0.55);
+    }
+
+    .tab-count.match-hit {
+      color: #95f576;
+      border-color: rgba(102, 224, 68, 0.55);
+      background: rgba(20, 55, 16, 0.65);
+    }
+
+    /* Mechanics / Lore Banner */
+    .gear-callout {
+      background: linear-gradient(90deg, rgba(32, 20, 14, 0.92) 0%, rgba(19, 13, 9, 0.94) 100%);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: 6px;
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      font-size: 14.5px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .gear-callout.covenant {
+      border-left-color: var(--covenant);
+    }
+
+    .gear-callout.glyph {
+      border-left-color: var(--glyphword);
+    }
+
+    .gear-callout.crimson {
+      border-left-color: var(--crimson-bright);
+    }
+
+    .gear-callout strong {
+      color: var(--gold-bright);
+    }
+
+    .gear-callout.covenant strong {
+      color: var(--covenant);
+    }
+
+    .gear-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 16px;
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: rgba(18, 12, 9, 0.78);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .gear-filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gear-filter-label {
+      font-family: var(--font-title);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .wiki-pill.unbound-pill.active {
+      background: linear-gradient(180deg, #4b150e 0%, #260a07 100%);
+      border-color: var(--crimson-bright);
+      color: #ffb2a3;
+      box-shadow: 0 0 12px rgba(255, 69, 40, 0.32);
+    }
+
+    /* Item Icon Frame */
+    .gear-icon-frame {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      background: radial-gradient(circle at 50% 42%, #2b1d14 0%, #0d0806 82%);
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.85);
+    }
+
+    .gear-icon-frame img {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+    }
+
+    .gear-icon-frame.heirloom {
+      border-color: rgba(217, 180, 90, 0.65);
+      background: radial-gradient(circle at 50% 40%, rgba(92, 64, 18, 0.55) 0%, #0d0806 82%);
+    }
+
+    .gear-icon-frame.unbound {
+      border-color: rgba(255, 74, 50, 0.8);
+      background: radial-gradient(circle at 50% 40%, rgba(125, 22, 14, 0.68) 0%, #0d0606 84%);
+      box-shadow: 0 0 14px rgba(255, 65, 38, 0.32), inset 0 0 12px rgba(0, 0, 0, 0.85);
+    }
+
+    .gear-icon-frame.covenant {
+      border-color: rgba(53, 224, 184, 0.62);
+      background: radial-gradient(circle at 50% 40%, rgba(18, 82, 68, 0.52) 0%, #080d0b 84%);
+    }
+
+    .gear-icon-sockets {
+      position: absolute;
+      bottom: 3px;
+      right: 4px;
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .socket-pip {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(10, 7, 5, 0.92);
+      border: 1.2px solid #d4af37;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    }
+
+    /* Relic / Item Cards */
+    .relic-card {
+      background: linear-gradient(180deg, #1b120d 0%, #130c09 100%);
+      border: 1px solid rgba(217, 180, 90, 0.34);
+      border-radius: 7px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+    }
+
+    .relic-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--heirloom);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.72), 0 0 16px rgba(217, 180, 90, 0.12);
+    }
+
+    .relic-card.unbound {
+      background: linear-gradient(180deg, #24100d 0%, #130807 100%);
+      border-color: rgba(255, 74, 50, 0.58);
+      box-shadow: 0 0 20px rgba(194, 47, 28, 0.18);
+    }
+
+    .relic-card.unbound:hover {
+      border-color: #ff6e54;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8), 0 0 22px rgba(255, 69, 40, 0.28);
+    }
+
+    .relic-card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .relic-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .relic-name {
+      font-family: var(--font-title);
+      font-size: 16.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      color: var(--heirloom-bright);
+      line-height: 1.22;
+    }
+
+    .relic-card.unbound .relic-name {
+      color: #ffb199;
+      text-shadow: 0 0 10px rgba(255, 70, 40, 0.45);
+    }
+
+    .relic-sub {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 2px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .relic-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .relic-base-stats {
+      font-size: 13px;
+      color: #d8cfc0;
+      background: rgba(9, 6, 4, 0.58);
+      border: 1px solid rgba(90, 60, 38, 0.35);
+      border-radius: 4px;
+      padding: 6px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 4px 12px;
+    }
+
+    .relic-lines {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 2px 0;
+    }
+
+    .relic-lines li {
+      color: #8fc0ff;
+      font-size: 14.5px;
+      font-weight: 500;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .relic-lines li::before {
+      content: '◆';
+      font-size: 9px;
+      color: var(--gold-dim);
+      flex-shrink: 0;
+    }
+
+    .relic-lines li.implicit-line {
+      color: #dfd4c3;
+      font-size: 13.5px;
+    }
+
+    .relic-lines li.implicit-line::before {
+      content: '◈';
+      color: var(--text-muted);
+    }
+
+    .relic-power-box {
+      background: linear-gradient(180deg, rgba(46, 30, 14, 0.62) 0%, rgba(24, 15, 9, 0.78) 100%);
+      border: 1px solid rgba(217, 180, 90, 0.42);
+      border-radius: 5px;
+      padding: 9px 11px;
+      font-size: 13.8px;
+      line-height: 1.45;
+      color: #f4e6c8;
+    }
+
+    .relic-card.unbound .relic-power-box {
+      background: linear-gradient(180deg, rgba(68, 18, 13, 0.68) 0%, rgba(28, 9, 7, 0.85) 100%);
+      border-color: rgba(255, 90, 62, 0.5);
+    }
+
+    .relic-power-title {
+      font-family: var(--font-title);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--gold-bright);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .relic-card.unbound .relic-power-title {
+      color: #ff9c84;
+    }
+
+    .relic-flavor {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid rgba(90, 60, 38, 0.3);
+      font-style: italic;
+      font-size: 13.5px;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    /* Covenant Set Panels */
+    .covenant-panel {
+      background: linear-gradient(180deg, #151b18 0%, #0e1110 100%);
+      border: 1px solid rgba(53, 224, 184, 0.38);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 22px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.68);
+    }
+
+    .covenant-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(53, 224, 184, 0.24);
+    }
+
+    .covenant-title {
+      font-family: var(--font-title);
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--covenant);
+      text-shadow: 0 0 14px rgba(53, 224, 184, 0.25);
+    }
+
+    .covenant-bonuses {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .cov-bonus-step {
+      background: rgba(8, 16, 14, 0.82);
+      border: 1px solid rgba(53, 224, 184, 0.28);
+      border-radius: 5px;
+      padding: 9px 12px;
+      font-size: 13.8px;
+    }
+
+    .cov-bonus-step.power-step {
+      grid-column: 1 / -1;
+      background: linear-gradient(90deg, rgba(16, 48, 40, 0.68) 0%, rgba(10, 24, 20, 0.85) 100%);
+      border-color: rgba(53, 224, 184, 0.55);
+    }
+
+    .cov-step-tag {
+      font-family: var(--font-title);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--covenant);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .covenant-pieces-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 12px;
+    }
+
+    .cov-piece-card {
+      background: rgba(16, 14, 12, 0.88);
+      border: 1px solid rgba(53, 224, 184, 0.22);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.16s, transform 0.16s;
+    }
+
+    .cov-piece-card:hover {
+      border-color: var(--covenant);
+      transform: translateY(-1px);
+    }
+
+    .cov-piece-name {
+      font-family: var(--font-title);
+      font-size: 14px;
+      font-weight: 800;
+      color: #9ef7e0;
+      line-height: 1.25;
+    }
+
+    /* Glyphwords */
+    .glyph-card {
+      background: linear-gradient(180deg, #1b1610 0%, #120e0a 100%);
+      border: 1px solid rgba(242, 226, 176, 0.34);
+      border-radius: 7px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    }
+
+    .glyph-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--glyphword);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.72);
+    }
+
+    .glyph-sequence {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      background: rgba(8, 6, 4, 0.78);
+      border: 1px solid rgba(160, 125, 70, 0.35);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .glyph-stone {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: #17110c;
+      border: 1px solid var(--border-highlight);
+      border-radius: 5px;
+      padding: 5px 8px;
+      min-width: 56px;
+    }
+
+    .glyph-stone img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+
+    .glyph-stone-name {
+      font-family: var(--font-title);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .glyph-stone-rank {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .glyph-arrow {
+      color: var(--gold-dim);
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .glyph-subbox {
+      background: rgba(12, 9, 7, 0.65);
+      border: 1px solid rgba(112, 72, 40, 0.3);
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .glyph-subbox-label {
+      font-family: var(--font-title);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    /* Base Arsenal & Class Links */
+    .class-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-title);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 3px;
+      background: rgba(18, 12, 9, 0.9);
+      border: 1px solid var(--border-highlight);
+      color: var(--gold-bright);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .class-chip:hover {
+      border-color: var(--gold);
+      background: #2b1b11;
+      color: #fff;
+    }
+
+    .tiered-names {
+      font-size: 12.8px;
+      color: var(--text-dim);
+      line-height: 1.45;
+      background: rgba(9, 6, 4, 0.55);
+      border: 1px solid rgba(80, 52, 32, 0.32);
+      border-radius: 4px;
+      padding: 6px 9px;
+    }
+
+    .materials-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .material-chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .material-chip.current-tier {
+      border-color: var(--gold);
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.22);
+      background: linear-gradient(180deg, #271a10 0%, #160f0a 100%);
+    }
+
+    /* Gems & Sigil Spotlight */
+    .forge-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .forge-slider-card {
+      background: linear-gradient(180deg, #1b120d 0%, #120c09 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .forge-slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .forge-slider-card input[type="range"] {
+      width: 100%;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+
+    .sigil-spotlight {
+      background: linear-gradient(90deg, #1d140e 0%, #120c09 100%);
+      border: 1px solid var(--gold-dim);
+      border-radius: 7px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .sigil-row-active {
+      background: rgba(212, 175, 55, 0.12) !important;
+    }
+
+    /* Slot Letters */
+    .slot-chips {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+
+    .slot-chip {
+      font-family: var(--font-title);
+      font-size: 10px;
+      font-weight: 800;
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      background: #1a110c;
+      border: 1px solid var(--border-highlight);
+      color: var(--gold-bright);
+    }
+
+    .cross-tab-notice {
+      background: rgba(26, 18, 12, 0.92);
+      border: 1px dashed var(--gold-dim);
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .empty-state {
+      background: rgba(18, 12, 9, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 34px 20px;
+      text-align: center;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 720px) {
+      .gear-ilvl-panel {
+        width: 100%;
+      }
+      .gear-ilvl-main {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .gear-ilvl-main input[type="range"] {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="gear"></script>
+  <!-- Page Hero Header -->
+  <section class="wiki-page-hero">
+    <div class="wiki-page-hero-inner">
+      <span class="wiki-eyebrow">The Reliquary &amp; Forge Compendium</span>
+      <h1 class="wiki-page-title">Gear, Relics &amp; <span>Itemization</span></h1>
+      <p class="wiki-page-desc">
+        Every blade, ward, sigil, and signet across the campaign and endgame depths — live-calculated directly from the game's ES data modules. Scrub the Item Level preview slider below to watch Heirlooms, Covenant Sets, Glyphwords, Legendaries, and Ring Skill Augments scale in real time.
+      </p>
+      <div class="wiki-stats-ribbon" id="gear-hero-ribbon">
+        <span class="wiki-stat-badge"><b>20</b> Quality Tiers (up to Abyssal)</span>
+        <span class="wiki-stat-badge"><b id="stat-heirlooms">41</b> Heirlooms (<span id="stat-unbound">5</span> Unbound Spoils)</span>
+        <span class="wiki-stat-badge"><b>6</b> Covenant Sets (<b>30</b> Pieces)</span>
+        <span class="wiki-stat-badge"><b>18</b> Glyphwords</span>
+        <span class="wiki-stat-badge"><b>21</b> Gem Types + <b>20</b> Sigil Stones</span>
+        <span class="wiki-stat-badge"><b>51</b> Gear Affixes</span>
+        <span class="wiki-stat-badge"><b>22</b> Legendary Powers</span>
+        <span class="wiki-stat-badge"><b>15</b> Ring Skill Augments</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="wiki-main">
+    <!-- Global Interactive Toolbar -->
+    <div class="wiki-toolbar" aria-label="Gear Filter & Item Level Controls">
+      <div class="gear-toolbar-top">
+        <div class="gear-search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="search" id="gear-search" autocomplete="off"
+            placeholder="Filter relics, sets, glyphwords, weapons, sigils, affixes, powers...">
+          <button type="button" class="gear-search-clear" id="gear-search-clear" title="Clear search">✕</button>
+        </div>
+
+        <div class="gear-ilvl-panel">
+          <div class="gear-ilvl-main">
+            <label for="gear-ilvl-slider">Preview Level</label>
+            <input type="range" id="gear-ilvl-slider" min="1" max="100" value="75">
+            <span class="gear-ilvl-readout" id="gear-ilvl-val">iLvl 75</span>
+          </div>
+          <div class="gear-ilvl-presets" id="gear-ilvl-presets">
+            <button type="button" class="gear-preset-btn" data-ilvl="1">1</button>
+            <button type="button" class="gear-preset-btn" data-ilvl="15">15</button>
+            <button type="button" class="gear-preset-btn" data-ilvl="35">35</button>
+            <button type="button" class="gear-preset-btn" data-ilvl="60">60</button>
+            <button type="button" class="gear-preset-btn active" data-ilvl="75">75</button>
+            <button type="button" class="gear-preset-btn" data-ilvl="85">85</button>
+            <button type="button" class="gear-preset-btn" data-ilvl="100">100</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="gear-ilvl-telemetry" id="gear-ilvl-telemetry"></div>
+    </div>
+
+    <!-- 6 Rich Sub-Tabs -->
+    <div class="wiki-tabs" id="gear-tabs" role="tablist" aria-label="Gear Categories">
+      <button type="button" class="wiki-tab-btn active" data-tab="heirlooms" role="tab">
+        🗡️ Heirlooms <span class="tab-count" id="cnt-heirlooms">41</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="covenants" role="tab">
+        🛡️ Covenant Sets <span class="tab-count" id="cnt-covenants">6</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="glyphwords" role="tab">
+        ᚱ Glyphwords <span class="tab-count" id="cnt-glyphwords">18</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="arsenal" role="tab">
+        ⚒️ Base Arsenal &amp; Tiers <span class="tab-count" id="cnt-arsenal">50</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="gems" role="tab">
+        💎 Gems &amp; Sigils <span class="tab-count" id="cnt-gems">41</span>
+      </button>
+      <button type="button" class="wiki-tab-btn" data-tab="affixes" role="tab">
+        ✨ Affixes &amp; Augments <span class="tab-count" id="cnt-affixes">88</span>
+      </button>
+    </div>
+
+    <!-- Cross-tab Search Jump Banner -->
+    <div id="gear-cross-matches"></div>
+
+    <!-- Active Tab Viewport -->
+    <div id="gear-view">
+      <div class="empty-state">Forging Reliquary plates and rendering item icons…</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mountWikiShell, escapeHtml, getQueryParam, ELEMENT_INFO } from './src/wiki/wiki-shell.js';
+    import {
+      RARITY, ABYSSAL, CORE_LINES, LINE_MULT, PERK_MULT, MATERIALS, tierOf,
+      SLOTS, RING_SLOTS, VANITY_SLOTS, SLOT_NAMES, BASE_REQ_STAT, STAT_NAMES,
+      WEAPONS, OFFHANDS, ARMORS, AFFIXES, LEGENDARY, legendaryScale, legendaryDesc,
+      GEM_TIERS, MAX_GEM_TIER, GEMS, SIGILS, SIGIL_MAX,
+      gemFuseCost, gemRefineCost, gemStats, gemName, makeGem,
+      sigilStats, sigilFuseCost, sigilMult,
+      powerLevel, affixValue, statLabel, HOLLOW,
+      SEAL_RARITY, SEAL_GAP, SEALED_COLOR, RELIC_COLORS, BANNER_KIT_PRICE
+    } from './src/data/items.js';
+    import {
+      TUNE, POWERS, HEIRLOOMS, COVENANTS, GLYPHWORDS,
+      lineValue, powerText, makeHeirloom, makeCovenant
+    } from './src/data/relics.js';
+    import {
+      AUGMENTS, SCOPE_MUL, augPower, RING_NAMES, KIND_NAMES
+    } from './src/data/rings.js';
+    import { CLASSES } from './src/data/classes.js';
+    import { MAX_LEVEL } from './src/data/depth.js';
+    import { sigilIcon, keyIcon, bannerKitIcon, itemIcon } from './src/game/loot.js';
+    import { itemIconURL } from './src/ui/icons.js';
+    import { loadReplacementArt } from './src/core/replacementart.js';
+    import { fmtInt, clamp } from './src/core/util.js';
+
+    // Mount shared sticky header, omni-search, and footer
+    mountWikiShell({ active: 'gear' });
+
+    // Valid sub-tabs
+    const VALID_TABS = ['heirlooms', 'covenants', 'glyphwords', 'arsenal', 'gems', 'affixes'];
+    const GENERIC_TREES = ['Class Tree I', 'Class Tree II', 'Class Tree III', 'Class Tree IV'];
+    const SLOT_LETTER_MAP = {
+      W: 'Weapon', O: 'Off-hand', H: 'Head', B: 'Body',
+      G: 'Hands', L: 'Legs', F: 'Feet', R: 'Ring',
+    };
+
+    const NORMAL_GEM_KEYS = Object.keys(GEMS).filter((k) => !GEMS[k].special && !GEMS[k].sigil);
+    const SPECIAL_GEM_KEYS = Object.keys(GEMS).filter((k) => GEMS[k].special);
+    const ALL_GEM_KEYS = [...NORMAL_GEM_KEYS, ...SPECIAL_GEM_KEYS];
+    const LEGENDARY_ENTRIES = Object.entries(LEGENDARY);
+    const AUGMENT_ENTRIES = Object.entries(AUGMENTS);
+
+    // State
+    const initTab = getQueryParam('tab', 'heirlooms').toLowerCase();
+    const state = {
+      tab: VALID_TABS.includes(initTab) ? initTab : 'heirlooms',
+      q: getQueryParam('q', '').trim(),
+      ilvl: clamp(parseInt(getQueryParam('ilvl', '75'), 10) || 75, 1, 100),
+      // Sub-filters
+      heirFilter: 'all', // all | standard | unbound
+      heirSlot: 'all',
+      glyphSockets: 'all',
+      glyphSlot: 'all',
+      arsenalSection: 'all', // all | weapons | offhands | armor | mechanics | rarity
+      gemGrade: 4, // 0..9 (4 = Perfect)
+      sigilRank: 9, // 0..19 (9 = Jorn, #10)
+      affixSection: 'all', // all | affixes | legendaries | augments
+      affixSlot: 'all',
+      augScope: 'skill', // skill | kind | all
+      augMythicSplit: false,
+    };
+
+    // Update Hero Ribbon live telemetry counts
+    const totalCovPieces = COVENANTS.reduce((sum, c) => sum + c.pieces.length, 0);
+    const unboundHeirlooms = HEIRLOOMS.filter((h) => h.unbound);
+    const standardHeirlooms = HEIRLOOMS.filter((h) => !h.unbound);
+    document.getElementById('gear-hero-ribbon').innerHTML = `
+      <span class="wiki-stat-badge"><b>${RARITY.length}</b> Quality Tiers (up to Abyssal)</span>
+      <span class="wiki-stat-badge"><b>${HEIRLOOMS.length}</b> Heirlooms (incl. <b>${unboundHeirlooms.length}</b> Velscour Unbound Spoils)</span>
+      <span class="wiki-stat-badge"><b>${COVENANTS.length}</b> Covenant Sets (<b>${totalCovPieces}</b> Pieces)</span>
+      <span class="wiki-stat-badge"><b>${GLYPHWORDS.length}</b> Glyphwords</span>
+      <span class="wiki-stat-badge"><b>${ALL_GEM_KEYS.length}</b> Gem Types + <b>${SIGILS.length}</b> Sigil Stones</span>
+      <span class="wiki-stat-badge"><b>${AFFIXES.length}</b> Gear Affixes</span>
+      <span class="wiki-stat-badge"><b>${LEGENDARY_ENTRIES.length}</b> Legendary Powers</span>
+      <span class="wiki-stat-badge"><b>${AUGMENT_ENTRIES.length}</b> Ring Skill Augments</span>
+    `;
+
+    // Caches for data URLs so scrubbing sliders is instantaneous
+    const sigilUrlCache = new Map();
+    function getSigilURL(rank, size = 40) {
+      const k = `${rank}|${size}`;
+      let u = sigilUrlCache.get(k);
+      if (!u) {
+        u = sigilIcon(rank, size).toDataURL();
+        sigilUrlCache.set(k, u);
+      }
+      return u;
+    }
+
+    const relicPreviewCache = new Map();
+    function getHeirloomIconURL(h, ilvl) {
+      const tier = tierOf(ilvl);
+      const k = `heir|${h.id}|${tier}`;
+      let u = relicPreviewCache.get(k);
+      if (!u) {
+        const it = makeHeirloom(ilvl, { id: h.id });
+        u = it ? itemIconURL(it) : '';
+        relicPreviewCache.set(k, u);
+      }
+      return u;
+    }
+
+    function getCovenantIconURL(p, ilvl) {
+      const tier = tierOf(ilvl);
+      const k = `cov|${p.id}|${tier}`;
+      let u = relicPreviewCache.get(k);
+      if (!u) {
+        const it = makeCovenant(ilvl, { pieceId: p.id });
+        u = it ? itemIconURL(it) : '';
+        relicPreviewCache.set(k, u);
+      }
+      return u;
+    }
+
+    function getSyntheticGearIconURL(slot, base, icon, ilvl, rarity = 4) {
+      const tier = tierOf(ilvl);
+      const k = `syn|${slot}|${base}|${icon}|${tier}|${rarity}`;
+      let u = relicPreviewCache.get(k);
+      if (!u) {
+        u = itemIconURL({ type: 'gear', slot, base, icon, tier, rarity });
+        relicPreviewCache.set(k, u);
+      }
+      return u;
+    }
+
+    // Deterministic weapon damage & armor preview helpers matching items.js rollItem formulas
+    function previewWeaponDmg(baseKey, ilvl, rarity = 4) {
+      const W = WEAPONS[baseKey] || WEAPONS.sword;
+      const pl = powerLevel(ilvl, rarity);
+      const avg = (6 + pl * 1.8 + 0.022 * pl * pl) * W.dmg;
+      return [Math.max(1, Math.round(avg * 0.8)), Math.max(2, Math.round(avg * 1.2))];
+    }
+
+    function previewArmorVal(mult, ilvl, rarity = 4) {
+      const pl = powerLevel(ilvl, rarity);
+      return Math.max(1, Math.round((8 + pl * 2.4 + 0.025 * pl * pl) * mult));
+    }
+
+    function weaponImplicits(baseKey) {
+      const W = WEAPONS[baseKey];
+      if (!W) return [];
+      const out = [];
+      if (W.crit) out.push(statLabel('critChance', W.crit));
+      if (W.critDmg) out.push(statLabel('critDmg', W.critDmg));
+      if (W.cast) out.push(statLabel('castSpeed', W.cast));
+      if (W.atkSpeed) out.push(statLabel('atkSpeed', W.atkSpeed));
+      if (W.spell) out.push(statLabel('dmgPct', W.spell));
+      if (W.holyPct) out.push(statLabel('holyPct', W.holyPct));
+      if (W.areaPct) out.push(statLabel('areaPct', W.areaPct));
+      if (W.cdr) out.push(statLabel('cdr', W.cdr));
+      if (W.lifeSteal) out.push(statLabel('lifeSteal', W.lifeSteal));
+      if (W.pierce) out.push(statLabel('pierce', W.pierce));
+      return out;
+    }
+
+    function offhandImplicits(baseKey, ilvl = state.ilvl) {
+      const O = OFFHANDS[baseKey];
+      if (!O) return [];
+      const rangeStr = (arr, bonus = 0) => `${arr[0] + bonus}–${arr[1] + bonus}`;
+      const out = [];
+      if (O.block) out.push(`+${rangeStr(O.block)}% Block Chance`);
+      if (O.reduce) out.push(`${rangeStr(O.reduce)}% Damage Reduction`);
+      if (O.spell) {
+        const b = Math.floor(ilvl / 12);
+        out.push(`+${rangeStr(O.spell, b)}% Damage (+1% per 12 iLvl)`);
+      }
+      if (O.summon) out.push(`+${rangeStr(O.summon)}% Summon Damage & Life`);
+      if (O.crit) out.push(`+${rangeStr(O.crit)}% Critical Chance`);
+      if (O.cast) out.push(`+${rangeStr(O.cast)}% Cast Speed`);
+      if (O.cdr) out.push(`+${rangeStr(O.cdr)}% Cooldown Reduction`);
+      if (O.atkSpd) out.push(`+${rangeStr(O.atkSpd)}% Attack Speed`);
+      if (O.area) out.push(`+${rangeStr(O.area)}% Area of Effect`);
+      if (O.leech) out.push(`${rangeStr(O.leech)}% Life Steal`);
+      return out;
+    }
+
+    function tieredBaseName(slot, baseKey, ilvl) {
+      const idx = Math.min(4, Math.floor(tierOf(ilvl) / 2));
+      if (slot === 'weapon') return (WEAPONS[baseKey] || WEAPONS.sword).names[idx];
+      if (slot === 'offhand') return (OFFHANDS[baseKey] || OFFHANDS.shield).names[idx];
+      if (slot === 'ring') return RING_NAMES[tierOf(ilvl)];
+      return (ARMORS[slot] || ARMORS.body).names[idx];
+    }
+
+    function renderSocketsPips(count) {
+      let s = '';
+      for (let i = 0; i < count; i++) s += '<span class="socket-pip" title="Empty Socket"></span>';
+      return s;
+    }
+
+    function matchesQuery(haystack, query) {
+      if (!query) return true;
+      const low = haystack.toLowerCase();
+      const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+      return terms.every((t) => low.includes(t));
+    }
+
+    // Search match counts per tab for cross-tab discovery
+    function computeTabMatchCounts(q) {
+      const heirMatches = HEIRLOOMS.filter((h) => {
+        const P = POWERS[h.power];
+        const linesTxt = h.lines.map(([s, k]) => statLabel(s, lineValue(s, state.ilvl, k * TUNE.heir), GENERIC_TREES)).join(' ');
+        const hay = `${h.name} ${h.slot} ${SLOT_NAMES[h.slot]} ${h.base || ''} ${h.unbound ? 'unbound velscour spoil' : 'standard'} ${P ? P.name + ' ' + P.desc : ''} ${linesTxt} ${h.flavor}`;
+        return matchesQuery(hay, q);
+      }).length;
+
+      const covMatches = COVENANTS.filter((c) => {
+        const P = POWERS[c.power];
+        const pcs = c.pieces.map((p) => `${p.name} ${p.slot} ${p.base || ''} ${p.lines.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ')}`).join(' ');
+        const bon = c.bonus.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        const hay = `${c.name} covenant set ${P ? P.name + ' ' + P.desc : ''} ${pcs} ${bon}`;
+        return matchesQuery(hay, q);
+      }).length;
+
+      const glyphMatches = GLYPHWORDS.filter((g) => {
+        const P = g.power ? POWERS[g.power] : null;
+        const sigs = g.sig.map((r) => SIGILS[r].name).join(' ');
+        const lns = g.lines.map((s) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        const hay = `${g.name} glyphword runeword ${sigs} ${g.slots.join(' ')} ${lns} ${P ? P.name + ' ' + P.desc : ''} ${g.sig.length}-socket`;
+        return matchesQuery(hay, q);
+      }).length;
+
+      const wpnMatches = Object.entries(WEAPONS).filter(([k, w]) =>
+        matchesQuery(`${k} weapon ${w.names.join(' ')} ${BASE_REQ_STAT[k] || ''} ${weaponImplicits(k).join(' ')} ${(w.classes || []).map((c) => CLASSES[c]?.name || c).join(' ')}`, q)
+      ).length;
+      const offMatches = Object.entries(OFFHANDS).filter(([k, o]) =>
+        matchesQuery(`${k} offhand ${o.names.join(' ')} ${BASE_REQ_STAT[k] || ''} ${offhandImplicits(k).join(' ')} ${(o.classes || []).map((c) => CLASSES[c]?.name || c).join(' ')}`, q)
+      ).length;
+      const armMatches = Object.entries(ARMORS).filter(([k, a]) =>
+        matchesQuery(`${k} armor ${SLOT_NAMES[k]} ${a.names.join(' ')}`, q)
+      ).length;
+      const rarMatches = RARITY.filter((r) =>
+        matchesQuery(`${r.name} ${r.id === ABYSSAL ? 'abyssal' : ''} depth ${r.minDepth} rarity quality tier`, q)
+      ).length;
+      const arsenalMatches = wpnMatches + offMatches + armMatches + rarMatches;
+
+      const gemMatches = ALL_GEM_KEYS.filter((k) => {
+        const g = GEMS[k];
+        const st = g.stats.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${g.name} ${k} gem ${g.special ? 'special pattern' : 'standard'} ${g.desc || ''} ${st}`, q);
+      }).length;
+      const sigMatches = SIGILS.filter((s, r) => {
+        const ws = sigilStats(r, 'weapon').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        const as = sigilStats(r, 'body').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        const rs = sigilStats(r, 'ring').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${s.name} sigil stone rank ${r + 1} depth ${r * 24} ${ws} ${as} ${rs}`, q);
+      }).length;
+      const gemsTotal = gemMatches + sigMatches;
+
+      const affMatches = AFFIXES.filter((a) =>
+        matchesQuery(`${a.pre || ''} ${a.suf || ''} ${a.s} ${statLabel(a.s, a.max, GENERIC_TREES)} ${a.perk ? 'perk' : 'core'} ${a.slots}`, q)
+      ).length;
+      const legMatches = LEGENDARY_ENTRIES.filter(([k, l]) =>
+        matchesQuery(`${k} ${l.name} legendary ${l.desc}`, q)
+      ).length;
+      const augMatches = AUGMENT_ENTRIES.filter(([k, a]) =>
+        matchesQuery(`${k} ${a.name} ${a.word} ${a.el} augment ring ${a.desc(1)}`, q)
+      ).length;
+      const affixesTotal = affMatches + legMatches + augMatches;
+
+      return {
+        heirlooms: heirMatches,
+        covenants: covMatches,
+        glyphwords: glyphMatches,
+        arsenal: arsenalMatches,
+        gems: gemsTotal,
+        affixes: affixesTotal,
+      };
+    }
+
+    function syncUrlParams() {
+      const url = new URL(window.location.href);
+      if (state.tab && state.tab !== 'heirlooms') url.searchParams.set('tab', state.tab);
+      else url.searchParams.delete('tab');
+      if (state.q) url.searchParams.set('q', state.q);
+      else url.searchParams.delete('q');
+      if (state.ilvl !== 75) url.searchParams.set('ilvl', String(state.ilvl));
+      else url.searchParams.delete('ilvl');
+      window.history.replaceState({}, '', url);
+    }
+
+    function renderTelemetryStrip() {
+      const ilvl = state.ilvl;
+      const matIdx = tierOf(ilvl);
+      const mat = MATERIALS[matIdx];
+      const reqAttrVal = 20 + (Math.min(ilvl, MAX_LEVEL) - 1) * 2;
+      const plLeg = powerLevel(ilvl, 4);
+      const plMyth = powerLevel(ilvl, 5);
+      const legPct = Math.round(legendaryScale(plLeg) * 100);
+      const relicPct = Math.round(legendaryScale(plMyth) * 100);
+      const baseAug = (augPower(plLeg) * SCOPE_MUL.skill).toFixed(2);
+
+      document.getElementById('gear-ilvl-val').textContent = `iLvl ${ilvl}`;
+      document.querySelectorAll('#gear-ilvl-presets .gear-preset-btn').forEach((btn) => {
+        btn.classList.toggle('active', Number(btn.dataset.ilvl) === ilvl);
+      });
+
+      document.getElementById('gear-ilvl-telemetry').innerHTML = `
+        <span>Material Tier ${matIdx + 1}/10: <span class="swatch-dot" style="background:${mat.color}"></span><b>${escapeHtml(mat.name)}</b></span>
+        <span>Weapon/Off-hand Attr Req: <b>${reqAttrVal} STR / DEX / INT</b></span>
+        <span>Relic Power Scale: <b>${relicPct}%</b> <span style="color:var(--text-muted)">(Power ${plMyth})</span></span>
+        <span>Legendary Scale: <b>${legPct}%</b> <span style="color:var(--text-muted)">(100% at Power 90)</span></span>
+        <span>Single-Skill Ring Augment: <b>${baseAug}x</b></span>
+      `;
+    }
+
+    // =========================================================================
+    // TAB 1: HEIRLOOMS (41 Total: 36 Standard + 5 Velscour Unbound Spoils)
+    // =========================================================================
+    function renderHeirloomsTab() {
+      const ilvl = state.ilvl;
+      const pl = powerLevel(ilvl, 5);
+      const slotsOrder = ['all', 'weapon', 'offhand', 'head', 'body', 'hands', 'legs', 'feet', 'ring'];
+
+      const filtered = HEIRLOOMS.filter((h) => {
+        if (state.heirFilter === 'standard' && h.unbound) return false;
+        if (state.heirFilter === 'unbound' && !h.unbound) return false;
+        if (state.heirSlot !== 'all' && h.slot !== state.heirSlot) return false;
+        const P = POWERS[h.power];
+        const linesTxt = h.lines.map(([s, k]) => statLabel(s, lineValue(s, ilvl, k * TUNE.heir), GENERIC_TREES)).join(' ');
+        const hay = `${h.name} ${h.slot} ${SLOT_NAMES[h.slot]} ${h.base || ''} ${h.unbound ? 'unbound velscour spoil' : 'standard'} ${P ? P.name + ' ' + P.desc : ''} ${linesTxt} ${h.flavor}`;
+        return matchesQuery(hay, state.q);
+      });
+
+      const slotCounts = {};
+      for (const s of slotsOrder) {
+        slotCounts[s] = HEIRLOOMS.filter((h) => {
+          if (state.heirFilter === 'standard' && h.unbound) return false;
+          if (state.heirFilter === 'unbound' && !h.unbound) return false;
+          return s === 'all' || h.slot === s;
+        }).length;
+      }
+
+      let html = `
+        <div class="gear-callout">
+          <strong>Heirloom Relics:</strong> Named unique artifacts with fixed stat lines (<code>TUNE.heir = ${TUNE.heir}</code>), a signature Relic Power, and <strong>2 Sockets</strong> (<strong>1 Socket</strong> on Rings). Standard Heirlooms convert from <strong>25%</strong> of Legendary+ and <strong>12%</strong> of Epic drops from <code>iLvl 20+</code> once their <code>minIlvl</code> is met. The <strong>${unboundHeirlooms.length} Velscour Unbound Spoils</strong> drop exclusively from the pinnacle superboss <em>Velscour Unbound</em>.
+        </div>
+
+        <div class="gear-filter-bar">
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Origin:</span>
+            <button type="button" class="wiki-pill ${state.heirFilter === 'all' ? 'active' : ''}" data-heir-origin="all">
+              All Heirlooms (${HEIRLOOMS.length})
+            </button>
+            <button type="button" class="wiki-pill ${state.heirFilter === 'standard' ? 'active' : ''}" data-heir-origin="standard">
+              Standard (${standardHeirlooms.length})
+            </button>
+            <button type="button" class="wiki-pill unbound-pill ${state.heirFilter === 'unbound' ? 'active' : ''}" data-heir-origin="unbound">
+              🔥 Velscour Unbound Spoils (${unboundHeirlooms.length})
+            </button>
+          </div>
+
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Slot:</span>
+            ${slotsOrder.map((s) => `
+              <button type="button" class="wiki-pill ${state.heirSlot === s ? 'active' : ''}" data-heir-slot="${s}">
+                ${s === 'all' ? 'All Slots' : escapeHtml(SLOT_NAMES[s])} (${slotCounts[s]})
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      if (!filtered.length) {
+        html += `<div class="empty-state">No Heirlooms matched your current filter and search criteria.</div>`;
+        return html;
+      }
+
+      html += `<div class="wiki-grid">`;
+      for (const h of filtered) {
+        const P = POWERS[h.power];
+        const sockets = h.slot === 'ring' ? 1 : 2;
+        const iconUrl = getHeirloomIconURL(h, ilvl);
+        const baseTypeLabel = h.base
+          ? `${SLOT_NAMES[h.slot]} · ${tieredBaseName(h.slot, h.base, ilvl)} (${h.base})`
+          : `${SLOT_NAMES[h.slot]} · ${tieredBaseName(h.slot, h.slot, ilvl)}`;
+
+        let baseStatsHtml = '';
+        if (h.slot === 'weapon') {
+          const [dMin, dMax] = previewWeaponDmg(h.base, ilvl, 4);
+          const W = WEAPONS[h.base] || WEAPONS.sword;
+          const reqAttr = BASE_REQ_STAT[h.base];
+          baseStatsHtml = `
+            <div class="relic-base-stats">
+              <span>Damage: <b>${dMin}–${dMax}</b> (${W.spd.toFixed(2)}/s)</span>
+              ${reqAttr ? `<span>Req: <b>${20 + (Math.min(ilvl, MAX_LEVEL) - 1) * 2} ${reqAttr.toUpperCase()}</b></span>` : ''}
+            </div>
+          `;
+        } else if (h.slot === 'offhand') {
+          const O = OFFHANDS[h.base] || OFFHANDS.shield;
+          const arm = previewArmorVal(O.armor, ilvl, 4);
+          const reqAttr = BASE_REQ_STAT[h.base];
+          baseStatsHtml = `
+            <div class="relic-base-stats">
+              <span>Armor: <b>${fmtInt(arm)}</b></span>
+              ${reqAttr ? `<span>Req: <b>${20 + (Math.min(ilvl, MAX_LEVEL) - 1) * 2} ${reqAttr.toUpperCase()}</b></span>` : ''}
+            </div>
+          `;
+        } else if (h.slot !== 'ring') {
+          const A = ARMORS[h.slot] || ARMORS.body;
+          const arm = previewArmorVal(A.armor, ilvl, 4);
+          baseStatsHtml = `
+            <div class="relic-base-stats">
+              <span>Armor: <b>${fmtInt(arm)}</b></span>
+              <span>Material: <b>${escapeHtml(MATERIALS[tierOf(ilvl)].name)}</b></span>
+            </div>
+          `;
+        }
+
+        const implicits = h.slot === 'weapon' ? weaponImplicits(h.base) : [];
+        const belowMin = ilvl < h.minIlvl;
+
+        html += `
+          <article class="relic-card ${h.unbound ? 'unbound' : ''}">
+            <div class="relic-card-head">
+              <div class="gear-icon-frame ${h.unbound ? 'unbound' : 'heirloom'}">
+                <img src="${iconUrl}" alt="${escapeHtml(h.name)}" loading="lazy">
+                <div class="gear-icon-sockets">${renderSocketsPips(sockets)}</div>
+              </div>
+              <div class="relic-title-wrap">
+                <h3 class="relic-name">${escapeHtml(h.name)}</h3>
+                <div class="relic-sub">${escapeHtml(baseTypeLabel)}</div>
+                <div class="relic-meta-row">
+                  ${h.unbound
+                    ? `<span class="wiki-badge crimson">${h.crown ? '👑 Velscour Unbound Crown' : '🔥 Velscour Unbound'}</span>`
+                    : `<span class="wiki-badge gold">Heirloom</span>`
+                  }
+                  <span class="wiki-badge ${belowMin ? 'crimson' : ''}" title="Minimum Item Level to drop">
+                    Min iLvl ${h.minIlvl}${belowMin ? ' (Preview below min)' : ''}
+                  </span>
+                  <span class="wiki-badge">${sockets} Socket${sockets > 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            </div>
+
+            ${baseStatsHtml}
+
+            <ul class="relic-lines">
+              ${implicits.map((imp) => `<li class="implicit-line">${escapeHtml(imp)} <span style="color:var(--text-muted);font-size:11.5px">(Implicit)</span></li>`).join('')}
+              ${h.lines.map(([s, k]) => {
+                const val = lineValue(s, ilvl, k * TUNE.heir);
+                return `<li>${escapeHtml(statLabel(s, val, GENERIC_TREES))}</li>`;
+              }).join('')}
+            </ul>
+
+            ${P ? `
+              <div class="relic-power-box">
+                <span class="relic-power-title">✦ ${escapeHtml(P.name)}</span>
+                ${escapeHtml(powerText(P, pl))}
+              </div>
+            ` : ''}
+
+            <div class="relic-flavor">“${escapeHtml(h.flavor)}”</div>
+          </article>
+        `;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    // =========================================================================
+    // TAB 2: COVENANT SETS (6 Five-Piece Sets = 30 Pieces)
+    // =========================================================================
+    function renderCovenantsTab() {
+      const ilvl = state.ilvl;
+      const setPowerLvl = powerLevel(ilvl, 3);
+
+      const filtered = COVENANTS.filter((c) => {
+        const P = POWERS[c.power];
+        const pcs = c.pieces.map((p) => `${p.name} ${p.slot} ${SLOT_NAMES[p.slot]} ${p.base || ''} ${p.lines.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ')}`).join(' ');
+        const bon = c.bonus.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${c.name} covenant set ${P ? P.name + ' ' + P.desc : ''} ${pcs} ${bon}`, state.q);
+      });
+
+      let html = `
+        <div class="gear-callout covenant">
+          <strong>Covenant Sets:</strong> Six ancient 5-piece regalia sets (30 total pieces). Individual pieces convert from <strong>4%</strong> of Rare-or-better drops from <code>iLvl 10+</code> — <strong>tripled (12%)</strong> inside BOSS ROOMs and against Velscour! Each piece carries 3 stat lines (<code>0.85 × TUNE.cov</code>) and up to <strong>3 Sockets</strong> (<strong>1 Socket</strong> on Rings). Wearing <strong>2 / 3 / 4 / 5 pieces</strong> unlocks progressive set bonuses (<code>TUNE.set = ${TUNE.set}</code>) scaled to the <em>lowest item level among worn pieces</em>.
+        </div>
+      `;
+
+      if (!filtered.length) {
+        html += `<div class="empty-state">No Covenant Sets matched "${escapeHtml(state.q)}".</div>`;
+        return html;
+      }
+
+      for (const c of filtered) {
+        const P = POWERS[c.power];
+        const slotsList = c.pieces.map((p) => SLOT_NAMES[p.slot]).join(' · ');
+
+        html += `
+          <section class="covenant-panel" id="cov-${escapeHtml(c.id)}">
+            <div class="covenant-header">
+              <div style="width:100%">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+                  <div>
+                    <h2 class="covenant-title">${escapeHtml(c.name)}</h2>
+                    <div style="font-size:13.5px;color:var(--text-dim);margin-top:2px">
+                      5-Piece Covenant · Slots: <b style="color:var(--text)">${escapeHtml(slotsList)}</b> · Previewed at <b style="color:var(--gold-bright)">iLvl ${ilvl}</b>
+                    </div>
+                  </div>
+                  <span class="wiki-badge emerald">5-Piece Covenant Set</span>
+                </div>
+
+                <div class="covenant-bonuses">
+                  ${c.bonus.map(([s, k], idx) => {
+                    const v = lineValue(s, ilvl, k * TUNE.set);
+                    return `
+                      <div class="cov-bonus-step">
+                        <span class="cov-step-tag">(${idx + 2}) Pieces Worn</span>
+                        <span style="color:#d6fff4;font-weight:600">${escapeHtml(statLabel(s, v, GENERIC_TREES))}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                  ${P ? `
+                    <div class="cov-bonus-step power-step">
+                      <span class="cov-step-tag">(5) Full Covenant Power — ✦ ${escapeHtml(P.name)}</span>
+                      <span style="color:#f4fffb">${escapeHtml(powerText(P, setPowerLvl))}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="covenant-pieces-grid">
+              ${c.pieces.map((p) => {
+                const socks = p.slot === 'ring' ? 1 : 3;
+                const iconUrl = getCovenantIconURL(p, ilvl);
+                const subType = p.base
+                  ? `${SLOT_NAMES[p.slot]} (${tieredBaseName(p.slot, p.base, ilvl)})`
+                  : `${SLOT_NAMES[p.slot]} (${tieredBaseName(p.slot, p.slot, ilvl)})`;
+
+                let baseStatTxt = '';
+                if (p.slot === 'weapon') {
+                  const [d0, d1] = previewWeaponDmg(p.base, ilvl, 3);
+                  baseStatTxt = `Dmg ${d0}–${d1}`;
+                } else if (p.slot === 'offhand') {
+                  const O = OFFHANDS[p.base] || OFFHANDS.shield;
+                  baseStatTxt = `Armor ${fmtInt(previewArmorVal(O.armor, ilvl, 3))}`;
+                } else if (p.slot !== 'ring') {
+                  const A = ARMORS[p.slot] || ARMORS.body;
+                  baseStatTxt = `Armor ${fmtInt(previewArmorVal(A.armor, ilvl, 3))}`;
+                } else {
+                  baseStatTxt = `Ring Slot (1–4)`;
+                }
+
+                return `
+                  <div class="cov-piece-card">
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div class="gear-icon-frame covenant" style="width:48px;height:48px">
+                        <img src="${iconUrl}" alt="${escapeHtml(p.name)}" style="width:38px;height:38px" loading="lazy">
+                        <div class="gear-icon-sockets">${renderSocketsPips(socks)}</div>
+                      </div>
+                      <div style="min-width:0;flex:1">
+                        <div class="cov-piece-name">${escapeHtml(p.name)}</div>
+                        <div style="font-size:12px;color:var(--text-dim)">${escapeHtml(subType)}</div>
+                        <div style="font-size:11.5px;color:var(--covenant);margin-top:2px">${baseStatTxt} · ${socks} Socket${socks > 1 ? 's' : ''}</div>
+                      </div>
+                    </div>
+                    <ul class="relic-lines" style="margin-top:2px">
+                      ${p.lines.map(([s, k]) => {
+                        const v = lineValue(s, ilvl, k * TUNE.cov);
+                        return `<li style="font-size:13.5px">${escapeHtml(statLabel(s, v, GENERIC_TREES))}</li>`;
+                      }).join('')}
+                    </ul>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </section>
+        `;
+      }
+      return html;
+    }
+
+    // =========================================================================
+    // TAB 3: GLYPHWORDS (18 Runic Sigil Stone Sequences)
+    // =========================================================================
+    function summarizeSigilBonuses(sigRanks, slotMode) {
+      const totals = new Map();
+      const fixedSet = new Set(['skillsAll']);
+      for (const r of sigRanks) {
+        for (const [s, v] of sigilStats(r, slotMode)) {
+          totals.set(s, (totals.get(s) || 0) + v);
+        }
+      }
+      return [...totals.entries()].map(([s, v]) => {
+        const clean = fixedSet.has(s) ? Math.round(v) : Math.round(v * 10) / 10;
+        return statLabel(s, clean, GENERIC_TREES);
+      });
+    }
+
+    function renderGlyphwordsTab() {
+      const ilvl = state.ilvl;
+      const pl = powerLevel(ilvl, 5);
+      const sockCounts = ['all', 2, 3, 4, 5, 6];
+      const glyphSlots = ['all', 'weapon', 'body', 'offhand', 'head', 'legs', 'feet'];
+
+      const filtered = GLYPHWORDS.filter((g) => {
+        if (state.glyphSockets !== 'all' && g.sig.length !== Number(state.glyphSockets)) return false;
+        if (state.glyphSlot !== 'all' && !g.slots.includes(state.glyphSlot)) return false;
+        const P = g.power ? POWERS[g.power] : null;
+        const sigNames = g.sig.map((r) => SIGILS[r].name).join(' ');
+        const lns = g.lines.map((s) => statLabel(s, lineValue(s, ilvl, g.k * TUNE.glyph), GENERIC_TREES)).join(' ');
+        const hay = `${g.name} glyphword ${sigNames} ${g.slots.join(' ')} ${lns} ${P ? P.name + ' ' + P.desc : ''} ${g.sig.length}-socket`;
+        return matchesQuery(hay, state.q);
+      });
+
+      let html = `
+        <div class="gear-callout glyph">
+          <strong>Glyphword Crafting Rules:</strong> Socket the exact <strong>Sigil Stones</strong> in the exact left-to-right sequence into a <strong>Plain (Tier 1 / Common)</strong> non-relic gear piece with the <strong>exact number of sockets</strong> (<code>rarity === 0</code>, <code>sockets === recipe.length</code>). Plain items support extra <em>Hollow</em> sockets: <strong>Weapon (6)</strong>, <strong>Body (6)</strong>, <strong>Off-hand (4)</strong>, <strong>Head (4)</strong>, <strong>Legs (4)</strong>, <strong>Hands (3)</strong>, <strong>Feet (3)</strong>. Glyphwords preserve every individual Sigil Stone's socket stat, add scaled Glyphword lines, and (for 3+ stone words) awaken a named Relic Power. Unsocketing stones cleanly reverts the item back to Plain!
+        </div>
+
+        <div class="gear-filter-bar">
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Sockets:</span>
+            ${sockCounts.map((n) => {
+              const cnt = n === 'all' ? GLYPHWORDS.length : GLYPHWORDS.filter((g) => g.sig.length === n).length;
+              return `
+                <button type="button" class="wiki-pill ${String(state.glyphSockets) === String(n) ? 'active' : ''}" data-glyph-sock="${n}">
+                  ${n === 'all' ? `All (${cnt})` : `${n}-Socket (${cnt})`}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Eligible Base:</span>
+            ${glyphSlots.map((sl) => `
+              <button type="button" class="wiki-pill ${state.glyphSlot === sl ? 'active' : ''}" data-glyph-slot="${sl}">
+                ${sl === 'all' ? 'All Slots' : escapeHtml(SLOT_NAMES[sl])}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      if (!filtered.length) {
+        html += `<div class="empty-state">No Glyphwords matched your selected socket count, slot, or search query.</div>`;
+        return html;
+      }
+
+      html += `<div class="wiki-grid-wide">`;
+      for (const g of filtered) {
+        const P = g.power ? POWERS[g.power] : null;
+        const maxRank = Math.max(...g.sig);
+        const minDepth = maxRank * 24 || 1;
+        const hasWeapon = g.slots.includes('weapon');
+        const hasArmor = g.slots.some((s) => s !== 'weapon');
+
+        let preservedHtml = '';
+        if (hasWeapon && hasArmor) {
+          preservedHtml = `
+            <div><b style="color:var(--gold)">In Weapon:</b> ${escapeHtml(summarizeSigilBonuses(g.sig, 'weapon').join(' · '))}</div>
+            <div style="margin-top:3px"><b style="color:var(--gold)">In ${g.slots.filter((s) => s !== 'weapon').map((s) => SLOT_NAMES[s]).join('/')}:</b> ${escapeHtml(summarizeSigilBonuses(g.sig, 'body').join(' · '))}</div>
+          `;
+        } else if (hasWeapon) {
+          preservedHtml = `<div style="color:#dfd4c3">${escapeHtml(summarizeSigilBonuses(g.sig, 'weapon').join(' · '))}</div>`;
+        } else {
+          preservedHtml = `<div style="color:#dfd4c3">${escapeHtml(summarizeSigilBonuses(g.sig, 'body').join(' · '))}</div>`;
+        }
+
+        html += `
+          <article class="glyph-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+              <div>
+                <h3 style="font-family:var(--font-title);font-size:18px;font-weight:900;color:var(--glyphword);letter-spacing:0.8px">
+                  ‘${escapeHtml(g.name)}’
+                </h3>
+                <div style="font-size:13px;color:var(--text-dim);margin-top:2px">
+                  Plain ${g.sig.length}-Socket ${g.slots.map((s) => `<b style="color:var(--text)">${escapeHtml(SLOT_NAMES[s])}</b>`).join(' / ')}
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                <span class="wiki-badge gold">${g.sig.length} Sigils</span>
+                <span class="wiki-badge" title="Campaign Depth where highest required Sigil (${SIGILS[maxRank].name}) begins dropping">Depth ${minDepth}+</span>
+              </div>
+            </div>
+
+            <!-- Visual Sigil Stone Socket Sequence -->
+            <div class="glyph-sequence" aria-label="Socket order: ${escapeHtml(g.sig.map((r) => SIGILS[r].name).join(' then '))}">
+              ${g.sig.map((r, idx) => {
+                const S = SIGILS[r];
+                return `
+                  ${idx > 0 ? '<span class="glyph-arrow">→</span>' : ''}
+                  <div class="glyph-stone" title="Socket #${idx + 1}: ${escapeHtml(S.name)} Sigil (Rank ${r + 1}, Depth ${r * 24 || 1}+)">
+                    <img src="${getSigilURL(r, 36)}" alt="${escapeHtml(S.name)} Sigil">
+                    <span class="glyph-stone-name" style="color:${S.color}">${escapeHtml(S.name)}</span>
+                    <span class="glyph-stone-rank">#${r + 1}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Preserved Individual Sigil Stats -->
+            <div class="glyph-subbox">
+              <div class="glyph-subbox-label">Preserved Sigil Stone Stats (Always Kept)</div>
+              ${preservedHtml}
+            </div>
+
+            <!-- Glyphword Bonus Lines -->
+            <div>
+              <div class="glyph-subbox-label" style="color:var(--gold)">Glyphword Awakened Lines (iLvl ${ilvl})</div>
+              <ul class="relic-lines">
+                ${g.lines.map((s) => {
+                  const val = lineValue(s, ilvl, g.k * TUNE.glyph);
+                  return `<li>${escapeHtml(statLabel(s, val, GENERIC_TREES))}</li>`;
+                }).join('')}
+                ${(g.extra || []).map(([s, v]) => `
+                  <li style="color:var(--gold-bright);font-weight:700">${escapeHtml(statLabel(s, v, GENERIC_TREES))}</li>
+                `).join('')}
+              </ul>
+            </div>
+
+            ${P ? `
+              <div class="relic-power-box" style="margin-top:auto">
+                <span class="relic-power-title">✦ Glyphword Power — ${escapeHtml(P.name)}</span>
+                ${escapeHtml(powerText(P, pl))}
+              </div>
+            ` : `
+              <div class="glyph-subbox" style="margin-top:auto;color:var(--text-dim);font-style:italic">
+                Early 2-Sigil Glyphword — grants full awakened stat lines atop preserved Sigil Stone bonuses.
+              </div>
+            `}
+          </article>
+        `;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    // =========================================================================
+    // TAB 4: BASE ARSENAL & 20 QUALITY TIERS
+    // =========================================================================
+    function renderArsenalTab() {
+      const ilvl = state.ilvl;
+      const curTierIdx = tierOf(ilvl);
+      const reqAttrVal = 20 + (Math.min(ilvl, MAX_LEVEL) - 1) * 2;
+      const sec = state.arsenalSection;
+
+      const weaponsFiltered = Object.entries(WEAPONS).filter(([k, w]) =>
+        matchesQuery(`${k} weapon ${w.names.join(' ')} ${BASE_REQ_STAT[k] || ''} ${weaponImplicits(k).join(' ')} ${(w.classes || []).map((c) => CLASSES[c]?.name || c).join(' ')}`, state.q)
+      );
+      const offhandsFiltered = Object.entries(OFFHANDS).filter(([k, o]) =>
+        matchesQuery(`${k} offhand ${o.names.join(' ')} ${BASE_REQ_STAT[k] || ''} ${offhandImplicits(k, ilvl).join(' ')} ${(o.classes || []).map((c) => CLASSES[c]?.name || c).join(' ')}`, state.q)
+      );
+      const armorsFiltered = Object.entries(ARMORS).filter(([k, a]) =>
+        matchesQuery(`${k} armor ${SLOT_NAMES[k]} ${a.names.join(' ')}`, state.q)
+      );
+      const rarityFiltered = RARITY.filter((r) =>
+        matchesQuery(`${r.name} ${r.id === ABYSSAL ? 'abyssal' : ''} depth ${r.minDepth} rarity quality tier`, state.q)
+      );
+
+      let html = `
+        <div class="gear-filter-bar">
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Jump / Filter Section:</span>
+            <button type="button" class="wiki-pill ${sec === 'all' ? 'active' : ''}" data-ars-sec="all">All Arsenal</button>
+            <button type="button" class="wiki-pill ${sec === 'weapons' ? 'active' : ''}" data-ars-sec="weapons">Weapons (${Object.keys(WEAPONS).length})</button>
+            <button type="button" class="wiki-pill ${sec === 'offhands' ? 'active' : ''}" data-ars-sec="offhands">Off-Hands (${Object.keys(OFFHANDS).length})</button>
+            <button type="button" class="wiki-pill ${sec === 'armor' ? 'active' : ''}" data-ars-sec="armor">Armor &amp; Materials (${Object.keys(ARMORS).length} + ${MATERIALS.length})</button>
+            <button type="button" class="wiki-pill ${sec === 'mechanics' ? 'active' : ''}" data-ars-sec="mechanics">Vanity &amp; Sealed</button>
+            <button type="button" class="wiki-pill ${sec === 'rarity' ? 'active' : ''}" data-ars-sec="rarity">20 Quality Tiers</button>
+          </div>
+        </div>
+      `;
+
+      // 1. Weapons (14 families)
+      if ((sec === 'all' || sec === 'weapons') && weaponsFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>⚔️ Main-Hand Weapon Families (${weaponsFiltered.length})</h2>
+            <span class="wiki-section-sub">Base Damage previewed at Tier 5 / iLvl ${ilvl} · Barbarians can dual-wield a main-hand weapon in Off-hand</span>
+          </div>
+          <div class="wiki-grid">
+            ${weaponsFiltered.map(([key, W]) => {
+              const reqStat = BASE_REQ_STAT[key];
+              const [d0, d1] = previewWeaponDmg(key, ilvl, 4);
+              const imps = weaponImplicits(key);
+              const iconUrl = getSyntheticGearIconURL('weapon', key, W.icon, ilvl, 4);
+              const activeTierName = W.names[Math.min(4, Math.floor(curTierIdx / 2))];
+              return `
+                <article class="wiki-card">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div class="gear-icon-frame">
+                      <img src="${iconUrl}" alt="${escapeHtml(key)}" loading="lazy">
+                    </div>
+                    <div style="flex:1;min-width:0">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                        <h3 style="font-family:var(--font-title);font-size:16.5px;color:var(--gold-bright);text-transform:capitalize">${escapeHtml(key)}</h3>
+                        ${reqStat ? `<span class="wiki-badge gold">Req ${reqAttrVal} ${reqStat.toUpperCase()}</span>` : ''}
+                      </div>
+                      <div style="font-size:13px;color:var(--text-dim);margin-top:2px">
+                        Dmg Mult: <b style="color:var(--text)">${W.dmg.toFixed(2)}x</b> · Speed: <b style="color:var(--text)">${W.spd.toFixed(2)}/s</b>
+                      </div>
+                      <div style="font-size:12.5px;color:var(--emerald);margin-top:1px">
+                        iLvl ${ilvl} Preview: <b>${d0}–${d1}</b> Damage (${escapeHtml(activeTierName)})
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tiered-names">
+                    <b style="color:var(--text)">Tiered Progression:</b> ${W.names.map((n, idx) => idx === Math.min(4, Math.floor(curTierIdx / 2)) ? `<b style="color:var(--gold-bright)">${escapeHtml(n)}</b>` : escapeHtml(n)).join(' → ')}
+                  </div>
+
+                  <div>
+                    <div class="glyph-subbox-label">Implicit Weapon Bonus</div>
+                    <div style="color:#8fc0ff;font-size:14px;font-weight:600">${imps.map(escapeHtml).join(' · ')}</div>
+                  </div>
+
+                  <div style="margin-top:auto">
+                    <div class="glyph-subbox-label">Favored Classes</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px">
+                      ${(W.classes || []).map((cid) => {
+                        const cls = CLASSES[cid];
+                        return `<a class="class-chip" href="classes.html?id=${encodeURIComponent(cid)}" style="border-color:${cls?.color || 'var(--border-highlight)'}55"><span class="swatch-dot" style="background:${cls?.color || '#d4af37'};width:7px;height:7px"></span>${escapeHtml(cls ? cls.name : cid)}</a>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // 2. Off-Hands (11 families)
+      if ((sec === 'all' || sec === 'offhands') && offhandsFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>🛡️ Off-Hand &amp; Focus Families (${offhandsFiltered.length})</h2>
+            <span class="wiki-section-sub">Shields, Caster Foci, Instruments, Quivers &amp; Class Reliquaries · Previewed at iLvl ${ilvl}</span>
+          </div>
+          <div class="wiki-grid">
+            ${offhandsFiltered.map(([key, O]) => {
+              const reqStat = BASE_REQ_STAT[key];
+              const arm = previewArmorVal(O.armor, ilvl, 4);
+              const imps = offhandImplicits(key, ilvl);
+              const iconUrl = getSyntheticGearIconURL('offhand', key, O.icon, ilvl, 4);
+              const labelTitle = key === 'drum' ? 'Drum / Tambourine' : key === 'rang' ? 'Off-hand Rang' : key;
+              return `
+                <article class="wiki-card">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div class="gear-icon-frame">
+                      <img src="${iconUrl}" alt="${escapeHtml(key)}" loading="lazy">
+                    </div>
+                    <div style="flex:1;min-width:0">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                        <h3 style="font-family:var(--font-title);font-size:16px;color:var(--gold-bright);text-transform:capitalize">${escapeHtml(labelTitle)}</h3>
+                        ${reqStat ? `<span class="wiki-badge gold">Req ${reqAttrVal} ${reqStat.toUpperCase()}</span>` : ''}
+                      </div>
+                      <div style="font-size:13px;color:var(--text-dim);margin-top:2px">
+                        Armor Weight: <b style="color:var(--text)">${O.armor}x</b> · iLvl ${ilvl} Armor: <b style="color:var(--emerald)">${fmtInt(arm)}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="tiered-names">
+                    <b style="color:var(--text)">Tiered Progression:</b> ${O.names.map((n, idx) => idx === Math.min(4, Math.floor(curTierIdx / 2)) ? `<b style="color:var(--gold-bright)">${escapeHtml(n)}</b>` : escapeHtml(n)).join(' → ')}
+                  </div>
+
+                  <div>
+                    <div class="glyph-subbox-label">Implicit Off-Hand Bonuses</div>
+                    <div style="color:#8fc0ff;font-size:13.8px;font-weight:600">${imps.map(escapeHtml).join(' · ')}</div>
+                  </div>
+
+                  <div style="margin-top:auto">
+                    <div class="glyph-subbox-label">Favored Classes</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px">
+                      ${(O.classes || []).map((cid) => {
+                        const cls = CLASSES[cid];
+                        return `<a class="class-chip" href="classes.html?id=${encodeURIComponent(cid)}" style="border-color:${cls?.color || 'var(--border-highlight)'}55"><span class="swatch-dot" style="background:${cls?.color || '#d4af37'};width:7px;height:7px"></span>${escapeHtml(cls ? cls.name : cid)}</a>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // 3. Armor & 10 Material Tiers
+      if ((sec === 'all' || sec === 'armor') && (armorsFiltered.length || !state.q)) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>🥋 Armor Slots (${Object.keys(ARMORS).length}) &amp; 10 Material Tiers</h2>
+            <span class="wiki-section-sub">Material advances every 10 Item Levels (<code>tierOf(ilvl) = floor((ilvl - 1) / 10)</code>)</span>
+          </div>
+
+          <div class="materials-strip">
+            ${MATERIALS.map((m, idx) => {
+              const minL = idx * 10 + 1;
+              const maxL = idx === 9 ? '100+' : (idx + 1) * 10;
+              const isCur = idx === curTierIdx;
+              return `
+                <div class="material-chip ${isCur ? 'current-tier' : ''}">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-family:var(--font-title);font-weight:800;font-size:13px;color:${m.color}">${escapeHtml(m.name)}</span>
+                    <span class="swatch-dot" style="background:${m.color}"></span>
+                  </div>
+                  <span style="font-size:12px;color:var(--text-dim)">Tier ${idx + 1} · iLvl ${minL}–${maxL}</span>
+                  <span style="font-size:11.5px;color:var(--text-muted)">Ring: ${escapeHtml(RING_NAMES[idx])}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="wiki-grid">
+            ${armorsFiltered.map(([slotKey, A]) => {
+              const arm = previewArmorVal(A.armor, ilvl, 4);
+              const iconUrl = getSyntheticGearIconURL(slotKey, slotKey, A.icon, ilvl, 4);
+              return `
+                <article class="wiki-card">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <div class="gear-icon-frame">
+                      <img src="${iconUrl}" alt="${escapeHtml(SLOT_NAMES[slotKey])}" loading="lazy">
+                    </div>
+                    <div>
+                      <h3 style="font-family:var(--font-title);font-size:16px;color:var(--gold-bright)">${escapeHtml(SLOT_NAMES[slotKey])} Armor</h3>
+                      <div style="font-size:13px;color:var(--text-dim)">
+                        Defense Weight: <b style="color:var(--text)">${A.armor}x</b> · iLvl ${ilvl}: <b style="color:var(--emerald)">${fmtInt(arm)} Armor</b>
+                      </div>
+                      <div style="font-size:12px;color:var(--text-muted)">Plain Hollow Cap: <b style="color:var(--glyphword)">${HOLLOW[slotKey]} Sockets</b></div>
+                    </div>
+                  </div>
+                  <div class="tiered-names">
+                    <b style="color:var(--text)">Bases:</b> ${A.names.map((n, idx) => idx === Math.min(4, Math.floor(curTierIdx / 2)) ? `<b style="color:var(--gold-bright)">${escapeHtml(n)}</b>` : escapeHtml(n)).join(' → ')}
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // 4. Vanity Wardrobe, Sealed Treasures & Artisan Mechanics
+      if ((sec === 'all' || sec === 'mechanics') && (!state.q || matchesQuery('vanity transmog sealed treasure casket key banner kit upgrade socket enchant hollow', state.q))) {
+        const sealedUrl = itemIcon({ sealed: true }, 48).toDataURL();
+        const keyUrl = keyIcon(48).toDataURL();
+        const bannerUrl = bannerKitIcon(48).toDataURL();
+
+        html += `
+          <div class="wiki-section-header">
+            <h2>🎭 Vanity Wardrobe, Sealed Treasures &amp; Endgame Reliquaries</h2>
+            <span class="wiki-section-sub">Cosmetic appearance overrides, wax-sealed Epic+ drops, Abyssal Keys &amp; Blacksmith upgrades</span>
+          </div>
+          <div class="wiki-grid">
+            <article class="wiki-card">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="gear-icon-frame" style="border-color:${SEALED_COLOR}">
+                  <img src="${sealedUrl}" alt="Sealed Treasure">
+                </div>
+                <div>
+                  <h3 style="font-family:var(--font-title);font-size:15.5px;color:${SEALED_COLOR}">Sealed Treasures</h3>
+                  <span class="wiki-badge gold">Tier ${SEAL_RARITY + 1}+ (Epic &amp; Above)</span>
+                </div>
+              </div>
+              <p style="font-size:14px;color:var(--text-dim)">
+                Once every <b>${Math.round(SEAL_GAP / 60)} minutes</b> of active dungeon play, an Epic-or-better drop lands as a gilded wax-sealed casket. Sealed items never despawn on the ground and conceal their identity, rarity, and stats until you <b>Break the Seal</b>.
+              </p>
+            </article>
+
+            <article class="wiki-card">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="gear-icon-frame" style="border-color:var(--violet)">
+                  <img src="${bannerUrl}" alt="Vanity & Banner Kit">
+                </div>
+                <div>
+                  <h3 style="font-family:var(--font-title);font-size:15.5px;color:#dfb8ff">Vanity Wardrobe &amp; Banner Kits</h3>
+                  <span class="wiki-badge violet">${VANITY_SLOTS.length} Cosmetic Slots</span>
+                </div>
+              </div>
+              <p style="font-size:14px;color:var(--text-dim)">
+                Heroes can equip cosmetic overrides in <b>${VANITY_SLOTS.map((s) => SLOT_NAMES[s]).join(', ')}</b> (plus toggle <em>Hide Helmet</em>) with zero stat changes. Weapon &amp; Off-hand vanity items must match your equipped weapon/off-hand base family and be identified &amp; unsealed. Lancers can also buy <b>Banner Kits</b> (${BANNER_KIT_PRICE}g) from Fortunato.
+              </p>
+            </article>
+
+            <article class="wiki-card">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="gear-icon-frame" style="border-color:#20e0ff">
+                  <img src="${keyUrl}" alt="Abyssal Key">
+                </div>
+                <div>
+                  <h3 style="font-family:var(--font-title);font-size:15.5px;color:#7aebff">Abyssal Keys &amp; Forge Upgrades</h3>
+                  <span class="wiki-badge">Endgame Progression</span>
+                </div>
+              </div>
+              <p style="font-size:14px;color:var(--text-dim)">
+                Abyssal Keys can come from Rift Guardians at Tier 10+, eligible raid bosses from Depth 400 when the required Heresy rank is active, and qualifying Unbound encounters. Key chances are handled by the endgame reward rules; keys open Velscour Unbound and Unbound Exploration.
+              </p>
+            </article>
+          </div>
+        `;
+      }
+
+      // 5. The 20 Quality / Rarity Tiers Table
+      if ((sec === 'all' || sec === 'rarity') && rarityFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>👑 The 20 Equipment Tiers (Tier 1 → Tier 20)</h2>
+            <span class="wiki-section-sub">Tier unlock thresholds are read from the live progression data. Tier 20 remains an endgame equipment tier.</span>
+          </div>
+          <div class="wiki-table-wrap">
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th>Quality Tier</th>
+                  <th>Unlock Depth</th>
+                  <th>iLvl Drop Gate</th>
+                  <th>Affix Lines</th>
+                  <th>Max Sockets (Gear / Ring)</th>
+                  <th>Power Bonus</th>
+                  <th>Gold Value Mult</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rarityFiltered.map((r) => {
+                  const isAbyssal = r.id === ABYSSAL;
+                  const lvFmt = Number.isInteger(r.lv) ? `+${r.lv}` : `+${r.lv.toFixed(2)}`;
+                  const valFmt = Number.isInteger(r.value) ? `${r.value}x` : `${r.value.toFixed(1)}x`;
+                  const gearSocks = r.id === 0 ? `${r.sockets} (Hollow: 3–6)` : String(r.sockets);
+                  return `
+                    <tr>
+                      <td>
+                        <span class="swatch-dot" style="background:${r.color}"></span>
+                        <b style="color:${r.color};font-family:var(--font-title)">${escapeHtml(r.name)}</b>
+                        ${r.id === 4 ? '<span class="wiki-badge" style="margin-left:6px">Legendary+</span>' : ''}
+                        ${r.id === 5 ? '<span class="wiki-badge crimson" style="margin-left:6px">Mythic Pool</span>' : ''}
+                      </td>
+                      <td><b>Depth ${r.minDepth}</b></td>
+                      <td>${r.minIlvl === 1 && r.fullIlvl === 1 ? 'Any iLvl' : `iLvl ${r.minIlvl} (Full @ ${r.fullIlvl})`}</td>
+                      <td><b>${CORE_LINES} Core</b>${r.perks ? ` + <b style="color:var(--gold-bright)">${r.perks} Perk${r.perks > 1 ? 's' : ''}</b>` : ''}</td>
+                      <td><b>${gearSocks}</b> Gear / <b>${r.ringSockets}</b> Ring</td>
+                      <td style="color:var(--emerald);font-weight:700">${lvFmt} Lv</td>
+                      <td>${valFmt}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      return html;
+    }
+
+    // =========================================================================
+    // TAB 5: GEMS (12 Standard + 9 Special) & 20 SIGIL STONES
+    // =========================================================================
+    function renderGemsBody() {
+      const grade = state.gemGrade;
+      const gradeLabel = GEM_TIERS[grade] || 'Standard';
+      const sigRank = state.sigilRank;
+      const spotSig = SIGILS[sigRank];
+      const spotGlyphs = GLYPHWORDS.filter((gw) => gw.sig.includes(sigRank));
+
+      const normalFiltered = NORMAL_GEM_KEYS.filter((k) => {
+        const g = GEMS[k];
+        const st = g.stats.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${g.name} ${k} gem standard ${st}`, state.q);
+      });
+
+      const specialFiltered = SPECIAL_GEM_KEYS.filter((k) => {
+        const g = GEMS[k];
+        const st = g.stats.map(([s]) => statLabel(s, 1, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${g.name} ${k} gem special pattern ${g.desc || ''} ${st}`, state.q);
+      });
+
+      const sigilsFiltered = SIGILS.map((s, r) => ({ s, r })).filter(({ s, r }) => {
+        const ws = sigilStats(r, 'weapon').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        const as = sigilStats(r, 'body').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        const rs = sigilStats(r, 'ring').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(' ');
+        return matchesQuery(`${s.name} sigil stone rank ${r + 1} depth ${r * 24} ${ws} ${as} ${rs}`, state.q);
+      });
+
+      const renderGemCard = (key) => {
+        const g = GEMS[key];
+        const fakeGem = makeGem(key, grade);
+        const iconUrl = itemIconURL(fakeGem);
+        const fullName = gemName(key, grade);
+        const stats = gemStats(key, grade);
+        const fuse = grade < MAX_GEM_TIER ? `${fmtInt(gemFuseCost(grade))}g` : 'Max Grade';
+        const refine = grade < MAX_GEM_TIER ? `${fmtInt(gemRefineCost(grade, !!g.special))}g` : 'Max Grade';
+
+        return `
+          <article class="wiki-card" style="border-color:${g.special ? 'rgba(255, 154, 42, 0.42)' : 'var(--border)'}">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="gear-icon-frame" style="border-color:${g.color}88">
+                <img src="${iconUrl}" alt="${escapeHtml(fullName)}" loading="lazy">
+              </div>
+              <div style="min-width:0;flex:1">
+                <h3 style="font-family:var(--font-title);font-size:15.5px;color:${g.special ? '#ffb86c' : '#e6f6ff'}">${escapeHtml(fullName)}</h3>
+                <div style="font-size:12px;color:var(--text-dim)">
+                  Grade ${grade + 1}/${MAX_GEM_TIER + 1} ${g.special ? `· <b style="color:#ff9a2a">${escapeHtml(g.desc)}</b>` : '· Universal Socket'}
+                </div>
+              </div>
+            </div>
+
+            <ul class="relic-lines">
+              ${stats.length
+                ? stats.map(([s, v]) => `<li>${escapeHtml(statLabel(s, v, GENERIC_TREES))}</li>`).join('')
+                : `<li style="color:var(--text-muted);font-style:italic">Reaches +1 breakpoint at Grade 3 (Standard) and above</li>`
+              }
+            </ul>
+
+            <div style="margin-top:auto;padding-top:8px;border-top:1px solid rgba(90,60,38,0.3);display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim)">
+              <span>Fuse 3→1: <b style="color:var(--gold-bright)">${fuse}</b></span>
+              <span>Refine 1→1: <b style="color:var(--gold)">${refine}</b></span>
+            </div>
+          </article>
+        `;
+      };
+
+      let html = `
+        <!-- Live Sigil Stone Spotlight -->
+        <div class="sigil-spotlight">
+          <div class="gear-icon-frame" style="width:64px;height:64px;border-color:${spotSig.color}">
+            <img src="${getSigilURL(sigRank, 48)}" alt="${escapeHtml(spotSig.name)} Sigil" style="width:48px;height:48px">
+          </div>
+          <div style="flex:1;min-width:240px">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+              <h3 style="font-family:var(--font-title);font-size:19px;color:${spotSig.color}">${escapeHtml(spotSig.name)} Sigil Stone</h3>
+              <span class="wiki-badge">Rank #${sigRank + 1} of 20</span>
+              <span class="wiki-badge gold">Drops from Depth ${sigRank * 24 || 1}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:6px;font-size:14px">
+              <span>⚔️ Weapon: <b style="color:#fff">${escapeHtml(sigilStats(sigRank, 'weapon').map(([s, v]) => statLabel(s, v, GENERIC_TREES)).join(', '))}</b></span>
+              <span>🛡️ Armor / Off-hand: <b style="color:#fff">${escapeHtml(sigilStats(sigRank, 'body').map(([s, v]) => statLabel(s, v, GENERIC_TREES)).join(', '))}</b></span>
+              <span>💍 Ring: <b style="color:#fff">${escapeHtml(sigilStats(sigRank, 'ring').map(([s, v]) => statLabel(s, v, GENERIC_TREES)).join(', '))}</b></span>
+            </div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:6px">
+              Used in Glyphwords: ${spotGlyphs.length
+                ? spotGlyphs.map((gw) => `<button type="button" class="gear-preset-btn" data-jump-glyph="${escapeHtml(gw.name)}">‘${escapeHtml(gw.name)}’</button>`).join(' ')
+                : '<i>Standalone high-rank socket stone</i>'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (normalFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>💎 Standard Gems (${normalFiltered.length})</h2>
+            <span class="wiki-section-sub">Grant identical dual bonuses in any gear or ring socket · Previewing Grade ${grade + 1} (${escapeHtml(gradeLabel)})</span>
+          </div>
+          <div class="wiki-grid">
+            ${normalFiltered.map(renderGemCard).join('')}
+          </div>
+        `;
+      }
+
+      if (specialFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>🌟 Rare Shot-Pattern &amp; Skill Gems (${specialFiltered.length})</h2>
+            <span class="wiki-section-sub">Alter skill behavior directly (extra projectiles, echo-casts, homing, +All Skills) · Previewing Grade ${grade + 1} (${escapeHtml(gradeLabel)})</span>
+          </div>
+          <div class="wiki-grid">
+            ${specialFiltered.map(renderGemCard).join('')}
+          </div>
+        `;
+      }
+
+      if (sigilsFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>ᚱ All 20 Sigil Stones (Ash → Thane)</h2>
+            <span class="wiki-section-sub">Slot-dependent runes · Rank <i>r</i> unlocks every 24 Depths (<code>depth = 24 × rank</code>) · Fuse 3 identical stones into the next rank</span>
+          </div>
+          <div class="wiki-table-wrap">
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Sigil Stone</th>
+                  <th>Drop Depth</th>
+                  <th>Weapon Socket</th>
+                  <th>Armor / Off-hand Socket</th>
+                  <th>Ring Socket</th>
+                  <th>3→1 Fuse Cost</th>
+                  <th>Glyphword Recipes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sigilsFiltered.map(({ s, r }) => {
+                  const usedIn = GLYPHWORDS.filter((gw) => gw.sig.includes(r));
+                  const isSpot = r === sigRank;
+                  return `
+                    <tr class="${isSpot ? 'sigil-row-active' : ''}">
+                      <td><b>#${r + 1}</b></td>
+                      <td>
+                        <div style="display:inline-flex;align-items:center;gap:8px">
+                          <img src="${getSigilURL(r, 40)}" alt="${escapeHtml(s.name)}" width="34" height="34" loading="lazy">
+                          <b style="color:${s.color};font-family:var(--font-title)">${escapeHtml(s.name)}</b>
+                        </div>
+                      </td>
+                      <td>Depth <b>${r * 24 || 1}</b></td>
+                      <td style="color:#ffd9b3">${escapeHtml(sigilStats(r, 'weapon').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(', '))}</td>
+                      <td style="color:#b8dcff">${escapeHtml(sigilStats(r, 'body').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(', '))}</td>
+                      <td style="color:#e5c6ff">${escapeHtml(sigilStats(r, 'ring').map(([st, v]) => statLabel(st, v, GENERIC_TREES)).join(', '))}</td>
+                      <td>${r < SIGIL_MAX ? `${fmtInt(sigilFuseCost(r))}g` : '—'}</td>
+                      <td style="font-size:12.5px;color:var(--text-dim)">
+                        ${usedIn.length ? usedIn.map((gw) => escapeHtml(gw.name)).join(', ') : '—'}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      if (!normalFiltered.length && !specialFiltered.length && !sigilsFiltered.length) {
+        html += `<div class="empty-state">No Gems or Sigil Stones matched "${escapeHtml(state.q)}".</div>`;
+      }
+
+      return html;
+    }
+
+    function updateGemsSliderLabels() {
+      const grade = state.gemGrade;
+      const gradeLabel = GEM_TIERS[grade] || 'Standard';
+      const sigRank = state.sigilRank;
+      const spotSig = SIGILS[sigRank];
+
+      const gemBadge = document.getElementById('gem-grade-badge');
+      if (gemBadge) gemBadge.textContent = `Grade ${grade + 1}/10: ${gradeLabel}`;
+
+      const sigBadge = document.getElementById('sigil-rank-badge');
+      if (sigBadge) sigBadge.textContent = `Rank #${sigRank + 1}: ${spotSig.name} (Depth ${sigRank * 24 || 1}+)`;
+
+      const sigSub = document.getElementById('sigil-rank-sub');
+      if (sigSub) {
+        sigSub.innerHTML = `Multiplier at Rank #${sigRank + 1}: <b>${sigilMult(sigRank).toFixed(2)}x</b> base · Fuse 3→1: <b>${sigRank < SIGIL_MAX ? fmtInt(sigilFuseCost(sigRank)) + 'g → ' + escapeHtml(SIGILS[sigRank + 1].name) : 'Highest Rank (Thane)'}</b>`;
+      }
+    }
+
+    function renderGemsTab() {
+      const grade = state.gemGrade;
+      const gradeLabel = GEM_TIERS[grade] || 'Standard';
+      const sigRank = state.sigilRank;
+      const spotSig = SIGILS[sigRank];
+
+      return `
+        <!-- Dual Interactive Sliders: Gem Grade & Sigil Rank -->
+        <div class="forge-controls">
+          <div class="forge-slider-card">
+            <div class="forge-slider-head">
+              <span style="font-family:var(--font-title);font-size:12.5px;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px">
+                💎 Gem Grade Preview (0 → 9)
+              </span>
+              <span class="wiki-badge gold" id="gem-grade-badge">Grade ${grade + 1}/10: ${escapeHtml(gradeLabel)}</span>
+            </div>
+            <input type="range" id="gem-grade-slider" min="0" max="${MAX_GEM_TIER}" value="${grade}">
+            <div style="font-size:12.5px;color:var(--text-dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <span>Grades 1–8 drop in dungeons; <b>Abyssal (9)</b> &amp; <b>Eternal (10)</b> are forged at the Gem Merchant.</span>
+            </div>
+          </div>
+
+          <div class="forge-slider-card">
+            <div class="forge-slider-head">
+              <span style="font-family:var(--font-title);font-size:12.5px;color:var(--glyphword);text-transform:uppercase;letter-spacing:0.8px">
+                ᚱ Sigil Stone Rank Inspector (1 → 20)
+              </span>
+              <span class="wiki-badge gold" id="sigil-rank-badge">Rank #${sigRank + 1}: ${escapeHtml(spotSig.name)} (Depth ${sigRank * 24 || 1}+)</span>
+            </div>
+            <input type="range" id="sigil-rank-slider" min="0" max="${SIGIL_MAX}" value="${sigRank}">
+            <div style="font-size:12.5px;color:var(--text-dim)" id="sigil-rank-sub">
+              Multiplier at Rank #${sigRank + 1}: <b>${sigilMult(sigRank).toFixed(2)}x</b> base · Fuse 3→1: <b>${sigRank < SIGIL_MAX ? fmtInt(sigilFuseCost(sigRank)) + 'g → ' + escapeHtml(SIGILS[sigRank + 1].name) : 'Highest Rank (Thane)'}</b>
+            </div>
+          </div>
+        </div>
+
+        <div id="gems-dynamic-body">
+          ${renderGemsBody()}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // TAB 6: AFFIXES (51), LEGENDARY POWERS (22) & RING SKILL AUGMENTS (15)
+    // =========================================================================
+    function renderAffixesTab() {
+      const ilvl = state.ilvl;
+      const plLeg = powerLevel(ilvl, 4);
+      const plMyth = powerLevel(ilvl, 5);
+      const legScalePct = Math.round(legendaryScale(plLeg) * 100);
+      const sec = state.affixSection;
+
+      const affixesFiltered = AFFIXES.filter((a) => {
+        if (state.affixSlot !== 'all' && !a.slots.includes(state.affixSlot)) return false;
+        return matchesQuery(`${a.pre || ''} ${a.suf || ''} ${a.s} ${statLabel(a.s, a.max, GENERIC_TREES)} ${a.perk ? 'perk' : 'core'} ${a.slots}`, state.q);
+      });
+
+      const legendariesFiltered = LEGENDARY_ENTRIES.filter(([k, l]) =>
+        matchesQuery(`${k} ${l.name} legendary ${l.desc}`, state.q)
+      );
+
+      const augmentsFiltered = AUGMENT_ENTRIES.filter(([k, a]) =>
+        matchesQuery(`${k} ${a.name} ${a.word} ${a.el} augment ring ${a.desc(1)}`, state.q)
+      );
+
+      let html = `
+        <div class="gear-filter-bar">
+          <div class="gear-filter-group">
+            <span class="gear-filter-label">Section:</span>
+            <button type="button" class="wiki-pill ${sec === 'all' ? 'active' : ''}" data-aff-sec="all">All (${AFFIXES.length + LEGENDARY_ENTRIES.length + AUGMENT_ENTRIES.length})</button>
+            <button type="button" class="wiki-pill ${sec === 'affixes' ? 'active' : ''}" data-aff-sec="affixes">Gear Affixes (${AFFIXES.length})</button>
+            <button type="button" class="wiki-pill ${sec === 'legendaries' ? 'active' : ''}" data-aff-sec="legendaries">Legendary Powers (${LEGENDARY_ENTRIES.length})</button>
+            <button type="button" class="wiki-pill ${sec === 'augments' ? 'active' : ''}" data-aff-sec="augments">Ring Skill Augments (${AUGMENT_ENTRIES.length})</button>
+          </div>
+
+          ${(sec === 'all' || sec === 'affixes') ? `
+            <div class="gear-filter-group">
+              <span class="gear-filter-label">Affix Slot:</span>
+              <button type="button" class="wiki-pill ${state.affixSlot === 'all' ? 'active' : ''}" data-aff-slot="all">All</button>
+              ${Object.entries(SLOT_LETTER_MAP).map(([ch, label]) => `
+                <button type="button" class="wiki-pill ${state.affixSlot === ch ? 'active' : ''}" data-aff-slot="${ch}" title="${escapeHtml(label)}">${ch}</button>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      // 1. 51 Gear Affixes
+      if ((sec === 'all' || sec === 'affixes') && affixesFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>📜 Gear Affixes (${affixesFiltered.length} of ${AFFIXES.length})</h2>
+            <span class="wiki-section-sub">Every item rolls ${CORE_LINES} Core Lines (${LINE_MULT}x) + Quality Perk Lines (${PERK_MULT}x) · Previewing Tier 6 Mythic rolls at iLvl ${ilvl} (Power ${plMyth})</span>
+          </div>
+          <div class="wiki-table-wrap">
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th>Prefix / Suffix</th>
+                  <th>Type</th>
+                  <th>Eligible Slots</th>
+                  <th>Base Range</th>
+                  <th>Growth (sc)</th>
+                  <th>Rolled Value @ iLvl ${ilvl}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${affixesFiltered.map((a) => {
+                  const vMin = affixValue(a, ilvl, 5, 0);
+                  const vMax = affixValue(a, ilvl, 5, 1);
+                  const rangeVal = vMin === vMax ? vMin : `${vMin}–${vMax}`;
+                  const titleStr = a.pre ? `${a.pre} …` : `… ${a.suf}`;
+                  const lockedPl = a.minPl && plMyth < a.minPl;
+                  return `
+                    <tr>
+                      <td>
+                        <b style="color:var(--gold-bright)">${escapeHtml(titleStr)}</b>
+                        <div style="font-size:11.5px;color:var(--text-muted)"><code>${escapeHtml(a.s)}</code>${a.w && a.w !== 1 ? ` · Weight ${a.w}` : ''}</div>
+                      </td>
+                      <td>
+                        ${a.perk
+                          ? `<span class="wiki-badge gold">Perk (${PERK_MULT}x)</span>`
+                          : `<span class="wiki-badge">Core (${LINE_MULT}x)</span>`
+                        }
+                        ${a.minPl ? `<div style="font-size:11px;margin-top:3px;color:${lockedPl ? 'var(--crimson-bright)' : 'var(--text-muted)'}">Min Power ${a.minPl}</div>` : ''}
+                      </td>
+                      <td>
+                        <div class="slot-chips">
+                          ${a.slots.split('').map((ch) => `<span class="slot-chip" title="${escapeHtml(SLOT_LETTER_MAP[ch] || ch)}">${ch}</span>`).join('')}
+                        </div>
+                      </td>
+                      <td>${a.min === a.max ? a.min : `${a.min}–${a.max}`}</td>
+                      <td>${a.sc === 0 ? 'Fixed' : `+${a.sc}/pl`}</td>
+                      <td style="color:#8fc0ff;font-weight:600">${escapeHtml(statLabel(a.s, rangeVal, GENERIC_TREES))}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      // 2. 22 Legendary Powers
+      if ((sec === 'all' || sec === 'legendaries') && legendariesFiltered.length) {
+        html += `
+          <div class="wiki-section-header">
+            <h2>⚡ Legendary Powers (${legendariesFiltered.length} of ${LEGENDARY_ENTRIES.length})</h2>
+            <span class="wiki-section-sub">Rolled on Tier 5+ Gear · Scaled Powers grow from 15% (Power 10) to 100% (Power 90) · Currently <b>${legScalePct}%</b> at iLvl ${ilvl}</span>
+          </div>
+          <div class="wiki-grid">
+            ${legendariesFiltered.map(([key, L]) => {
+              const descTxt = legendaryDesc({ legendary: key, ilvl, rarity: 4 });
+              const scales = Array.isArray(L.stats) && L.stats.some(([st]) => !['extraProj', 'chainPlus', 'pierce'].includes(st));
+              return `
+                <article class="wiki-card" style="border-color:rgba(212,175,55,0.34)">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                    <h3 style="font-family:var(--font-title);font-size:16px;color:var(--gold-bright)">✦ ${escapeHtml(L.name)}</h3>
+                    <span class="wiki-badge ${scales ? 'gold' : ''}">${scales ? `Scaled (${legScalePct}%)` : 'Fixed Effect'}</span>
+                  </div>
+                  <p style="font-size:14.5px;color:#f3e5c8;line-height:1.5">${escapeHtml(descTxt)}</p>
+                  <div style="margin-top:auto;font-size:11.5px;color:var(--text-muted)">Key: <code>${escapeHtml(key)}</code></div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // 3. 15 Ring Skill Augments
+      if ((sec === 'all' || sec === 'augments') && augmentsFiltered.length) {
+        const splitMult = state.augMythicSplit ? 0.55 : 1;
+        const pow = Math.round(augPower(plMyth) * splitMult * SCOPE_MUL[state.augScope] * 100) / 100;
+
+        html += `
+          <div class="wiki-section-header">
+            <h2>💍 Ring Skill Augments (${augmentsFiltered.length} of ${AUGMENT_ENTRIES.length})</h2>
+            <span class="wiki-section-sub">Heroes equip up to <b>4 Rings</b> (<code>ring1</code>–<code>ring4</code>) · Every ring mutates how your skills behave</span>
+          </div>
+
+          <div class="gear-callout crimson">
+            <strong>4-Ring Skill Augment System:</strong> Heroes wear up to <strong>4 Rings simultaneously</strong>. Tiers 1–5 roll <strong>1 Augment</strong>; Tiers 6–20 (Mythic → Abyssal) roll <strong>2 Augments</strong> (each at <code>0.55x</code> split strength). Augment potency scales with both Power Level (<code>0.6 + 0.008 × PL</code>) and Target Scope:
+            <strong>Single Skill (${SCOPE_MUL.skill}x, 58% odds)</strong>,
+            <strong>Skill Kind (${SCOPE_MUL.kind.toFixed(1)}x, 30% odds)</strong>, or
+            <strong>All Skills (${SCOPE_MUL.all}x, 12% odds)</strong>.
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px">
+              <span class="gear-filter-label" style="color:var(--gold)">Preview Scope:</span>
+              <button type="button" class="wiki-pill ${state.augScope === 'skill' ? 'active' : ''}" data-aug-scope="skill">Single Skill (${SCOPE_MUL.skill}x)</button>
+              <button type="button" class="wiki-pill ${state.augScope === 'kind' ? 'active' : ''}" data-aug-scope="kind">Skill Kind (${SCOPE_MUL.kind.toFixed(1)}x)</button>
+              <button type="button" class="wiki-pill ${state.augScope === 'all' ? 'active' : ''}" data-aug-scope="all">All Skills (${SCOPE_MUL.all}x)</button>
+              <button type="button" class="wiki-pill ${state.augMythicSplit ? 'active' : ''}" data-aug-split="toggle">
+                ${state.augMythicSplit ? '☑ Mythic+ Dual-Augment (0.55x each)' : '☐ Mythic+ Dual-Augment Split (0.55x)'}
+              </button>
+              <span class="wiki-badge gold" style="margin-left:auto">Effective Augment Power: ${pow.toFixed(2)}x</span>
+            </div>
+          </div>
+
+          <div class="wiki-grid">
+            ${augmentsFiltered.map(([key, A]) => {
+              const elInfo = ELEMENT_INFO[A.el] || ELEMENT_INFO.arcane;
+              const hitData = A.hit ? A.hit(pow) : null;
+              return `
+                <article class="wiki-card" style="border-left:3px solid ${elInfo.color}">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                    <div>
+                      <h3 style="font-family:var(--font-title);font-size:16px;color:${elInfo.color}">
+                        ${elInfo.icon} ${escapeHtml(A.name)}
+                      </h3>
+                      <div style="font-size:12.5px;color:var(--text-dim)">
+                        Ring Prefix: <b style="color:var(--text)">“${escapeHtml(A.word)} ${escapeHtml(RING_NAMES[tierOf(ilvl)])} of …”</b>
+                      </div>
+                    </div>
+                    <span class="wiki-badge" style="color:${elInfo.color};border-color:${elInfo.color}66">${escapeHtml(elInfo.name)}</span>
+                  </div>
+
+                  <p style="font-size:14.2px;color:#f0e3cc;line-height:1.5">${escapeHtml(A.desc(pow))}</p>
+
+                  ${hitData ? `
+                    <div style="margin-top:auto;font-size:12px;color:var(--text-muted);padding-top:6px;border-top:1px solid rgba(90,60,38,0.28)">
+                      Tooltip Hit Share: <b style="color:var(--gold-bright)">${Math.round(hitData[0] * 100)}%</b> ${escapeHtml(hitData[1])}
+                    </div>
+                  ` : `
+                    <div style="margin-top:auto;font-size:12px;color:var(--text-muted);padding-top:6px;border-top:1px solid rgba(90,60,38,0.28)">
+                      Utility / Mechanical Skill Multiplier
+                    </div>
+                  `}
+                </article>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="gear-callout" style="margin-top:18px">
+            <strong>Eligible Skill Kinds (${Object.keys(KIND_NAMES).length}):</strong>
+            ${Object.values(KIND_NAMES).map((n) => `<span class="wiki-badge" style="margin:2px">${escapeHtml(n)}</span>`).join(' ')}
+          </div>
+        `;
+      }
+
+      if (!affixesFiltered.length && !legendariesFiltered.length && !augmentsFiltered.length) {
+        html += `<div class="empty-state">No Affixes, Legendary Powers, or Ring Augments matched "${escapeHtml(state.q)}".</div>`;
+      }
+
+      return html;
+    }
+
+    // =========================================================================
+    // MASTER RENDER & EVENT DELEGATION
+    // =========================================================================
+    function renderAll() {
+      renderTelemetryStrip();
+
+      // Update search input & clear button
+      const searchInput = document.getElementById('gear-search');
+      if (searchInput.value !== state.q) searchInput.value = state.q;
+      document.getElementById('gear-search-clear').classList.toggle('visible', Boolean(state.q));
+
+      // Update tab buttons & live match counts
+      const defaultTotals = {
+        heirlooms: HEIRLOOMS.length,
+        covenants: COVENANTS.length,
+        glyphwords: GLYPHWORDS.length,
+        arsenal: Object.keys(WEAPONS).length + Object.keys(OFFHANDS).length + Object.keys(ARMORS).length + RARITY.length,
+        gems: ALL_GEM_KEYS.length + SIGILS.length,
+        affixes: AFFIXES.length + LEGENDARY_ENTRIES.length + AUGMENT_ENTRIES.length,
+      };
+      const matchCounts = state.q ? computeTabMatchCounts(state.q) : defaultTotals;
+
+      document.querySelectorAll('#gear-tabs .wiki-tab-btn').forEach((btn) => {
+        const t = btn.dataset.tab;
+        btn.classList.toggle('active', t === state.tab);
+        const cntEl = document.getElementById(`cnt-${t}`);
+        if (cntEl) {
+          cntEl.textContent = String(matchCounts[t]);
+          cntEl.classList.toggle('match-hit', Boolean(state.q && matchCounts[t] > 0));
+        }
+      });
+
+      // Cross-tab search helper if current tab has 0 matches (or to show matches in other tabs)
+      const crossEl = document.getElementById('gear-cross-matches');
+      if (state.q && matchCounts[state.tab] === 0) {
+        const otherTabs = VALID_TABS.filter((t) => t !== state.tab && matchCounts[t] > 0);
+        if (otherTabs.length) {
+          const labels = {
+            heirlooms: 'Heirlooms', covenants: 'Covenant Sets', glyphwords: 'Glyphwords',
+            arsenal: 'Base Arsenal & Tiers', gems: 'Gems & Sigils', affixes: 'Affixes & Augments',
+          };
+          crossEl.innerHTML = `
+            <div class="cross-tab-notice">
+              <div style="margin-bottom:8px;color:var(--text)">No matches in <b>${escapeHtml(labels[state.tab])}</b> for "<b>${escapeHtml(state.q)}</b>" — matches found in other sections:</div>
+              <div style="display:inline-flex;flex-wrap:wrap;gap:8px;justify-content:center">
+                ${otherTabs.map((t) => `<button type="button" class="wiki-pill active" data-switch-tab="${t}">${escapeHtml(labels[t])} (${matchCounts[t]})</button>`).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          crossEl.innerHTML = '';
+        }
+      } else {
+        crossEl.innerHTML = '';
+      }
+
+      const view = document.getElementById('gear-view');
+      if (state.tab === 'heirlooms') view.innerHTML = renderHeirloomsTab();
+      else if (state.tab === 'covenants') view.innerHTML = renderCovenantsTab();
+      else if (state.tab === 'glyphwords') view.innerHTML = renderGlyphwordsTab();
+      else if (state.tab === 'arsenal') view.innerHTML = renderArsenalTab();
+      else if (state.tab === 'gems') view.innerHTML = renderGemsTab();
+      else if (state.tab === 'affixes') view.innerHTML = renderAffixesTab();
+
+      syncUrlParams();
+    }
+
+    // Wire Global Toolbar Controls
+    const searchEl = document.getElementById('gear-search');
+    const clearBtn = document.getElementById('gear-search-clear');
+    const ilvlSlider = document.getElementById('gear-ilvl-slider');
+    ilvlSlider.value = String(state.ilvl);
+
+    searchEl.addEventListener('input', () => {
+      state.q = searchEl.value.trim();
+      renderAll();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      state.q = '';
+      searchEl.value = '';
+      renderAll();
+      searchEl.focus();
+    });
+
+    ilvlSlider.addEventListener('input', () => {
+      state.ilvl = clamp(Number(ilvlSlider.value) || 75, 1, 100);
+      renderAll();
+    });
+
+    document.getElementById('gear-ilvl-presets').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ilvl]');
+      if (!btn) return;
+      state.ilvl = clamp(Number(btn.dataset.ilvl) || 75, 1, 100);
+      ilvlSlider.value = String(state.ilvl);
+      renderAll();
+    });
+
+    document.getElementById('gear-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tab]');
+      if (!btn) return;
+      state.tab = btn.dataset.tab;
+      renderAll();
+    });
+
+    document.getElementById('gear-cross-matches').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-switch-tab]');
+      if (!btn) return;
+      state.tab = btn.dataset.switchTab;
+      renderAll();
+    });
+
+    // Delegated interactions inside #gear-view
+    const viewEl = document.getElementById('gear-view');
+    viewEl.addEventListener('click', (e) => {
+      const originBtn = e.target.closest('[data-heir-origin]');
+      if (originBtn) { state.heirFilter = originBtn.dataset.heirOrigin; renderAll(); return; }
+
+      const heirSlotBtn = e.target.closest('[data-heir-slot]');
+      if (heirSlotBtn) { state.heirSlot = heirSlotBtn.dataset.heirSlot; renderAll(); return; }
+
+      const glyphSockBtn = e.target.closest('[data-glyph-sock]');
+      if (glyphSockBtn) { state.glyphSockets = glyphSockBtn.dataset.glyphSock; renderAll(); return; }
+
+      const glyphSlotBtn = e.target.closest('[data-glyph-slot]');
+      if (glyphSlotBtn) { state.glyphSlot = glyphSlotBtn.dataset.glyphSlot; renderAll(); return; }
+
+      const arsSecBtn = e.target.closest('[data-ars-sec]');
+      if (arsSecBtn) { state.arsenalSection = arsSecBtn.dataset.arsSec; renderAll(); return; }
+
+      const affSecBtn = e.target.closest('[data-aff-sec]');
+      if (affSecBtn) { state.affixSection = affSecBtn.dataset.affSec; renderAll(); return; }
+
+      const affSlotBtn = e.target.closest('[data-aff-slot]');
+      if (affSlotBtn) { state.affixSlot = affSlotBtn.dataset.affSlot; renderAll(); return; }
+
+      const augScopeBtn = e.target.closest('[data-aug-scope]');
+      if (augScopeBtn) { state.augScope = augScopeBtn.dataset.augScope; renderAll(); return; }
+
+      const augSplitBtn = e.target.closest('[data-aug-split]');
+      if (augSplitBtn) { state.augMythicSplit = !state.augMythicSplit; renderAll(); return; }
+
+      const jumpGlyphBtn = e.target.closest('[data-jump-glyph]');
+      if (jumpGlyphBtn) {
+        state.tab = 'glyphwords';
+        state.glyphSockets = 'all';
+        state.glyphSlot = 'all';
+        state.q = jumpGlyphBtn.dataset.jumpGlyph;
+        renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    viewEl.addEventListener('input', (e) => {
+      if (e.target.id === 'gem-grade-slider') {
+        state.gemGrade = clamp(Number(e.target.value) || 0, 0, MAX_GEM_TIER);
+        updateGemsSliderLabels();
+        const bodyEl = document.getElementById('gems-dynamic-body');
+        if (bodyEl) bodyEl.innerHTML = renderGemsBody();
+        else renderAll();
+      } else if (e.target.id === 'sigil-rank-slider') {
+        state.sigilRank = clamp(Number(e.target.value) || 0, 0, SIGIL_MAX);
+        updateGemsSliderLabels();
+        const bodyEl = document.getElementById('gems-dynamic-body');
+        if (bodyEl) bodyEl.innerHTML = renderGemsBody();
+        else renderAll();
+      }
+    });
+
+    // Load painted HD replacement atlas first (with fast timeout fallback) so itemIconURL caches HD sprites
+    (async () => {
+      await Promise.race([
+        loadReplacementArt(),
+        new Promise((resolve) => setTimeout(resolve, 1800)),
+      ]).catch(() => {});
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

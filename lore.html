@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090706">
+  <meta name="description" content="Read Velscour PC's campaign chronicle, scheduled bosses, townsfolk, and sky stories, drawn from the fork's current game data.">
+  <title>Velscour PC Wiki — Lore &amp; Folk</title>
+  <link rel="icon" href="assets/ui/icon.png">
+  <link rel="stylesheet" href="css/wiki.css">
+  <style>
+    .lore-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}.lore-card{padding:18px;background:var(--card-bg);border:1px solid var(--border-highlight);border-radius:8px}.lore-card h3{font:700 17px var(--font-title);color:var(--gold-bright);margin:8px 0}.lore-card p{color:var(--text-dim);line-height:1.55}.lore-card a{color:var(--gold-bright)}.lore-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.lore-row{padding:12px 14px;border:1px solid var(--border-soft);background:var(--panel);border-radius:6px}.lore-row b{color:var(--text)}.lore-row small{display:block;margin-top:4px;color:var(--text-dim);line-height:1.45}.lore-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.lore-toolbar input,.lore-toolbar select{padding:9px 11px;background:#0c0907;color:var(--text);border:1px solid var(--border-highlight);border-radius:4px;min-width:200px}.lore-tab[hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <script src="src/wiki/wiki-boot.js" data-wiki-active="lore"></script>
+  <section class="wiki-page-hero"><div class="wiki-page-hero-inner">
+    <span class="wiki-eyebrow">Chronicles and people of the PC edition</span>
+    <h1 class="wiki-page-title">LORE &amp; <span>FOLK</span></h1>
+    <p class="wiki-page-desc">The campaign schedule, named bosses, townsfolk, and sky-lane stories shown here are drawn from Velscour PC's current data. The Wiki does not describe online-only systems.</p>
+    <div class="wiki-stats-ribbon"><span class="wiki-stat-badge"><b id="lore-boss-count">—</b> Campaign Boss Milestones</span><span class="wiki-stat-badge"><b id="lore-vendor-count">—</b> Town Artisans</span><span class="wiki-stat-badge"><b id="lore-folk-count">—</b> Townsfolk</span><span class="wiki-stat-badge"><b id="lore-story-count">—</b> Sky Stories</span></div>
+  </div></section>
+  <main class="wiki-main">
+    <div class="wiki-tabs" role="tablist" aria-label="Lore topics">
+      <button class="wiki-tab-btn active" type="button" role="tab" data-tab="chronicle" aria-selected="true">Campaign Chronicle</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="lords" aria-selected="false">Bosses</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="folk" aria-selected="false">Townsfolk</button>
+      <button class="wiki-tab-btn" type="button" role="tab" data-tab="stories" aria-selected="false">Sky Stories</button>
+    </div>
+    <section class="lore-tab" id="panel-chronicle" role="tabpanel">
+      <div class="wiki-section-header"><h2>The Campaign Chronicle</h2><span class="wiki-section-sub">Current act boundaries and endgame entry are read from the game</span></div>
+      <div class="lore-grid" id="chronicle-grid"></div>
+      <div class="wiki-section-header"><h2>Learn More</h2></div>
+      <div class="lore-grid"><article class="lore-card"><h3>World &amp; Environments</h3><p>Browse the depth explorer, biome catalogue, endgame systems, and dungeon affixes.</p><a href="world.html">Open the World Atlas →</a></article><article class="lore-card"><h3>Equipment &amp; Relics</h3><p>Inspect the PC fork's gear tiers, sets, heirlooms, gems, and equipment rules.</p><a href="gear.html">Open Gear Compendium →</a></article><article class="lore-card"><h3>Bestiary</h3><p>Search the enemies and bosses defined in this game's creature catalogue.</p><a href="bestiary.html">Open Bestiary →</a></article></div>
+    </section>
+    <section class="lore-tab" id="panel-lords" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Campaign Tyrants &amp; Bosses</h2><span class="wiki-section-sub">Names and milestone depths come from campaign and raid data</span></div>
+      <div class="lore-toolbar"><input id="boss-search" type="search" placeholder="Search boss or title"><select id="boss-act-filter" aria-label="Filter by act"><option value="all">All acts</option></select></div><div class="lore-list" id="boss-list"></div>
+    </section>
+    <section class="lore-tab" id="panel-folk" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Herrington Hollow</h2><span class="wiki-section-sub">NPC names, roles, and dialogue cues from local town data</span></div>
+      <div class="lore-toolbar"><input id="folk-search" type="search" placeholder="Search artisans and townsfolk"><select id="folk-kind" aria-label="Filter town residents"><option value="all">Everyone</option><option value="artisan">Artisans</option><option value="resident">Residents</option></select></div><div class="lore-list" id="folk-list"></div>
+    </section>
+    <section class="lore-tab" id="panel-stories" role="tabpanel" hidden>
+      <div class="wiki-section-header"><h2>Stories of the Sky Lanes</h2><span class="wiki-section-sub">A collection of short environmental story entries</span></div><div class="lore-grid" id="story-grid"></div>
+    </section>
+  </main>
+  <script type="module">
+    import { mountWikiShell, escapeHtml } from './src/wiki/wiki-shell.js';
+    import { ACTS, FINAL_DEPTH, SUPERBOSS_DEPTHS } from './src/data/depth.js';
+    import { RAID_BOSSES } from './src/game/raid.js';
+    import { VENDORS } from './src/world/town.js';
+    import { TOWNSFOLK } from './src/data/townsfolk.js';
+    import { SKY_STORIES } from './src/data/skystories.js';
+    import { HERESIES } from './src/data/heresies.js';
+    import { HEIRLOOMS, COVENANTS } from './src/data/relics.js';
+    mountWikiShell({active:'lore'});
+    const $=(id)=>document.getElementById(id);
+    const bossById=Object.fromEntries(RAID_BOSSES.map((b)=>[b.id,b]));
+    const milestones=Object.entries(SUPERBOSS_DEPTHS).map(([d,id])=>({depth:Number(d),id,name:bossById[id]?.name||({velscour:'Demon Lord Velscour'}[id])||id.replaceAll('_',' '),title:bossById[id]?.title||''})).sort((a,b)=>a.depth-b.depth);
+    $('lore-boss-count').textContent=String(milestones.length);$('lore-vendor-count').textContent=String(VENDORS.length);$('lore-folk-count').textContent=String(TOWNSFOLK.length);$('lore-story-count').textContent=String(SKY_STORIES.length);
+    $('chronicle-grid').innerHTML=ACTS.map((a)=>`<article class="lore-card"><span class="wiki-badge gold">Act ${a.act} · Depths ${a.start}–${a.end}</span><h3>${escapeHtml(a.name)}</h3><p>The act concludes at depth ${a.finaleDepth}. ${escapeHtml(bossById[a.finaleBoss]?.name||({velscour:'Demon Lord Velscour'}[a.finaleBoss])||a.finaleBoss)} is the scheduled finale.</p></article>`).join('')+`<article class="lore-card"><span class="wiki-badge crimson">Endgame</span><h3>Beyond the Campaign</h3><p>The fixed campaign concludes at depth ${FINAL_DEPTH}. Endgame progression and activities continue from the game’s separate endgame systems.</p></article><article class="lore-card"><span class="wiki-badge violet">Relics &amp; Vows</span><h3>Old Powers in the Deep</h3><p>The PC build defines ${HEIRLOOMS.length} named heirlooms, ${COVENANTS.length} equipment sets, and ${HERESIES.length} heresies. Their full rules are documented in the live gear and world references.</p></article>`;
+    $('boss-act-filter').innerHTML='<option value="all">All acts</option>'+ACTS.map(a=>`<option value="${a.act}">Act ${a.act}: ${escapeHtml(a.name)}</option>`).join('');
+    function renderBosses(){const q=$('boss-search').value.trim().toLowerCase(),act=$('boss-act-filter').value;const rows=milestones.filter(m=>{const a=ACTS.find(x=>m.depth>=x.start&&m.depth<=x.end);return (act==='all'||String(a?.act)===act)&&(!q||`${m.name} ${m.title} ${m.id} ${m.depth}`.toLowerCase().includes(q))});$('boss-list').innerHTML=rows.map(m=>{const a=ACTS.find(x=>m.depth>=x.start&&m.depth<=x.end);return `<div class="lore-row"><b>Depth ${m.depth} · ${escapeHtml(m.name)}</b><small>${escapeHtml(m.title)}${a?` · Act ${a.act}: ${escapeHtml(a.name)}`:''}${m.depth===FINAL_DEPTH?' · Campaign finale':''}</small></div>`}).join('');}
+    const routeQuery=new URLSearchParams(location.search).get('q')||'';if(new URLSearchParams(location.search).get('tab')==='lords')$('boss-search').value=routeQuery;$('boss-search').addEventListener('input',renderBosses);$('boss-act-filter').addEventListener('change',renderBosses);renderBosses();
+    function renderFolk(){const q=$('folk-search').value.trim().toLowerCase(),kind=$('folk-kind').value;const rows=[...VENDORS.map(v=>({name:v.name,role:v.title,kind:'artisan',id:v.id,detail:v.greet||''})),...TOWNSFOLK.map(f=>({name:f.name,role:f.role,kind:'resident',id:f.id,detail:f.group||''}))].filter(x=>(kind==='all'||kind===x.kind)&&(!q||`${x.name} ${x.role} ${x.id} ${x.detail}`.toLowerCase().includes(q)));$('folk-list').innerHTML=rows.map(x=>`<div class="lore-row"><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.role)} · ${escapeHtml(x.detail)}</small></div>`).join('');}
+    if(new URLSearchParams(location.search).get('tab')==='folk')$('folk-search').value=routeQuery;$('folk-search').addEventListener('input',renderFolk);$('folk-kind').addEventListener('change',renderFolk);renderFolk();
+    const storyQuery=new URLSearchParams(location.search).get('tab')==='stories'?routeQuery.toLowerCase():'';$('story-grid').innerHTML=SKY_STORIES.filter(s=>!storyQuery||`${s.name} ${s.id} ${s.blurb||''} ${s.hazardText||''}`.toLowerCase().includes(storyQuery)).map(s=>`<article class="lore-card"><span class="wiki-badge">${escapeHtml(s.weather||s.base||'Sky story')}</span><h3>${escapeHtml(s.name)}</h3><p>${escapeHtml(s.blurb||s.hazardText||'A story from the sky lanes.')}</p>${s.hazardText?`<p><small>${escapeHtml(s.hazardText)}</small></p>`:''}</article>`).join('');
+    const buttons=[...document.querySelectorAll('.wiki-tab-btn[data-tab]')],panels=[...document.querySelectorAll('.lore-tab')];function setTab(tab){if(!panels.some(p=>p.id===`panel-${tab}`))tab='chronicle';buttons.forEach(b=>{const on=b.dataset.tab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});panels.forEach(p=>p.hidden=p.id!==`panel-${tab}`);const u=new URL(location.href);u.searchParams.set('tab',tab);history.replaceState({},'',u)}buttons.forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));const tab=new URLSearchParams(location.search).get('tab');if(tab)setTab(tab);
+  </script>
+</body>
+</html>
