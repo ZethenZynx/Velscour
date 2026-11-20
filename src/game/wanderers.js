@@ -16,7 +16,9 @@ import { heroHears } from './townlife.js';
 
 const LINES = {
   idle: ['Keep to the road, friend.', 'These woods were safer once.', 'Mind the ruins after dark.', 'I heard wolves at dawn.', 'Bless you for walking this way.', 'My cart broke a mile back.'],
-  scared: ['Monsters! Run!', 'Help! Over here!', 'Not again!', 'Save us!', 'Back, foul thing!'],
+  // Panic lines are atmospheric only; requests for help are reserved for NPCs with a real,
+  // interactable bounty or depth quest so the player is never sent toward a dead-end plea.
+  scared: ['Monsters! Run!', 'Keep back!', 'Not again!', 'Run for the road!', 'Back, foul thing!'],
   cheer: ['Huzzah! The way is clear!', 'You did it!', 'Herrington Hollow owes you!', 'Drinks are on me tonight!'],
   ask: ['A word, hero! I have coin for you.', 'Please — I need a sword arm!', 'Over here! A bounty!'],
 };

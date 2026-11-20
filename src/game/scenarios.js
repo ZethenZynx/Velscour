@@ -73,7 +73,7 @@ function makeScenario(world, start, info, need) {
   const S = { ...info, done: false, failed: false, active: false, got: 0, goal: 1, foes: [], objective: null, t: 0 };
   const npcQuest = mech === 'captives' || mech === 'escort';
   if (npcQuest) {
-    S.depthQuest = { title: info.title, state: 'available', objective: info.desc };
+    S.depthQuest = { title: info.title, state: 'available', objective: info.desc, objectiveTarget: null };
     S.questNpcs = [];
   }
   const sprite = (tag) => { const l = scat.filter((e) => tag === 'light' ? /brazier|candel|torch|lantern|censer/.test(e.name) : TAGS[tag].test(e.name)); return l.length ? pick(l) : null; };
@@ -161,6 +161,7 @@ function makeScenario(world, start, info, need) {
     case 'captives': case 'escort': {
       const n = mech === 'escort' ? 1 : 3, folk = TOWNSFOLK.filter((v) => !v.royal && !v.courtier);
       S.goal = n;
+      S.questObjectives = [];
       const people = at.slice(0, n).map(([x, y], i) => {
         const preferred = /frozen|ice|summit/.test(biome.id) ? TOWNSFOLK.filter((v) => v.knight || v.old || v.worker)
           : /castle|keep/.test(biome.id) ? TOWNSFOLK.filter((v) => v.guard || v.knight || v.courtier)
@@ -174,20 +175,28 @@ function makeScenario(world, start, info, need) {
         npc.depthQuest = S.depthQuest; npc.questIndicator = '!'; S.questNpcs.push(npc);
         world.npcs.push(npc);
         if (mech === 'captives') foe(null, map.randomNear(x, y, 2.5), i === n - 1 ? 'champion' : 'normal', 3);
-        own(marker(x, y, mech === 'escort' ? 'Lead ' + W.soul : 'Free the prisoner', sprite('chain'), (mk) => {
+        const objective = own(marker(x, y, mech === 'escort' ? 'Lead ' + W.soul : 'Free the prisoner', sprite('chain'), (mk) => {
           mk.opened = true;
-          if (mech === 'escort') { npc.follow = true; begin('Lead it to the far altar'); S.waveT = 6; return; }
+          if (mech === 'escort') { npc.follow = true; begin('Lead it to the far altar'); const goal = at[at.length - 1]; S.depthQuest.objectiveTarget = { x: goal[0], y: goal[1], label: 'Far Altar' }; S.depthQuest.objective = 'Escort the survivor to the marked far altar.'; S.waveT = 6; return; }
           if (S.depthQuest?.state === 'available') { S.depthQuest.state = 'accepted'; for (const person of S.questNpcs) person.questIndicator = '?'; }
           S.got++; npc.emotion = 'cheer'; npc.emotionT = 3; sfx('levelup', 0.4); floatText(x, y, 70, 'Freed!', '#a0ff90', 14);
-          if (S.depthQuest) { S.depthQuest.objective = `Free the captives (${S.got}/${n}).`; UI.refresh(); }
+          if (S.depthQuest) { S.depthQuest.objective = `Free the captives (${S.got}/${n}).`; S.depthQuest.objectiveTarget = () => S.questObjectives.filter((entry) => !entry.opened); UI.refresh(); }
           setTimeout(() => { const i = world.npcs.indexOf(npc); if (i >= 0) world.npcs.splice(i, 1); }, 2500);
           if (S.got >= n) reward(x, y);
         }, { color: '#a0ff90' }));
+        S.questObjectives.push(objective);
+        // The people carrying the quest marker are valid interaction points too; retain the
+        // existing chain/escort encounter as the underlying action rather than creating a second quest path.
+        npc.use = () => {
+          if (mech === 'escort' && npc.follow) { npc.talkText = 'Lead me to the marked far altar.'; npc.talkT = 2.5; return; }
+          objective.use(objective);
+        };
         return npc;
       });
       if (mech === 'escort') {
         const soul = people[0], goal = at[at.length - 1];
         own(marker(...goal, 'The far altar', sprite('altar'), () => {}, { color: '#a0e0ff', inert: true })); // only where to lead it: nothing to use
+        S.depthQuest.objectiveTarget = null;
         S.tick = (dt) => {
           if (!soul.follow) return;
           const p = G.player, d = dist(soul.x, soul.y, p.x, p.y);
@@ -203,7 +212,7 @@ function makeScenario(world, start, info, need) {
           S.objective = { x: goal[0], y: goal[1], reach: 1.2 };
         };
         progress(() => soul.follow ? `Lead it on: ${Math.max(0, Math.ceil(soul.hp))}% left` : 'Find ' + W.soul);
-      } else { S.tick = () => {}; progress(() => `${S.got}/${n} freed`); }
+      } else { S.depthQuest.objectiveTarget = () => S.depthQuest.state === 'accepted' ? S.questObjectives.filter((entry) => !entry.opened) : null; S.tick = () => {}; progress(() => `${S.got}/${n} freed`); }
       break;
     }
     case 'ritual': case 'nests': case 'idols': case 'rifts': { // destroy n things, each defended or spawning

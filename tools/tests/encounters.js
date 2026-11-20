@@ -25,7 +25,15 @@ const { openGame, report } = require('./harness');
       G.encounterForce = undefined; G.ratsForce = undefined;
       const e = W.encounters && W.encounters[0];
       if (!e) return { kind, error: 'no encounter placed' };
-      const P = G.player, potions0 = { ...G.char.potions }, loot0 = W.loot.length, buffs0 = P.buffs.length, chests0 = W.chests.length;
+      const P = G.player;
+      if (kind === 'captive') {
+        P.x = e.x + 1.1; P.y = e.y + 1.1;
+        e.n.use();
+        const accept = [...document.querySelectorAll('.dialog-box .btn')].find((button) => button.textContent.includes('Accept and help'));
+        if (!accept) return { kind, error: 'captive NPC did not offer its rescue interaction' };
+        accept.click();
+      }
+      const potions0 = { ...G.char.potions }, loot0 = W.loot.length, buffs0 = P.buffs.length, chests0 = W.chests.length;
       const rats = W.npcs.filter((n) => n.animal && n.species === 'rat');
       const ratStart = rats.map((n) => [n.x, n.y]);
       // walk up beside it
@@ -58,11 +66,12 @@ const { openGame, report } = require('./harness');
       const rats = W.npcs.filter((n) => n.animal && n.species === 'rat');
       return {
         opened: !!e.chest?.opened, state: e.state, hp: Math.round(e.n.hp), emotion: e.n.emotion, loot: W.loot.length,
-        buffs: P.buffs.map((b) => b.id), potions: G.char.potions, rats: rats.length, gone: !W.npcs.includes(e.n),
+        quest: e.quest?.state, objectiveTarget: e.quest?.objectiveTarget, buffs: P.buffs.map((b) => b.id), potions: G.char.potions, rats: rats.length, gone: !W.npcs.includes(e.n),
       };
     }, kind);
     console.log(kind, JSON.stringify(r.before), '->', JSON.stringify(out));
     if (!out.opened) errors.push(kind + ': never resolved');
+    if (kind === 'captive' && out.quest !== 'rewarded') errors.push('captive: the NPC rescue interaction did not complete and reward the quest');
     if (kind === 'laststand' && !(out.buffs.includes('oath') || out.emotion === 'dead')) errors.push('laststand: no oath and no fallen knight');
     if (kind === 'wizard' && !out.buffs.includes('zebulon')) errors.push('wizard: no blessing');
     if (kind === 'greener' && out.state !== 'wait') errors.push('greener: never reached the cache (' + out.state + ')');

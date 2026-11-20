@@ -1482,9 +1482,9 @@ function drawOverheadNames(ctx, world) {
   const nameFont = `700 ${Math.round(11 * d)}px Cinzel, Georgia, serif`;
   for (const c of world.creatures) {
     if (c.dead || !c.sbox) continue;
-    if (c.rank === 'champion' || c.rank === 'unique') {
+    if (c.rank === 'champion' || c.rank === 'unique' || c.depthQuestNameplate) {
       const x = (c.sbox[0] + c.sbox[2]) / 2, y = c.barTop != null ? camera.toScreen(0, c.barTop)[1] - 3 : c.sbox[1] - 8; // above its life bar
-      drawLabel(ctx, c.name, x * d, y * d, nameFont, c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
+      drawLabel(ctx, c.name, x * d, y * d, nameFont, c.depthQuestNameplate ? '#ffe080' : c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
     }
   }
   // townsfolk names: only the one nearest the hero (a crowd of labels hides the crowd)
@@ -1509,9 +1509,9 @@ function drawOverheadNames(ctx, world) {
     const sprite = nameLabel(String(text), font, fill, lw);
     occupied.push({ x: x - sprite.width / 2, y: y - sprite.height, w: sprite.width, h: sprite.height });
   };
-  for (const c of world.creatures) if (!c.dead && c.sbox && (c.rank === 'champion' || c.rank === 'unique')) {
+  for (const c of world.creatures) if (!c.dead && c.sbox && (c.rank === 'champion' || c.rank === 'unique' || c.depthQuestNameplate)) {
     const x = (c.sbox[0] + c.sbox[2]) / 2, y = c.barTop != null ? camera.toScreen(0, c.barTop)[1] - 3 : c.sbox[1] - 8;
-    reserveLabel(c.name, x * d, y * d, nameFont, c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
+    reserveLabel(c.name, x * d, y * d, nameFont, c.depthQuestNameplate ? '#ffe080' : c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
   }
   for (const n of world.npcs) {
     if (!n.sbox || n.hidden || (!n.vendor && !n.stash && !n.altar && (n !== nearest || n.talkT > 0))) continue;
@@ -1618,6 +1618,37 @@ export function drawMinimap(world, dt, canvas, big = false) {
     }
   }
   const dot = (x, y, col, r) => { const [sx, sy] = toS(x, y); c.fillStyle = col; c.beginPath(); c.arc(sx, sy + s * 0.3, r, 0, TAU); c.fill(); };
+  const questGiver = (x, y) => {
+    const [sx, sy] = toS(x, y), yy = sy + s * 0.3, r = big ? 7 : 5;
+    c.save(); c.translate(sx, yy);
+    c.fillStyle = 'rgba(17,12,7,.92)'; c.strokeStyle = '#ffe6a0'; c.lineWidth = big ? 1.5 : 1;
+    c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.stroke();
+    c.font = `900 ${big ? 14 : 11}px Cinzel, Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineJoin = 'round'; c.lineWidth = big ? 3 : 2.3; c.strokeStyle = '#1a1006'; c.fillStyle = '#ffd040';
+    c.strokeText('!', 0, 0.5); c.fillText('!', 0, 0.5); c.restore();
+  };
+  const questTarget = (target, name) => {
+    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) return;
+    const [sx, sy] = toS(target.x, target.y), yy = sy + s * 0.3, r = big ? 7 : 5.2;
+    c.save(); c.translate(sx, yy); c.strokeStyle = '#ffe080'; c.lineWidth = big ? 1.8 : 1.35;
+    c.shadowColor = '#ffd040'; c.shadowBlur = big ? 8 : 4;
+    c.beginPath(); c.arc(0, 0, r * 0.62, 0, TAU); c.moveTo(-r, 0); c.lineTo(-r * 0.38, 0); c.moveTo(r * 0.38, 0); c.lineTo(r, 0);
+    c.moveTo(0, -r); c.lineTo(0, -r * 0.38); c.moveTo(0, r * 0.38); c.lineTo(0, r); c.stroke();
+    c.fillStyle = '#fff2b0'; c.beginPath(); c.arc(0, 0, big ? 1.7 : 1.2, 0, TAU); c.fill(); c.restore();
+    const label = target.label || target.name || name;
+    if (big && label) {
+      const size = Math.max(10, Math.min(14, s * 0.82));
+      c.save(); c.font = `700 ${size}px Cinzel, Georgia, serif`; c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.lineJoin = 'round'; c.lineWidth = Math.max(2, size * 0.24); c.strokeStyle = 'rgba(8,6,5,.96)'; c.fillStyle = '#ffe6a0';
+      c.strokeText(label, sx + r + 5, yy); c.fillText(label, sx + r + 5, yy); c.restore();
+    }
+  };
+  const questTargetValues = (quest) => {
+    let target = quest?.objectiveTarget;
+    if (typeof target === 'function') target = target();
+    if (!target) return [];
+    return Array.isArray(target) ? target : [target];
+  };
   const shrineAltarMarker = (x, y, col, name) => {
     const [sx, sy] = toS(x, y), cy = sy + s * 0.3, r = big ? 5.5 : 3.5;
     c.save(); c.translate(sx, cy); c.rotate(Math.PI / 4);
@@ -1640,6 +1671,16 @@ export function drawMinimap(world, dt, canvas, big = false) {
   for (const n of world.npcs) {
     const returnedHeirloom = n.bounty?.kind === 'relic' && n.bounty.found && n.bounty.state !== 'paid';
     dot(n.x, n.y, returnedHeirloom ? '#fff080' : '#ffe090', returnedHeirloom ? (big ? 6 : 4) : (big ? 4 : 2.5));
+    if (n.depthQuest?.state === 'available' && n.depthQuest.npc === n) questGiver(n.x, n.y);
+  }
+  for (const quest of world.depthQuests || []) {
+    if (!['accepted', 'objective-complete'].includes(quest.state)) continue;
+    for (const target of questTargetValues(quest)) questTarget(target, target?.label || target?.name || quest.title);
+  }
+  const scenarioQuest = world.scenario?.depthQuest;
+  if (scenarioQuest) {
+    if (scenarioQuest.state === 'available') for (const n of world.scenario.questNpcs || []) if (n.depthQuest === scenarioQuest && n.questIndicator === '!') questGiver(n.x, n.y);
+    if (['accepted', 'objective-complete'].includes(scenarioQuest.state)) for (const target of questTargetValues(scenarioQuest)) questTarget(target, target?.label || target?.name || scenarioQuest.title);
   }
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;

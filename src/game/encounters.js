@@ -88,6 +88,7 @@ export function selectNpcEncounter(world, rng = Math.random, last = G.char?.last
 
 function encounterFits(id, world) {
   const biome = world.biome?.id || '';
+  if (id === 'monster_hunter') return (world.creatures || []).some((m) => !m.dead && m.team === 'enemy' && m.packLeaderType);
   if (id === 'mysterious_pilgrim') return !['molten', 'hell', 'flesh'].includes(biome);
   if (id === 'cursed_wanderer') return !['ice_temple', 'frozen'].includes(biome) || chance(0.7);
   return true;
@@ -161,7 +162,7 @@ function questNpc(world, at, name, title, objective, look = 'default') {
   return e;
 }
 function trackQuest(world, n, title, objective) {
-  const quest = { id: `depth-npc:${world.depth}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, title, state: 'available', objective, rewardClaimed: false, npc: n };
+  const quest = { id: `depth-npc:${world.depth}:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, title, state: 'available', objective, rewardClaimed: false, npc: n, objectiveTarget: null };
   n.depthQuest = quest; n.questIndicator = '!';
   world.depthQuests ||= []; world.depthQuests.push(quest);
   return quest;
@@ -170,6 +171,8 @@ function questState(e, state, objective) {
   if (!e?.quest) return;
   e.quest.state = state;
   if (objective) e.quest.objective = objective;
+  if (state === 'objective-complete') e.quest.objectiveTarget = e.n || null;
+  else if (['rewarded', 'failed', 'declined'].includes(state)) e.quest.objectiveTarget = null;
   if (e.n) e.n.questIndicator = state === 'available' ? '!' : ['completed', 'rewarded', 'failed', 'declined'].includes(state) ? null : '?';
   UI.refresh();
 }
@@ -214,7 +217,7 @@ const BUILD = {
     const e = questNpc(world, at, 'Lost Adventurer', 'A Safe Road', 'Escort the adventurer to the marked safe room.');
     const n = e.n; e.destination = destination;
     markAvailable(n, e.quest.title, 'I lost the way back to my company. Walk with me to the marked safe room?', () => {
-      questState(e, 'accepted', 'Escort the adventurer to the marked safe room.'); n.followingEscort = true; n.say('Stay close. I will keep up.', 3);
+      questState(e, 'accepted', 'Escort the adventurer to the marked safe room.'); e.quest.objectiveTarget = { x: destination[0], y: destination[1], label: 'Safe Room' }; n.followingEscort = true; n.say('Stay close. I will keep up.', 3);
       e.marker = questMarker(world, e, 'Safe Room', '#a0e0ff', () => n.say('I need to reach the safe room first.', 2.5));
       n.onTick = (dt) => {
         if (!n.followingEscort || n.escortDone) return;
@@ -278,6 +281,7 @@ const BUILD = {
       questState(e, 'accepted', 'Find and open the marked stash.');
       e.cache = { x: siteAt[0], y: siteAt[1], opened: false, rare: true, reach: 1.4, far: 30, label: 'Hunter\'s Stash', dot: '#ffd060', encounter: e,
         use() { if (this.opened) return; this.opened = true; questState(e, 'objective-complete', 'Return to the hunter to complete the quest.'); dropChest(world, this, world.depth); sparkle(this.x, this.y, 18, '#ffd060', 22, 0.5); e.n.say('A clean find. The stash is yours; I only ask that you tell me how it went.', 3); } };
+      e.quest.objectiveTarget = e.cache;
       world.chests.push(e.cache);
       e.n.use = () => {
         if (e.quest.rewardClaimed) { e.n.say('A fine haul. Safe travels.', 2.5); return; }
@@ -292,7 +296,7 @@ const BUILD = {
     const e = questNpc(world, at, 'Trapped Explorer', 'A Way Out', 'Clear the guards, then return to the explorer.');
     e.guards = pack(world, at, randi(2, 3), 'normal'); e.guards.forEach((m) => { m.awake = false; });
     markAvailable(e.n, e.quest.title, 'These creatures have me pinned down. Drive them off and come back for me.', () => {
-      questState(e, 'accepted', 'Defeat the creatures holding the explorer.'); for (const m of e.guards) m.awake = true;
+      questState(e, 'accepted', 'Defeat the creatures holding the explorer.'); e.quest.objectiveTarget = () => e.guards.find((m) => !m.dead && world.creatures.includes(m)) || e.n; for (const m of e.guards) m.awake = true;
       e.n.say('I will stay here until it is safe.', 2.5);
       e.n.use = () => {
         if (e.quest.state === 'objective-complete') return choices(e.n, e.quest.title, 'The way is clear. I can get out now. Please take this for helping me.', [{ label: 'Rescue and claim reward', run: () => rewardQuest(world, e) }]);
@@ -374,23 +378,29 @@ const BUILD = {
   },
 
   monster_hunter(world, at) {
-    let target = world.creatures.find((m) => !m.dead && m.team === 'enemy' && m !== world.boss
-      && (m.rank === 'champion' || m.rank === 'unique') && world.map.findPath(at[0], at[1], m.x, m.y, 20000));
-    let spawned = false;
-    if (!target) { target = pack(world, [at[0] + 4, at[1]], 1, 'champion')[0]; spawned = !!target; }
-    if (!target || !world.map.findPath(at[0], at[1], target.x, target.y, 20000)) { if (spawned) world.remove(target); return null; }
-    const e = questNpc(world, at, 'Monster Hunter', 'Marked Prey', 'Defeat the marked champion, then return to the hunter.');
-    target.depthBountyMark = true; target.name = `Bounty: ${target.name}`; e.target = target;
-    markAvailable(e.n, e.quest.title, `A champion prowls this depth. Bring down ${target.name}, then return to me.`, () => {
-      questState(e, 'accepted', `Defeat ${target.name}.`); target.awake = true;
+    // A Pack Leader Hunt is only selected when a real ordinary pack leader was generated.
+    // Never manufacture a substitute champion: that would misrepresent both the quest and leader system.
+    const target = world.creatures.find((m) => !m.dead && m.team === 'enemy' && m !== world.boss
+      && m.packLeaderType && world.map.findPath(at[0], at[1], m.x, m.y, 20000));
+    if (!target) return null;
+    const displayName = target.packLeaderName || target.name;
+    const e = questNpc(world, at, 'Monster Hunter', 'Pack Leader Hunt', `Find and defeat the Pack Leader: ${displayName}.`);
+    target.depthQuestTarget = true; target.name = `Pack Leader: ${target.name}`; e.target = target;
+    markAvailable(e.n, e.quest.title, `A Pack Leader is hunting this depth. Find and defeat ${displayName}, then return to me for your reward.`, () => {
+      questState(e, 'accepted', `Find and defeat the Pack Leader: ${displayName}.`); e.quest.objectiveTarget = target; target.depthBountyMark = true; target.depthQuestNameplate = true; target.awake = true;
+      UI.log(`<b>Pack Leader Hunt:</b> Find and defeat ${displayName}. Its gold target is marked on your dungeon map.`, '#ffe080');
+      if (target.dead) {
+        questState(e, 'objective-complete', 'Return to the hunter and claim the bounty.');
+        UI.log('<b>Pack Leader already defeated.</b> Return to the Monster Hunter for your reward.', '#ffe080');
+      }
       e.n.use = () => {
         if (e.quest.rewardClaimed || e.quest.state === 'rewarded') { e.n.say('The mark is paid. You have my thanks.', 2.5); return; }
         if (target.dead && e.quest.state === 'accepted') questState(e, 'objective-complete', 'Return to the hunter and claim the bounty.');
         if (e.quest.state === 'objective-complete') return choices(e.n, e.quest.title, 'That is the mark. Here is your bounty.', [{ label: 'Claim bounty', run: () => rewardQuest(world, e, { gold: 1.5, items: 1, rare: true }) }]);
-        e.n.say(`${target.name} is still out there.`, 2.5);
+        e.n.say(`The Pack Leader, ${displayName}, is still out there. Its gold target is marked on your dungeon map.`, 3);
       };
     });
-    e.n.onTick = () => { if (e.quest.state === 'accepted' && target.dead) questState(e, 'objective-complete', 'Return to the hunter and claim the bounty.'); };
+    e.n.onTick = () => { if (e.quest.state === 'accepted' && target.dead) { questState(e, 'objective-complete', 'Return to the hunter and claim the bounty.'); UI.log('<b>Pack Leader defeated.</b> Return to the Monster Hunter for your reward.', '#ffe080'); } };
     return e;
   },
 
@@ -398,7 +408,7 @@ const BUILD = {
     const e = questNpc(world, at, 'Prisoner', 'The Unlocked Cell', 'Defeat the jailers, then speak to the prisoner.');
     e.guards = pack(world, at, randi(2, 4), 'normal'); e.guards.forEach((m) => { m.awake = false; });
     markAvailable(e.n, e.quest.title, 'The lock is weak, but my jailers are close. Clear them and I can get out.', () => {
-      questState(e, 'accepted', 'Defeat the jailers.'); e.guards.forEach((m) => { m.awake = true; });
+      questState(e, 'accepted', 'Defeat the jailers.'); e.quest.objectiveTarget = () => e.guards.find((m) => !m.dead && world.creatures.includes(m)) || e.n; e.guards.forEach((m) => { m.awake = true; });
       e.n.use = () => {
         if (guardsAround(e).length) { e.n.say('They are still guarding the cell!', 2.5); return; }
         if (e.quest.state === 'accepted') questState(e, 'objective-complete', 'Speak to the prisoner now that the jailers are gone.');
@@ -406,6 +416,13 @@ const BUILD = {
         if (!e.outcome) e.outcome = Math.random() < 0.2 ? 'betrayal' : 'thanks';
         if (e.outcome === 'betrayal') { questState(e, 'failed', 'The prisoner betrayed you.'); e.n.say('You were a fool to trust me!', 2); const m = pack(world, [e.x, e.y], 1, 'champion')[0]; if (m) { m.name = 'The Treacherous Prisoner'; m.awake = true; } world.npcs.splice(world.npcs.indexOf(e.n), 1); }
         else choices(e.n, e.quest.title, 'The prisoner is free and offers a small cache for the risk.', [{ label: 'Accept the reward', run: () => rewardQuest(world, e) }]);
+      };
+      e.n.onTick = () => {
+        if (e.quest.state === 'accepted' && !guardsAround(e).length) {
+          questState(e, 'objective-complete', 'The jailers are gone. Speak to the prisoner to claim your reward.');
+          e.n.say('The way is clear. Speak to me and I will make good on my promise.', 3);
+          UI.log('<b>Prisoner rescued.</b> Return to the prisoner to claim the reward.', '#ffe080');
+        }
       };
     });
     return e;
@@ -463,7 +480,7 @@ const BUILD = {
     e.target.name = 'The Fallen Knight'; e.target.depthBountyMark = true; e.target.awake = false; e.target.maxHp *= 1.35; e.target.hp = e.target.maxHp; e.target.dmg *= 0.85;
     e.n.use = () => {
       if (e.quest.state === 'available') return choices(e.n, e.quest.title, 'I will test your mettle, if you choose. A victory earns my last treasure; refusal carries no shame.', [
-        { label: 'Accept duel', run: () => { questState(e, 'accepted', 'Defeat the Fallen Knight and return.'); e.target.awake = true; } },
+        { label: 'Accept duel', run: () => { questState(e, 'accepted', 'Defeat the Fallen Knight and return.'); e.quest.objectiveTarget = e.target; e.target.awake = true; } },
         { label: 'Refuse duel', run: () => { questState(e, 'declined', 'You declined the optional duel.'); world.remove(e.target); e.target = null; e.n.say('Then go in peace. No shame in choosing your battles.', 3); } },
       ]);
       if (e.quest.rewardClaimed || e.quest.state === 'rewarded') { e.n.say('The duel is settled. You have my thanks.', 2.5); return; }
@@ -488,11 +505,20 @@ const BUILD = {
     world.npcs.push(n);
     const e = { kind: 'captive', x: at[0], y: at[1], n, guards: pack(world, at, randi(3, 5), 'champion') };
     e.world = world; e.quest = trackQuest(world, n, 'Free the Captive', 'Defeat the guards and speak to the captive.');
-    site(world, e, `Free ${n.name}`, '#ffd890', function () {
-      if (this.opened) return;
-      if (e.quest.state === 'available') questState(e, 'accepted', 'Defeat the guards and free the captive.');
-      if (guardsAround(e).length) { if (!n.talkT) n.say(pick(['Behind you!', 'They\'re still here!', 'Watch out!']), 1.6); n.feel('scared', 1.5); return; }
-      this.opened = true;
+    const rescue = () => {
+      if (e.quest.rewardClaimed) { n.say('You already freed me. I will never forget it.', 2.5); return; }
+      if (e.quest.state === 'available') {
+        return choices(n, 'Free the Captive', 'The guards have me trapped. Defeat them, then speak to me again to finish the rescue.', [{ label: 'Accept and help', run: () => {
+          questState(e, 'accepted', 'Defeat the guards threatening the captive.');
+          e.quest.objectiveTarget = () => e.guards.find((m) => !m.dead && world.creatures.includes(m)) || n;
+          for (const m of e.guards) m.awake = true;
+          n.say('Please hurry. They are still here!', 2.5);
+        } }]);
+      }
+      if (e.quest.state === 'accepted' && guardsAround(e).length) { if (!n.talkT) n.say(pick(['Behind you!', 'They\'re still here!', 'Watch out!']), 1.6); n.feel('scared', 1.5); return; }
+      if (e.quest.state === 'accepted') questState(e, 'objective-complete', 'The guards are defeated. Speak to the captive to complete the rescue.');
+      if (e.quest.state !== 'objective-complete') return;
+      marker.opened = true;
       n.calm = false; n.feel('relieved', 2.5); n.face(world.player.x, world.player.y);
       n.say(royal ? 'You... you saved me! The crown will hear of this!' : pick(['Free! Bless you, hero!', 'I thought I was done for!', 'Take this. Take all of it!']), 3);
       n.after(2, () => n.feel('cheer', 3));
@@ -501,7 +527,18 @@ const BUILD = {
       reward(world, n, royal ? { items: 2, rare: true, gold: 3, gem: true } : { items: 1, gold: 1.5 });
       UI.log(`You freed <b>${n.name}</b>${royal ? ' — a royal ransom is yours' : ''}.`, '#ffd890');
       leave(world, n, 7);
-    });
+    };
+    n.use = rescue;
+    const marker = site(world, e, `Free ${n.name}`, '#ffd890', rescue);
+    e.quest.objectiveTarget = null;
+    n.onTick = () => {
+      if (e.quest.state === 'accepted' && !guardsAround(e).length) {
+        questState(e, 'objective-complete', 'The guards are defeated. Speak to the captive to complete the rescue.');
+        n.feel('relieved', 3); n.say('The guards are gone! Speak to me to complete the rescue.', 3);
+        UI.log('<b>The captive is safe.</b> Speak to them to claim your rescue reward.', '#ffe080');
+      }
+    };
+    marker.use = rescue;
     return e;
   },
 
@@ -516,7 +553,7 @@ const BUILD = {
     k.onTick = (dt) => {
       if (ch.opened) return;
       const p = world.player;
-      if (!e.started && p && dist(p.x, p.y, k.x, k.y) < 10) { e.started = true; questState(e, 'accepted', 'Help the knight survive the champion pack.'); k.say(pick(['Hero! To me!', 'Help! I can\'t hold them!', 'Steel and faith - with me!']), 2.5); }
+      if (!e.started && p && dist(p.x, p.y, k.x, k.y) < 10) { e.started = true; questState(e, 'accepted', 'Help the knight survive the champion pack.'); e.quest.objectiveTarget = k; k.say(pick(['Hero! To me!', 'Help! I can\'t hold them!', 'Steel and faith - with me!']), 2.5); }
       if (!e.started) return;
       if (!e.woke) { e.woke = true; for (const m of e.guards) m.awake = true; }
       const foes = guardsAround(e, 3);
@@ -639,6 +676,8 @@ const BUILD = {
       if (e.state !== 'lurk') return;
       e.state = 'lead'; ch.opened = true;
       questState(e, 'accepted', 'Follow the Greener to its hidden cache.');
+      e.quest.objectiveTarget = g;
+      UI.log('<b>The Greener\'s Hidden Cache:</b> Follow the Greener to the hidden chest.', '#ffe080');
       g.feel('spooky', 1.8); g.say(pick(['BOO!', 'RAAAH! Got you!', 'Woooo, a dungeon ghost!']), 1.8);
       g.after(1.8, () => { g.feel('laugh', 2.5); g.say('Ha! Your face! Come on, I found treasure!', 2.5); });
       g.after(3.8, () => { e.state = 'run'; });
@@ -652,7 +691,7 @@ const BUILD = {
       const p = world.player;
       if (e.state === 'run') {
         const d = dist(g.x, g.y, loot[0], loot[1]);
-        if (d < 1.4) { e.state = 'wait'; cache.hidden = false; world.chests.push(cache); g.feel('point', 1e9); g.face(loot[0] + 1, loot[1]); g.say('Here! HERE!', 2); }
+        if (d < 1.4) { e.state = 'wait'; cache.hidden = false; world.chests.push(cache); e.quest.objective = 'Open the hidden chest.'; e.quest.objectiveTarget = cache; UI.refresh(); UI.log('<b>The Greener found the cache.</b> Open the marked chest.', '#ffe080'); g.feel('point', 1e9); g.face(loot[0] + 1, loot[1]); g.say('Here! HERE!', 2); }
         else {
           // run ahead, but wait up for the hero
           if (p && dist(p.x, p.y, g.x, g.y) > 9) { g.face(p.x, p.y); if (!g.talkT && chance(dt * 0.4)) g.say('Keep up!', 1.4); g.feel('impatient', 0.5, false); return; }
