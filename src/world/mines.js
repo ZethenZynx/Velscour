@@ -195,6 +195,8 @@ function build(depth, biome, seed, ts) {
       if (!map.t[i]) { map.t[i] = 1; map.block[i] = 1; }
     }
   }
+  // Keep the track raster on the map so the expanded map and minimap can show rails separately from mine flooring.
+  map.rail = rail;
   // arches over the tunnel mouths: square the shaft's wall off round each mouth (a 3-tile gap flanked by wall on a
   // straight line), then give it one of the pack's 3-span arches
   const openings = [], designs = archesFor(ts, 3);

@@ -18,7 +18,7 @@ import { homunculusPose } from '../gfx/homunculus.js';
 import { enemyImage } from '../core/enemyart.js';
 import { drawPetCorpse } from '../core/petart.js';
 import { drawLootLabels } from './loot.js';
-import { castleTileDressing, drawCastleParticles, drawCastleWater } from '../gfx/castleground.js';
+import { castleTileDressing, drawCastleParticles, drawCastleWater, MAT } from '../gfx/castleground.js';
 import { drawRim, RIM, xray, drawXray } from './creature.js';
 import { drawNebula } from '../gfx/breach.js';
 import { drawWyrm } from '../gfx/breachdragon.js';
@@ -27,10 +27,11 @@ import { drawCine } from './cinema.js';
 import { endgameUnlocked } from './endgame.js';
 import { heresyRankOf } from './heresies.js';
 import { addLight } from '../gfx/vfx.js';
-import { drawTerrain, drawColumn, occludersFor, occludersOfRect, occluderObj, clipAdd, hiddenBehind, standKey, hopZ, drawSky, terrainShade, HS } from '../gfx/terrain.js';
+import { drawTerrain, drawColumn, occludersFor, occludersOfRect, occluderObj, clipAdd, hiddenBehind, standKey, hopZ, drawSky, HS } from '../gfx/terrain.js';
 import { hopArc } from './alpine.js';
 import { townStorageChestArtFor } from '../data/town-storage-chests.js';
 import { CURSED_CHEST_VARIANT, selectDungeonChestVariant } from '../data/chestappearances.js';
+import { MAP_TERRAIN_COLORS, terrainColor, terrainKindFromName } from '../gfx/mapcolors.js';
 
 let lightCanvas = null, glowCanvas = null, vignette = null, vigKey = '';
 const transitionSprites = new Map();
@@ -205,6 +206,45 @@ function drawTransitionParticles(ctx, world, vr) {
 function floorEntry(world, v) {
   if (world.townTiles) return world.townTiles[v] || world.townTiles[0];
   return world.tileset.floors[v] || world.tileset.floors[0];
+}
+
+// Resolve a tile's material once per floor atlas. The map itself is redrawn as the player explores, but the art
+// metadata is static; this keeps minimap updates cheap on large outdoor and endgame maps.
+const floorMapColors = new WeakMap();
+function floorMapColor(world, variant) {
+  const floors = world.townTiles || world.tileset?.floors;
+  if (!floors) return terrainColor(null, world.biome?.id);
+  let colors = floorMapColors.get(floors);
+  if (!colors) floorMapColors.set(floors, (colors = new Map()));
+  const key = `${world.biome?.id || ''}:${variant}`;
+  if (colors.has(key)) return colors.get(key);
+  const floor = floors[variant] || floors[0];
+  const name = `${floor?.material || ''} ${floor?.surface || ''} ${floor?.name || ''}`;
+  const color = terrainColor(terrainKindFromName(name), world.biome?.id);
+  colors.set(key, color);
+  return color;
+}
+
+function mapTerrainColor(world, map, i) {
+  if (map.wet?.[i]) return map.wet[i] > 1 ? MAP_TERRAIN_COLORS.deepWater : MAP_TERRAIN_COLORS.water;
+  if (map.siegeIce?.[i]) return MAP_TERRAIN_COLORS.ice;
+  if (map.rail?.[i]) return MAP_TERRAIN_COLORS.rail;
+  if (map.castleMat) {
+    const m = map.castleMat[i];
+    if (m === MAT.water) return MAP_TERRAIN_COLORS.water;
+    if (m === MAT.sand) return MAP_TERRAIN_COLORS.sand;
+    if (m === MAT.forest || m === MAT.lush) return MAP_TERRAIN_COLORS.vegetation;
+    if (m === MAT.meadow || m === MAT.bright || m === MAT.mid || m === MAT.grave) return MAP_TERRAIN_COLORS.grass;
+    if (m === MAT.dirt || m === MAT.road || m === MAT.field || m === MAT.mud) return m === MAT.mud ? MAP_TERRAIN_COLORS.mud : MAP_TERRAIN_COLORS.dirt;
+    if (m === MAT.plank) return MAP_TERRAIN_COLORS.bridge;
+    if (m === MAT.wall || m === MAT.rampart || m === MAT.hall || map.castleRoomWalls?.[i] || map.rampartWall?.[i]) return MAP_TERRAIN_COLORS.wall;
+    if (m === MAT.cobble || m === MAT.pave || m === MAT.dark || m === MAT.moss) return m === MAT.moss ? MAP_TERRAIN_COLORS.grass : MAP_TERRAIN_COLORS.stone;
+  }
+  if (map.faceArt?.[i] && map.block?.[i]) return MAP_TERRAIN_COLORS.wall;
+  if (map.rampartDeck?.[i] || map.siegeDeck?.[i]) return MAP_TERRAIN_COLORS.stone;
+  let color = floorMapColor(world, map.v?.[i] || 0);
+  if (map.hgt && map.hgt[i] > (map.minLevel || 0) + 5 && (map.block?.[i] || map.castleRoomWalls?.[i])) color = MAP_TERRAIN_COLORS.wall;
+  return color;
 }
 
 /** The atlas slice a wall item (a wall arm, an arch slice or a door part) shows now; null for a shut door's leaf. */
@@ -1598,7 +1638,6 @@ export function drawMinimap(world, dt, canvas, big = false) {
   const cx = W / 2, cy = H / 2;
   const ox = big ? cx : cx - (p.x - p.y) * s, oy = big ? cy - ((map.w + map.h) / 4) * s + (big ? 0 : 0) : cy - ((p.x + p.y) * s) / 2;
   const toS = (x, y) => big ? [cx + (x - y) * s - ((map.w - map.h) * s) / 2, cy - ((map.w + map.h) * s) / 4 + ((x + y) * s) / 2] : [ox + (x - y) * s, oy + ((x + y) * s) / 2];
-  c.fillStyle = big ? 'rgba(200,180,140,0.35)' : 'rgba(170,150,120,0.55)';
   // the small map shows a window round the hero: only the tiles whose diamonds can land in it (the same order, so the
   // same picture), not the whole map (60k-100k tiles on the dunes and the Castle) five times a second
   let x0 = 0, x1 = map.w - 1, y0 = 0, y1 = map.h - 1;
@@ -1610,12 +1649,44 @@ export function drawMinimap(world, dt, canvas, big = false) {
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
       const i = y * map.w + x;
-      if ((map.t[i] !== 1 && !(map.wet && map.wet[i])) || !map.seen[i]) continue;
+      if (!map.seen[i]) continue;
+      const floor = map.t[i] === 1;
+      const wet = !!map.wet?.[i];
+      if (!floor && !wet) {
+        // Reveal only already-seen cells. Nearby void becomes a dark dungeon wall, while open sea/sky/rift tiles
+        // retain their own appearance. This makes mazes legible without exposing any unexplored passages.
+        let besideFloor = false;
+        const left = x > 0 ? i - 1 : -1, right = x + 1 < map.w ? i + 1 : -1;
+        const up = y > 0 ? i - map.w : -1, down = y + 1 < map.h ? i + map.w : -1;
+        if (left >= 0 && map.seen[left] && map.t[left] === 1) besideFloor = true;
+        if (!besideFloor && right >= 0 && map.seen[right] && map.t[right] === 1) besideFloor = true;
+        if (!besideFloor && up >= 0 && map.seen[up] && map.t[up] === 1) besideFloor = true;
+        if (!besideFloor && down >= 0 && map.seen[down] && map.t[down] === 1) besideFloor = true;
+        if (!besideFloor && !map.sea && !map.sky && !map.ghostTrain && !map.voidFace) continue;
+      }
       const [sx, sy] = toS(x, y);
       if (!big && (sx < -4 || sy < -4 || sx > W + 4 || sy > H + 4)) continue;
-      if (map.hgt) c.fillStyle = map.wet && map.wet[i] ? 'rgba(70,140,230,0.65)' : terrainShade(map, i); // paler up the mountain; the caves' water blue (and up the Castle's walls)
-      c.fillRect(sx - s * 0.5, sy, s, s * 0.6);
+      const tileColor = wet ? (map.wet[i] > 1 ? MAP_TERRAIN_COLORS.deepWater : MAP_TERRAIN_COLORS.water)
+        : floor ? mapTerrainColor(world, map, i)
+        : map.sea ? MAP_TERRAIN_COLORS.deepWater : map.sky || map.ghostTrain || map.voidFace ? MAP_TERRAIN_COLORS.void : MAP_TERRAIN_COLORS.wall;
+      c.fillStyle = tileColor;
+      c.globalAlpha = floor ? 0.96 : 0.88;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + s * 0.5, sy + s * 0.3); c.lineTo(sx, sy + s * 0.6); c.lineTo(sx - s * 0.5, sy + s * 0.3); c.closePath(); c.fill();
+      c.globalAlpha = 1;
+      // Solid obstacles remain identifiable while their terrain remains visible around them.
+      if (floor && map.block?.[i] && !wet && tileColor !== MAP_TERRAIN_COLORS.water && tileColor !== MAP_TERRAIN_COLORS.deepWater && tileColor !== MAP_TERRAIN_COLORS.bridge) {
+        c.fillStyle = 'rgba(12,14,16,0.72)';
+        c.fillRect(sx - s * 0.18, sy + s * 0.19, Math.max(1, s * 0.36), Math.max(1, s * 0.22));
+      }
     }
+  }
+  // Subtle doorway marks sit below the functional markers, and only appear after their tile is explored.
+  for (const door of map.doors || []) {
+    const tx = Math.floor(door.x), ty = Math.floor(door.y), i = ty * map.w + tx;
+    if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h || !map.seen[i]) continue;
+    const [sx, sy] = toS(door.x, door.y);
+    c.fillStyle = door.open ? '#b6a276' : '#81704d';
+    c.beginPath(); c.arc(sx, sy + s * 0.3, big ? 2 : 1.2, 0, TAU); c.fill();
   }
   const dot = (x, y, col, r) => { const [sx, sy] = toS(x, y); c.fillStyle = col; c.beginPath(); c.arc(sx, sy + s * 0.3, r, 0, TAU); c.fill(); };
   const questGiver = (x, y) => {
