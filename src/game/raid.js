@@ -643,7 +643,15 @@ class Raid {
       UI.log(`<b style="color:#ff8050">${label}</b> ahead: ${this.tpl.name}. ${this.mods.map((k) => `<b>${RAID_MODS[k].name}</b> (${RAID_MODS[k].desc})`).join(', ')}.`, '#ffc0a0');
       sfx('roar', 0.6);
     }
-    if (!m.awake) {
+    if (m.duneGuardian && !this.duneGuardianAwake) {
+      // Sea of Sand's surface guardian is revealed by the waystones, not pulled into combat by the unlock.
+      // It wakes only when the player enters its normal aggro radius or deals it a hit (combat marks it awake).
+      m.moving = false;
+      m.face(angleTo(m.x, m.y, p.x, p.y));
+      if (!m.awake && dist(m.x, m.y, p.x, p.y) > m.aggroRange) return;
+      this.duneGuardianAwake = true;
+      this.wake();
+    } else if (!m.awake) {
       m.moving = false;
       m.face(angleTo(m.x, m.y, p.x, p.y));
       if (!this.inside(p, 1.5)) return;

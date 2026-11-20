@@ -568,12 +568,12 @@ export function createDuneRun(world, gen, biome, onSuccess) {
   function startSurfaceBoss() {
     if (run.phase !== 'trek') return;
     run.phase = 'surface_boss';
-    UI.centerMsg('THE LAST WAYSTONE FALLS SILENT', 'A guardian rises in the plaza', 3.2);
-    UI.log('The obelisk trials are complete. Defeat the guardian at the pyramid plaza to open the exit.', '#ffe2a0');
+    UI.centerMsg('THE LAST WAYSTONE FALLS SILENT', 'The guardian waits at the plaza. Prepare before approaching.', 3.2);
+    UI.log('The obelisk trials are complete. The guardian waits at the pyramid plaza; approach when you are ready.', '#ffe2a0');
     const x0 = dv.pyramid.plaza.x0, y0 = dv.pyramid.plaza.y0, x1 = dv.pyramid.plaza.x1, y1 = dv.pyramid.plaza.y1;
     const arena = { cx: dv.pyramid.plazaC[0], cy: dv.pyramid.plazaC[1], x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, gate: { x: -40, y0: -40, y1: -39 } };
     const [artId, tplId, title] = v.bosses[1] || v.bosses[0];
-    run.surfaceBoss = boss(arena, artId, tplId, title, 1, 2.1);
+    run.surfaceBoss = boss(arena, artId, tplId, title, 1, 2.1, { dormant: true });
     [run.surfaceBoss.x, run.surfaceBoss.y] = map.randomNear(arena.cx, arena.cy + 1.5, 2);
     area(); UI.refresh();
   }
@@ -591,7 +591,7 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     e.boss = m; e.foes.push(m);
     UI.log(`<b style="color:#ff8050">${m.name}</b>, ${title}, bars the way down.`, '#ffc0a0');
   }
-  function boss(arena, artId, tplId, title, hpK, scale) {
+  function boss(arena, artId, tplId, title, hpK, scale, options = {}) {
     const tpl = RAID_BOSSES.find((b) => b.id === tplId) || pick(RAID_BOSSES.filter((b) => !b.sigs));
     const name = artName(artId) || tpl.name;
     const m = makeRaidBoss(world, arena, depth, lvl + 3, { tpl: { ...tpl, name, title, adds: DUNE_ROSTER.slice(0, 6) }, art: artId });
@@ -599,9 +599,13 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     m.raid.execT = Infinity;   // no execute timer in the tomb: the descent was the clock
     world.add(m); world.boss = m; world.raid = m.raid;
     [m.x, m.y] = map.randomNear(arena.cx + 0.5, arena.cy + 0.5, 2);
-    enter(m, 'burrow');
+    if (options.dormant) {
+      // The surface guardian is revealed by the waystone trials, but stays at its plaza spawn until approached or hit.
+      // Raid bosses normally wake when the player enters their arena; this one uses its ordinary aggro radius instead.
+      m.duneGuardian = true; m.aggroRange = 9; m.awake = false; m.moving = false;
+    } else enter(m, 'burrow');
     UI.centerMsg(name.toUpperCase(), title, 3);
-    sfx('roar', 0.7); camera.shake(6);
+    if (!options.dormant) { sfx('roar', 0.7); camera.shake(6); }
     return m;
   }
   function artName(id) { return ART_BY_ID[id]?.name || id.replace(/^ss_boss_|^ss_/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
@@ -658,6 +662,12 @@ export function createDuneRun(world, gen, biome, onSuccess) {
     onSuccess(); area(); UI.refresh();
   }
   const area = () => HUD.setArea(`Depth ${depth}`, `${pyramidOnly ? biome.name : v.name} · ${run.title}`);
+
+  // Keep the revealed surface guardian marked even when it is outside the minimap's nearby-enemy range.
+  cr.mapMarks = () => {
+    const b = run.surfaceBoss;
+    return run.phase === 'surface_boss' && b && !b.dead ? [[b.x, b.y, '#ff7040', 4, 'Sand Guardian']] : [];
+  };
 
   // ---------------------------------------------------------------- light, dust, sound
   let ambKey = '';

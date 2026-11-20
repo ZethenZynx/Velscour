@@ -53,7 +53,32 @@ const arg = process.argv[2] || 'all', mobile = process.argv.includes('mobile'), 
       await page.waitForTimeout(300); await shot(pre + id + '_waystone');
       await view(info.plaza[0], info.plaza[1] + 8, 0.55); await page.waitForTimeout(400); await shot(pre + id + '_plaza');
       await page.evaluate(() => { const { G } = window.VELSCOUR, r = G.world.overworldScenario; G.world.creatures = G.world.creatures.filter((c) => c === G.player || c.team === 'player'); G.world.rebuildGrid(); for (const e of r.camps) e.state = 'done'; });
+      await view(info.start[0], info.start[1], 0.9);
       await step(3);
+      const idleBoss = await page.evaluate(() => {
+        const { G } = window.VELSCOUR, w = G.world, r = w.overworldScenario, b = r.surfaceBoss;
+        const marker = w.cave.mapMarks().find((m) => m[4] === 'Sand Guardian');
+        return { phase: r.phase, awake: b?.awake, moving: b?.moving, entering: !!b?.entering, distance: b ? Math.hypot(G.player.x - b.x, G.player.y - b.y) : Infinity,
+          markerDistance: marker && b ? Math.hypot(marker[0] - b.x, marker[1] - b.y) : Infinity, position: b && [b.x, b.y] };
+      });
+      if (idleBoss.phase !== 'surface_boss' || idleBoss.awake || idleBoss.moving || idleBoss.entering || idleBoss.distance <= 9 || idleBoss.markerDistance > 0.01) errors.push(`[dunes ${id}] waystone completion engaged or moved the guardian early, or omitted its marker: ${JSON.stringify(idleBoss)}`);
+      if (id === ids[0]) {
+        await page.evaluate(async () => {
+          const { G } = window.VELSCOUR, { hit } = await import('/src/game/combat.js');
+          hit(G.player, G.world.overworldScenario.surfaceBoss, 1, 'phys');
+        });
+        await step(0.2);
+        const attacked = await page.evaluate(() => ({ awake: window.VELSCOUR.G.world.overworldScenario.surfaceBoss.awake }));
+        if (!attacked.awake) errors.push(`[dunes ${id}] an attack from outside the aggro radius did not wake the surface guardian`);
+      } else {
+        await page.evaluate(() => {
+          const { G } = window.VELSCOUR, w = G.world, b = w.overworldScenario.surfaceBoss, p = G.player;
+          [p.x, p.y] = w.map.nudge(b.x + 7, b.y, 0.35); p.path = null;
+        });
+        await step(1);
+        const approached = await page.evaluate(() => ({ awake: window.VELSCOUR.G.world.overworldScenario.surfaceBoss.awake }));
+        if (!approached.awake) errors.push(`[dunes ${id}] the surface guardian did not wake when approached within aggro range`);
+      }
       const result = await page.evaluate(async () => {
         const { G } = window.VELSCOUR, w = G.world, r = w.overworldScenario, { hit } = await import('/src/game/combat.js');
         const boss = r.surfaceBoss, phase = r.phase;
