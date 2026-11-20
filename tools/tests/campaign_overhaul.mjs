@@ -1,6 +1,7 @@
 // Isolated regression checks for campaign progression, endgame scaling, gear eligibility, and the one-time save reset.
 import assert from 'node:assert/strict';
 import { ACTS, FINAL_DEPTH, MAX_DEPTH, MAX_LEVEL, SUPERBOSS_DEPTHS, endgameScaling } from '../../src/data/depth.js';
+import { RAID_BOSSES } from '../../src/game/raid.js';
 import { RARITY, TIER_20_MIN_DEPTH, qualityAtDepth, sigilCap, RARITY_TIER_20 } from '../../src/data/items.js';
 import { affixCountForStreak, rollDungeonAffixesForStreak } from '../../src/data/dungeonaffixes.js';
 import { makeCovenant } from '../../src/data/relics.js';
@@ -10,6 +11,11 @@ assert.equal(MAX_LEVEL, 100);
 assert.equal(MAX_DEPTH, Number.MAX_SAFE_INTEGER);
 assert.deepEqual(ACTS.map((a) => [a.start, a.end]), [[1, 25], [26, 50], [51, 75], [76, 100]]);
 assert.equal(Object.keys(SUPERBOSS_DEPTHS).length, 20);
+for (const [depth, id] of Object.entries(SUPERBOSS_DEPTHS)) {
+  assert.equal(Number(depth) % 5, 0, `boss milestone ${depth} is not every five campaign depths`);
+  if (id !== 'velscour') assert.ok(RAID_BOSSES.some((boss) => boss.id === id), `missing assigned campaign boss ${id}`);
+}
+assert.deepEqual([25, 50, 75, 100].map((depth) => SUPERBOSS_DEPTHS[depth]), ['colossus', 'sekhmun', 'hollowmere', 'velscour']);
 for (let tier = 0; tier < RARITY.length; tier++) {
   const depth = 1 + tier * 25;
   assert.equal(RARITY[tier].minDepth, depth);
