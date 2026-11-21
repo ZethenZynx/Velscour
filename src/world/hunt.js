@@ -20,6 +20,7 @@ import { SAND_H } from './overworld.js';
 import { BIOME_BY_ID } from '../data/biomes.js';
 import { rollLooks } from '../data/bestiary.js';
 import { landOf } from '../data/huntlands.js';
+import { findNearbyInteractableSpot } from '../core/interactable-hit.js';
 
 export const HUNT_W = 96, HUNT_H = 96;
 const K = TW / 160; // town-pack source tiles are 160 x 80
@@ -430,6 +431,11 @@ function build(depth, biome, seed, savedSeed, land) {
     }
   }
 
+  // ---- the Crags' final elevation must be in place before validating body-sized
+  // interactable footprints (walkable tiles can still be separated by an impassable
+  // height step).
+  const hf = land.heights ? liftCrags(map, kind, paths, anchors, noise) : null;
+
   // ---- everything that matters must be walkable from the camp
   const seen = new Uint8Array(N), q = [id(Math.floor(START[0]), Math.floor(START[1]))];
   seen[q[0]] = 1;
@@ -440,12 +446,28 @@ function build(depth, biome, seed, savedSeed, land) {
       if (map.walkableTile(x + dx, y + dy) && !seen[j]) { seen[j] = 1; q.push(j); }
     }
   }
+  // Check the actual footprint of the caches after the full terrain and prop layout
+  // is known. A walkable center alone is not enough on the Crags: the player's body
+  // can still overlap the cliff edge, leaving the cache visible but unreachable.
+  const reachable = (x, y) => {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    return tx >= 0 && ty >= 0 && tx < W && ty < H && !!seen[id(tx, ty)];
+  };
+  const cacheSpotFree = (x, y) => map.walkable(x, y) && map.circleFree(x, y, 0.38) && reachable(x, y);
+  for (const chest of chests) {
+    if (cacheSpotFree(chest.x, chest.y)) continue;
+    // Deterministic local search keeps saved/rebuilt Hunts stable and relocates only
+    // a cache whose full interaction footprint is actually obstructed.
+    const best = findNearbyInteractableSpot(chest.x, chest.y, (x, y) => cacheSpotFree(x, y) &&
+      !chests.some((other) => other !== chest && dist([x, y], [other.x, other.y]) < 1.5));
+    if (!best) throw new Error(`seed ${seed}: hunt cache has no reachable approach`);
+    [chest.x, chest.y] = best;
+  }
+
   const must = [...anchors, exit, townPortal, ...clues.map((c) => [c.x, c.y]), ...chests.map((c) => [c.x, c.y])];
   const lost = must.filter(([x, y]) => !seen[id(Math.floor(x), Math.floor(y))]);
   if (lost.length) throw new Error(`seed ${seed}: ${lost.length} hunt spots unreachable`);
 
-  // ---- the Crags: a height map from the camp up to the lair on the peak, the rock in cliffs above the trail
-  const hf = land.heights ? liftCrags(map, kind, paths, anchors, noise) : null;
   // ---- floors
   const FL = huntFloors(land.floors), pick = FLOOR[land.id] || FLOOR.wood;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

@@ -7,6 +7,7 @@ import { SKILLS, isMovementSkill } from '../data/skills.js';
 import { SLOT_KEYS, RMB } from '../data/bar.js';
 import { Macros } from './macros.js';
 import { isPlayerHostile } from './targeting.js';
+import { chestSpriteHit, portalSpriteHit } from '../core/interactable-hit.js';
 
 function creatureAt(sx, sy) {
   const w = G.world;
@@ -25,6 +26,7 @@ function creatureAt(sx, sy) {
 
 function interactableAt(tx, ty, sx, sy) {
   const w = G.world;
+  const project = (x, y, z) => camera.tileToScreen(x, y, z);
   for (const n of w.npcs) {
     if (n.sbox) {
       const [x0, y0, x1, y1] = n.sbox;
@@ -32,8 +34,16 @@ function interactableAt(tx, ty, sx, sy) {
       if (sx >= a - 4 && sx <= c + 4 && sy >= b - 4 && sy <= d + 4) return n;
     }
   }
-  for (const c of w.chests) if (!c.opened && dist(c.x, c.y, tx, ty) < 0.8) return c;
-  for (const p of w.portals) if (dist(p.x, p.y, tx, ty) < 1.2 || (sy < camera.tileToScreen(p.x, p.y)[1] && sy > camera.tileToScreen(p.x, p.y, 80)[1] && Math.abs(sx - camera.tileToScreen(p.x, p.y)[0]) < 30 * camera.zoom)) return p;
+  // Chest art is much taller than its ground anchor. Picking only within 0.8 world
+  // tiles made the visible lid/body non-interactive, especially when a nearby
+  // isometric prop visually covered the floor point under the cursor.
+  for (const c of w.chests) {
+    if (!c || c.opened || c.hidden) continue;
+    if (chestSpriteHit(c, sx, sy, camera.zoom, project) || dist(c.x, c.y, tx, ty) < 0.8) return c;
+  }
+  for (const p of w.portals) {
+    if (dist(p.x, p.y, tx, ty) < 1.2 || portalSpriteHit(p, sx, sy, camera.zoom, project)) return p;
+  }
   return null;
 }
 
@@ -108,8 +118,10 @@ export const controls = {
         const it = interactableAt(tx, ty, mouse.x, mouse.y);
         const shift = input.down('ShiftLeft') || input.down('ShiftRight');
         if (loot) { p.lootTarget = loot; p.interact = null; p.attackTarget = null; p.setMoveTarget(loot.x, loot.y); this.mode = 'loot'; }
-        else if (isPlayerHostile(G.hover)) { this.mode = 'attack'; this.attack(G.hover, tx, ty); }
+        // When a chest, altar or portal is under the pointer, let its visible art
+        // take precedence over an overlapping creature or decorative prop.
         else if (it && !shift) { this.mode = 'interact'; p.attackTarget = null; p.interact = it; }
+        else if (isPlayerHostile(G.hover)) { this.mode = 'attack'; this.attack(G.hover, tx, ty); }
         else if (shift) { this.mode = 'attack'; this.useSlot(0, [tx, ty]); }
         else { this.mode = 'move'; p.attackTarget = null; p.interact = null; p.setMoveTarget(tx, ty); }
       } else if (mouse.left) {
