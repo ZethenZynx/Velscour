@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, selectPrismaticRewards, selectTreasureImp, treasureImpEligible } from '../../src/data/treasureimps.js';
+import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpEligible, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
 import { canEarnInfernalMarks } from '../../src/game/endgame.js';
 import { newCharData, migrate } from '../../src/game/save.js';
 import { itemValue, itemSellValue } from '../../src/data/items.js';
@@ -13,6 +13,13 @@ for (const imp of TREASURE_IMPS) {
   assert.equal(IMP_BY_ID[imp.id], imp);
   assert.ok(IMP_SPRITE_PATH(imp.id).endsWith(`/${imp.id}.png`));
 }
+assert.equal(IMP_MOVEMENT_PATTERNS.length, 5, 'multiple movement patterns are available');
+assert.equal(selectImpMovementPattern(() => 0).id, 'steady');
+assert.equal(selectImpMovementPattern(() => 0.999999).id, 'erratic');
+assert.ok(IMP_MOVEMENT_PATTERNS.find(({ id }) => id === 'erratic').turnMax < IMP_MOVEMENT_PATTERNS.find(({ id }) => id === 'steady').turnMin,
+  'the erratic pattern changes direction more often than the steady pattern');
+assert.equal(treasureImpSpriteScale(14, 0.9) * IMP_MAX_FOREGROUND_PIXELS * 0.9, 14,
+  'extracted art scale matches the original imp sprite height');
 
 for (const depth of [1, 25, 100]) {
   assert.equal(treasureImpEligible(IMP_BY_ID.set, { depth, endgameUnlocked: true, canEarnMarks: true }), false, `Set Imp is locked at campaign depth ${depth}`);
@@ -49,4 +56,4 @@ const merchantValue = itemValue({ ...item, vendorValueMult: 2.5 });
 assert.ok(merchantValue > itemValue(item) * 2.4, 'merchant equipment has substantially higher vendor value');
 assert.equal(itemSellValue({ ...item, vendorValueMult: 2.5 }), Math.max(1, Math.floor(merchantValue / 4)), 'vendor value and actual sell payout use the same calculation');
 
-console.log('Treasure Imp registry, progression gates, Prismatic rewards, save migration, and merchant value checks passed.');
+console.log('Treasure Imp registry, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');

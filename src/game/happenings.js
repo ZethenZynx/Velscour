@@ -30,7 +30,7 @@ import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixe
 import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
-import { IMP_BY_ID, IMP_SPRITE_PATH, selectPrismaticRewards, selectTreasureImp } from '../data/treasureimps.js';
+import { IMP_BY_ID, IMP_SPRITE_PATH, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpSpriteScale } from '../data/treasureimps.js';
 import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
 import { makeCovenant } from '../data/relics.js';
 import { grantMarks } from './marks.js';
@@ -473,12 +473,17 @@ function createTreasureImp(world, at, variant, options = {}) {
   const lvl = depthLevel(world.depth), m = makeMonster(world, 'imp', world.biome, lvl + 1, 'normal', at[0], at[1], 0, null);
   Object.assign(m, { name: variant.name, impVariant: variant.id, impColor: variant.color, nameColor: variant.color,
     goblin: true, aura: variant.color, scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [], impEffect: variant.effect,
-    impLeft: null, impDiscovered: false, impEscapeWarned: false, impParticleT: 0, dungeonEventImp: !!options.event });
+    impLeft: null, impDiscovered: false, impEscapeWarned: false, impParticleT: 0, dungeonEventImp: !!options.event,
+    impMovementPattern: selectImpMovementPattern(), impPatternTimer: rand(0, 0.12), impPatternSign: chance(0.5) ? 1 : -1 });
   m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5;
   m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
+  // Match the normalized sprite foreground to the actual legacy imp sprite height.
+  // This accounts for sprite scale and any biome-specific original imp artwork.
+  const originalSpriteHeight = m.spriteDims(m.spriteImage())[1];
+  const impSpriteScale = treasureImpSpriteScale(originalSpriteHeight, m.scale);
   m.artFrame = () => {
     const img = treasureImpSprite(variant.id);
-    return img ? { img, frame: 0, cw: img.naturalWidth, ch: img.naturalHeight, ax: img.naturalWidth / 2, ay: img.naturalHeight - 6, k: 0.34 } : null;
+    return img ? { img, frame: 0, cw: img.naturalWidth, ch: img.naturalHeight, ax: img.naturalWidth / 2, ay: img.naturalHeight - 5, k: impSpriteScale } : null;
   };
   const base = m.onDamaged.bind(m);
   m.onDamaged = (src, amount) => {
@@ -549,6 +554,17 @@ function impTick(world, dt) {
     if (m.dead) continue;
     const d = p ? dist(p.x, p.y, m.x, m.y) : Infinity;
     if (!m.impDiscovered && d <= 10 && world.map.los(p.x, p.y, m.x, m.y)) discoverImp(world, m);
+    if (p) {
+      const pattern = m.impMovementPattern;
+      m.impPatternTimer -= dt;
+      if (m.impPatternTimer <= 0) {
+        const away = Math.atan2(m.y - p.y, m.x - p.x);
+        m.impPatternSign *= -1;
+        m.impFleeAngle = away + rand(-pattern.spread, pattern.spread) + m.impPatternSign * pattern.side;
+        m.impFleeSpeedMul = pattern.speed * (pattern.id === 'darting' && chance(0.3) ? 1.18 : 1);
+        m.impPatternTimer = rand(pattern.turnMin, pattern.turnMax);
+      }
+    }
     m.status.fear = { t: 1 };
     m.impParticleT = (m.impParticleT || 0) - dt;
     if (m.impParticleT <= 0) { m.impParticleT = rand(0.14, 0.24); impParticle(m); }

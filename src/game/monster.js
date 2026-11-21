@@ -308,9 +308,11 @@ export class Monster extends Creature {
       if (t) {
         const a = angleTo(t.x, t.y, this.x, this.y);
         if (this.goblin) {
-          // Treasure Imps need to keep fleeing around walls instead of walking directly into corners.
+          // Treasure Imps keep their one spawn-selected flight pattern while pathfinding around walls.
+          const fleeAngle = Number.isFinite(this.impFleeAngle) ? this.impFleeAngle : a;
           const fleeDistance = 6;
-          this.navTo(this.x + Math.cos(a) * fleeDistance, this.y + Math.sin(a) * fleeDistance, dt, Math.max(this.speed, 4.0));
+          this.navTo(this.x + Math.cos(fleeAngle) * fleeDistance, this.y + Math.sin(fleeAngle) * fleeDistance, dt,
+            Math.max(this.speed, 4.0) * (this.impFleeSpeedMul || 1));
         } else this.moveToward(this.x + Math.cos(a) * 2, this.y + Math.sin(a) * 2, dt, this.speed * 0.8);
       }
       return;

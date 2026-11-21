@@ -34,6 +34,25 @@ export const TREASURE_IMPS = Object.freeze(TREASURE_IMP_DATA.map((imp) => Object
 
 export const IMP_BY_ID = Object.freeze(Object.fromEntries(TREASURE_IMPS.map((imp) => [imp.id, imp])));
 export const IMP_SPRITE_PATH = (id) => `assets/sprites/treasure-imps/${id}.png`;
+export const IMP_MAX_FOREGROUND_PIXELS = 70;
+export function treasureImpSpriteScale(originalSpriteHeight, creatureScale = 1) {
+  const h = Math.max(1, Number(originalSpriteHeight) || 1);
+  const s = Math.max(0.01, Number(creatureScale) || 1);
+  return h / (IMP_MAX_FOREGROUND_PIXELS * s);
+}
+
+export const IMP_MOVEMENT_PATTERNS = Object.freeze([
+  Object.freeze({ id: 'steady', weight: 35, turnMin: 1.2, turnMax: 1.9, spread: 0.2, side: 0.05, speed: 1.0 }),
+  Object.freeze({ id: 'zigzag', weight: 25, turnMin: 0.55, turnMax: 0.9, spread: 0.28, side: 0.72, speed: 1.04 }),
+  Object.freeze({ id: 'darting', weight: 17, turnMin: 0.35, turnMax: 0.65, spread: 0.62, side: 0.3, speed: 1.32 }),
+  Object.freeze({ id: 'feinting', weight: 15, turnMin: 0.65, turnMax: 1.05, spread: 0.92, side: 0.48, speed: 1.12 }),
+  Object.freeze({ id: 'erratic', weight: 8, turnMin: 0.18, turnMax: 0.36, spread: 1.35, side: 0.45, speed: 1.06 }),
+]);
+export function selectImpMovementPattern(random = Math.random) {
+  const total = IMP_MOVEMENT_PATTERNS.reduce((sum, pattern) => sum + pattern.weight, 0);
+  let roll = Math.max(0, Math.min(0.999999999999, Number(random()) || 0)) * total;
+  return IMP_MOVEMENT_PATTERNS.find((pattern) => (roll -= pattern.weight) < 0) || IMP_MOVEMENT_PATTERNS.at(-1);
+}
 
 export function treasureImpEligible(imp, { depth = 1, endgameUnlocked = false, canEarnMarks = false } = {}) {
   if (!imp || !Number.isFinite(Number(depth))) return false;
