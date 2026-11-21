@@ -10,7 +10,7 @@ import { GroundItem, rollGroundItem, rollGroundGem } from './loot.js';
 import { rollItem, rollSigil, rollGem, rarityAt, ABYSSAL, RARITY_MYTHIC, goldPile, RARITY } from '../data/items.js';
 import { hit } from './combat.js';
 import { RIFT_TIME, RIFT_QUOTA, RIFT_DENSITY, RIFT_GUARDIAN_HP, PYLONS, riftDepth, riftLevel, riftJump, riftWeight, riftReward, fmtTime, instabilitiesForTier } from '../data/rifts.js';
-import { markBonuses, grantMarks, riftMarks } from './marks.js';
+import { markBonuses, grantMarksWithBonus, riftMarks } from './marks.js';
 import { heroDamage } from './heroDamage.js';
 import { noteRiftBest, endgame } from './endgame.js';
 import { barred } from './leaderboard.js';
@@ -149,14 +149,16 @@ export function riftWin(world, m) {
   c.rifts.best = Math.max(c.rifts.best || 0, tier);
   c.rifts.open = Math.max(c.rifts.open || 1, tier + jump);
   c.rifts.bestTime[tier] = Math.min(c.rifts.bestTime[tier] || 1e9, Math.round(time * 10) / 10);
-  const marks = grantMarks(riftMarks(tier), `for Tier ${tier}`, world);
+  const rewardScale = 1 + (p?.st?.markRiftRewards || 0) / 100;
+  const scaledCount = (n) => Math.floor(n * rewardScale) + (chance((n * rewardScale) % 1) ? 1 : 0);
+  const marks = grantMarksWithBonus(riftMarks(tier), `for Tier ${tier}`, world, p?.st?.markRiftRewards || 0);
 
   // The Grand Piñata Reward Hoard:
   const RW = riftReward(tier, first), lvl = 100;
   const drop = (kind, data) => world.addLoot(new GroundItem(m.x + rand(-2.0, 2.0), m.y + rand(-2.0, 2.0), kind, data));
 
   // Equipment drops
-  for (let i = 0; i < (RW.items || 4); i++) {
+  for (let i = 0; i < scaledCount(RW.items || 4); i++) {
     const isAbyssal = (i === 0 && chance(RW.abyssal)) || (RW.abyssal >= 1 && i < 2);
     const rar = isAbyssal ? ABYSSAL : rarityAt(lvl, 5);
     drop('item', { item: rollGroundItem(lvl, { rarity: rar, maxRarity: isAbyssal ? ABYSSAL : RARITY_MYTHIC, mf: p ? p.st.magicFind : 0 }) });
@@ -164,14 +166,15 @@ export function riftWin(world, m) {
 
   // Abyssal Keys for Unbound Exploration
   if (RW.keys > 0) {
-    for (let k = 0; k < RW.keys; k++) drop('key', {});
-    UI.log(`<b style="color:#20e0ff">+${RW.keys} Abyssal Key${RW.keys > 1 ? 's' : ''}</b> dropped! Use them at the town portal for Unbound Exploration.`, '#a0f0ff');
+    const keys = scaledCount(RW.keys);
+    for (let k = 0; k < keys; k++) drop('key', {});
+    UI.log(`<b style="color:#20e0ff">+${keys} Abyssal Key${keys > 1 ? 's' : ''}</b> dropped! Use them at the town portal for Unbound Exploration.`, '#a0f0ff');
   }
 
   // Sigils, Gems & Gold
-  for (let i = 0; i < RW.sigils; i++) drop('item', { item: rollSigil(world.depth, RW.sigilBonus) });
-  for (let i = 0; i < 3; i++) drop('item', { item: rollGroundGem(lvl + 4) });
-  for (let i = 0; i < 6; i++) drop('gold', { amount: Math.round(goldPile(lvl) * rand(3, 6) * (1 + ((p && p.st.goldFind) || 0) / 100)) });
+  for (let i = 0; i < scaledCount(RW.sigils); i++) drop('item', { item: rollSigil(world.depth, RW.sigilBonus) });
+  for (let i = 0; i < scaledCount(3); i++) drop('item', { item: rollGroundGem(lvl + 4) });
+  for (let i = 0; i < 6; i++) drop('gold', { amount: Math.round(goldPile(lvl) * rand(3, 6) * (1 + (((p && p.st.goldFind) || 0) + (p?.st?.markGold || 0)) / 100) * rewardScale) });
 
   // Records
   const cheat = barred(c), best = !cheat && noteRiftBest(c.classId, tier, time);

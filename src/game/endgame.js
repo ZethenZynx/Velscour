@@ -3,28 +3,61 @@
 // its own localStorage key beside the heroes' saves and the Reliquary.
 import { G } from '../state.js';
 import { FINAL_DEPTH } from '../data/depth.js';
+import { INFERNAL_UPGRADES } from '../data/infernalupgrades.js';
 
 const KEY = 'velscour_endgame_v1';
-const MARKS_RESET_VERSION = 1;
-export const MARK_CATS = ['life', 'crit', 'mf', 'rift'];
+const MARKS_RESET_VERSION = 2;
+export const MARK_CATS = INFERNAL_UPGRADES.map((u) => u.id);
 let E = null;
 
-function blank() { return { v: 1, marksResetVersion: MARKS_RESET_VERSION, unlocked: 0, marks: { pts: 0, xp: 0, spent: { life: 0, crit: 0, mf: 0, rift: 0 } }, bests: {}, keysFound: 0, unboundWins: 0 }; }
+function blank() { return { v: 1, marksResetVersion: MARKS_RESET_VERSION, unlocked: 0, marks: { pts: 0, xp: 0, spentValue: 0, rewardRemainder: 0, legacyFerocity: 0, spent: Object.fromEntries(MARK_CATS.map((id) => [id, 0])) }, bests: {}, keysFound: 0, unboundWins: 0 }; }
 /** A record with every field present and sane (a damaged one keeps what it can). */
 export function fixEndgame(r) {
   const o = blank();
   if (!r || typeof r !== 'object') return o;
-  const resetLegacyMarks = (Number(r.marksResetVersion) || 0) < MARKS_RESET_VERSION;
+  const version = Number(r.marksResetVersion) || 0;
+  const resetLegacyMarks = version < 1;
   o.marksResetVersion = MARKS_RESET_VERSION;
   o.unlocked = Number(r.unlocked) > 0 ? Number(r.unlocked) : 0;
   const m = r.marks && typeof r.marks === 'object' ? r.marks : {};
-  // One-time policy reset: old campaign-earned Marks, spent bonuses, and partial
-  // Mark XP are removed from the shared account record; other endgame data stays.
+  // The historical v1 reset removed campaign-era points. Keep that policy for v0 data;
+  // the v1 -> v2 upgrade below preserves valid progression and refunds removed Fortune.
   o.marks.pts = resetLegacyMarks ? 0 : Math.max(0, Math.floor(Number(m.pts) || 0));
   o.marks.xp = resetLegacyMarks ? 0 : Math.max(0, Number(m.xp) || 0);
-  for (const k of MARK_CATS) o.marks.spent[k] = resetLegacyMarks ? 0 : Math.max(0, Math.floor(Number(m.spent && m.spent[k]) || 0));
-  let sum = MARK_CATS.reduce((s, k) => s + o.marks.spent[k], 0);
-  for (const k of MARK_CATS) if (sum > o.marks.pts) { const cut = Math.min(o.marks.spent[k], sum - o.marks.pts); o.marks.spent[k] -= cut; sum -= cut; }
+  if (!resetLegacyMarks && version < 2) {
+    const old = m.spent && typeof m.spent === 'object' ? m.spent : {};
+    const oldLife = Math.max(0, Math.floor(Number(old.life) || 0));
+    const oldCrit = Math.max(0, Math.floor(Number(old.crit) || 0));
+    const oldHaste = Math.max(0, Math.floor(Number(old.rift) || 0));
+    o.marks.spent.vitality = oldLife;
+    // Keep purchased ranks intact even when they exceed the new cap. The registry
+    // caps their effect, while the rank record remains available for migration/UI.
+    o.marks.spent.crit = oldCrit;
+    const legacyCritDamage = oldCrit > 0 ? 0.5 * (140 * (Math.sqrt(1 + oldCrit / 100) - 1)) : 0;
+    o.marks.spent.ferocity = Math.min(50, Math.floor(legacyCritDamage / 2));
+    o.marks.spent.haste = oldHaste;
+    // Precision's former critical-damage component moves to Ferocity without
+    // consuming a second rank or duplicating the bonus on Crit.
+    o.marks.legacyFerocity = Math.round((legacyCritDamage - o.marks.spent.ferocity * 2) * 100) / 100;
+    // Removed Fortune is fully refunded. Haste keeps its ranks, now affecting
+    // casting only; old Crit damage is moved to Ferocity without duplicate ranks.
+    // Marks.pts is the lifetime wallet (external purchases decrement it); removing
+    // these ranks from spentValue below makes the removed ranks available again.
+    o.marks.spentValue = oldLife + oldCrit + oldHaste;
+    o.marks.rewardRemainder = 0;
+  } else if (!resetLegacyMarks) {
+    for (const id of MARK_CATS) o.marks.spent[id] = Math.max(0, Math.floor(Number(m.spent?.[id]) || 0));
+    o.marks.spentValue = Math.max(0, Math.floor(Number(m.spentValue) || 0));
+    o.marks.rewardRemainder = Math.max(0, Math.min(0.999999, Number(m.rewardRemainder) || 0));
+    o.marks.legacyFerocity = Math.max(0, Number(m.legacyFerocity) || 0);
+  }
+  if (resetLegacyMarks) { o.marks.pts = 0; o.marks.xp = 0; o.marks.spentValue = 0; }
+  const sumRanks = MARK_CATS.reduce((sum, id) => sum + o.marks.spent[id], 0);
+  // A v2 record missing spentValue is repaired using legacy one-Mark-per-rank accounting.
+  if (o.marks.spentValue === 0 && sumRanks > 0 && version >= 2) o.marks.spentValue = sumRanks;
+  if (o.marks.spentValue > o.marks.pts) o.marks.spentValue = o.marks.pts;
+  // Keep purchased rank history intact. Legacy purchases used one Mark per rank;
+  // v2 purchases use escalating costs, so rank counts are not a reliable wallet check.
   if (r.bests && typeof r.bests === 'object') for (const [cls, b] of Object.entries(r.bests)) if (b && Number(b.tier) > 0) o.bests[cls] = { tier: Math.floor(Number(b.tier)), time: Math.max(0, Number(b.time) || 0), at: Number(b.at) || 0 };
   o.keysFound = Math.max(0, Math.floor(Number(r.keysFound) || 0));
   o.unboundWins = Math.max(0, Math.floor(Number(r.unboundWins) || 0));

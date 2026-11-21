@@ -2,6 +2,7 @@
 import { G } from '../state.js';
 import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG, rollDungeonAffixesForStreak, chooseDungeonAffix, normalizeDungeonAffixIds, applyDungeonAffix } from '../data/dungeonaffixes.js';
 import { rollTreasureChest } from '../data/treasurechests.js';
+import { addMarkBonusChest } from './markchests.js';
 import { input } from '../core/input.js';
 import { camera } from '../core/view.js';
 import { sfx, playMusic, stopMusic, setAmbience, stopAmbience, footsteps } from '../core/audio.js';
@@ -172,7 +173,7 @@ import { heresySpawns, heresyWorld, heresyBegin, heresyTick, heresiesOf, heresyR
 import { createRiftRun, riftTick, riftOpen, riftDepth, riftLevel, fmtTime, riftLeave, activatePylon, riftDeathPenalty, RIFT_QUOTA, RIFT_DENSITY } from './rifts.js';
 import { PYLONS } from '../data/rifts.js';
 import { unboundReady, spendKeys, keysOf, canEnterUnbound, spendUnboundKey, unboundWaypoints, MAX_UNBOUND_DEPTH, isUnboundCheckpointFloor, unboundDepth } from './unbound.js';
-import { grantMarks, saveMarkXp } from './marks.js';
+import { grantMarks, grantMarksWithBonus, saveMarkXp } from './marks.js';
 import { Heresies } from '../ui/heresies.js';
 import { Rifts } from '../ui/rifts.js';
 import { Marks } from '../ui/marks.js';
@@ -1320,6 +1321,9 @@ export const game = {
       : biome.id === 'scorpion_king_pyramid' && dunes3dReady() ? generateDunes(depth, biome, seed, DUNE_VARIANTS.findIndex((v) => v.id === 'red'))
       : biome.id === 'sea_of_sand' && (G.sandVariant ?? G.sandNext) > 0 && dunes3dReady() ? generateDunes(depth, biome, seed, (G.sandVariant ?? G.sandNext) - 1)
       : biome.overworld ? generateOverworld(depth, biome, seed, biome.id === 'castle' ? G.castleVariant ?? G.castleNext : null) : generateDungeon(depth, biome, tileset, seed, { practiceVelscour: practiceFinalBoss, unbound: !!G.unboundNext });
+    // Treasure Hunter is a deterministic extra procedural chest roll: rebuilding a kept
+    // area with the same seed reproduces the same result rather than rerolling a free chest.
+    addMarkBonusChest(gen, seed, G.player?.st?.markChestSpawn || 0);
     if (isStarterDepth) {
       const [sx, sy] = gen.start;
       let [cx, cy] = [sx - 1.25, sy];
@@ -1802,7 +1806,7 @@ export const game = {
     greedCleared(G.world, c); // the Greed lever pays into the Hoard (game/greed.js)
     if (worldRank(G.world) >= MARKS_RANK && !G.world.markPaid && canEarnInfernalMarks(G.world, c)) {
       G.world.markPaid = true;
-      grantMarks(1, `for a depth cleared at Heresy rank ${worldRank(G.world)}`, G.world);
+      grantMarksWithBonus(1, `for a depth cleared at Heresy rank ${worldRank(G.world)}`, G.world, G.player?.st?.markHeretic || 0);
     } // (docs/ENDGAME.md): rank rewards are endgame-only
     if (!clearDefiance(c, depth)) return;
     if (G.player) G.player.recompute();
@@ -2364,18 +2368,18 @@ export const game = {
           dmg: [p.maxHp * spec.damage, p.maxHp * spec.damage], el, fx: spec.fx || el,
           mode: ['gravity_wells', 'chaos_orbs', 'death_s_pursuit'].includes(id) ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
+          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixHazard: true, affixId: id } }));
       } else {
         w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius, delay: spec.warning || 0.9,
           dmg: p.maxHp * baseDamage * (w.affixSurgeUntil > w.time && w.affixSurgeId === id ? 1.25 : 1), el, fx: spec.fx || 'explosion',
-          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixHazard: true, affixId: id } }));
       }
       if (spec.log) UI.log(spec.log, spec.color || '#ffc080');
       if (id === 'corrupted_shrines') p.heal(p.maxHp * 0.03);
       if (id === 'unstable_elements' && chance(0.35)) {
         const extra = pick(['fire', 'cold', 'light', 'poison']);
         w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: 1.5, delay: 0.65,
-          dmg: p.maxHp * 0.04, el: extra, fx: extra, o: { team: 'enemy', crit: false, slow: extra === 'cold', burn: extra === 'fire', poison: extra === 'poison' } }));
+          dmg: p.maxHp * 0.04, el: extra, fx: extra, o: { team: 'enemy', crit: false, affixHazard: true, slow: extra === 'cold', burn: extra === 'fire', poison: extra === 'poison' } }));
       }
     };
 
@@ -2399,13 +2403,13 @@ export const game = {
           dur: spec.duration || 4, tick: 0.7, dmg: [damage, damage], el, fx: spec.fx,
           mode: spec.cyclone ? 'cyclone' : 'zone',
           vx: Math.cos(rand(0, Math.PI * 2)), vy: Math.sin(rand(0, Math.PI * 2)),
-          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixId: id } }));
+          heal: !!spec.heal, o: { ...(spec.o || {}), team: 'enemy', dot: true, crit: false, affixStatus: true, affixHazard: true, affixId: id } }));
         w.addHazard(new Delayed({ src: null, team: 'enemy', x, y, r: spec.radius,
           delay: spec.warning || 0.75, dmg: [0, 0], el, fx: spec.fx, o: { team: 'enemy' }, onImpact: createArea }));
       } else {
         w.addHazard(new Delayed({ src: null, team: 'enemy', affixCatalog: true, affixId: id, x, y, r: spec.radius,
           delay: spec.warning || 1, dmg: [damage, damage], el, fx: spec.fx,
-          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixId: id } }));
+          o: { ...(spec.o || {}), team: 'enemy', crit: false, affixStatus: true, affixHazard: true, affixId: id } }));
       }
     }
 
@@ -2413,7 +2417,7 @@ export const game = {
       w.affixOverloadT = (w.affixOverloadT ?? rand(7, 11)) - dt;
       if (w.affixOverloadT <= 0) {
         w.affixOverloadT = rand(7, 11);
-        w.addHazard(new Delayed({ src: null, team: 'enemy', x: p.x, y: p.y, r: 1.8, delay: 0.7, dmg: p.maxHp * 0.045, el: 'arcane', fx: 'nova', o: { team: 'enemy', crit: false } }));
+        w.addHazard(new Delayed({ src: null, team: 'enemy', x: p.x, y: p.y, r: 1.8, delay: 0.7, dmg: p.maxHp * 0.045, el: 'arcane', fx: 'nova', o: { team: 'enemy', crit: false, affixHazard: true } }));
       }
     }
 
@@ -2495,7 +2499,7 @@ export const game = {
       for (let n = 0; n < burst.count; n++) {
         w.addHazard(new Projectile({ src: null, team: 'enemy', x: burst.x, y: burst.y,
           ang: n / burst.count * Math.PI * 2, speed: burst.speed, range: burst.range, fx: burst.fx,
-          el: burst.el, dmg: burst.damage, o: { team: 'enemy', crit: false } }));
+          el: burst.el, dmg: burst.damage, o: { team: 'enemy', crit: false, affixHazard: true } }));
       }
     }
     if (w.affixCorpseMarkers) {

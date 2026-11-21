@@ -556,9 +556,10 @@ export const newUid = () => ++UID;
 export function makeGem(gem, tier) {
   return { uid: newUid(), type: 'gem', gem, tier: clamp(tier, 0, gemMaxTier(gem)), count: 1, ilvl: GEMS[gem] && GEMS[gem].sigil ? tier * 24 + 1 : tier * 15 + 1 };
 }
-export function rollGem(ilvl) {
+export function rollGem(ilvl, masteryPct = 0) {
   const maxTier = clamp(Math.floor(ilvl / 16), 0, 7); // the top two tiers only come from the Gem Forge
-  const tier = clamp(maxTier - (chance(0.6) ? randi(0, 1) : 0), 0, 7);
+  const lowerTierChance = clamp(0.6 - Math.max(0, masteryPct) / 100, 0, 0.6);
+  const tier = clamp(maxTier - (chance(lowerTierChance) ? randi(0, 1) : 0), 0, 7);
   const special = chance(0.08 + ilvl * 0.0012);
   return makeGem(special ? pick(SPECIAL_GEMS) : pick(NORMAL_GEMS), tier);
 }

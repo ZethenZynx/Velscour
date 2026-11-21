@@ -432,8 +432,10 @@ export function createBreachRun(world, gen, biome, floor, onWin) {
     record.best = Math.max(record.best || 0, floor);
     const r = breachReward(floor, first), il = lvl + 2, rar = rarityAt(il, r);
     const [hx, hy] = heart.C;
-    world.addLoot(new GroundItem(hx + 0.8, hy + 1.6, 'item', { item: rollGroundItem(il, { rarity: rar }) }));
-    for (let k = 0; k < 3; k++) world.addLoot(new GroundItem(hx + rand(-1.2, 1.2), hy + 1 + rand(0, 1.2), 'gold', { amount: Math.round(40 * Math.pow(1.06, goldLvl(il)) * rand(0.8, 1.3)) }));
+    const breachBonus = Math.max(0, G.player?.st?.markBreachRewards || 0);
+    const gearRolls = 1 + (chance(Math.min(1, breachBonus / 100)) ? 1 : 0);
+    for (let k = 0; k < gearRolls; k++) world.addLoot(new GroundItem(hx + 0.8 + rand(-0.3, 0.3), hy + 1.6 + rand(-0.3, 0.3), 'item', { item: rollGroundItem(il, { rarity: rar }) }));
+    for (let k = 0; k < 3; k++) world.addLoot(new GroundItem(hx + rand(-1.2, 1.2), hy + 1 + rand(0, 1.2), 'gold', { amount: Math.round(40 * Math.pow(1.06, goldLvl(il)) * rand(0.8, 1.3) * (1 + breachBonus / 100)) }));
     UI.centerMsg('THE BREACH HEART IS SEALED', `Floor ${floor} conquered${first ? ' for the first time' : ''} · a ${RARITY[rar].name} prize`, 4);
     UI.log(`The Heart of Floor ${floor} gives up a <b style="color:${RARITY[rar].color}">${RARITY[rar].name}</b> treasure.${first ? '' : ' (Its first-clear prize was claimed before.)'}`, RARITY[rar].color);
     onWin(run, first);

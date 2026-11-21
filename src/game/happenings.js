@@ -30,6 +30,7 @@ import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixe
 import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
+import { grantMarksWithBonus } from './marks.js';
 import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpSpawnDelay, treasureImpSpriteScale } from '../data/treasureimps.js';
 import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
 import { makeCovenant } from '../data/relics.js';
@@ -343,7 +344,7 @@ export function spawnNemesis(world, [x, y], N) {
 
 // ------------------------------------------------------------------------------------------------ treasure imp
 /** A Treasure Imp's coins: `base` on the old line, kept up with prices (goldScale), gold find and the Greed lever. */
-const impGold = (world, lvl, base) => Math.round(base * goldScale(lvl) * rand(0.7, 1.5) * (1 + ((G.player && G.player.st.goldFind) || 0) / 100) * (world.goldMul || 1));
+const impGold = (world, lvl, base) => Math.round(base * goldScale(lvl) * rand(0.7, 1.5) * (1 + (((G.player && G.player.st.goldFind) || 0) + ((G.player && G.player.st.markGold) || 0)) / 100) * (world.goldMul || 1));
 const IMP_JACKPOT_REWARDS = new Set(['gold', 'relic', 'merchant', 'hoarder', 'jackpot', 'jewel', 'alchemist', 'sigil', 'set', 'enchanted', 'mystic', 'fortune', 'artisan', 'abyssal']);
 function impEncounteredInArea(world) {
   return hasTreasureImpArea(treasureImpAreaKey(world), G.char?.treasureImpRandomAreas);
@@ -369,7 +370,7 @@ function recordGuaranteedImp(world) {
 function impContext(world) {
   return { depth: world.depth || 1, endgameUnlocked: endgameUnlocked(G.char), canEarnMarks: canEarnInfernalMarks(world, G.char) };
 }
-function impQuantity(count, multiplier) { return Math.max(1, Math.ceil(count * multiplier)); }
+function impQuantity(count, multiplier) { const n = count * multiplier; return Math.max(1, Math.floor(n) + (chance(n % 1) ? 1 : 0)); }
 function impDrop(world, m, kind, data = {}) {
   world.addLoot(new GroundItem(m.x + rand(-0.24, 0.24), m.y + rand(-0.24, 0.24), kind, data));
 }
@@ -386,15 +387,20 @@ function impDropGear(world, m, lvl, count, options = {}, multiplier = 1) {
 function impDropGems(world, m, lvl, count, multiplier = 1, levelBonus = 6) {
   for (let i = 0; i < impQuantity(count, multiplier); i++) impDrop(world, m, 'item', { item: rollGroundGem(lvl + levelBonus) });
 }
+function scaleImpBlessing(stats) {
+  const scale = 1 + (G.player?.st?.markImpReward || 0) / 100;
+  return scale === 1 ? stats : Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, typeof value === 'number' ? value * scale : value]));
+}
 function impBlessing(id, name, color, stats, seconds, extra = {}) {
   const p = G.player;
   if (!p || typeof p.addBuff !== 'function') return false;
+  stats = scaleImpBlessing(stats);
   p.addBuff({ id: `treasure_imp_${id}`, name, el: 'holy', stats, t: seconds, max: seconds, ...extra });
   UI.log(`<b style="color:${color}">${name}</b> — ${seconds} seconds.`, color);
   return true;
 }
 function grantImpReward(world, m, variant, options = {}) {
-  const lvl = depthLevel(world.depth), qty = options.qty || 1, p = G.player;
+  const lvl = depthLevel(world.depth), qty = (options.qty || 1) * (1 + (G.player?.st?.markImpReward || 0) / 100), p = G.player;
   switch (variant.reward) {
     case 'gold':
       impDropGold(world, m, lvl, 25 + lvl * 6, 24, qty);
@@ -455,12 +461,12 @@ function grantImpReward(world, m, variant, options = {}) {
       impDropGems(world, m, lvl, 1, qty);
       break;
     case 'abyssal':
-      if (canEarnInfernalMarks(world, G.char)) grantMarks(impQuantity(1, qty), 'from an Abyssal Imp', world);
+      if (canEarnInfernalMarks(world, G.char)) grantMarksWithBonus(1, 'from an Abyssal Imp', world, Math.max(0, (qty - 1) * 100));
       break;
     case 'prismatic': {
       const categories = selectPrismaticRewards(impContext(world));
       const descriptions = categories.map((item) => item.name).join(', ');
-      for (const category of categories) grantImpReward(world, m, category, { qty: 1 });
+      for (const category of categories) grantImpReward(world, m, category, { qty: options.qty || 1 });
       if (categories.length) UI.log(`<b style="color:${variant.color}">Prismatic cache:</b> ${descriptions}.`, variant.color);
       break;
     }
@@ -598,7 +604,7 @@ export function spawnGuaranteedImp(world) {
   }
   if (world.impRandomEligible && !hasTreasureImpArea(key, c.treasureImpRandomAreas) && !c.treasureImpRandomCheckedAreas.includes(key)) {
     c.treasureImpRandomCheckedAreas.push(key);
-    if (chance(0.3)) c.treasureImpRandomPending[key] = treasureImpSpawnDelay();
+    if (chance(Math.min(1, 0.3 + (G.player?.st?.markImpSpawn || 0) / 100))) c.treasureImpRandomPending[key] = treasureImpSpawnDelay();
     changed = true;
   }
   world.happen.impGuaranteedT = c.treasureImpGuaranteedPending[key];

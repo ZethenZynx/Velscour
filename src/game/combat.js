@@ -123,6 +123,10 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
 
   if (tgt.isPlayer) {
     const st = tgt.st;
+    if (!o.dot && (st.markEvasion || 0) > 0 && chance(Math.min(0.2, st.markEvasion / 100))) {
+      floatText(tgt.x, tgt.y, 42, 'Evaded', '#a8e8ff', 12);
+      return 0;
+    }
     if (!o.dot && st.block > 0 && chance(Math.min(0.6, st.block / 100))) {
       floatText(tgt.x, tgt.y, 40, 'Blocked', '#c0c8d0', 12);
       sfx('block');
@@ -140,6 +144,10 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     const res = rk ? st.res[rk] : st.res.magic;
     dmg *= 1 - clamp(res, -100, 75) / 100;
     dmg *= 1 - clamp(st.reduce || 0, 0, 60) / 100;
+    if (o.dot && st.markDotReduce) dmg *= 1 - Math.min(60, st.markDotReduce) / 100;
+    if (o.affixHazard && st.markAffixReduce) dmg *= 1 - Math.min(60, st.markAffixReduce) / 100;
+    if (src?.rank === 'boss' && st.markBossReduce) dmg *= 1 - Math.min(60, st.markBossReduce) / 100;
+    if (tgt.hp < tgt.maxHp * 0.35 && st.markLowHpReduce) dmg *= 1 - Math.min(60, st.markLowHpReduce) / 100;
     dmg *= 1 + clamp(st.damageTakenPct || 0, 0, 100) / 100;
     if (worldAffixes.has('mortal_vulnerability') && (tgt.affixCritVulnerableT || 0) > 0) dmg *= 1.1;
     if (tgt.affixShieldT > 0) dmg *= 1 - (tgt.affixShield || 0.25);
@@ -161,6 +169,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
       return 0;
     }
     let res = (tgt.res && tgt.res[el === 'astral' ? 'arcane' : el]) || 0;
+    if (fromPlayer && owner.st?.markPenetration) res -= Math.min(40, owner.st.markPenetration) / 100;
     if (el === 'arcane' || el === 'astral') res *= 0.5;
     dmg *= 1 - clamp(res, -1, 0.9);
     if (tgt.affixAdaptiveRes?.[el]) dmg *= 1 - Math.min(0.3, tgt.affixAdaptiveRes[el]);
@@ -183,6 +192,12 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
     if (fromPlayer && owner.raidDmgMul) dmg *= owner.raidDmgMul;
     if (fromPlayer) {
       const st = owner.st;
+      if (['elite', 'champion', 'unique'].includes(tgt.rank) && tgt.rank !== 'boss') dmg *= 1 + Math.max(0, st.markEliteDamage || 0) / 100;
+      if (tgt.hp >= tgt.maxHp - 1e-8) dmg *= 1 + Math.max(0, st.markFullHealthDamage || 0) / 100;
+      if (tgt.hp <= tgt.maxHp * 0.3) dmg *= 1 + Math.max(0, st.markExecution || 0) / 100;
+      if (world?.rift) dmg *= 1 + Math.max(0, st.markRiftDamage || 0) / 100;
+      if (world?.unbound || world?.unboundExploration || tgt.isVelscour) dmg *= 1 + Math.max(0, st.markUnboundDamage || 0) / 100;
+      if (tgt.impVariant) dmg *= 1 + Math.max(0, st.markImpDamage || 0) / 100;
       if (tgt.rank === 'boss' && st.bossDmg) dmg *= 1 + st.bossDmg / 100;
       if (worldAffixes.has('cursed_fortune')) dmg *= 1.15;
       if (src.isPlayer && !o.dot && o.crit !== false && chance(st.critChance / 100)) {
@@ -315,8 +330,8 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   }
   if (enemyAttack && src.rank === 'boss' && sourceAffixes.includes('boss_aftershock') && tgt.isPlayer && actualDamage > 0) {
     world.affixFields ||= [];
-    world.affixFields.push({ x: tgt.x, y: tgt.y, radius: 1.5, damage: actualDamage * 0.28, el: el || 'phys', t: 0.65,
-      delayT: 0.35, tickT: 0, interval: 1, label: 'Aftershock', color: '#ff8040' });
+    world.affixFields.push({ src, x: tgt.x, y: tgt.y, radius: 1.5, damage: actualDamage * 0.28, el: el || 'phys', t: 0.65,
+      delayT: 0.35, tickT: 0, interval: 1, label: 'Aftershock', color: '#ff8040', o: { affixHazard: true } });
     world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 1.5, dur: 0.65, warning: 0.35, color: '#ff8040', fx: el === 'fire' ? 'fire' : el === 'cold' ? 'frost' : el === 'poison' ? 'poison' : el === 'shadow' ? 'void' : null }));
   }
   if (tgt.isPlayer && enemyAttack && worldAffixes.has('lingering_wounds')) {
@@ -369,7 +384,7 @@ export function hit(src, tgt, amount, el = 'phys', o = {}) {
   // not raw damage, which runs far ahead of hero life (it healed whole life bars a hit)
   if (fromPlayer && src.isPlayer && !tgt.isPlayer && !o.worldObjectBonus) {
     const st = src.st, share = Math.min(1, dmg / Math.max(1, tgt.maxHp)) * LEECH_K;
-    const ls = (st.lifeSteal + (worldAffixes.has('vampiric_blessing') ? 4 : 0) + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
+    const ls = (st.lifeSteal + (st.markLifeSteal || 0) + (worldAffixes.has('vampiric_blessing') ? 4 : 0) + (o.leech ? 4 : 0) + (el === 'shadow' ? 2 : 0) + (el === 'blood' ? 3 : 0)) / 100;
     if (ls > 0) src.heal(share * src.maxHp * ls * (o.dot ? 0.3 : 1), true);
     if (st.manaSteal > 0) src.mana = Math.min(src.maxMana, src.mana + share * src.maxMana * st.manaSteal / 100);
     if (tgt.curses.leech && tgt.curses.leech.t > 0) src.heal(share * src.maxHp * tgt.curses.leech.amt / 100 * 0.3, true);
@@ -401,19 +416,21 @@ function applyStatus(src, tgt, dmg, el, o) {
   const leaderBuff = tgt.enemyLeaderBuff?.until > (tgt.world?.time || 0) ? tgt.enemyLeaderBuff : null;
   const crowdControlLands = !leaderBuff?.ccResist || !chance(leaderBuff.ccResist);
   const leg = src && src.isPlayer ? src.st.legendary : {};
+  const dotTime = src?.isPlayer ? 1 + Math.max(0, src.st?.markDotDuration || 0) / 100 : 1;
+  const ccTime = tgt.isPlayer ? 1 - Math.min(60, tgt.st?.markCcReduce || 0) / 100 : 1;
   const unyielding = tgt.team === 'enemy' && (tgt.dungeonAffixIds || []).includes('unyielding');
-  if (el === 'fire' && (o.burn || chance(0.25))) s.burn = { t: 3, dps: Math.max(s.burn && s.burn.t > 0 ? s.burn.dps : 0, dmg * (o.burn ? 0.35 : 0.2)), src };
+  if (el === 'fire' && (o.burn || chance(0.25))) s.burn = { t: (s.burn && s.burn.t > 0 ? Math.max(s.burn.t, 3 * dotTime) : 3 * dotTime), dps: Math.max(s.burn && s.burn.t > 0 ? s.burn.dps : 0, dmg * (o.burn ? 0.35 : 0.2)), src };
   if (el === 'poison' || o.poison) {
     const prior = s.poison && s.poison.t > 0 ? s.poison.dps : 0;
     const stack = src && src.team === 'enemy' && src.dungeonAffixIds?.includes('poisonous_strikes') ? prior * 0.15 : 0;
-    s.poison = { t: 3.5, dps: Math.max(prior, dmg * (o.poison ? 0.45 : 0.3)) + stack, src };
+    s.poison = { t: Math.max(s.poison?.t || 0, 3.5 * dotTime), dps: Math.max(prior, dmg * (o.poison ? 0.45 : 0.3)) + stack, src };
   }
-  if (el === 'blood' || o.bleed) s.bleed = { t: 3, dps: Math.max(s.bleed && s.bleed.t > 0 ? s.bleed.dps : 0, dmg * 0.3), src };
-  if (crowdControlLands && !unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2, amt: o.slow ? 0.45 : 0.3 };
-  if (crowdControlLands && !unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: tgt.isPlayer ? 0.8 : 1.4 };
-  if (crowdControlLands && !unyielding && o.stun && (!boss || chance(0.15))) s.stun = { t: tgt.isPlayer ? 0.5 : 1.1 };
-  if (crowdControlLands && o.fear && !boss) s.fear = { t: 2.5 };
-  if (el === 'acid') { s.shred = { t: 3, amt: 0.15 }; s.slow = { t: 2, amt: 0.15 }; }
+  if (el === 'blood' || o.bleed) s.bleed = { t: Math.max(s.bleed?.t || 0, 3 * dotTime), dps: Math.max(s.bleed && s.bleed.t > 0 ? s.bleed.dps : 0, dmg * 0.3), src };
+  if (crowdControlLands && !unyielding && (el === 'cold' || o.slow || leg.frostbite)) s.chill = { t: 2.2 * (tgt.isPlayer ? ccTime : 1), amt: o.slow ? 0.45 : 0.3 };
+  if (crowdControlLands && !unyielding && ((o.freeze && chance(boss ? 0 : 0.35)) || (leg.frostbite && chance(0.1) && !boss))) s.freeze = { t: (tgt.isPlayer ? 0.8 : 1.4) * (tgt.isPlayer ? ccTime : 1) };
+  if (crowdControlLands && !unyielding && o.stun && (!boss || chance(0.15))) s.stun = { t: (tgt.isPlayer ? 0.5 : 1.1) * (tgt.isPlayer ? ccTime : 1) };
+  if (crowdControlLands && o.fear && !boss) s.fear = { t: 2.5 * (tgt.isPlayer ? ccTime : 1) };
+  if (el === 'acid') { s.shred = { t: 3 * dotTime, amt: 0.15 }; s.slow = { t: 2 * (tgt.isPlayer ? ccTime : 1), amt: 0.15 }; }
   if (o.curse && !tgt.isPlayer) for (const c of o.curse) tgt.curses[c] = { t: 5, amt: 25, src };
   if (o.knock && !unyielding && !tgt.static && !boss) {
     const a = o.ang ?? (src ? angleTo(src.x, src.y, tgt.x, tgt.y) : 0);
@@ -493,14 +510,14 @@ export function kill(tgt, src, info = {}) {
       world.affixFields ||= [];
       world.affixFields.push({ id, x: tgt.x, y: tgt.y, radius, damage, el, t: duration, delayT,
         tickT: delayT, interval: id === 'static_discharge' || id === 'shrapnel' ? 10 : 0.65,
-        label: id.replaceAll('_', ' '), color: elem(el).glow, o });
+        label: id.replaceAll('_', ' '), color: elem(el).glow, o: { ...o, affixHazard: true } });
       world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: radius, dur: duration, warning: delayT, color: elem(el).glow, fx: fxOverride || (id === 'toxic_remains' ? 'poison' : id === 'frostburst' ? 'frost' : ['corpse_explosion', 'burning_ground', 'chain_reaction'].includes(id) ? 'fire' : id === 'death_nova' ? 'nova' : id === 'necrotic_remains' ? 'void' : null) }));
     };
     if (worldAffixes.has('toxic_remains')) pushField('toxic_remains', 'poison', 2.1, tgt.maxHp * 0.035, 4, 0, { poison: true });
     if (worldAffixes.has('static_discharge')) {
       world.affixProjectileBursts ||= [];
       const delayT = 0.4;
-      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'light', fx: 'spark', count: 8, speed: 7, range: 5, damage: Math.max(1, tgt.dmg * 0.45), delayT });
+      world.affixProjectileBursts.push({ x: tgt.x, y: tgt.y, el: 'light', fx: 'spark', count: 8, speed: 7, range: 5, damage: Math.max(1, tgt.dmg * 0.45), delayT, affixHazard: true });
       world.addHazard(new AffixFieldMarker({ x: tgt.x, y: tgt.y, r: 5, dur: delayT, warning: delayT, color: elem('light').glow, fx: 'storm', spokes: true }));
     }
     if (worldAffixes.has('frostburst')) pushField('frostburst', 'cold', 2.2, tgt.dmg * 0.8, 0.9, 0.35, { slow: true, freeze: true });
@@ -584,6 +601,7 @@ export function kill(tgt, src, info = {}) {
     const p = G.player;
     if (p && !tgt.noLoot) {
       if (tgt.team === 'enemy' && !tgt.noLoot) { p.gainXp(tgt.xp || 0); if (tgt.lastSk) p.gainMastery(tgt.lastSk, tgt.xp || 0); }
+      if (tgt.team === 'enemy' && !tgt.noLoot && p.maxMana > 0 && p.st.markManaOnKill > 0) p.mana = Math.min(p.maxMana, p.mana + p.maxMana * Math.min(50, p.st.markManaOnKill) / 100);
       if (!tgt.noLoot) p.char.kills = (p.char.kills || 0) + 1;
       const leg = p.st.legendary;
       if (leg.bloodbath) {

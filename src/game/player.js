@@ -139,7 +139,11 @@ export class Player extends Creature {
     const attr = (k) => c.attrs[k] + (add[k] || 0) + (add.allAttr || 0);
     const str = attr('str'), dex = attr('dex'), vit = attr('vit'), int = attr('int');
     // crit chance caps at 75%: what lies past it is not wasted, each 1% becomes CRIT_OVER% critical damage
-    const critRaw = 5 + dex * 0.1 + (add.critChance || 0) + buffCrit / 4 + mk.crit, critOver = Math.max(0, critRaw - 75);
+    const baseCritRaw = 5 + dex * 0.1 + (add.critChance || 0) + buffCrit / 4;
+    const critRaw = baseCritRaw + mk.crit;
+    // Mark Crit is chance-only. Preserve the game's normal overflow conversion for
+    // gear/buffs, but do not turn excess Mark chance into critical damage.
+    const critOver = Math.max(0, baseCritRaw - 75);
     const st = {
       str, dex, vit, int, legendary, procs: rb.procs,
       armor: Math.round((itemArmorSum + (add.armor || 0) + str + (c.level - 1) * 1.5) * (1 + ((add.armorPct || 0) + buffArmor) / 100)),
@@ -153,8 +157,8 @@ export class Player extends Creature {
       critChance: clamp(critRaw, 0, 75), critOver,
       critDmg: 50 + (add.critDmg || 0) + buffCritDmg + mk.critDmg + critOver * CRIT_OVER,
       atkSpeed: Math.min(150, dex * 0.3 + (add.atkSpeed || 0) + buffAs),
-      castSpeed: Math.min(150, int * 0.1 + (add.castSpeed || 0) + buffAs),
-      moveSpeed: Math.min(80, (add.moveSpeed || 0) + buffSpeed * 0.6),
+      castSpeed: Math.min(150, int * 0.1 + (add.castSpeed || 0) + buffAs + mk.castSpeed),
+      moveSpeed: Math.min(80, (add.moveSpeed || 0) + buffSpeed * 0.6 + mk.moveSpeed),
       lifeSteal: (add.lifeSteal || 0) + buffLeech / 4,
       manaSteal: add.manaSteal || 0,
       block: Math.min(60, (add.block || 0) + buffBlock / 2),
@@ -163,14 +167,14 @@ export class Player extends Creature {
       thorns: ((add.thorns || 0) + buffThorns * c.level * 0.03) * fortitude(c.level),
       goldFind: (add.goldFind || 0) + buffGf,
       magicFind: (add.magicFind || 0) + buffMf,
-      drops: mk.mf,
+      drops: mk.abundance,
       xpPct: (add.xpPct || 0) + buffXp,
-      reduce: Math.min(60, (add.reduce || 0) + buffReduce),
+      reduce: Math.min(60, (add.reduce || 0) + buffReduce + mk.reduce),
       damageTakenPct: buffDamageTaken,
       addedDamage: buffAddedDamage,
       fortitude: fortitude(c.level),
-      cdr: Math.min(60, (add.cdr || 0) + buffCdr / 2),
-      areaPct: (add.areaPct || 0) + buffArea,
+      cdr: Math.min(60, (add.cdr || 0) + buffCdr / 2 + mk.cdr),
+      areaPct: (add.areaPct || 0) + buffArea + mk.area,
       projSpeed: add.projSpeed || 0,
       extraProj: (add.extraProj || 0) + buffProj,
       pierce: add.pierce || 0,
@@ -180,15 +184,33 @@ export class Player extends Creature {
       homing: add.homing || 0,
       novaOnCast: add.novaOnCast || 0,
       orbitOnCast: add.orbitOnCast || 0,
-      bossDmg: add.bossDmg || 0,
+      bossDmg: (add.bossDmg || 0) + mk.bossDamage,
       summonPct: add.summonPct || 0,
       skillsAll: add.skillsAll || 0,
       skillTree0: add.skillTree0 || 0, skillTree1: add.skillTree1 || 0, skillTree2: add.skillTree2 || 0, skillTree3: add.skillTree3 || 0,
-      dmgPct: (add.dmgPct || 0) + buffDmg,
+      dmgPct: (add.dmgPct || 0) + buffDmg + mk.damage,
       physPct: (add.physPct || 0) + str,
       elemPct: {},
       primary: { str, dex, vit, int }[C.primary],
-      regenPct: buffRegen / 10,
+      regenPct: buffRegen / 10 + mk.regen,
+      markDamage: mk.damage, markPenetration: mk.penetration,
+      markExecution: mk.execution, markEliteDamage: mk.eliteDamage, markBossDamage: mk.bossDamage,
+      markFullHealthDamage: mk.fullHealthDamage, markDotDuration: mk.dotDuration,
+      markDotReduce: mk.dotReduce, markCcReduce: mk.ccReduce,
+      markEvasion: Math.min(20, mk.evasion), markLifeSteal: mk.lifeSteal,
+      markHealing: mk.healing, markBossReduce: mk.bossReduce, markLowHpReduce: mk.lowHpReduce,
+      markManaCost: mk.manaCost, markManaOnKill: mk.manaOnKill,
+      markOrbMana: mk.orbMana, markOrbHeal: mk.orbHeal,
+      markGold: mk.gold, markGemChance: mk.gemChance, markGemTier: mk.gemTier,
+      markSigilChance: mk.sigilChance, markCollector: mk.collector, markAbundance: mk.drops,
+      markImpSpawn: mk.impSpawn, markImpReward: mk.impReward, markChestSpawn: mk.chestSpawn,
+      markDiscount: Math.min(40, mk.discount), markSell: mk.sell,
+      markPickupRadius: mk.pickupRadius, markShrineDuration: mk.shrineDuration,
+      markPotionDuration: mk.potionDuration, markImpDamage: mk.impDamage,
+      markBounty: mk.bounty, markRiftRewards: mk.riftRewards, markRiftDamage: mk.riftDamage,
+      markBreachRewards: mk.breachRewards, markHeretic: mk.heretic,
+      markAffixReduce: mk.affixReduce, markUnboundDamage: mk.unboundDamage,
+      markEfficiency: mk.manaCost, markGemMastery: mk.gemTier,
     };
     for (const k of ELEM_KEYS) st.elemPct[k] = (add[k + 'Pct'] || 0) + int + (buffElemental[k] || 0);
     st.weapon = weapon ? itemDmg(weapon) : [Math.round(1 + (c.level - 1) * 0.4), Math.round(3 + (c.level - 1) * 0.8)];
@@ -202,15 +224,15 @@ export class Player extends Creature {
     if (weapon) { const fd = add.flatDmg || 0; st.weapon = [st.weapon[0] + fd, st.weapon[1] + fd]; }
     const lifePct = (add.lifePct || 0) + buffLife;
     const baseHp = C.life + (c.level - 1) * C.lifeLvl + Math.round(Math.pow(c.level - 1, 2) * 0.45) + vit * 6 + (add.life || 0);
-    this.maxHp = Math.round(baseHp * (1 + lifePct / 100) * st.fortitude * (1 + mk.life / 100));
+    this.maxHp = Math.round(baseHp * (1 + lifePct / 100) * st.fortitude * (1 + mk.vitality / 100));
     if (this.world && this.world.kind === 'dungeon' && this.world.dungeonAffixes?.includes('frailty')) this.maxHp = Math.round(this.maxHp * 0.8);
     if (this.world && this.world.kind === 'dungeon' && this.world.dungeonAffixes?.includes('vampiric_blessing')) this.maxHp = Math.round(this.maxHp * 0.8);
-    this.maxMana = Math.round(C.mana + (c.level - 1) * C.manaLvl + int * 2 + (add.mana || 0));
+    this.maxMana = Math.round((C.mana + (c.level - 1) * C.manaLvl + int * 2 + (add.mana || 0)) * (1 + mk.intellect / 100));
     const inTown = this.world && this.world.kind === 'town';
-    st.naturalLifeRegen = 1.2 + c.level * 0.35 + vit * 0.08;
+    st.naturalLifeRegen = (1.2 + c.level * 0.35 + vit * 0.08) * (1 + mk.regeneration / 100);
     st.bonusLifeRegen = (add.lifeRegen || 0) + this.maxHp * st.regenPct / 100;
     st.lifeRegen = heresyAllows('regen', c) ? ((inTown ? st.naturalLifeRegen : 0) + st.bonusLifeRegen) : 0; // Hunger of the Abyss: none
-    st.manaRegen = (1.0 + c.level * 0.04 + int * 0.04 + (add.manaRegen || 0)) * (1 + ((add.manaRegenPct || 0) + buffManaRegenPct) / 100);
+    st.manaRegen = (1.0 + c.level * 0.04 + int * 0.04 + (add.manaRegen || 0)) * (1 + ((add.manaRegenPct || 0) + buffManaRegenPct + mk.manaRegen) / 100);
     st.talents = tb.mods;
     st.talentSkillMults = tb.skillMults;
     st.talentMorphs = tb.morphs;
@@ -302,6 +324,7 @@ export class Player extends Creature {
 
   heal(n, quiet) {
     if (this.dead || n <= 0) return;
+    n *= 1 + Math.max(0, this.st?.markHealing || 0) / 100;
     const before = this.hp;
     if (G.world?.dungeonAffixes?.includes('cursed_fortune')) n *= 0.75;
     if (this.affixHealPenaltyT > 0) n *= 0.75;
@@ -312,6 +335,11 @@ export class Player extends Creature {
   }
 
   addBuff(b) {
+    if (b && b.t > 0) {
+      const scale = b.id?.startsWith('shrine_') ? 1 + (this.st?.markShrineDuration || 0) / 100
+        : b.id === 'fury' ? 1 + (this.st?.markPotionDuration || 0) / 100 : 1;
+      if (scale > 1) b = { ...b, t: b.t * scale, max: (b.max || b.t) * scale };
+    }
     const old = this.buffs.find((x) => x.id === b.id);
     if (old) { Object.assign(old, b); this.recompute(); return old; }
     this.buffs.push(b);
@@ -417,21 +445,24 @@ export class Player extends Creature {
         floatText(this.x, this.y, 46, `+${fmtInt(g.amount)} gold`, '#ffd34a', 12);
         return true;
       case 'orb_hp': {
-        const healAmt = Math.round(this.maxHp * 0.20);
+        const healAmt = Math.round(this.maxHp * 0.20 * (1 + (this.st.markOrbHeal || 0) / 100));
         this.heal(healAmt);
         floatText(this.x, this.y, 46, `+${fmtInt(healAmt)} life`, '#ff6a6a', 12);
         sfx('orb');
         return true;
       }
       case 'orb_mp': {
-        const manaAmt = Math.round(this.maxMana * 0.15);
+        const manaAmt = Math.round(this.maxMana * 0.15 * (1 + (this.st.markOrbMana || 0) / 100));
         this.mana = Math.min(this.maxMana, this.mana + manaAmt);
         sfx('orb');
         floatText(this.x, this.y, 46, `+${fmtInt(manaAmt)} mana`, '#6a8aff', 11);
         return true;
       }
       case 'orb_rejuv': {
-        const restored = this.applyRejuvenation();
+        const hpBefore = this.hp, mpBefore = this.mana;
+        this.heal(this.maxHp * 0.35 * (1 + (this.st.markOrbHeal || 0) / 100));
+        this.mana = Math.min(this.maxMana, this.mana + this.maxMana * 0.35 * (1 + (this.st.markOrbMana || 0) / 100));
+        const restored = { hp: Math.round(this.hp - hpBefore), mana: Math.round(this.mana - mpBefore) };
         sfx('orb');
         sparkle(this.x, this.y, 20, '#c040ff', 12, 0.4);
         if (restored.hp || restored.mana) floatText(this.x, this.y, 46, `+${fmtInt(restored.hp)} life · +${fmtInt(restored.mana)} mana`, '#c040ff', 12);
@@ -483,8 +514,8 @@ export class Player extends Creature {
     this.potionCd = 0.9;
     sfx('potion');
     switch (kind) {
-      case 'hp': this.potionRegen.push({ hp: this.maxHp * 0.45 / 2, mp: 0, t: 2 }); break;
-      case 'mp': this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / 2, t: 2 }); break;
+      case 'hp': { const t = 2 * (1 + (this.st.markPotionDuration || 0) / 100); this.potionRegen.push({ hp: this.maxHp * 0.45 / t, mp: 0, t }); break; }
+      case 'mp': { const t = 2 * (1 + (this.st.markPotionDuration || 0) / 100); this.potionRegen.push({ hp: 0, mp: this.maxMana * 0.5 / t, t }); break; }
       case 'rejuv': this.applyRejuvenation(); break;
       case 'fury': this.applyFury(); break;
     }
@@ -537,7 +568,7 @@ export class Player extends Creature {
     if (!L) return 'unlearned';
     if ((this.cooldowns[sk.id] || 0) > 0) return 'cooldown';
     if (sk.classId === 'barbarian' && ((sk.kind === 'whirl' && this.rage < whirlwindRageCost(L)) || this.rage < rageCost(sk, L))) return 'rage';
-    if (this.mana < manaCost(sk, L)) return 'mana';
+    if (this.mana < Math.max(1, Math.round(manaCost(sk, L) * (1 - Math.min(80, this.st.markManaCost || 0) / 100) * 10) / 10)) return 'mana';
     return null;
   }
 
@@ -560,7 +591,7 @@ export class Player extends Creature {
     }
     if ((this.cooldowns[sk.id] || 0) > 0) return false;
     const aug = this.augFor(sk), quick = aug && aug.haste ? 1 - Math.min(0.6, 0.25 * aug.haste) : 1;
-    const cost = Math.round(manaCost(sk, L) * quick * 10) / 10;
+    const cost = Math.max(1, Math.round(manaCost(sk, L) * (1 - Math.min(80, this.st.markManaCost || 0) / 100) * quick * 10) / 10);
     if (this.mana < cost) {
       if ((this.noManaT || 0) <= 0) { floatText(this.x, this.y, 60, 'Not enough mana', '#6a8aff', 12); sfx('error'); this.noManaT = 0.8; }
       return false;

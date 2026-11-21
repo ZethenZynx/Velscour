@@ -97,11 +97,12 @@ function encounterFits(id, world) {
 const lvlOf = (world) => depthLevel(world.depth || 1);
 const near = (world, [x, y], r) => { const p = world.map.randomNear(x, y, r); return p && world.map.walkable(p[0], p[1]) ? p : [x, y]; };
 const guardsAround = (e, r = 7) => e.guards.filter((m) => !m.dead && dist(m.x, m.y, e.x, e.y) < r);
-const reward = (world, at, { items = 1, rare = false, gold = 1, gem = false } = {}) => {
+const reward = (world, at, { items = 1, rare = false, gold = 1, gem = false, bountyPct = G.player?.st?.markBounty || 0 } = {}) => {
   const lvl = lvlOf(world), p = world.player;
-  for (let i = 0; i < items; i++) world.addLoot(new GroundItem(at.x + rand(-0.6, 0.6), at.y + rand(-0.6, 0.6), 'item', { item: rollGroundItem(lvl + (rare ? 3 : 1), { mf: p ? p.st.magicFind : 0, bonus: rare ? 2 : 1 }) }));
+  const bountyItems = items + (bountyPct > 0 && chance(Math.min(1, items * bountyPct / 100)) ? 1 : 0);
+  for (let i = 0; i < bountyItems; i++) world.addLoot(new GroundItem(at.x + rand(-0.6, 0.6), at.y + rand(-0.6, 0.6), 'item', { item: rollGroundItem(lvl + (rare ? 3 : 1), { mf: p ? p.st.magicFind : 0, bonus: rare ? 2 : 1 }) }));
   if (gem) world.addLoot(new GroundItem(at.x + rand(-0.6, 0.6), at.y + rand(-0.6, 0.6), 'item', { item: rollGroundGem(lvl + 4) }));
-  world.addLoot(new GroundItem(at.x + rand(-0.5, 0.5), at.y + rand(-0.5, 0.5), 'gold', { amount: Math.round((30 + lvl * 7) * goldScale(lvl) * gold * rand(0.8, 1.3)) }));
+  world.addLoot(new GroundItem(at.x + rand(-0.5, 0.5), at.y + rand(-0.5, 0.5), 'gold', { amount: Math.round((30 + lvl * 7) * goldScale(lvl) * gold * rand(0.8, 1.3) * (1 + bountyPct / 100) * (1 + ((p?.st?.markGold || 0) / 100))) }));
 };
 const pack = (world, at, n, rank = 'normal') => {
   const arch = pick(world.roster || ['skeleton']), out = [];
@@ -181,7 +182,7 @@ function choices(n, title, text, options) {
 }
 function rewardQuest(world, e, opts = {}) {
   if (!completeQuest(e, 'Quest complete. Your reward is waiting nearby.')) return false;
-  reward(world, e.n || { x: e.x, y: e.y }, { items: opts.items ?? 1, gold: opts.gold ?? 1, rare: !!opts.rare, gem: !!opts.gem });
+  reward(world, e.n || { x: e.x, y: e.y }, { items: opts.items ?? 1, gold: opts.gold ?? 1, rare: !!opts.rare, gem: !!opts.gem, bountyPct: G.player?.st?.markBounty || 0 });
   return true;
 }
 function completeQuest(e, objective = 'Quest complete.') {

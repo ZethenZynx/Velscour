@@ -289,8 +289,10 @@ export function createWyrm(h) {
     if (world.boss === m) world.boss = null;
     const il = lvl + 2, rar = rarityAt(il, breachReward(Math.max(4, floor), true));
     const p = P(), x = clamp(m.x, 1, W - 2), y = m.y;
-    world.addLoot(new GroundItem(x, y, 'item', { item: rollGroundItem(il, { rarity: rar }) }));
-    for (let k = 0; k < 4; k++) world.addLoot(new GroundItem(x + rand(-1, 1), y + rand(-1, 1), 'gold', { amount: Math.round(30 * Math.pow(1.06, goldLvl(il)) * rand(0.8, 1.3)) }));
+    const breachBonus = Math.max(0, p?.st?.markBreachRewards || 0);
+    const gearRolls = 1 + (chance(Math.min(1, breachBonus / 100)) ? 1 : 0);
+    for (let k = 0; k < gearRolls; k++) world.addLoot(new GroundItem(x + rand(-0.4, 0.4), y + rand(-0.4, 0.4), 'item', { item: rollGroundItem(il, { rarity: rar }) }));
+    for (let k = 0; k < 4; k++) world.addLoot(new GroundItem(x + rand(-1, 1), y + rand(-1, 1), 'gold', { amount: Math.round(30 * Math.pow(1.06, goldLvl(il)) * rand(0.8, 1.3) * (1 + breachBonus / 100)) }));
     UI.centerMsg('THE WYRM IS SLAIN', `${name} · a ${RARITY[rar].name} from its hoard`, 4);
     UI.log(`<b style="color:${w.variant.glow}">${name}</b> comes apart into light. The Breach Heart can be faced once every shrine is won.`, w.variant.glow);
     addEffect(new Column(x, y, w.variant.glow, 1, 30, 360));

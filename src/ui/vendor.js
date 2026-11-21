@@ -23,6 +23,8 @@ import { Marks } from './marks.js';
 import { campaignVictoryRecorded } from '../game/endgame.js';
 
 const VBY = Object.fromEntries(VENDORS.map((v) => [v.id, v]));
+const buyPrice = (base) => Math.max(1, Math.ceil(base * (1 - Math.min(40, G.player?.st?.markDiscount || 0) / 100)));
+const sellPrice = (base) => Math.max(1, Math.round(base * (1 + (G.player?.st?.markSell || 0) / 100)));
 
 export const Vendor = {
   active: null,
@@ -114,7 +116,7 @@ export const Vendor = {
       if (this.shopSel === i) d.classList.add('sel');
       if (it) {
         d.appendChild(itemCell(it));
-        d.appendChild(el('span', 'shop-price', `${fmtInt(itemValue(it))}g`));
+        d.appendChild(el('span', 'shop-price', `${fmtInt(buyPrice(itemValue(it)))}g`));
       }
       if (it) {
         draggable(d, {
@@ -129,13 +131,13 @@ export const Vendor = {
           const cur = list[i];
           if (!cur) return '';
           const acts = [{
-            label: `Buy for ${fmtInt(itemValue(cur))}g`,
+            label: `Buy for ${fmtInt(buyPrice(itemValue(cur)))}g`,
             fn: () => this.buy({ type: 'shop', list, i }),
-            cls: G.char.gold >= itemValue(cur) ? 'small' : 'small disabled',
+            cls: G.char.gold >= buyPrice(itemValue(cur)) ? 'small' : 'small disabled',
           }];
           return {
             ...itemGearTip(cur, {
-              price: itemValue(cur),
+              price: buyPrice(itemValue(cur)),
               hint: 'Right-click or double-tap to buy',
               actions: acts,
             }),
@@ -151,9 +153,9 @@ export const Vendor = {
       const box = el('div', 'item-detail');
       box.style.width = 'auto';
       box.style.marginTop = '8px';
-      box.innerHTML = itemTooltip(sel, { price: itemValue(sel), compare: sel.slot ? G.char.equip[slotFor(G.char.equip, sel)] : null });
-      const b = el('button', 'btn small', `Buy for ${fmtInt(itemValue(sel))}g`);
-      b.disabled = G.char.gold < itemValue(sel);
+      box.innerHTML = itemTooltip(sel, { price: buyPrice(itemValue(sel)), compare: sel.slot ? G.char.equip[slotFor(G.char.equip, sel)] : null });
+      const b = el('button', 'btn small', `Buy for ${fmtInt(buyPrice(itemValue(sel)))}g`);
+      b.disabled = G.char.gold < buyPrice(itemValue(sel));
       b.onclick = () => this.buy({ type: 'shop', list, i: this.shopSel });
       box.appendChild(b);
       body.appendChild(box);
@@ -164,7 +166,7 @@ export const Vendor = {
     const c = G.char;
     const it = data.list[data.i];
     if (!it) return false;
-    const price = itemValue(it);
+    const price = buyPrice(itemValue(it));
     if (c.gold < price) { UI.log('Not enough gold.', '#ff8080'); sfx('error'); return false; }
     const slot = toIdx === undefined && G.settings.autoEquip !== false ? emptyEquipSlot(c, it) : null;
     let ok;
@@ -189,7 +191,7 @@ export const Vendor = {
     if (it.locked) { UI.log('That item is locked. Unlock it first (its panel in the inventory).', '#ffd860'); sfx('error'); return false; }
     if (it.sealed) { UI.log('Break the seal first: nobody buys a sealed treasure.', '#ffdf8a'); sfx('error'); return false; }
     const n = it.type === 'gem' ? 1 : 1;
-    const price = itemSellValue(it) * n;
+    const price = sellPrice(itemSellValue(it) * n);
     const sellIt = () => {
       if (it.type === 'gem' && (it.count || 1) > 1) {
         it.count--;
@@ -215,7 +217,7 @@ export const Vendor = {
     const c = G.char;
     const sold = c.bag.map((it, i) => ({ it, i })).filter(({ it }) => it && it.type === 'gear' && !it.sealed && !it.locked);
     if (!sold.length) { UI.log('No gear in your bag to sell.', '#ff8080'); sfx('error'); return false; }
-    const price = (it) => itemSellValue(it);
+    const price = (it) => sellPrice(itemSellValue(it));
     const total = sold.reduce((a, { it }) => a + price(it), 0);
     const gems = sold.reduce((a, { it }) => a + it.gems.length, 0), sealed = c.bag.filter((b) => b && b.sealed).length;
     const kinds = RARITY.map((r) => ({ r, n: sold.filter(({ it }) => it.rarity === r.id).length })).filter((k) => k.n).reverse()
@@ -239,7 +241,7 @@ export const Vendor = {
     if (!c || !Array.isArray(c.gemBag)) return false;
     const sold = c.gemBag.map((it, i) => ({ it, i })).filter(({ it }) => it && it.type === 'gem' && !it.locked);
     if (!sold.length) { UI.log('No gems in your Gem Bag to sell.', '#ff8080'); sfx('error'); return false; }
-    const price = (it) => itemSellValue(it) * (it.count || 1);
+    const price = (it) => sellPrice(itemSellValue(it) * (it.count || 1));
     const total = sold.reduce((a, { it }) => a + price(it), 0);
     const totalCount = sold.reduce((a, { it }) => a + (it.count || 1), 0);
     UI.confirm('Sell all gems?', `Sell <b>${totalCount}</b> gem${totalCount > 1 ? 's' : ''} (${sold.length} stack${sold.length > 1 ? 's' : ''}) for <span class="gold-text">${fmtInt(total)} gold</span>?<br><span class="dim">Locked gems are not sold.</span>`, () => {
@@ -261,7 +263,7 @@ export const Vendor = {
       const ic = potionIcon({ hp: 'red', mp: 'blue', rejuv: 'purple', fury: 'orange' }[k], 40);
       row.appendChild(ic);
       row.appendChild(el('div', '', `<b>${{ hp: 'Healing Potion', mp: 'Mana Potion', rejuv: 'Rejuvenation Potion', fury: 'Elixir of Fury' }[k]}</b> <span class="dim">(you have ${c.potions[k]})</span><div class="dim" style="font-size:12px">${POTION_INFO[k]}</div>`));
-      const price = Math.round(POTION_PRICE[k] * (1 + c.level * 0.08));
+      const price = buyPrice(Math.round(POTION_PRICE[k] * (1 + c.level * 0.08)));
       for (const n of [1, 5]) {
         const b = el('button', 'btn small', `Buy ${n} (${fmtInt(price * n)}g)`);
         b.disabled = c.gold < price * n || c.potions[k] + n > 30;
@@ -293,7 +295,7 @@ export const Vendor = {
     for (const { b, i, where } of gems) {
       const row = el('div', 'row forge-row');
       row.appendChild(el('span', 'forge-gem-label', `<span style="color:${GEMS[b.gem].color}">◆</span> ${escapeHtml(gemName(b.gem, b.tier))}${(b.count || 1) > 1 ? ` <span class="dim">x${b.count}</span>` : ''}`));
-      const sig = GEMS[b.gem].sigil, fuse = fuseCost(b), refine = gemRefineCost(b.tier, GEMS[b.gem].special);
+      const sig = GEMS[b.gem].sigil, fuse = fuseCost(b), refine = buyPrice(gemRefineCost(b.tier, GEMS[b.gem].special));
       const f = el('button', 'btn small forge-fuse', `Fuse 3 → ${escapeHtml(gemName(b.gem, b.tier + 1))} (${fmtInt(fuse)}g)`);
       f.disabled = (b.count || 1) < 3 || c.gold < fuse;
       f.onclick = () => { if (fuseGem(c, i, where)) { sfx('levelup'); UI.log(`Forged <span style="color:#c8f0ff">${escapeHtml(gemName(b.gem, b.tier + 1))}</span>!`); changed(); } };
@@ -337,6 +339,7 @@ export const Vendor = {
     head.appendChild(el('div', '', it && it.type === 'gear' ? `<b style="color:${itemColor(it)}">${escapeHtml(itemName(it))}</b><div class="dim">${RARITY[it.rarity].name} · iLvl ${it.ilvl}${it.upg ? ` · +${it.upg}` : ''} · Sockets ${it.sockets}/${it.maxSockets}</div>` : '<span class="dim">Select or drag an item (bag or equipped) here.</span>'));
     box.appendChild(head);
     const btn = (label, cost, can, fn) => {
+      cost = buyPrice(cost);
       const b = el('button', 'btn', `${label} — ${fmtInt(cost)}g`);
       b.style.margin = '6px 6px 0 0';
       b.disabled = !can || c.gold < cost;
@@ -371,13 +374,14 @@ export const Vendor = {
   gambleBox(body) {
     const c = G.char;
     const lvl = Math.max(c.level, depthLevel(c.depth || 1));
-    const price = Math.round(180 * Math.pow(1.065, goldLvl(lvl)));
+    const basePrice = Math.round(180 * Math.pow(1.065, goldLvl(lvl)));
+    const price = buyPrice(basePrice);
     body.appendChild(el('div', 'dim', 'The odds favor Fortunato. Gambled gear follows your depth’s tier limit, with only a 5% chance to reach one tier higher.'));
     const grid = el('div', 'row');
     grid.style.marginTop = '8px';
     for (const slot of ['weapon', 'offhand', 'head', 'body', 'hands', 'legs', 'feet', 'ring', 'gem']) {
       const b = el('button', 'btn small', `${slot === 'gem' ? 'Mystery Gem' : SLOT_NAMES[slot]}<br><span class="gold-text">${fmtInt(slot === 'gem' ? Math.round(price * 0.6) : price)}g</span>`);
-      const cost = slot === 'gem' ? Math.round(price * 0.6) : price;
+      const cost = buyPrice(slot === 'gem' ? Math.round(basePrice * 0.6) : basePrice);
       b.disabled = c.gold < cost;
       b.onclick = () => {
         const it = slot === 'gem'
@@ -411,10 +415,11 @@ export const Vendor = {
     const desc = el('div', '', `<b>Lancer's Banner Kit</b> <span class="dim">· ride under your own colors!</span><div class="dim" style="font-size:12px">Contains heraldic dyes, cloth cuts, and crests to customize the 3D War Banner trailing your Lancer.</div>`);
     desc.style.flex = '1';
     row.appendChild(desc);
-    const b = el('button', 'btn small', `Buy Kit (${fmtInt(BANNER_KIT_PRICE)}g)`);
-    b.disabled = c.gold < BANNER_KIT_PRICE || c.bag.filter((x) => !x).length < 1;
+    const kitPrice = buyPrice(BANNER_KIT_PRICE);
+    const b = el('button', 'btn small', `Buy Kit (${fmtInt(kitPrice)}g)`);
+    b.disabled = c.gold < kitPrice || c.bag.filter((x) => !x).length < 1;
     b.onclick = () => {
-      c.gold -= BANNER_KIT_PRICE;
+      c.gold -= kitPrice;
       addToBag(c, bannerKitItem());
       sfx('gold');
       UI.log('Purchased <span style="color:#ffd860">Lancer\'s Banner Kit</span>. Open it from your bag to customize your banner!');
@@ -433,11 +438,12 @@ export const Vendor = {
     row.appendChild(ic);
     row.appendChild(el('div', '', `<b>Blank Music Sheet</b> <span class="dim">· every bard needs paper!</span><div class="dim" style="font-size:12px">Paste tablature onto it, lock it, and load it into one of your five Tabs: your skills play the song note by note.</div>`));
     for (const n of [1, 5]) {
-      const b = el('button', 'btn small', `Buy ${n} (${fmtInt(SHEET_PRICE * n)}g)`);
-      b.disabled = c.gold < SHEET_PRICE * n || c.bag.filter((x) => !x).length < n;
+      const each = buyPrice(SHEET_PRICE);
+      const b = el('button', 'btn small', `Buy ${n} (${fmtInt(each * n)}g)`);
+      b.disabled = c.gold < each * n || c.bag.filter((x) => !x).length < n;
       b.onclick = () => {
         for (let i = 0; i < n; i++) addToBag(c, sheetItem());
-        c.gold -= SHEET_PRICE * n; sfx('gold');
+        c.gold -= each * n; sfx('gold');
         UI.log(`Bought ${n} blank music sheet${n > 1 ? 's' : ''}. Right-click one in your bag to write on it.`);
         changed();
       };
@@ -594,7 +600,7 @@ export const Vendor = {
 };
 
 /** What fusing three of a gem stack costs (Sigils follow the gold curve of their depth). */
-export const fuseCost = (b) => (GEMS[b.gem].sigil ? sigilFuseCost(b.tier) : gemFuseCost(b.tier));
+export const fuseCost = (b) => buyPrice(GEMS[b.gem].sigil ? sigilFuseCost(b.tier) : gemFuseCost(b.tier));
 /** Fuse three gems of the stack at container index i into one of the next grade. */
 export function fuseGem(c, i, where = 'gemBag') {
   const container = where === 'bag' ? c.bag : (c.gemBag && c.gemBag[i] ? c.gemBag : c.bag);
