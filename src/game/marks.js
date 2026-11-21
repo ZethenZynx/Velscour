@@ -161,7 +161,12 @@ export function gainMarkXp(xp, world = G.world) {
   else if (xp > 0) { xpDirty = true; if (Date.now() - xpSaved > 5000) saveMarkXp(); }
   return n;
 }
-export function saveMarkXp() { if (!xpDirty) return; xpDirty = false; xpSaved = Date.now(); saveEndgame(true); }
+export function saveMarkXp() {
+  if (!xpDirty) return true;
+  if (!saveEndgame(true)) return false;
+  xpDirty = false; xpSaved = Date.now();
+  return true;
+}
 export const capXp = (c = G.char) => c && c.level >= MAX_LEVEL ? { xp: endgame().marks.xp, need: markXp() } : null;
 
 export function grantMarks(n, why = '', world = G.world) {

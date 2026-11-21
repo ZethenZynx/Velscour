@@ -80,7 +80,8 @@ export function endgame() {
 }
 /** Write the record; quiet is retained for existing call sites. */
 export function saveEndgame(quiet) {
-  try { localStorage.setItem(KEY, JSON.stringify(endgame())); } catch (e) { /* storage full or blocked: it lives on for this visit */ }
+  try { localStorage.setItem(KEY, JSON.stringify(endgame())); return true; }
+  catch (e) { console.warn('Endgame save failed', e); return false; }
 }
 /** One-time refund for storage rows bought with Marks. The ledger and wallet are saved together. */
 export function refundStorageMarks({ heroId, heroMarks = 0, reliquaryMarks = 0 } = {}) {

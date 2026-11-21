@@ -836,22 +836,56 @@ export function pauseMenu() {
         label: 'Save & Quit',
         cls: 'red',
         keepOpen: true,
-        fn: async (close) => {
-          const btn = d.box.querySelector('button.red');
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-          }
+        fn: () => confirmSaveAndQuit(d),
+      },
+    ],
+  });
+  return d;
+}
+
+function confirmSaveAndQuit(pauseDialog) {
+  let saving = false;
+  const confirm = UI.dialog({
+    title: 'Save and Quit',
+    html: '<p>Are you sure you want to save and quit?</p>',
+    closable: false,
+    buttons: [
+      { label: 'Cancel', fn: () => pauseDialog.close() },
+      {
+        label: 'Save and Quit', cls: 'red', keepOpen: true,
+        fn: async () => {
+          if (saving) return;
+          saving = true;
+          const buttons = confirm.box.querySelectorAll('button');
+          const saveButton = confirm.box.querySelector('.btn.red');
+          buttons.forEach((button) => { button.disabled = true; });
+          if (saveButton) saveButton.textContent = 'Saving...';
+          const error = confirm.box.querySelector('.save-quit-error');
+          if (error) error.remove();
           try {
-            await G.game.quitToTitle();
-          } finally {
-            close();
+            const completed = await G.game.quitToTitle();
+            if (completed) return; // quitToTitle closes all dialogs after a successful save
+            throw new Error('The game did not confirm that the save completed.');
+          } catch (e) {
+            const message = document.createElement('p');
+            message.className = 'save-quit-error';
+            message.textContent = 'Could not save your progress. You are still in the game; please try again.';
+            confirm.box.querySelector('.dlg-body')?.append(message);
+            saving = false;
+            buttons.forEach((button) => { button.disabled = false; });
+            if (saveButton) saveButton.textContent = 'Save and Quit';
           }
         },
       },
     ],
   });
-  return d;
+  // Escape is routed through the game's existing modal-cancel path as a pointerdown
+  // on the top dialog. Close the underlying pause menu too, so Cancel resumes play.
+  confirm.wrap.addEventListener('pointerdown', (event) => {
+    if (event.target !== confirm.wrap || saving) return;
+    confirm.close();
+    pauseDialog.close();
+  });
 }
 
 export { $, A };

@@ -354,14 +354,15 @@ export const game = {
   },
 
   autosave() {
-    if (!G.char) return;
-    writeSave(G.char);
-    saveMarkXp();   // XP towards the next Infernal Mark (game/marks.js)
+    if (!G.char) return false;
+    const characterSaved = writeSave(G.char);
+    const marksSaved = saveMarkXp();   // XP towards the next Infernal Mark (game/marks.js)
     saveT = 0;
+    return characterSaved && marksSaved;
   },
 
   quitToTitle() {
-    this.autosave();
+    if (!this.autosave()) return false;
     G.critterTutorial = null;
     UI.closeAll();
     G.world = null; G.player = null; G.char = null;
@@ -371,6 +372,7 @@ export const game = {
     clearVfx();
     stopMusic(); stopAmbience();
     titleScreen();
+    return true;
   },
 
   // ------------------------------------------------------------ worlds
