@@ -35,6 +35,22 @@ export const TREASURE_IMPS = Object.freeze(TREASURE_IMP_DATA.map((imp) => Object
 export const IMP_BY_ID = Object.freeze(Object.fromEntries(TREASURE_IMPS.map((imp) => [imp.id, imp])));
 export const IMP_SPRITE_PATH = (id) => `assets/sprites/treasure-imps/${id}.png`;
 export const IMP_MAX_FOREGROUND_PIXELS = 70;
+export const TREASURE_IMP_SPAWN_DELAY_MIN = 30;
+export const TREASURE_IMP_SPAWN_DELAY_MAX = 120;
+export const TREASURE_IMP_SPAWN_RETRY_DELAY = 5;
+
+/** A pause-aware countdown shared by guaranteed and chance-based imp spawns. */
+export function advanceTreasureImpSpawnTimer(remaining, dt, paused = false) {
+  const time = Number(remaining);
+  if (!Number.isFinite(time) || time <= 0 || paused) return Math.max(0, Number.isFinite(time) ? time : 0);
+  return Math.max(0, time - Math.max(0, Number(dt) || 0));
+}
+
+/** Convert a unit random value into the inclusive delay range used for new environments. */
+export function treasureImpSpawnDelay(random = Math.random) {
+  const unit = Math.max(0, Math.min(1 - Number.EPSILON, Number(random()) || 0));
+  return TREASURE_IMP_SPAWN_DELAY_MIN + unit * (TREASURE_IMP_SPAWN_DELAY_MAX - TREASURE_IMP_SPAWN_DELAY_MIN);
+}
 
 /** Stable per-environment key: different biomes at the same depth remain independent. */
 export function treasureImpAreaKey(world = {}) {

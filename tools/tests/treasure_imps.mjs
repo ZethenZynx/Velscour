@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
+import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_DELAY_MAX, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpSpawnDelay, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
 import { canEarnInfernalMarks } from '../../src/game/endgame.js';
 import { newCharData, migrate } from '../../src/game/save.js';
 import { itemValue, itemSellValue } from '../../src/data/items.js';
@@ -29,6 +29,11 @@ assert.equal(treasureImpAreaKey({ biome: { id: 'dark_forest' }, depth: 24 }), fo
 assert.notEqual(treasureImpAreaKey({ rift: { tier: 2 }, biome: { id: 'catacombs' } }), treasureImpAreaKey({ rift: { tier: 3 }, biome: { id: 'catacombs' } }), 'each endgame rift tier has its own stable guarantee key');
 assert.equal(hasTreasureImpArea(forestArea, [forestArea]), true);
 assert.equal(hasTreasureImpArea(castleArea, [forestArea]), false);
+assert.equal(treasureImpSpawnDelay(() => 0), TREASURE_IMP_SPAWN_DELAY_MIN, 'new environment timers start at the 30-second minimum');
+assert.ok(treasureImpSpawnDelay(() => 1) <= TREASURE_IMP_SPAWN_DELAY_MAX, 'new environment timers never exceed 120 seconds');
+assert.equal(advanceTreasureImpSpawnTimer(45, 10, true), 45, 'paused gameplay does not consume an imp spawn timer');
+assert.equal(advanceTreasureImpSpawnTimer(45, 10, false), 35, 'active gameplay advances an imp spawn timer');
+assert.equal(advanceTreasureImpSpawnTimer(3, 10, false), 0, 'an elapsed imp spawn timer clamps at zero');
 assert.equal(riftWeight({ goblin: true, rank: 'unique' }), 0, 'a guaranteed imp does not count toward a Rift Guardian quota');
 
 for (const depth of [1, 25, 100]) {
@@ -56,20 +61,30 @@ const fresh = newCharData('paladin', 'Imp Test');
 assert.deepEqual(fresh.treasureImpDepths, []);
 assert.deepEqual(fresh.treasureImpGuaranteedAreas, []);
 assert.deepEqual(fresh.treasureImpRandomAreas, []);
+assert.deepEqual(fresh.treasureImpGuaranteedPending, {});
+assert.deepEqual(fresh.treasureImpRandomCheckedAreas, []);
+assert.deepEqual(fresh.treasureImpRandomPending, {});
 assert.equal(fresh.treasureImpTutorialShown, false);
 const legacy = { ...fresh };
 delete legacy.treasureImpDepths;
 delete legacy.treasureImpGuaranteedAreas;
 delete legacy.treasureImpRandomAreas;
+delete legacy.treasureImpGuaranteedPending;
+delete legacy.treasureImpRandomCheckedAreas;
+delete legacy.treasureImpRandomPending;
 delete legacy.treasureImpTutorialShown;
+legacy.treasureImpGuaranteedPending = { [forestArea]: 42, broken: 'invalid', negative: -1, tooLong: 180 };
 migrate(legacy);
 assert.deepEqual(legacy.treasureImpDepths, [], 'legacy save migration adds encounter tracking without touching other progression');
 assert.deepEqual(legacy.treasureImpGuaranteedAreas, [], 'legacy saves gain one-time guarantee tracking');
 assert.deepEqual(legacy.treasureImpRandomAreas, [], 'legacy saves gain independent random-encounter tracking');
+assert.deepEqual(legacy.treasureImpGuaranteedPending, { [forestArea]: 42, tooLong: 120 }, 'save migration preserves valid pending timers and clamps malformed values');
+assert.deepEqual(legacy.treasureImpRandomCheckedAreas, [], 'legacy saves gain one-time additional-imp chance tracking');
+assert.deepEqual(legacy.treasureImpRandomPending, {}, 'legacy saves gain safe optional-spawn timer storage');
 assert.equal(legacy.treasureImpTutorialShown, false);
 const item = { type: 'weapon', rarity: 0, ilvl: 1, affixes: [], sockets: 0, upg: 0 };
 const merchantValue = itemValue({ ...item, vendorValueMult: 2.5 });
 assert.ok(merchantValue > itemValue(item) * 2.4, 'merchant equipment has substantially higher vendor value');
 assert.equal(itemSellValue({ ...item, vendorValueMult: 2.5 }), Math.max(1, Math.floor(merchantValue / 4)), 'vendor value and actual sell payout use the same calculation');
 
-console.log('Treasure Imp registry, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');
+console.log('Treasure Imp registry, delayed spawn timing, pause handling, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');

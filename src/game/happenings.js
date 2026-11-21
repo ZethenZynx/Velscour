@@ -30,7 +30,7 @@ import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixe
 import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
-import { IMP_BY_ID, IMP_SPRITE_PATH, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpSpriteScale } from '../data/treasureimps.js';
+import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpSpawnDelay, treasureImpSpriteScale } from '../data/treasureimps.js';
 import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
 import { makeCovenant } from '../data/relics.js';
 import { grantMarks } from './marks.js';
@@ -165,7 +165,8 @@ export function setupHappenings(world, start, gen) {
   if (spots.length && chance(0.35)) addRemains(world, spots.pop());
   if (spots.length && chance(0.22 + Math.min(0.15, depth * 0.002))) addCursed(world, spots.pop());
   addEncounters(world, roomSpots(world, start, 4));
-  if (chance(0.3) && !impEncounteredInArea(world)) H.impT = rand(25, 70);
+  // Keep the existing additional-imp eligibility point; the saved spawn scheduler rolls its chance once.
+  world.impRandomEligible = true;
   if (chance(0.3)) H.challengeAt = randi(12, 30);
   if (nemSpot) spawnNemesis(world, nemSpot, c.nemesis);
   if (torment) return;
@@ -352,6 +353,8 @@ function recordImpEncounter(world) {
   if (!c) return;
   const key = treasureImpAreaKey(world);
   if (!Array.isArray(c.treasureImpRandomAreas)) c.treasureImpRandomAreas = [];
+  c.treasureImpRandomPending ||= {};
+  delete c.treasureImpRandomPending[key];
   if (!c.treasureImpRandomAreas.includes(key)) { c.treasureImpRandomAreas.push(key); G.game?.autosave?.(); }
 }
 function recordGuaranteedImp(world) {
@@ -359,6 +362,8 @@ function recordGuaranteedImp(world) {
   if (!c) return;
   const key = treasureImpAreaKey(world);
   if (!Array.isArray(c.treasureImpGuaranteedAreas)) c.treasureImpGuaranteedAreas = [];
+  c.treasureImpGuaranteedPending ||= {};
+  delete c.treasureImpGuaranteedPending[key];
   if (!c.treasureImpGuaranteedAreas.includes(key)) { c.treasureImpGuaranteedAreas.push(key); G.game?.autosave?.(); }
 }
 function impContext(world) {
@@ -526,22 +531,24 @@ export function spawnImp(world, options = {}) {
   if (!event && !guaranteed && impEncounteredInArea(world)) return null;
   const p = world.player, map = world.map;
   let at = null;
+  let pathChecks = 0;
+  const reachable = (x, y) => !map.findPath || (pathChecks++ < 16 && !!map.findPath(p.x, p.y, x, y, 12000));
   const canSpawnAt = (x, y) => map.walkable(x, y) && map.circleFree(x, y, 0.35) && (!map.flowAt || map.flowAt(x, y) >= 0);
   for (let i = 0; i < 48 && !at; i++) {
     const a = rand(TAU), r = rand(6, 9), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
-    if (canSpawnAt(x, y) && (i > 20 || !map.los || map.los(p.x, p.y, x, y))) at = [x, y];
+    if (canSpawnAt(x, y) && reachable(x, y) && (i > 20 || !map.los || map.los(p.x, p.y, x, y))) at = [x, y];
   }
   // Search nearby reachable floor first, then use a bounded map-wide fallback for unusual layouts.
   for (const radius of [11, 15, 20]) for (let i = 0; !at && i < 8; i++) {
     const [x, y] = map.randomNear(p.x, p.y, radius);
-    if (dist(p.x, p.y, x, y) < 3.5 || !canSpawnAt(x, y)) continue;
-    if (map.findPath && !map.findPath(p.x, p.y, x, y, 12000)) continue;
+    if (dist(p.x, p.y, x, y) < 6 || !canSpawnAt(x, y)) continue;
+    if (!reachable(x, y)) continue;
     at = [x, y];
   }
   for (let i = 0; !at && i < 40 && map.w && map.h; i++) {
     const x = rand(1, map.w - 1), y = rand(1, map.h - 1);
-    if (!canSpawnAt(x, y)) continue;
-    if (map.findPath && !map.findPath(p.x, p.y, x, y, 12000)) continue;
+    if (dist(p.x, p.y, x, y) < 6 || !canSpawnAt(x, y)) continue;
+    if (!reachable(x, y)) continue;
     at = [x, y];
   }
   if (!at) return null;
@@ -561,7 +568,7 @@ export function spawnImp(world, options = {}) {
         let second = null;
         for (let n = 0; n < 16 && !second; n++) {
           const [x, y] = map.randomNear(at[0], at[1], 1.6);
-          if (map.circleFree(x, y, 0.35) && map.flowAt(x, y) >= 0) second = [x, y];
+          if (dist(p.x, p.y, x, y) >= 3.5 && map.circleFree(x, y, 0.35) && map.flowAt(x, y) >= 0 && reachable(x, y)) second = [x, y];
         }
         if (second) createTreasureImp(world, second, other);
       }
@@ -571,15 +578,57 @@ export function spawnImp(world, options = {}) {
   return primary;
 }
 
-/** Spawn and persist one guaranteed imp the first time this character enters a generated environment. */
+/** Schedule a one-time guaranteed imp and the existing optional extra imp for this generated environment. */
 export function spawnGuaranteedImp(world) {
   const c = G.char;
   if (!c || !world?.player || !world.map) return null;
   const key = treasureImpAreaKey(world);
-  if (hasTreasureImpArea(key, c.treasureImpGuaranteedAreas)) return null;
-  const imp = spawnImp(world, { guaranteed: true });
-  if (imp) recordGuaranteedImp(world);
-  return imp;
+  const firstSchedule = !c.treasureImpGuaranteedAreas?.includes(key) && !Object.hasOwn(c.treasureImpGuaranteedPending || {}, key);
+  let changed = false;
+  c.treasureImpGuaranteedAreas ||= [];
+  c.treasureImpGuaranteedPending ||= {};
+  c.treasureImpRandomAreas ||= [];
+  c.treasureImpRandomCheckedAreas ||= [];
+  c.treasureImpRandomPending ||= {};
+  world.happen ||= { t: 0, imps: [] };
+
+  if (!hasTreasureImpArea(key, c.treasureImpGuaranteedAreas) && firstSchedule) {
+    c.treasureImpGuaranteedPending[key] = treasureImpSpawnDelay();
+    changed = true;
+  }
+  if (world.impRandomEligible && !hasTreasureImpArea(key, c.treasureImpRandomAreas) && !c.treasureImpRandomCheckedAreas.includes(key)) {
+    c.treasureImpRandomCheckedAreas.push(key);
+    if (chance(0.3)) c.treasureImpRandomPending[key] = treasureImpSpawnDelay();
+    changed = true;
+  }
+  world.happen.impGuaranteedT = c.treasureImpGuaranteedPending[key];
+  world.happen.impT = c.treasureImpRandomPending[key];
+  if (changed) G.game?.autosave?.();
+  return null;
+}
+
+function impSpawnTimersTick(world, dt) {
+  const c = G.char;
+  if (!c || !world?.player || world.player.dead || !world.map || G.paused) return;
+  const key = treasureImpAreaKey(world), H = world.happen ||= { t: 0, imps: [] };
+  c.treasureImpGuaranteedPending ||= {};
+  c.treasureImpRandomPending ||= {};
+  const bossAwake = !!(world.boss && world.boss.awake && !world.boss.dead);
+  if (Object.hasOwn(c.treasureImpGuaranteedPending, key) && !hasTreasureImpArea(key, c.treasureImpGuaranteedAreas)) {
+    const left = c.treasureImpGuaranteedPending[key] = advanceTreasureImpSpawnTimer(c.treasureImpGuaranteedPending[key], dt);
+    H.impGuaranteedT = left;
+    if (left <= 0 && !bossAwake) {
+      if (spawnImp(world, { guaranteed: true })) recordGuaranteedImp(world);
+      else c.treasureImpGuaranteedPending[key] = TREASURE_IMP_SPAWN_RETRY_DELAY;
+    }
+  } else H.impGuaranteedT = undefined;
+  if (Object.hasOwn(c.treasureImpRandomPending, key) && !hasTreasureImpArea(key, c.treasureImpRandomAreas)) {
+    const left = c.treasureImpRandomPending[key] = advanceTreasureImpSpawnTimer(c.treasureImpRandomPending[key], dt);
+    H.impT = left;
+    if (left <= 0 && !bossAwake) {
+      if (!spawnImp(world)) c.treasureImpRandomPending[key] = TREASURE_IMP_SPAWN_RETRY_DELAY;
+    }
+  } else H.impT = undefined;
 }
 
 function impTick(world, dt) {
@@ -627,6 +676,7 @@ function impTick(world, dt) {
 
 // Sky and sea battles skip the regular happenings simulation, but their event spawned imps still flee and escape.
 export function eventImpsTick(world, dt) {
+  impSpawnTimersTick(world, dt);
   if (world?.happen?.imps?.some((m) => !m.dead)) impTick(world, dt);
 }
 
@@ -695,6 +745,7 @@ export function onKill(m) {
 export function happeningsTick(world, dt) {
   const H = world.happen, p = world.player;
   if (!H || !p || p.dead) return;
+  impSpawnTimersTick(world, dt);
   H.t += dt;
   greedTick(world, dt); // the Greed lever's tougher monsters (game/greed.js)
   if (H.streakT > 0) H.streakT -= dt;
@@ -712,7 +763,6 @@ export function happeningsTick(world, dt) {
     if (foes.length) sfx('light', 0.3);
   }
   for (const ch of world.chests) if (ch.tick && ch.opened) ch.tick(dt);
-  if (H.impT !== undefined && H.impT > 0 && (H.impT -= dt) <= 0 && !(world.boss && world.boss.awake && !world.boss.dead)) spawnImp(world);
   impTick(world, dt);
   challengeTick(world, dt);
   scenarioTick(world, dt);

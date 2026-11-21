@@ -194,7 +194,7 @@ export function newCharData(classId, name) {
     jewelBox: Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null), // dedicated town vault for gems & runes
     tabs: Array(TAB_SLOTS).fill(null), tabAt: 0, // the Bard's Tabs: locked Music Sheets he plays (data/tabs.js)
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
-    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], affixStreak: 0, affixBiome: null, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, wandererBounties: {}, npcEncounterDepths: {}, treasureImpDepths: [], treasureImpGuaranteedAreas: [], treasureImpRandomAreas: [], treasureImpTutorialShown: false, breach: { best: 0, cleared: {} },
+    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], affixStreak: 0, affixBiome: null, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, wandererBounties: {}, npcEncounterDepths: {}, treasureImpDepths: [], treasureImpGuaranteedAreas: [], treasureImpRandomAreas: [], treasureImpGuaranteedPending: {}, treasureImpRandomCheckedAreas: [], treasureImpRandomPending: {}, treasureImpTutorialShown: false, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
     kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, critterTutorialSeen: false, critterArrowEncounters: 0, wdmg: 1,
   };
@@ -361,6 +361,14 @@ export function migrate(c) {
   c.treasureImpRandomAreas = Array.isArray(c.treasureImpRandomAreas)
     ? [...new Set(c.treasureImpRandomAreas.filter((key) => typeof key === 'string' && key.length > 0))]
     : [];
+  const cleanImpTimers = (timers) => Object.fromEntries(Object.entries(timers && typeof timers === 'object' && !Array.isArray(timers) ? timers : {})
+    .filter(([key, seconds]) => typeof key === 'string' && key.length > 0 && Number.isFinite(Number(seconds)) && Number(seconds) >= 0)
+    .map(([key, seconds]) => [key, Math.min(120, Number(seconds))]));
+  c.treasureImpGuaranteedPending = cleanImpTimers(c.treasureImpGuaranteedPending);
+  c.treasureImpRandomCheckedAreas = Array.isArray(c.treasureImpRandomCheckedAreas)
+    ? [...new Set(c.treasureImpRandomCheckedAreas.filter((key) => typeof key === 'string' && key.length > 0))]
+    : [];
+  c.treasureImpRandomPending = cleanImpTimers(c.treasureImpRandomPending);
   c.treasureImpTutorialShown = !!c.treasureImpTutorialShown;
   c.seaOfSandRuns = c.seaOfSandRuns || {};
   c.darkForestRuns = c.darkForestRuns || {};
