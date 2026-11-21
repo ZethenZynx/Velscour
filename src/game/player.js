@@ -26,6 +26,7 @@ import { freeSlot } from '../data/bar.js';
 import { bardCompose, bardUpdate, harmonyMul } from './bard.js';
 import { ASTRONOMER, astroAfterCast, astroUpdate } from './astronomer.js';
 import { sigCast, sigHit, sigUpdate } from './signature.js';
+import { POTION_BELT_CAPACITY } from './potionpurchase.js';
 import { bladeOnBack } from './sigs/deathknight.js';
 import { rogueHit, rogueUpdate } from './rogue.js';
 import { ninjaHit, ninjaUpdate } from './ninja.js';
@@ -481,7 +482,7 @@ export class Player extends Creature {
         return true;
       }
       case 'potion':
-        if ((c.potions[g.item.kind] || 0) >= 30) { if (g.t > 0.6 && !g.warned) { g.warned = true; floatText(this.x, this.y, 50, 'Potion belt full', '#ccc', 11); G.ui?.event?.({ category: 'loot.inventoryFull', text: 'Potion belt full.', color: '#ff7777', meta: { important: true } }); } return false; }
+        if ((c.potions[g.item.kind] || 0) >= POTION_BELT_CAPACITY) { if (g.t > 0.6 && !g.warned) { g.warned = true; floatText(this.x, this.y, 50, 'Potion belt full', '#ccc', 11); G.ui?.event?.({ category: 'loot.inventoryFull', text: 'Potion belt full.', color: '#ff7777', meta: { important: true } }); } return false; }
         c.potions[g.item.kind] = (c.potions[g.item.kind] || 0) + 1; sfx('pickup');
         G.ui?.event?.({ category: 'loot.consumable', text: `Picked up ${g.item.name || g.item.kind}.` });
         G.ui && G.ui.refresh();

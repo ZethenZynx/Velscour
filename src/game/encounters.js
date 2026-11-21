@@ -18,6 +18,7 @@ import { UI } from '../ui/ui.js';
 import { TOWNSFOLK, ANIMALS } from '../data/townsfolk.js';
 import { makeFolk } from './folk.js';
 import { townFacingFlip } from './townsfolkvisuals.js';
+import { POTION_BELT_CAPACITY } from './potionpurchase.js';
 
 export const ENCOUNTER_CHANCE = 0.5;
 // One event check feeds this complete pool. Legacy encounters remain in the pool, while the new
@@ -262,7 +263,7 @@ const BUILD = {
       UI.dialog({ title: 'Wandering Merchant', html: '<p>A few road supplies, while my stock lasts.</p>', buttons: [
         ...['hp', 'mp', 'gem'].filter((id) => e.stock[id] > 0).map((id) => ({ label: id === 'hp' ? `Healing Potion · ${prices[id]}g` : id === 'mp' ? `Mana Potion · ${prices[id]}g` : `Depth Gem · ${prices[id]}g`, fn: () => {
           if (G.char !== c || c.gold < prices[id] || e.stock[id] <= 0) { sfx('error'); return; }
-          if (id !== 'gem' && (c.potions[id] || 0) >= 30) { UI.log('Your potion belt is full.', '#ff8080'); return; }
+          if (id !== 'gem' && (c.potions[id] || 0) >= POTION_BELT_CAPACITY) { UI.log('Your potion belt is full.', '#ff8080'); return; }
           c.gold -= prices[id]; e.stock[id]--;
           if (id === 'gem') world.addLoot(new GroundItem(n.x + 0.4, n.y, 'item', { item: rollGroundGem(lvlOf(world) + 2) }));
           else c.potions[id] = (c.potions[id] || 0) + 1;

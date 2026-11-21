@@ -21,6 +21,7 @@ import { SHEET_PRICE } from '../data/tabs.js';
 import { marksFree, deductMarks } from '../game/marks.js';
 import { Marks } from './marks.js';
 import { campaignVictoryRecorded } from '../game/endgame.js';
+import { POTION_BELT_CAPACITY, potionPurchaseQuote } from '../game/potionpurchase.js';
 
 const VBY = Object.fromEntries(VENDORS.map((v) => [v.id, v]));
 const buyPrice = (base) => Math.max(1, Math.ceil(base * (1 - Math.min(40, G.player?.st?.markDiscount || 0) / 100)));
@@ -65,7 +66,7 @@ export const Vendor = {
     this.shopSel = null;
     const v = VBY[vid];
     sfx('ui');
-    UI.openPanel('vendor', `${v.name} - ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('character'); UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : 'vendor-panel' });
+    UI.openPanel('vendor', `${v.name} - ${v.title}`, (b) => this.render(b), { onClose: () => { this.active = null; this.body = null; UI.closePanel('character'); UI.closePanel('inventory'); }, cls: vid === 'gems' ? 'vendor-panel gem-vendor-panel' : vid === 'alchemist' ? 'vendor-panel alchemist-vendor-panel' : 'vendor-panel' });
     UI.openPanel('character', 'Character & Stats', renderCharacter, { cls: 'character-panel', order: 'first' });
     UI.openPanel('inventory', 'Backpack', renderInventory, { cls: 'inventory-panel' });
     return true;
@@ -259,19 +260,48 @@ export const Vendor = {
   potionBox(body) {
     const c = G.char;
     for (const k of ['hp', 'mp', 'rejuv', 'fury']) {
-      const row = el('div', 'service-box row');
+      const row = el('div', 'service-box alchemist-potion-row');
       const ic = potionIcon({ hp: 'red', mp: 'blue', rejuv: 'purple', fury: 'orange' }[k], 40);
       row.appendChild(ic);
-      row.appendChild(el('div', '', `<b>${{ hp: 'Healing Potion', mp: 'Mana Potion', rejuv: 'Rejuvenation Potion', fury: 'Elixir of Fury' }[k]}</b> <span class="dim">(you have ${c.potions[k]})</span><div class="dim" style="font-size:12px">${POTION_INFO[k]}</div>`));
+      const held = Math.max(0, Number(c.potions[k]) || 0);
+      row.appendChild(el('div', 'alchemist-potion-description', `<b>${{ hp: 'Healing Potion', mp: 'Mana Potion', rejuv: 'Rejuvenation Potion', fury: 'Elixir of Fury' }[k]}</b> <span class="dim">(you have ${held})</span><div class="dim" style="font-size:12px">${POTION_INFO[k]}</div>`));
       const price = buyPrice(Math.round(POTION_PRICE[k] * (1 + c.level * 0.08)));
-      for (const n of [1, 5]) {
-        const b = el('button', 'btn small', `Buy ${n} (${fmtInt(price * n)}g)`);
-        b.disabled = c.gold < price * n || c.potions[k] + n > 30;
-        b.onclick = () => { c.gold -= price * n; c.potions[k] += n; sfx('potion'); changed(); };
-        row.appendChild(b);
+      const actions = el('div', 'alchemist-buy-actions');
+      for (const n of [1, 5, 'max']) {
+        const quote = potionPurchaseQuote(held, c.gold, price, n);
+        const label = n === 'max' ? 'Buy Max' : `Buy ${n}`;
+        const b = el('button', 'btn small alchemist-buy-button', label);
+        b.appendChild(el('span', 'alchemist-buy-price', `${fmtInt(quote.total)}g`));
+        b.disabled = !quote.canBuy;
+        b.title = n === 'max'
+          ? quote.quantity ? `Buy ${quote.quantity} to reach ${POTION_BELT_CAPACITY} potions for ${fmtInt(quote.total)} gold` : 'Already at maximum carrying capacity'
+          : quote.canBuy ? `Buy ${quote.quantity} for ${fmtInt(quote.total)} gold` : held + quote.quantity > POTION_BELT_CAPACITY ? 'Exceeds potion belt capacity' : `Costs ${fmtInt(quote.total)} gold; you have ${fmtInt(c.gold)} gold`;
+        b.onclick = () => this.buyPotions(k, n);
+        actions.appendChild(b);
       }
+      row.appendChild(actions);
       body.appendChild(row);
     }
+  },
+
+  buyPotions(kind, requested) {
+    const c = G.char;
+    if (!c?.potions || !Object.hasOwn(c.potions, kind)) return false;
+    const held = Math.max(0, Number(c.potions[kind]) || 0);
+    const unitPrice = buyPrice(Math.round(POTION_PRICE[kind] * (1 + c.level * 0.08)));
+    const quote = potionPurchaseQuote(held, c.gold, unitPrice, requested);
+    if (!quote.canBuy) {
+      UI.log(quote.quantity > quote.remaining ? 'Your potion belt cannot hold that many.' : 'Not enough gold or carrying capacity.', '#ff8080');
+      sfx('error');
+      return false;
+    }
+    // Recheck the whole purchase against current state before changing either value;
+    // Buy Max is never silently reduced to a quantity the character can afford.
+    c.gold -= quote.total;
+    c.potions[kind] = held + quote.quantity;
+    sfx('potion');
+    changed();
+    return true;
   },
 
   /** The Gem Forge: fuse three gems of a kind into the next grade, fuse everything at once, or refine one gem. */

@@ -1339,6 +1339,27 @@ body:not(.touch) .vendor-panel { width: min(460px, calc(100vw - 24px)); }
 body:not(.touch) .stash-panel { width: min(510px, calc(100vw - 24px)); }
 body:not(.touch) .reliquary-panel { width: min(548px, calc(100vw - 24px)); }
 body:not(.touch) #panels:has(.vendor-panel, .stash-panel, .reliquary-panel) .vendor-panel { width: min(460px, 35vw); }
+body:not(.touch) .alchemist-vendor-panel { width: min(560px, calc(100vw - 24px)); }
+body:not(.touch) #panels:has(.alchemist-vendor-panel) .alchemist-vendor-panel { width: min(520px, 38vw); }
+.alchemist-potion-row {
+  display: grid;
+  grid-template-columns: 40px minmax(100px, 1fr) minmax(240px, 1.35fr);
+  gap: 8px;
+  align-items: center;
+}
+.alchemist-potion-description { min-width: 0; overflow-wrap: anywhere; }
+.alchemist-buy-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.alchemist-potion-row .alchemist-buy-button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; width: 100%; min-width: 0; min-height: 44px; padding: 4px 5px;
+  line-height: 1.05; white-space: normal; text-align: center;
+}
+.alchemist-buy-price { font-size: 11px; color: #f4d28b; white-space: nowrap; }
+@media (max-width: 700px) {
+  .alchemist-potion-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .alchemist-buy-actions { grid-column: 1 / -1; }
+}
+body.touch .alchemist-vendor-panel { max-width: min(62vw, calc(100vw - 16px)); }
 
 body:not(.touch) .character-panel .inv-wrap,
 body:not(.touch) .inv-wrap.character-view {
