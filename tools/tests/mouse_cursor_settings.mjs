@@ -1,14 +1,30 @@
 import assert from 'node:assert/strict';
 import {
   MOUSE_CURSOR_DEFAULTS,
+  MouseCursor,
   cursorColor,
+  cursorNeedsEffects,
+  cursorNeedsPointerOverlay,
+  cursorPointerOffset,
+  cursorTrailGap,
   cursorUsesOverlay,
+  MAX_CURSOR_TRAIL_PARTICLES,
+  MAX_CURSOR_TRAIL_POINTS,
   normalizeMouseCursorSettings,
 } from '../../src/ui/mousecursor.js';
+import { G } from '../../src/state.js';
 
 const defaults = normalizeMouseCursorSettings();
 assert.deepEqual(defaults, MOUSE_CURSOR_DEFAULTS, 'new cursor preferences start at their defaults');
 assert.equal(cursorUsesOverlay(defaults), false, 'the custom cursor renderer is off by default');
+assert.equal(cursorNeedsPointerOverlay(defaults), false, 'defaults keep the native Velscour pointer');
+assert.equal(cursorNeedsEffects(defaults), false, 'defaults do not start the effects renderer');
+assert.deepEqual(cursorPointerOffset(100), { x: 2, y: 2 }, 'the pointer retains the original 2,2 hotspot');
+assert.deepEqual(cursorPointerOffset(300), { x: 6, y: 6 }, 'the original hotspot scales proportionally');
+assert.equal(cursorTrailGap(100), 9.5, 'trails begin behind the pointer tip');
+assert.ok(cursorTrailGap(300) > cursorTrailGap(100) * 2, 'the pointer-to-trail gap scales with the cursor');
+assert.ok(MAX_CURSOR_TRAIL_PARTICLES <= 128, 'trail particle work has a fixed upper bound');
+assert.ok(MAX_CURSOR_TRAIL_POINTS <= 80, 'trail history has a fixed upper bound');
 assert.equal(defaults.trailStyle, 'none', 'trails are disabled by default');
 assert.equal(defaults.outline, false, 'outline is disabled by default');
 assert.equal(defaults.glow, false, 'glow is disabled by default');
@@ -43,6 +59,28 @@ assert.equal(normalizeMouseCursorSettings({ customColor: 'transparent' }).custom
 assert.equal(normalizeMouseCursorSettings({ locatorKey: 'KeyQ' }).locatorKey, 'KeyQ', 'valid locator key bindings are retained');
 assert.equal(normalizeMouseCursorSettings({ locatorKey: 'Escape' }).locatorKey, MOUSE_CURSOR_DEFAULTS.locatorKey, 'unsafe or unsupported locator bindings fall back');
 assert.equal(cursorUsesOverlay({ trailStyle: 'sparkles' }), true, 'enabling a trail activates the effects renderer');
+assert.equal(cursorNeedsPointerOverlay({ trailStyle: 'sparkles' }), false, 'trails do not replace or delay the native pointer');
+assert.equal(cursorNeedsEffects({ trailStyle: 'sparkles' }), true, 'trail effects run independently from the cursor');
 assert.equal(cursorUsesOverlay({ locatorEnabled: true }), true, 'enabling the locator activates the effects renderer');
+
+const particleStyles = ['sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow'];
+const trailStyles = ['none', 'solid', 'dotted', ...particleStyles, 'comet', 'ghost'];
+const timing = {};
+for (const trailStyle of trailStyles) {
+  G.settings.mouseCursor = normalizeMouseCursorSettings({ trailStyle, particleDensity: 100, particleSize: 20, trailLength: 1500, fadeSpeed: 0.25, trailGlow: 100 });
+  MouseCursor.clearTrail();
+  const start = process.hrtime.bigint();
+  for (let i = 0; i < 4000; i++) MouseCursor.emitTrail(i * 18, 24, 18, i * 8);
+  timing[trailStyle] = Number(process.hrtime.bigint() - start) / 1e6;
+  assert.ok(MouseCursor.particles.length <= MAX_CURSOR_TRAIL_PARTICLES, `${trailStyle} stays within its particle cap`);
+  MouseCursor.advanceParticles(10);
+  assert.equal(MouseCursor.particles.length, 0, `${trailStyle} expires particles without a browser frame`);
+  const recycled = MouseCursor.particlePool[MouseCursor.particlePool.length - 1];
+  MouseCursor.emitTrail(1, 2, 80, 40001);
+  if (particleStyles.includes(trailStyle)) assert.ok(MouseCursor.particles.includes(recycled), `${trailStyle} reuses a recycled particle`);
+}
+G.settings.mouseCursor = { ...MOUSE_CURSOR_DEFAULTS };
+MouseCursor.clearTrail();
+console.log(`Mouse cursor synthetic emitter benchmark (4,000 pointer samples, ms): ${Object.entries(timing).map(([style, ms]) => `${style}=${ms.toFixed(2)}`).join(', ')}`);
 
 console.log('Mouse cursor settings checks passed.');

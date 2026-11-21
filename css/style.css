@@ -787,10 +787,15 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .help-keys div { break-inside: avoid; margin-bottom: 3px; }
 .help-keys kbd { display: inline-block; min-width: 22px; text-align: center; padding: 1px 5px; border: 1px solid var(--gold-dim); border-radius: 3px; background: #1a110b; color: var(--gold-bright); font: 700 12px var(--font-body); }
 
-/* Optional PC cursor overlay. It is above every game layer and never receives input. */
-body.custom-mouse-cursor, body.custom-mouse-cursor * { cursor: none !important; }
-body.custom-mouse-cursor #game, body.custom-mouse-cursor #game.aiming { cursor: none !important; }
-.mouse-cursor-effects { position: fixed; z-index: 2147483647; inset: 0 auto auto 0; display: none; pointer-events: none !important; user-select: none; }
+/* Cursor effects are cosmetic only. The custom pointer is moved directly by pointer events, not the game loop. */
+body.custom-mouse-pointer, body.custom-mouse-pointer * { cursor: none !important; }
+.mouse-cursor-effects { position: fixed; z-index: 2147483645; inset: 0 auto auto 0; display: none; pointer-events: none !important; user-select: none; }
+.mouse-cursor-pointer { position: fixed; z-index: 2147483647; top: 0; left: 0; width: 24px; height: 24px; display: none; overflow: visible; pointer-events: none !important; user-select: none; will-change: transform; }
+.mouse-cursor-pointer svg { display: block; overflow: visible; }
+.mouse-cursor-highlight { position: fixed; z-index: 2147483646; top: 0; left: 0; display: none; width: 34px; height: 34px; border: 1.5px solid #d8b26a; border-radius: 50%; box-shadow: 0 0 6px currentColor; pointer-events: none !important; user-select: none; will-change: transform; }
+.mouse-cursor-pointer.pulsating-glow { animation: cursor-glow-pulse 1.2s ease-in-out infinite alternate; }
+@keyframes cursor-glow-pulse { from { filter: drop-shadow(0 0 2px var(--cursor-glow)); } to { filter: drop-shadow(0 0 8px var(--cursor-glow)); } }
+@keyframes cursor-hue-cycle { to { filter: hue-rotate(360deg); } }
 .cursor-live-preview { display: flex; min-height: 76px; flex-direction: column; align-items: center; justify-content: center; gap: 5px; margin: 0 0 12px; border: 1px dashed rgba(202,160,82,.62); border-radius: 4px; background: radial-gradient(ellipse at center,rgba(95,62,25,.28),rgba(0,0,0,.32)); color: #e8d6b4; text-align: center; pointer-events: auto; }
 .cursor-live-preview b { color: var(--gold-bright); font: 700 12px var(--font-head); letter-spacing: .7px; text-transform: uppercase; }
 .cursor-live-preview span { color: var(--text-dim); font: 11px var(--font-body); }
