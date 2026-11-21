@@ -5,7 +5,7 @@ import { fmtInt } from '../core/util.js';
 import { shownEquip } from '../data/items.js';
 import { heroPortrait } from '../core/gearart.js';
 
-const BASE_W = 260, BASE_H = 154;
+const BASE_W = 190, BASE_H = 112;
 const HEAD_CROP_H = 100;
 const FALLBACK_PORTRAITS = new Map();
 const config = () => (G.settings.characterPortrait ||= { visible: true, locked: false, size: 100, position: null });
@@ -51,7 +51,7 @@ export const CharacterPortrait = {
     if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) && saved.x >= 0 && saved.x <= 1 && saved.y >= 0 && saved.y <= 1) {
       return [saved.x * Math.max(0, innerWidth - width), saved.y * Math.max(0, innerHeight - height)];
     }
-    return [16, Math.max(16, innerHeight - height - 84)];
+    return [16, 16];
   },
   bounds() {
     const scale = clamp(Number(config().size) || 100, 75, 150) / 100;
@@ -97,11 +97,30 @@ export const CharacterPortrait = {
   beginDrag(e) {
     if (e.button !== 0 || e.target.closest('button') || config().locked || !this.root) return;
     e.preventDefault(); e.stopPropagation();
+    const handle = e.currentTarget, pointerId = e.pointerId;
     const r = this.root.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const move = (ev) => { this.savePosition(ev.clientX - dx, ev.clientY - dy); };
-    const end = () => { e.currentTarget.removeEventListener('pointermove', move); e.currentTarget.removeEventListener('pointerup', end); e.currentTarget.removeEventListener('pointercancel', end); saveSettings(); };
-    e.currentTarget.addEventListener('pointermove', move); e.currentTarget.addEventListener('pointerup', end); e.currentTarget.addEventListener('pointercancel', end);
+    let ended = false;
+    const move = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      if (ev.buttons !== undefined && (ev.buttons & 1) === 0) return end();
+      this.savePosition(ev.clientX - dx, ev.clientY - dy);
+    };
+    const end = (ev) => {
+      if (ended || (ev?.pointerId != null && ev.pointerId !== pointerId)) return;
+      ended = true;
+      handle.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', end);
+      document.removeEventListener('pointercancel', end);
+      handle.removeEventListener('lostpointercapture', end);
+      window.removeEventListener('blur', end);
+      saveSettings();
+    };
+    handle.setPointerCapture(e.pointerId);
+    handle.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+    handle.addEventListener('lostpointercapture', end);
+    window.addEventListener('blur', end);
   },
   beginResize(e) {
     if (e.button !== 0 || config().locked || !this.root) return;

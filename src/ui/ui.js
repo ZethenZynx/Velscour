@@ -298,18 +298,30 @@ export const UI = {
     const host = this.panelsEl.getBoundingClientRect();
     const r = p.root.getBoundingClientRect();
     const dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const pointerId = e.pointerId;
     p.head.setPointerCapture(e.pointerId);
     p.root.classList.add('moving');
-    const move = (ev) => this.placePanel(name, ev.clientX - host.left - dx, ev.clientY - host.top - dy);
-    const end = () => {
+    let ended = false;
+    const move = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      if (ev.buttons !== undefined && (ev.buttons & 1) === 0) return end();
+      this.placePanel(name, ev.clientX - host.left - dx, ev.clientY - host.top - dy);
+    };
+    const end = (ev) => {
+      if (ended || (ev?.pointerId != null && ev.pointerId !== pointerId)) return;
+      ended = true;
       p.root.classList.remove('moving');
       p.head.removeEventListener('pointermove', move);
-      p.head.removeEventListener('pointerup', end);
-      p.head.removeEventListener('pointercancel', end);
+      document.removeEventListener('pointerup', end);
+      document.removeEventListener('pointercancel', end);
+      p.head.removeEventListener('lostpointercapture', end);
+      window.removeEventListener('blur', end);
     };
     p.head.addEventListener('pointermove', move);
-    p.head.addEventListener('pointerup', end);
-    p.head.addEventListener('pointercancel', end);
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+    p.head.addEventListener('lostpointercapture', end);
+    window.addEventListener('blur', end);
   },
 
   // ------------------------------------------------------------- messages
