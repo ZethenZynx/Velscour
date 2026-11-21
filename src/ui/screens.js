@@ -17,7 +17,7 @@ import { creditsScreen } from './credits.js';
 import { RARITY, shownEquip } from '../data/items.js';
 import { RECENT_CHANGES } from '../data/recent-changes.js';
 import { FILTER_ROWS, lootFilter, lootLabelFilter, saveLootFilterSettings } from '../game/lootfilter.js';
-import { isProfaneName, validateCharName } from '../core/profanity.js';
+import { validateCharName } from '../core/profanity.js';
 import { loadRecentChanges, getCachedRecentChanges, getRecentChangesState, RECENT_CHANGES_REFRESH_MS } from '../game/recentchanges.js';
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
 import { initTitleForkUpdater } from '../game/forkreleaseupdater.js';
@@ -379,6 +379,7 @@ export function classSelect(sel = 'paladin', back = titleScreen) {
   const row = el('div', 'row');
   const name = el('input', 'name-input');
   const go = el('button', 'btn big', 'Begin');
+  const renameBtn = el('button', 'btn', 'Rename');
   const delBtn = el('button', 'btn red', 'Delete');
   const renderInfo = () => {
     const C = CLASSES[sel], h = heroes[sel];
@@ -390,9 +391,15 @@ export function classSelect(sel = 'paladin', back = titleScreen) {
     text.innerHTML = (h ? `<h2>${escapeHtml(h.name)}</h2><p><b style="color:#ffd34a">Level ${h.level} ${C.name}</b> · Depth ${h.depth} · Deepest ${h.deepest || 0} · ${fmtInt(h.gold)} gold</p>` : `<h2>${C.name}</h2>`) +
       `<p>${escapeHtml(C.desc)}</p><p class="dim">Skill trees: <b style="color:#e9dcc4">${C.trees.join(' · ')}</b><br>Primary attribute: <b style="color:#ffd34a">${ATTRS[C.primary].name}</b> · Life ${C.life} · Mana ${C.mana}</p>` +
       (gear ? '<div class="class-gear-summary" aria-label="Saved equipped gear">' + gear + '</div>' : '');
-    for (const id in cards) cards[id].classList.toggle('sel', id === sel);
+    for (const id in cards) {
+      cards[id].classList.toggle('sel', id === sel);
+      const cardName = cards[id].querySelector('.plaque span');
+      if (cardName && heroes[id]) cardName.textContent = heroes[id].name;
+    }
     name.style.display = h ? 'none' : '';
     go.innerHTML = h ? 'Play' : 'Begin';
+    renameBtn.disabled = !h || delMode;
+    renameBtn.title = h ? 'Rename this hero' : 'Select a saved hero to rename';
     s.classList.toggle('del-mode', delMode);
     delBtn.innerHTML = delMode ? 'Cancel' : 'Delete';
   };
@@ -427,6 +434,43 @@ export function classSelect(sel = 'paladin', back = titleScreen) {
   name.maxLength = 18;
   const backBtn = el('button', 'btn', 'Back');
   backBtn.onclick = () => { sfx('ui'); back(); };
+  renameBtn.onclick = () => {
+    const h = heroes[sel];
+    if (!h || delMode) return;
+    const dialog = UI.dialog({
+      title: 'Rename Hero',
+      html: `<p>Choose a new name for ${escapeHtml(h.name)}.</p><input class="name-input rename-hero-input" type="text" maxlength="18" value="${escapeHtml(h.name)}" aria-label="Hero name">`,
+      buttons: [
+        { label: 'Cancel' },
+        { label: 'Confirm', cls: 'amber', keepOpen: true, fn: (close) => {
+          const field = dialog.box.querySelector('.rename-hero-input');
+          const val = validateCharName(field.value);
+          const error = dialog.box.querySelector('.rename-hero-error');
+          if (!val.valid) {
+            if (error) error.textContent = val.error;
+            else field.insertAdjacentHTML('afterend', `<p class="rename-hero-error" role="alert">${escapeHtml(val.error)}</p>`);
+            field.focus(); field.select();
+            return;
+          }
+          if (!writeSave({ ...h, name: val.name })) {
+            if (error) error.textContent = 'The new name could not be saved. Please try again.';
+            else field.insertAdjacentHTML('afterend', '<p class="rename-hero-error" role="alert">The new name could not be saved. Please try again.</p>');
+            return;
+          }
+          h.name = val.name;
+          if (G.char?.id === h.id) G.char.name = val.name;
+          renderInfo();
+          close();
+        } },
+      ],
+      cls: 'rename-hero-dialog',
+    });
+    const field = dialog.box.querySelector('.rename-hero-input');
+    field.focus(); field.select();
+    field.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); dialog.box.querySelector('.row .btn.amber')?.click(); }
+    });
+  };
   delBtn.onclick = () => {
     sfx('ui');
     if (!Object.keys(heroes).length) return;
@@ -451,7 +495,7 @@ export function classSelect(sel = 'paladin', back = titleScreen) {
   };
   go.onclick = start;
   name.onkeydown = (e) => { if (e.key === 'Enter') start(); };
-  row.append(backBtn, delBtn, name, go);
+  row.append(backBtn, renameBtn, delBtn, name, go);
   s.appendChild(row);
   renderInfo();
   show(s);

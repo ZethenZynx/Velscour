@@ -790,6 +790,9 @@ body.touch .reliquary-panel .codex-cell { width: 34px; height: 34px; }
 .backup-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 4px; border-bottom: 1px solid rgba(180,140,80,.25); font-size: 14px; }
 .dialog-box p { margin: 6px 0 14px; }
 .dialog-box .row { justify-content: center; }
+.rename-hero-dialog { width: min(380px, 92vw); padding: 14px 16px; }
+.rename-hero-dialog .rename-hero-input { box-sizing: border-box; width: min(280px, 100%); }
+.rename-hero-dialog .rename-hero-error { color: #ff8f82; font-size: 13px; }
 .ancestral-reliquary-gem-picker { width: min(560px, 92vw); }
 .reliquary-gem-list { display: flex; flex-direction: column; gap: 6px; max-height: min(54vh, 440px); overflow-y: auto; overscroll-behavior: contain; padding: 2px 4px; text-align: left; scrollbar-color: #805d2b rgba(0, 0, 0, .24); }
 .reliquary-gem-option { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 10px; text-align: left; }
