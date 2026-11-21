@@ -788,6 +788,31 @@ export function itemValue(item) {
 /** Vendor payout for selling one item (or one unit of a stack). */
 export const itemSellValue = (item) => Math.max(1, Math.floor(itemValue(item) / 4));
 
+const EQUIPMENT_SLOT_ORDER = Object.freeze({ weapon: 0, offhand: 1, head: 2, body: 3, hands: 4, legs: 5, feet: 6, ring: 7 });
+function equipmentRarityRank(item) {
+  const rarity = Number(item?.rarity);
+  return Number.isInteger(rarity) && RARITY[rarity] ? RARITY[rarity].id : -1;
+}
+function equipmentTypeCompare(a, b) {
+  const aSlot = EQUIPMENT_SLOT_ORDER[a?.slot] ?? 99, bSlot = EQUIPMENT_SLOT_ORDER[b?.slot] ?? 99;
+  if (aSlot !== bSlot) return aSlot - bSlot;
+  // Weapon and off-hand bases (sword, bow, shield, focus, etc.) are distinct equipment types.
+  const aBase = String(a?.base || a?.slot || ''), bBase = String(b?.base || b?.slot || '');
+  return aBase.localeCompare(bBase);
+}
+function safeEquipmentSellValue(item) {
+  try { return itemSellValue(item); } catch { return 0; }
+}
+
+/** Shared Backpack/Storage Chest gear ordering: rarity, type, item level, armor, then actual vendor payout. */
+export function compareEquipmentForStorage(a, b) {
+  return equipmentRarityRank(b) - equipmentRarityRank(a) ||
+    equipmentTypeCompare(a, b) ||
+    (Number(b?.ilvl) || 0) - (Number(a?.ilvl) || 0) ||
+    itemArmor(b) - itemArmor(a) ||
+    safeEquipmentSellValue(b) - safeEquipmentSellValue(a);
+}
+
 /** A gold pile at monster level `lvl`. Prices grow ~1.06x a level (items, upgrades, sockets, gambling), so past level ~85
  *  piles follow the same curve (1.5 x 1.06^level, a Normal item's price) instead of the old straight line, which left
  *  late-game heroes unable to afford anything. goldScale: how much richer than the line (every gold source uses it). */

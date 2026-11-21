@@ -6,7 +6,7 @@ import { UI, draggable, droppable } from './ui.js';
 import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import { changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
-import { itemName } from '../data/items.js';
+import { itemName, compareEquipmentForStorage } from '../data/items.js';
 import { stashRows, nextStashRowCost, canBuyStashRow, buyStashRow, storageExpansionUnlocked, STASH_MAX_ROWS } from '../data/bag.js';
 
 export const STASH_SIZE = 300;
@@ -30,11 +30,14 @@ export function sortStash(c, by = 'type') {
   if (!c) return;
   if (!Array.isArray(c.stash)) c.stash = Array(STASH_SIZE).fill(null);
   const kind = (it) => (it.type === 'gear' ? TYPE_ORDER.indexOf(it.slot) + 1 || 9 : it.type === 'gem' ? 10 : 11);
-  const items = (c.stash || []).filter(Boolean).sort((a, b) => {
+  const items = (c.stash || []).filter(Boolean);
+  const gear = items.filter((item) => item.type === 'gear').sort(compareEquipmentForStorage);
+  const other = items.filter((item) => item.type !== 'gear').sort((a, b) => {
     const k = kind(a) - kind(b), r = (b.rarity || 0) - (a.rarity || 0);
     return (by === 'rarity' ? r || k : k || r) || (a.gem || '').localeCompare(b.gem || '') || (b.tier || 0) - (a.tier || 0) || (b.ilvl || 0) - (a.ilvl || 0);
   });
-  c.stash = c.stash.map((_, i) => items[i] || null);
+  const sorted = [...gear, ...other];
+  c.stash = Array.from({ length: c.stash.length }, (_, i) => sorted[i] || null);
 }
 
 export const Stash = {
@@ -171,6 +174,9 @@ export const Stash = {
     head.appendChild(withdrawAllBtn);
     for (const [by, label] of [['type', 'Sort by type'], ['rarity', 'Sort by rarity']]) {
       const b = el('button', 'btn small', label);
+      b.title = by === 'type'
+        ? 'Equipment: rarity, type, item level, armor and sell value. Other items: type.'
+        : 'Equipment: rarity, type, item level, armor and sell value. Other items: rarity.';
       b.onclick = () => { sortStash(c, by); self.selected = null; sfx('ui'); UI.selected = null; changed(); };
       head.appendChild(b);
     }

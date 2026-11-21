@@ -7,7 +7,7 @@ import { UI, draggable, droppable } from './ui.js';
 import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import {
   SLOTS, SLOT_NAMES, VANITY_SLOTS, shownEquip, itemName, itemColor, GEMS, gemName,
-  itemValue, fitsSlot, slotFor, unsocketCost, makeGem, canWearVanity, itemBaseDisplayName,
+  itemValue, fitsSlot, slotFor, unsocketCost, makeGem, canWearVanity, itemBaseDisplayName, compareEquipmentForStorage,
   itemReqStat, charEffectiveStat, canEquipItem, BASE_REQ_STAT, STAT_NAMES,
 } from '../data/items.js';
 import { CLASSES, ATTRS } from '../data/classes.js';
@@ -851,7 +851,7 @@ export function renderInventory(body, panel) {
   const actions = el('div', 'inv-title-actions');
 
   const sortBtn = el('button', 'btn small', 'Sort');
-  sortBtn.title = 'Sort inventory items by type and rarity';
+  sortBtn.title = 'Sort gear by rarity, equipment type, item level, armor and sell value';
   sortBtn.onclick = () => { sortBag(); sfx('ui'); };
   actions.appendChild(sortBtn);
 
@@ -1006,9 +1006,14 @@ export function sortBag() {
   if (!Array.isArray(c.bag)) c.bag = Array(60).fill(null);
   const items = (c.bag || []).filter(Boolean);
   const rank = (it) => (it.type === 'gear' ? 0 : it.type === 'gem' ? 1 : 2);
-  items.sort((a, b) => rank(a) - rank(b) || (b.rarity || 0) - (a.rarity || 0) || (a.slot || '').localeCompare(b.slot || '') || (b.ilvl || 0) - (a.ilvl || 0));
-  const bagLen = Math.max(60, c.bag.length);
-  c.bag = Array(bagLen).fill(null).map((_, i) => items[i] || null);
+  items.sort((a, b) => {
+    const kind = rank(a) - rank(b);
+    if (kind) return kind;
+    if (a.type === 'gear' && b.type === 'gear') return compareEquipmentForStorage(a, b);
+    return (b.rarity || 0) - (a.rarity || 0) || (a.slot || '').localeCompare(b.slot || '') || (b.ilvl || 0) - (a.ilvl || 0);
+  });
+  const bagLen = Math.max(60, c.bag.length, items.length);
+  c.bag = Array.from({ length: bagLen }, (_, i) => items[i] || null);
   UI.selected = null;
   changed();
 }
