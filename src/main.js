@@ -7,6 +7,7 @@ import { loadEnemyArt, loadPetArt } from './core/enemyart.js';
 import { rand, TAU } from './core/util.js';
 import { UI, $ } from './ui/ui.js';
 import { GameChat } from './ui/chat.js';
+import { initMouseCursor } from './ui/mousecursor.js';
 import { HUD } from './ui/hud.js';
 import { LoadingScreen } from './ui/loading.js';
 import { titleScreen } from './ui/screens.js';
@@ -276,6 +277,7 @@ function reportError(err) {
 
 async function boot() {
   loadSettings();
+  initMouseCursor();
   G.canvas = $('#game');
   G.ctx = G.canvas.getContext('2d', { alpha: false });
   G.touch = false; // PC edition: touch controls and mobile HUD are not enabled.

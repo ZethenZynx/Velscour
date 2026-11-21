@@ -21,6 +21,7 @@ import { isProfaneName, validateCharName } from '../core/profanity.js';
 import { loadRecentChanges, getCachedRecentChanges, getRecentChangesState, RECENT_CHANGES_REFRESH_MS } from '../game/recentchanges.js';
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
 import { initTitleForkUpdater } from '../game/forkreleaseupdater.js';
+import { MOUSE_CURSOR_DEFAULTS, refreshMouseCursor } from './mousecursor.js';
 
 let current = null;
 let currentCleanup = null;
@@ -488,6 +489,7 @@ export function settingsDialog() {
     <button type="button" class="settings-tab-btn" data-tab="audio">Audio</button>
     <button type="button" class="settings-tab-btn" data-tab="graphics">Graphics</button>
     <button type="button" class="settings-tab-btn" data-tab="hud">HUD &amp; UI</button>
+    <button type="button" class="settings-tab-btn" data-tab="mouseCursor">Mouse Cursor</button>
     <button type="button" class="settings-tab-btn" data-tab="controls">Controls</button>
   </div>
   <div class="settings-tab-pane" data-pane="general">
@@ -535,6 +537,45 @@ export function settingsDialog() {
     </div>
     <p class="dim" data-keybind-status aria-live="polite"></p>
   </div>
+  <div class="settings-tab-pane" data-pane="mouseCursor">
+    <div class="cursor-live-preview" data-cursor-preview tabindex="0"><b>Live Cursor Preview</b><span>Move your mouse here to preview the cursor, trail, and locator effects.</span></div>
+    <div class="cursor-settings-group"><h3>Cursor Appearance</h3><div class="cursor-settings-grid">
+      <label>Color</label><select data-cursor="color"><option value="default">Default</option><option value="white">White</option><option value="black">Black</option><option value="red">Red</option><option value="orange">Orange</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="cyan">Cyan</option><option value="blue">Blue</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="gold">Gold</option><option value="rainbow">Rainbow</option><option value="inverted">Inverted / high contrast</option><option value="custom">Custom</option></select>
+      <label>Custom cursor color</label><input type="color" data-cursor="customColor">
+      <label>Cursor size <output data-cursor-output="size"></output></label><input type="range" min="50" max="300" step="25" data-cursor="size">
+      <label>Transparency <output data-cursor-output="transparency"></output></label><input type="range" min="20" max="100" step="5" data-cursor="transparency">
+      <label>Outline</label><input type="checkbox" data-cursor="outline">
+      <label>Outline color</label><input type="color" data-cursor="outlineColor">
+      <label>Outline thickness <output data-cursor-output="outlineThickness"></output></label><input type="range" min="1" max="8" step="1" data-cursor="outlineThickness">
+      <label>Glow</label><input type="checkbox" data-cursor="glow">
+      <label>Glow color</label><input type="color" data-cursor="glowColor">
+      <label>Glow intensity <output data-cursor-output="glowIntensity"></output></label><input type="range" min="0" max="100" step="5" data-cursor="glowIntensity">
+      <label>Pulsating glow</label><input type="checkbox" data-cursor="pulsatingGlow">
+      <label>Highlight circle</label><input type="checkbox" data-cursor="highlightCircle">
+    </div></div>
+    <div class="cursor-settings-group"><h3>Cursor Trails</h3><div class="cursor-settings-grid">
+      <label>Trail style</label><select data-cursor="trailStyle"><option value="none">None</option><option value="solid">Solid fading trail</option><option value="dotted">Dotted trail</option><option value="sparkles">Sparkles</option><option value="stars">Stars</option><option value="particles">Magical particles</option><option value="fire">Fire</option><option value="lightning">Lightning</option><option value="frost">Frost</option><option value="smoke">Smoke</option><option value="arcane">Arcane energy</option><option value="orbs">Glowing orbs</option><option value="rainbow">Rainbow</option><option value="comet">Comet</option><option value="ghost">Ghost cursor afterimages</option></select>
+      <label>Custom trail color</label><input type="color" data-cursor="customTrailColor">
+      <label>Match cursor color</label><input type="checkbox" data-cursor="matchCursorColor">
+      <label>Rainbow color cycling</label><input type="checkbox" data-cursor="rainbowTrail">
+      <label>Trail length <output data-cursor-output="trailLength"></output></label><input type="range" min="100" max="1500" step="50" data-cursor="trailLength">
+      <label>Trail width <output data-cursor-output="trailWidth"></output></label><input type="range" min="1" max="14" step="1" data-cursor="trailWidth">
+      <label>Particle size <output data-cursor-output="particleSize"></output></label><input type="range" min="1" max="20" step="1" data-cursor="particleSize">
+      <label>Particle density <output data-cursor-output="particleDensity"></output></label><input type="range" min="0" max="100" step="5" data-cursor="particleDensity">
+      <label>Fade speed <output data-cursor-output="fadeSpeed"></output></label><input type="range" min="0.25" max="3" step="0.25" data-cursor="fadeSpeed">
+      <label>Trail glow <output data-cursor-output="trailGlow"></output></label><input type="range" min="0" max="100" step="5" data-cursor="trailGlow">
+      <label>Trail opacity <output data-cursor-output="trailOpacity"></output></label><input type="range" min="10" max="100" step="5" data-cursor="trailOpacity">
+    </div></div>
+    <div class="cursor-settings-group"><h3>Cursor Locator</h3><div class="cursor-settings-grid">
+      <label>Enable locator key</label><input type="checkbox" data-cursor="locatorEnabled">
+      <label>Temporary highlight key</label><select data-cursor="locatorKey"><option value="AltLeft">Left Alt</option><option value="ShiftLeft">Left Shift</option><option value="ControlLeft">Left Control</option><option value="F2">F2</option><option value="F3">F3</option><option value="F4">F4</option><option value="F6">F6</option><option value="F7">F7</option><option value="F8">F8</option></select>
+      <label>Highlight when mouse is shaken</label><input type="checkbox" data-cursor="shakeLocator">
+      <label>Expanding pulse rings</label><input type="checkbox" data-cursor="locatorRings">
+      <label>Locator size <output data-cursor-output="locatorSize"></output></label><input type="range" min="24" max="160" step="4" data-cursor="locatorSize">
+      <label>Locator color</label><input type="color" data-cursor="locatorColor">
+    </div></div>
+    <button type="button" class="btn small" data-reset-cursor>Restore cursor defaults</button>
+  </div>
   <div class="settings-tab-pane" data-pane="hud">
     <div class="settings-grid">
       <label>Damage numbers</label><input type="checkbox" data-k="dmgNumbers" ${st.dmgNumbers ? 'checked' : ''}>
@@ -577,8 +618,33 @@ export function settingsDialog() {
       setTab(btn.dataset.tab);
     };
   });
-  if (!['general', 'audio', 'graphics', 'hud', 'controls'].includes(activeSettingsTab)) activeSettingsTab = 'general';
+  if (!['general', 'audio', 'graphics', 'hud', 'controls', 'mouseCursor'].includes(activeSettingsTab)) activeSettingsTab = 'general';
   setTab(activeSettingsTab);
+  const cursorSettings = () => (st.mouseCursor ||= { ...MOUSE_CURSOR_DEFAULTS });
+  const cursorOutput = (key, value) => {
+    const units = { size: '%', transparency: '%', outlineThickness: ' px', glowIntensity: '%', trailLength: ' ms', trailWidth: ' px', particleSize: ' px', particleDensity: '%', fadeSpeed: '×', trailGlow: '%', trailOpacity: '%', locatorSize: ' px' };
+    const output = d.box.querySelector(`[data-cursor-output="${key}"]`);
+    if (output) output.textContent = `${value}${units[key] || ''}`;
+  };
+  const refreshCursorControls = () => d.box.querySelectorAll('[data-cursor]').forEach((control) => {
+    const key = control.dataset.cursor, value = cursorSettings()[key];
+    if (control.type === 'checkbox') control.checked = !!value; else control.value = String(value ?? MOUSE_CURSOR_DEFAULTS[key]);
+    cursorOutput(key, control.value);
+  });
+  refreshCursorControls();
+  d.box.querySelectorAll('[data-cursor]').forEach((control) => {
+    control.oninput = control.onchange = () => {
+      const key = control.dataset.cursor;
+      cursorSettings()[key] = control.type === 'checkbox' ? control.checked : control.type === 'range' ? Number(control.value) : control.value;
+      cursorOutput(key, control.value);
+      refreshMouseCursor(); saveSettings();
+    };
+  });
+  d.box.querySelector('[data-reset-cursor]').onclick = () => {
+    st.mouseCursor = { ...MOUSE_CURSOR_DEFAULTS };
+    refreshCursorControls(); refreshMouseCursor(); saveSettings();
+  };
+  refreshMouseCursor();
   const keybindRows = d.box.querySelector("[data-keybind-rows]");
   keybindRows.outerHTML = KEY_BINDING_ACTIONS.map((action) => '<label>' + action.label + '</label><button type="button" class="btn small" data-keybind="' + action.id + '">' + keyBindingLabel(getKeyBinding(action.id)) + '</button>').join("");
   const keybindButtons = [...d.box.querySelectorAll("[data-keybind]")];

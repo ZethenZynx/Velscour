@@ -45,6 +45,16 @@ export const G = {
     showTargetBox: true, // show/hide the #target-box div
     showTargetSprite: true, // choose if target-box shows the target sprite or not
     keybinds: {}, // player-configured keyboard actions; absent actions use the PC defaults
+    mouseCursor: {
+      color: 'default', customColor: '#d8b26a', size: 100,
+      outline: false, outlineColor: '#170d07', outlineThickness: 2,
+      glow: false, glowColor: '#ffd77a', glowIntensity: 35, transparency: 100,
+      pulsatingGlow: false, highlightCircle: false,
+      trailStyle: 'none', trailColor: '#e5bd72', customTrailColor: '#e5bd72', matchCursorColor: true,
+      rainbowTrail: false, trailLength: 450, trailWidth: 3, particleSize: 5, particleDensity: 45,
+      fadeSpeed: 1, trailGlow: 25, trailOpacity: 75,
+      locatorEnabled: false, shakeLocator: false, locatorKey: 'AltLeft', locatorRings: true, locatorSize: 54, locatorColor: '#ffe08a',
+    },
   },
 };
 
