@@ -1,12 +1,15 @@
 // Account-wide Infernal Marks progression and cached, data-driven upgrade effects.
 import { G } from '../state.js';
 import { endgame, saveEndgame, MARK_CATS, canEarnInfernalMarks } from './endgame.js';
-import { INFERNAL_UPGRADES, INFERNAL_UPGRADE_BY_ID, bonusFor, purchaseCost, maxPurchasable } from '../data/infernalupgrades.js';
+import { INFERNAL_UPGRADES, INFERNAL_UPGRADE_BY_ID, MARK_CATEGORIES, bonusFor, purchaseCost, maxPurchasable } from '../data/infernalupgrades.js';
 import { xpToNext, MAX_LEVEL } from './player.js';
 import { sfx } from '../core/audio.js';
 import { floatText, addEffect, Ring } from '../gfx/vfx.js';
 
-export { INFERNAL_UPGRADES, INFERNAL_UPGRADE_BY_ID };
+export {
+  INFERNAL_UPGRADES, INFERNAL_UPGRADE_BY_ID, MARK_CATEGORIES,
+  bonusFor, purchaseCost, maxPurchasable,
+};
 export const CATS = Object.freeze(Object.fromEntries(INFERNAL_UPGRADES.map((u) => [u.id, {
   name: u.name, per: u.per, unit: u.unit, maxRank: u.maxRank, baseCost: u.baseCost,
   color: ({ offensive: '#ff765c', defensive: '#65baff', resources: '#65dcce', loot: '#e7c552', utility: '#b999ff', endgame: '#e87dff' })[u.category],

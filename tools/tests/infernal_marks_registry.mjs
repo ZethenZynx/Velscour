@@ -45,6 +45,10 @@ store.set('velscour_endgame_v1', JSON.stringify({ marksResetVersion: 2, unlocked
 const eg = await import('../../src/game/endgame.js');
 eg.resetEndgameCache();
 const marks = await import('../../src/game/marks.js');
+assert.equal(marks.MARK_CATEGORIES, MARK_CATEGORIES, 'gameplay module re-exports the six UI categories');
+assert.equal(marks.INFERNAL_UPGRADES.length, 51, 'gameplay module re-exports the upgrade catalog');
+const marksUi = await import('../../src/ui/marks.js');
+assert.ok(marksUi.Marks, 'Infernal Marks UI imports and initializes without missing exports');
 G.world = { kind: 'dungeon', depth: 100 };
 assert.equal(marks.grantMarks(1, 'test', G.world), 0, 'campaign depth cannot grant Marks');
 eg.unlockEndgame();
