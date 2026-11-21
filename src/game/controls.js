@@ -6,6 +6,7 @@ import { dist, angleTo } from '../core/util.js';
 import { SKILLS, isMovementSkill } from '../data/skills.js';
 import { SLOT_KEYS, RMB } from '../data/bar.js';
 import { Macros } from './macros.js';
+import { isPlayerHostile } from './targeting.js';
 
 function creatureAt(sx, sy) {
   const w = G.world;
@@ -15,7 +16,7 @@ function creatureAt(sx, sy) {
     const b = c.sbox;
     const pad = 6;
     if (sx >= b[0] - pad && sx <= b[2] + pad && sy >= b[1] - pad && sy <= b[3] + pad) {
-      const d = Math.abs((b[0] + b[2]) / 2 - sx) + Math.abs(b[3] - sy) * 0.5 + (c.team === 'enemy' ? 0 : 50);
+      const d = Math.abs((b[0] + b[2]) / 2 - sx) + Math.abs(b[3] - sy) * 0.5 + (isPlayerHostile(c) ? 0 : 50);
       if (d < bd) { bd = d; best = c; }
     }
   }
@@ -55,7 +56,7 @@ export const controls = {
     const p = G.player;
     if (!p || p.dead || G.ui.modal || !sk) return false;
     let tx, ty, target = null;
-    if (at) { [tx, ty] = at; target = G.hover && G.hover.team === 'enemy' ? G.hover : null; }
+    if (at) { [tx, ty] = at; target = isPlayerHostile(G.hover) ? G.hover : null; }
     else {
       [tx, ty] = camera.screenToTile(input.mouse.x, input.mouse.y);
       target = G.hover && G.hover.team !== 'player' ? G.hover : null;
@@ -107,17 +108,17 @@ export const controls = {
         const it = interactableAt(tx, ty, mouse.x, mouse.y);
         const shift = input.down('ShiftLeft') || input.down('ShiftRight');
         if (loot) { p.lootTarget = loot; p.interact = null; p.attackTarget = null; p.setMoveTarget(loot.x, loot.y); this.mode = 'loot'; }
-        else if (G.hover && G.hover.team === 'enemy') { this.mode = 'attack'; this.attack(G.hover, tx, ty); }
+        else if (isPlayerHostile(G.hover)) { this.mode = 'attack'; this.attack(G.hover, tx, ty); }
         else if (it && !shift) { this.mode = 'interact'; p.attackTarget = null; p.interact = it; }
         else if (shift) { this.mode = 'attack'; this.useSlot(0, [tx, ty]); }
         else { this.mode = 'move'; p.attackTarget = null; p.interact = null; p.setMoveTarget(tx, ty); }
       } else if (mouse.left) {
         this.holdLeft += dt;
         if (this.mode === 'move' && this.holdLeft > 0.12) {
-          if (G.hover && G.hover.team === 'enemy' && this.holdLeft > 0.4) { this.mode = 'attack'; }
+          if (isPlayerHostile(G.hover) && this.holdLeft > 0.4) { this.mode = 'attack'; }
           else if (!p.moveTarget || dist(p.moveTarget[0], p.moveTarget[1], tx, ty) > 0.6) p.setMoveTarget(tx, ty);
         } else if (this.mode === 'attack' && p.castLock <= 0 && !p.attackTarget && !isMovementSkill(SKILLS[G.char.bar[0]])) {
-          if (G.hover && G.hover.team === 'enemy') this.attack(G.hover, tx, ty);
+          if (isPlayerHostile(G.hover)) this.attack(G.hover, tx, ty);
           else if (input.down('ShiftLeft') || input.down('ShiftRight')) this.useSlot(0, [tx, ty]);
           else this.useSlot(0, [tx, ty]);
         }
@@ -148,7 +149,7 @@ export const controls = {
     const id = G.char.bar[i];
     const sk = id && SKILLS[id];
     if (!sk) return;
-    const target = G.hover && G.hover.team === 'enemy' ? G.hover : null;
+    const target = isPlayerHostile(G.hover) ? G.hover : null;
     if (sk.kind === 'melee' && target) G.player.tryUseSkill(sk, target.x, target.y, target);
     else G.player.tryUseSkill(sk, tx, ty, null);
   },

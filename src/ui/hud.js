@@ -14,6 +14,7 @@ import { drawMinimap } from '../game/render.js';
 import { assign, SLOT_LABELS } from './skills.js';
 import { elem } from '../gfx/vfx.js';
 import { pickTaunt } from '../data/taunts.js';
+import { isPlayerTargetable } from '../game/targeting.js';
 
 const TAUNT_KEY = 'velscour_taunts_v1'; // Velscour's level-up deck: the last mood and the lines already shown
 import { Meter } from '../game/dpsmeter.js';
@@ -778,7 +779,7 @@ export const HUD = {
       return;
     }
     if (this.tbWorld !== w) { this.tbWorld = w; this.tb = null; if (G.lastHit && !w.creatures.includes(G.lastHit)) G.lastHit = null; }
-    const live = (m) => m && !m.dead && m.team === 'enemy' && m.targetable !== false && !m.clutter;
+    const live = isPlayerTargetable;
     const at = p.attackTarget && p.attackTarget.target;
     const cur = live(G.hover) ? G.hover : live(at) ? at : live(G.lastHit) ? G.lastHit : null;
     if (cur) this.tb = cur;

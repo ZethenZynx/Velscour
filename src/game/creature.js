@@ -10,6 +10,7 @@ import { petAnimation, petTintImage } from '../core/petart.js';
 import { drawRuneWeapon } from '../gfx/runeweapon.js';
 import { drawSlime } from '../gfx/slimeart.js';
 import { TURRET3D, drawTurret3D } from '../gfx/gunner3d.js';
+import { isPlayerHostile } from './targeting.js';
 
 let UID = 0;
 
@@ -375,7 +376,7 @@ export class Creature {
   rimColor() {
     if (this.dead || this.targetable === false) return null;
     if (this.isPlayer) return RIM.hero;
-    return this.team === 'enemy' ? RIM[this.rank] || RIM.normal : this.summon ? RIM.ally : null;
+    return isPlayerHostile(this) ? RIM[this.rank] || RIM.normal : this.summon ? RIM.ally : null;
   }
   /** The rim under the sprite: drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh) args in the sprite's current transform. */
   drawRim(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
@@ -642,7 +643,7 @@ export class Creature {
     // life bars: over every enemy, bosses too (Settings › life bars; off, one only flashes up over a monster that was
     // hit, bosses aside) and over hurt summons. In the world's frame they go on the see-through layer, over the spells.
     let col = null, bw = 24, bh = 4;
-    if (this.team === 'enemy' && (G.settings.lifeBars !== false ? this.targetable !== false : this.hpShow > 0 && this.rank !== 'boss')) {
+    if (isPlayerHostile(this) && (G.settings.lifeBars !== false ? this.targetable !== false : this.hpShow > 0 && this.rank !== 'boss')) {
       const big = this.rank === 'boss';
       bw = big ? Math.max(40, Math.min(84, w * 0.75)) : Math.max(22, Math.min(46, w * 0.8)); bh = big ? 6 : 4;
       col = BAR[this.rank] || BAR.normal;

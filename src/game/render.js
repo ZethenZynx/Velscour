@@ -20,6 +20,7 @@ import { drawPetCorpse } from '../core/petart.js';
 import { drawLootLabels } from './loot.js';
 import { castleTileDressing, drawCastleParticles, drawCastleWater, MAT } from '../gfx/castleground.js';
 import { drawRim, RIM, xray, drawXray } from './creature.js';
+import { isPlayerHostile, isPlayerTargetable } from './targeting.js';
 import { drawNebula } from '../gfx/breach.js';
 import { drawWyrm } from '../gfx/breachdragon.js';
 import { skyBack, skyWorld, skyFx, skyFront, drawSkyGate } from '../gfx/skyship.js';
@@ -1654,7 +1655,7 @@ function drawOverheadNames(ctx, world) {
   }
   // hovered monster info (desktop)
   const h = G.hover;
-  if (h && !h.dead && h.team === 'enemy' && h.rank !== 'boss') {
+  if (isPlayerTargetable(h) && h.rank !== 'boss') {
     const W = G.W * d;
     const bw = Math.min(360, G.W * 0.5) * d;
     const y = 18 * d;
@@ -1826,7 +1827,7 @@ export function drawMinimap(world, dt, canvas, big = false) {
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;
     const d = Math.hypot(m.x - p.x, m.y - p.y);
-    if (m.team === 'enemy' && d < 14 && (!m.goblin || m.impDiscovered)) dot(m.x, m.y, m.goblin ? m.impColor : m.depthBountyMark ? '#ffe080' : m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.depthBountyMark ? (big ? 5 : 3) : m.rank === 'boss' ? 4 : 2);
+    if (isPlayerHostile(m) && d < 14 && (!m.goblin || m.impDiscovered)) dot(m.x, m.y, m.goblin ? m.impColor : m.depthBountyMark ? '#ffe080' : m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.depthBountyMark ? (big ? 5 : 3) : m.rank === 'boss' ? 4 : 2);
     else if (m.team === 'player') dot(m.x, m.y, '#40ff60', 1.8);
   }
   if (world.cave && world.cave.mapMarks) for (const [x, y, col, r, label] of world.cave.mapMarks()) {
