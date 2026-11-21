@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_DELAY_MAX, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpSpawnDelay, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
+import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_TRAIL_DROP_LIMIT, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailType } from '../../src/data/treasureimps.js';
 import { canEarnInfernalMarks } from '../../src/game/endgame.js';
 import { newCharData, migrate } from '../../src/game/save.js';
 import { itemValue, itemSellValue } from '../../src/data/items.js';
@@ -13,7 +13,18 @@ for (const imp of TREASURE_IMPS) {
   assert.ok(imp.reward && imp.effect, `${imp.id} has reward and visual-effect registry keys`);
   assert.equal(IMP_BY_ID[imp.id], imp);
   assert.ok(IMP_SPRITE_PATH(imp.id).endsWith(`/${imp.id}.png`));
+  assert.ok(['gold', 'gems', 'highGems', 'mixed'].includes(treasureImpTrailType(imp.id)), `${imp.id} has a supported bounded trail reward`);
 }
+assert.equal(TREASURE_IMP_TRAIL_DROP_LIMIT, 6, 'trail rewards have a finite per-imp limit');
+assert.equal(treasureImpTrailType('treasure'), 'gold');
+assert.equal(treasureImpTrailType('jewel'), 'gems');
+assert.equal(treasureImpTrailType('mystic'), 'highGems');
+for (const id of ['jackpot', 'hoarder', 'prismatic']) assert.equal(treasureImpTrailType(id), 'mixed', `${id} can leave modest gold and occasional gems`);
+assert.equal(treasureImpPayoutMultiplier(IMP_BY_ID.treasure, () => 0), 1, 'the lowest death payout is still the full baseline');
+assert.ok(treasureImpPayoutMultiplier(IMP_BY_ID.treasure, () => 0.99) > 1, 'generous payout tier increases death rewards');
+assert.ok(treasureImpPayoutMultiplier(IMP_BY_ID.jackpot, () => 0.5) > treasureImpPayoutMultiplier(IMP_BY_ID.treasure, () => 0.5), 'Jackpot payout has a rarity premium');
+assert.ok(treasureImpPayoutMultiplier(IMP_BY_ID.prismatic, () => 0.5) > treasureImpPayoutMultiplier(IMP_BY_ID.treasure, () => 0.5), 'Prismatic payout has a rarity premium');
+assert.ok(treasureImpPayoutMultiplier(IMP_BY_ID.jackpot, () => 0.99) <= 2.4, 'death payout multiplier remains capped');
 assert.equal(IMP_MOVEMENT_PATTERNS.length, 5, 'multiple movement patterns are available');
 assert.equal(selectImpMovementPattern(() => 0).id, 'steady');
 assert.equal(selectImpMovementPattern(() => 0.999999).id, 'erratic');
@@ -87,4 +98,4 @@ const merchantValue = itemValue({ ...item, vendorValueMult: 2.5 });
 assert.ok(merchantValue > itemValue(item) * 2.4, 'merchant equipment has substantially higher vendor value');
 assert.equal(itemSellValue({ ...item, vendorValueMult: 2.5 }), Math.max(1, Math.floor(merchantValue / 4)), 'vendor value and actual sell payout use the same calculation');
 
-console.log('Treasure Imp registry, delayed spawn timing, pause handling, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');
+console.log('Treasure Imp registry, bounded loot trails, varied death payouts, delayed spawn timing, pause handling, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');

@@ -33,6 +33,20 @@ const IMP_EFFECTS = Object.freeze({
 export const TREASURE_IMPS = Object.freeze(TREASURE_IMP_DATA.map((imp) => Object.freeze({ ...imp, effect: IMP_EFFECTS[imp.id] })));
 
 export const IMP_BY_ID = Object.freeze(Object.fromEntries(TREASURE_IMPS.map((imp) => [imp.id, imp])));
+// Trail loot is deliberately modest and bounded; the variant's main payout remains its death reward.
+const IMP_TRAIL_TYPES = Object.freeze({ jewel: 'gems', mystic: 'highGems', jackpot: 'mixed', hoarder: 'mixed', prismatic: 'mixed' });
+export const TREASURE_IMP_TRAIL_DROP_LIMIT = 6;
+export function treasureImpTrailType(id) { return IMP_TRAIL_TYPES[id] || 'gold'; }
+
+/** Weighted payout tiers stay at or above the baseline, with a restrained rarity premium. */
+export function treasureImpPayoutMultiplier(imp, random = Math.random) {
+  const roll = Math.max(0, Math.min(1 - Number.EPSILON, Number(random()) || 0));
+  const base = roll < 0.5 ? 1 : roll < 0.85 ? 1.2 : 1.45;
+  const rarity = { common: 1, uncommon: 1.05, rare: 1.12, 'very rare': 1.22, 'extremely rare': 1.3 }[imp?.rarity] || 1;
+  const featured = imp?.id === 'jackpot' ? 1.25 : imp?.id === 'prismatic' ? 1.2 : 1;
+  return Math.min(2.4, Math.round(base * rarity * featured * 100) / 100);
+}
+
 export const IMP_SPRITE_PATH = (id) => `assets/sprites/treasure-imps/${id}.png`;
 export const IMP_MAX_FOREGROUND_PIXELS = 70;
 export const TREASURE_IMP_SPAWN_DELAY_MIN = 30;

@@ -31,7 +31,7 @@ import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
 import { grantMarksWithBonus } from './marks.js';
-import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpSpawnDelay, treasureImpSpriteScale } from '../data/treasureimps.js';
+import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, TREASURE_IMP_TRAIL_DROP_LIMIT, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailType } from '../data/treasureimps.js';
 import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
 import { makeCovenant } from '../data/relics.js';
 import { grantMarks } from './marks.js';
@@ -40,6 +40,8 @@ const IMP_ESCAPE_SECONDS = 38;
 const IMP_WARNING_SECONDS = 6;
 const IMP_GATHERING_CHANCE = 0.025;
 const IMP_JACKPOT_CHANCE = 0.025;
+const IMP_TRAIL_INTERVAL_MIN = 2.8;
+const IMP_TRAIL_INTERVAL_MAX = 4.8;
 const IMP_IMAGES = new Map();
 const IMP_EFFECT_COLORS = Object.freeze({
   goldfall: ['#ffd040', '#fff0a0'], blood: ['#d02030', '#ff5060'], metal: ['#ffb040', '#e0e8f0'], copper: ['#c87840', '#ffd080'],
@@ -371,8 +373,26 @@ function impContext(world) {
   return { depth: world.depth || 1, endgameUnlocked: endgameUnlocked(G.char), canEarnMarks: canEarnInfernalMarks(world, G.char) };
 }
 function impQuantity(count, multiplier) { const n = count * multiplier; return Math.max(1, Math.floor(n) + (chance(n % 1) ? 1 : 0)); }
-function impDrop(world, m, kind, data = {}) {
-  world.addLoot(new GroundItem(m.x + rand(-0.24, 0.24), m.y + rand(-0.24, 0.24), kind, data));
+function impDropPosition(world, m, trail = false) {
+  const map = world.map;
+  for (let i = 0; i < 12; i++) {
+    let x, y;
+    if (trail) {
+      const back = (Number.isFinite(m.impFleeAngle) ? m.impFleeAngle : 0) + Math.PI;
+      const side = rand(-0.32, 0.32), distance = rand(0.55, 0.95);
+      x = m.x + Math.cos(back) * distance + Math.cos(back + Math.PI / 2) * side;
+      y = m.y + Math.sin(back) * distance + Math.sin(back + Math.PI / 2) * side;
+    } else {
+      const a = rand(TAU), r = rand(0.35, 1.3);
+      x = m.x + Math.cos(a) * r; y = m.y + Math.sin(a) * r;
+    }
+    if (map?.walkable?.(x, y) && (!map.circleFree || map.circleFree(x, y, 0.22)) && (!map.flowAt || map.flowAt(x, y) >= 0)) return [x, y];
+  }
+  return [m.x, m.y];
+}
+function impDrop(world, m, kind, data = {}, trail = false) {
+  const [x, y] = impDropPosition(world, m, trail);
+  world.addLoot(new GroundItem(x, y, kind, data));
 }
 function impDropGold(world, m, lvl, base, count, multiplier = 1) {
   for (let i = 0; i < impQuantity(count, multiplier); i++) impDrop(world, m, 'gold', { amount: impGold(world, lvl, base) });
@@ -473,6 +493,27 @@ function grantImpReward(world, m, variant, options = {}) {
   }
 }
 
+function dropImpTrailLoot(world, m, dt) {
+  if (G.paused || !m.impDiscovered || m.disabled() || !m.moving || !(m.status?.fear?.t > 0) || !world.nearestHostile(m.team, m.x, m.y, 10)) return;
+  if (m.impTrailDrops >= TREASURE_IMP_TRAIL_DROP_LIMIT) return;
+  m.impTrailTimer = (m.impTrailTimer ?? rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX)) - dt;
+  if (m.impTrailTimer > 0) return;
+  const type = treasureImpTrailType(m.impVariant), lvl = depthLevel(world.depth);
+  if (type === 'gems') {
+    if ((m.impTrailGemDrops || 0) < 3) { impDrop(world, m, 'item', { item: rollGroundGem(lvl + 5) }, true); m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1; }
+  } else if (type === 'highGems') {
+    if ((m.impTrailGemDrops || 0) < 2) { impDrop(world, m, 'item', { item: rollGroundGem(lvl + 18) }, true); m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1; }
+  } else {
+    impDrop(world, m, 'gold', { amount: impGold(world, lvl, 2 + lvl * 0.55) }, true);
+    if (type === 'mixed' && (m.impTrailGemDrops || 0) < 2 && chance(0.28)) {
+      impDrop(world, m, 'item', { item: rollGroundGem(lvl + 4) }, true);
+      m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1;
+    }
+  }
+  m.impTrailDrops = (m.impTrailDrops || 0) + 1;
+  m.impTrailTimer = rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX);
+}
+
 function discoverImp(world, m) {
   if (m.impDiscovered) return;
   m.impDiscovered = true;
@@ -492,7 +533,8 @@ function createTreasureImp(world, at, variant, options = {}) {
   Object.assign(m, { name: variant.name, impVariant: variant.id, impColor: variant.color, nameColor: variant.color,
     goblin: true, aura: variant.color, scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [], impEffect: variant.effect,
     impLeft: null, impDiscovered: false, impEscapeWarned: false, impParticleT: 0, dungeonEventImp: !!options.event,
-    impMovementPattern: selectImpMovementPattern(), impPatternTimer: rand(0, 0.12), impPatternSign: chance(0.5) ? 1 : -1 });
+    impMovementPattern: selectImpMovementPattern(), impPatternTimer: rand(0, 0.12), impPatternSign: chance(0.5) ? 1 : -1,
+    impTrailDrops: 0, impTrailGemDrops: 0, impTrailTimer: rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX) });
   m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5;
   m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
   // Match the normalized sprite foreground to the actual legacy imp sprite height.
@@ -507,18 +549,23 @@ function createTreasureImp(world, at, variant, options = {}) {
   m.onDamaged = (src, amount) => {
     base(src, amount);
     if ((src?.isPlayer || src?.team === 'player') && !m.dungeonEventImp) discoverImp(world, m);
-    if (variant.id === 'treasure' && !m.dungeonEventImp && chance(0.45)) impDrop(world, m, 'gold', { amount: impGold(world, lvl, 10 + lvl * 3) });
   };
   m.onDeath = () => {
     if (m.impRewardsClaimed) return;
     m.impRewardsClaimed = true;
     sfx('gold'); sfx('chest'); camera.shake(5);
-    explosionFx(m.x, m.y, 1.6, variant.reward === 'abyssal' ? 'shadow' : variant.reward === 'blood' ? 'blood' : 'holy', 'eruption');
-    for (let i = 0; i < 18; i++) sparkle(m.x + rand(-0.5, 0.5), m.y + rand(-0.5, 0.5), 24, variant.color, 1, 0.3);
+    const effect = variant.reward === 'abyssal' ? 'shadow' : variant.reward === 'blood' ? 'blood' : variant.reward === 'celestial' ? 'holy' : 'arcane';
+    explosionFx(m.x, m.y, 1.6, effect, 'eruption');
+    addEffect(new Ring(m.x, m.y, 0.2, 2.8, 0.65, variant.color, 5));
+    for (let i = 0; i < 24; i++) sparkle(m.x + rand(-0.8, 0.8), m.y + rand(-0.8, 0.8), rand(20, 34), variant.color, rand(0.8, 1.25), rand(0.25, 0.42));
     if (!m.dungeonEventImp) {
       const jackpot = IMP_JACKPOT_REWARDS.has(variant.reward) && chance(IMP_JACKPOT_CHANCE);
       if (jackpot) UI.log(`<b style="color:#ffd040">Jackpot!</b> ${variant.name}'s reward is increased.`, '#ffd040');
-      grantImpReward(world, m, variant, { qty: jackpot ? 1.5 : 1 });
+      const payout = treasureImpPayoutMultiplier(variant) * (jackpot ? 1.5 : 1);
+      grantImpReward(world, m, variant, { qty: payout });
+      if (['blood', 'alchemist', 'vitality', 'prosperity', 'arcane', 'celestial'].includes(variant.reward)) {
+        impDropGold(world, m, lvl, 12 + lvl * 2, 3, payout * 0.5);
+      }
     }
     UI.centerMsg(`${variant.name.toUpperCase()} SLAIN`, `${variant.name} releases its reward`, 2);
   };
@@ -657,9 +704,7 @@ function impTick(world, dt) {
     m.status.fear = { t: 1 };
     m.impParticleT = (m.impParticleT || 0) - dt;
     if (m.impParticleT <= 0) { m.impParticleT = rand(0.14, 0.24); impParticle(m); }
-    if (!m.dungeonEventImp && m.impVariant === 'treasure' && m.impDiscovered && chance(dt * 1.2)) {
-      const lvl = depthLevel(world.depth); impDrop(world, m, 'gold', { amount: impGold(world, lvl, 5 + lvl * 1.5) });
-    }
+    dropImpTrailLoot(world, m, dt);
     if (m.impDiscovered) {
       if (!m.disabled()) m.impLeft -= dt;
       if (m.impLeft <= IMP_WARNING_SECONDS && !m.impEscapeWarned) {
