@@ -249,5 +249,8 @@ assert.match(UI.tipEl.innerHTML, /Updated bag item/, 'an item tooltip refreshes 
 currentBagItem = { uid: 'swapped-item-2' };
 UI.refresh();
 assert.strictEqual(UI.tipEl.classList.contains('hidden'), true, 'a tooltip closes when its item is swapped out of the hovered slot');
+UI.showTip('<div>Edge item</div>', 1900, 1070, false, refreshedBagSlot);
+assert.ok(parseFloat(UI.tipEl.style.left) + 40 <= innerWidth - 8, 'tooltip stays inside the right screen edge');
+assert.ok(parseFloat(UI.tipEl.style.top) + 40 <= innerHeight - 8, 'tooltip stays inside the bottom screen edge');
 
 console.log('ALL DESKTOP TOOLTIP PINNING TESTS PASSED SUCCESSFULLY!');
