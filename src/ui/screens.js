@@ -22,6 +22,7 @@ import { loadRecentChanges, getCachedRecentChanges, getRecentChangesState, RECEN
 import { changesAfterBundledBuild, showUpdateDialog, checkForGameUpdates } from '../game/updater.js';
 import { initTitleForkUpdater } from '../game/forkreleaseupdater.js';
 import { MOUSE_CURSOR_DEFAULTS, refreshMouseCursor } from './mousecursor.js';
+import { CharacterPortrait } from './characterportrait.js';
 
 let current = null;
 let currentCleanup = null;
@@ -578,6 +579,10 @@ export function settingsDialog() {
   </div>
   <div class="settings-tab-pane" data-pane="hud">
     <div class="settings-grid">
+      <label>Character portrait window</label><input type="checkbox" data-portrait="visible" ${(st.characterPortrait?.visible !== false) ? 'checked' : ''}>
+      <label>Lock portrait movement and resizing</label><input type="checkbox" data-portrait="locked" ${st.characterPortrait?.locked ? 'checked' : ''}>
+      <label>Portrait size <output data-portrait-size>${st.characterPortrait?.size || 100}%</output></label><input type="range" min="75" max="150" step="25" value="${st.characterPortrait?.size || 100}" data-portrait="size">
+      <label>Portrait position</label><button type="button" class="btn small" data-portrait-reset>Reset position</button>
       <label>Damage numbers</label><input type="checkbox" data-k="dmgNumbers" ${st.dmgNumbers ? 'checked' : ''}>
       <label title="Off: a bar shows only for a moment over a monster you hit, and never over bosses">Life bars over every enemy (bosses too)</label><input type="checkbox" data-k="lifeBars" ${st.lifeBars !== false ? 'checked' : ''}>
       <label>Hero stats plaque (Battle Ledger)</label><input type="checkbox" data-k="showHeroStats" ${st.showHeroStats !== false ? 'checked' : ''}>
@@ -751,6 +756,16 @@ export function settingsDialog() {
       saveSettings();
     };
   });
+  d.box.querySelectorAll('[data-portrait]').forEach((inp) => {
+    inp.oninput = inp.onchange = () => {
+      const c = (st.characterPortrait ||= { visible: true, locked: false, size: 100, position: null });
+      const key = inp.dataset.portrait;
+      c[key] = inp.type === 'checkbox' ? inp.checked : Number(inp.value);
+      if (key === 'size') d.box.querySelector('[data-portrait-size]').textContent = `${c.size}%`;
+      CharacterPortrait.refreshSettings(); saveSettings();
+    };
+  });
+  d.box.querySelector('[data-portrait-reset]').onclick = () => { CharacterPortrait.resetPosition(); };
 }
 
 /** Shared item type and rarity controls for pickup and ground-label filters. */

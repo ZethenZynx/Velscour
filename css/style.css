@@ -43,6 +43,40 @@ html, body {
 .hidden { display: none !important; }
 button { font-family: var(--font-head); }
 
+/* Compact player portrait HUD, composed from the current class armor and helmet art. */
+.character-portrait-hud {
+  position: absolute; z-index: 12; display: flex; flex-direction: column; overflow: hidden;
+  color: #ead7b4; border: 2px solid #72522d; border-radius: 6px;
+  background: linear-gradient(145deg, rgba(38,25,17,.97), rgba(9,7,7,.97));
+  box-shadow: 0 4px 16px rgba(0,0,0,.82), inset 0 0 0 1px rgba(255,220,155,.12), inset 0 0 14px rgba(0,0,0,.55);
+  pointer-events: auto; user-select: none;
+}
+#hud > .character-portrait-hud { pointer-events: none; }
+.character-portrait-head {
+  min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 3px 5px 3px 10px; border-bottom: 1px solid rgba(186,142,75,.55);
+  background: linear-gradient(90deg, rgba(105,64,29,.75), rgba(24,15,11,.92)); cursor: grab; touch-action: none; pointer-events: auto;
+}
+.character-portrait-hud:not(.locked) .character-portrait-head:active { cursor: grabbing; }
+.character-portrait-identity { min-width: 0; display: flex; align-items: baseline; gap: 7px; overflow: hidden; }
+.character-portrait-identity b { min-width: 0; overflow: hidden; color: #ffe2a0; font: 700 12px/1.2 var(--font-head); text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 3px #000; }
+.character-portrait-identity span { flex: 0 0 auto; color: #ccb58b; font: 700 10px/1 var(--font-head); white-space: nowrap; }
+.character-portrait-tools { display: flex; flex: 0 0 auto; gap: 3px; }
+.character-portrait-tools button { width: 22px; height: 22px; padding: 0; border: 1px solid #73512c; border-radius: 3px; color: #f1d49b; background: linear-gradient(#3b291b,#160e09); cursor: pointer; line-height: 18px; }
+.character-portrait-tools button:hover { border-color: #e0b86e; color: #fff2d2; }
+.character-portrait-content { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(68px, 41%) minmax(0,1fr); align-items: center; gap: 8px; padding: 7px 9px 9px; }
+.character-portrait-content canvas { width: 100%; height: 100%; min-height: 0; border: 1px solid rgba(166,126,68,.58); border-radius: 3px; background: radial-gradient(ellipse at 50% 18%,rgba(101,73,46,.45),rgba(5,4,4,.9)); object-fit: cover; object-position: center top; image-rendering: pixelated; filter: drop-shadow(0 2px 4px #000); }
+.character-portrait-vitals { min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.character-portrait-meter { position: relative; height: 25px; overflow: hidden; border: 1px solid rgba(230,204,158,.62); border-radius: 3px; background: rgba(5,4,4,.92); box-shadow: inset 0 1px 3px #000, 0 1px 3px #000; }
+.character-portrait-meter i { position: absolute; inset: 0 auto 0 0; width: 100%; transition: width .12s linear; }
+.character-portrait-meter.health i { background: linear-gradient(180deg,#fa4b3d 0%,#b71920 52%,#6e0d18 100%); }
+.character-portrait-meter.mana i { background: linear-gradient(180deg,#65c9ff 0%,#2476d0 52%,#123c85 100%); }
+.character-portrait-meter b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff7e8; font: 700 10px/1 var(--font-head); text-shadow: 0 1px 2px #000,0 0 4px #000; white-space: nowrap; pointer-events: none; }
+.character-portrait-resize { position: absolute; right: 1px; bottom: 1px; width: 13px; height: 13px; cursor: nwse-resize; touch-action: none; pointer-events: auto; }
+.character-portrait-resize::after { content: ''; position: absolute; right: 2px; bottom: 2px; width: 7px; height: 7px; border-right: 2px solid #b8955a; border-bottom: 2px solid #b8955a; }
+.character-portrait-hud.locked .character-portrait-head { cursor: default; }
+.character-portrait-hud.locked .character-portrait-resize { display: none; }
+
 /* ------------------------------------------------------------------ buttons */
 .btn {
   font-family: var(--font-head); font-weight: 700; letter-spacing: 1px; color: var(--gold-bright);

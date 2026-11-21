@@ -55,6 +55,7 @@ export const G = {
       fadeSpeed: 1, trailGlow: 25, trailOpacity: 75,
       locatorEnabled: false, shakeLocator: false, locatorKey: 'AltLeft', locatorRings: true, locatorSize: 54, locatorColor: '#ffe08a',
     },
+    characterPortrait: { visible: true, locked: false, size: 100, position: null },
   },
 };
 

@@ -26,6 +26,7 @@ import { greedOf, hoardOf, hoardCap, greedMods, setGreed, GREED_MAX } from '../g
 import { sealedCount, openNextSeal } from './sealed.js';
 import { defianceText } from '../game/defiance.js';
 import { capXp } from '../game/marks.js';
+import { CharacterPortrait } from './characterportrait.js';
 
 const POTIONS = ['hp', 'mp', 'rejuv', 'fury'];
 // HUD art index -> bar index (skills) or potion kind: LMB, 1-9 0 - =, potions, RMB.
@@ -59,6 +60,7 @@ export const HUD = {
   portraitOrbFrames: null,
   init() {
     UI.hud = this;
+    CharacterPortrait.init($('#hud'));
     const geo = A.hudGeo;
     // the bar's aspect (and how much room it takes at the bottom) comes from the art's geometry
     document.documentElement.style.setProperty('--hud-k', String(geo.h / geo.w));
@@ -460,6 +462,7 @@ export const HUD = {
   update(dt) {
     const p = G.player, c = G.char, w = G.world;
     if (!p || !c) return;
+    CharacterPortrait.update();
     const set = (key, v, fn) => { if (this.last[key] !== v) { this.last[key] = v; fn(v); } };
     const lifeK = Math.round(clamp(1 - p.hp / p.maxHp, 0, 1) * 200) / 2;
     set('life', lifeK, (v) => { $('#life-cover .orb-empty').style.height = v + '%'; });
@@ -856,7 +859,7 @@ export const HUD = {
       af.classList.toggle('hidden', !names.length);
     }
   },
-  show(v) { $('#hud').classList.toggle('hidden', !v); if (v) { this.layoutMobile(); this.applyVisibilitySettings(); } },
+  show(v) { $('#hud').classList.toggle('hidden', !v); if (v) { this.layoutMobile(); this.applyVisibilitySettings(); CharacterPortrait.refreshSettings(); } },
 };
 
 function slotTip(map) {
