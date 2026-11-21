@@ -328,7 +328,7 @@ function bagSlot(idx) {
     onDropWorld: (data) => (data.where === 'bag' ? dropFromBag(data.idx, 'bag') : false),
   });
   droppable(d, (data) => handleDropOnBag(idx, data), (data) => data.type === 'item' || data.type === 'shop' || data.type === 'stash' || data.type === 'vault' || data.type === 'jewelbox');
-  if (it) UI.tip(d, () => bagTip(idx), { key: 'bag:' + idx });
+  if (it) UI.tip(d, () => bagTip(idx), { key: 'bag:' + idx, identity: () => c.bag[idx] || null });
   return d;
 }
 
@@ -381,7 +381,7 @@ function gemBagSlot(idx) {
     onDropWorld: (data) => (data.where === 'gemBag' ? dropFromBag(data.idx, 'gemBag') : false),
   });
   droppable(d, (data) => handleDropOnGemBag(idx, data), (data) => data.type === 'item' || data.type === 'shop' || data.type === 'stash' || data.type === 'vault' || data.type === 'jewelbox');
-  if (it) UI.tip(d, () => gemBagTip(idx), { key: 'gemBag:' + idx });
+  if (it) UI.tip(d, () => gemBagTip(idx), { key: 'gemBag:' + idx, identity: () => c.gemBag?.[idx] || null });
   return d;
 }
 
@@ -502,7 +502,7 @@ function equipSlot(slot) {
       (data.where === 'bag' && G.char.bag[data.idx] && (fitsSlot(G.char.bag[data.idx], slot, c.classId) || G.char.bag[data.idx].type === 'gem'))
     )
   );
-  if (it) UI.tip(d, () => equipTip(slot), { key: 'equip:' + slot });
+  if (it) UI.tip(d, () => equipTip(slot), { key: 'equip:' + slot, identity: () => c.equip[slot] || null });
   return d;
 }
 

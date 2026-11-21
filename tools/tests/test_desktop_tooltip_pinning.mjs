@@ -81,6 +81,10 @@ class MockElement {
     }
     return null;
   }
+  matches(sel) {
+    const key = sel.match(/^\[data-tip-key="([^"]+)"\]$/)?.[1];
+    return key !== undefined && this.dataset.tipKey === key;
+  }
   querySelectorAll(sel) {
     const res = [];
     const walk = (node) => {
@@ -100,6 +104,7 @@ const doc = new MockElement('document');
 doc.body = new MockElement('body');
 doc.appendChild(doc.body);
 globalThis.document = doc;
+doc.querySelector = (sel) => doc.body.querySelector(sel);
 globalThis.window = { addEventListener: () => {} };
 globalThis.performance = { now: () => 1000 };
 globalThis.G = { touch: false, char: { bag: [], equip: {} } };
@@ -218,5 +223,31 @@ slotB.dispatchEvent({ type: 'pointerup', pointerType: 'mouse', button: 0, client
 assert.strictEqual(UI.tipEl.classList.contains('hidden'), false, 'Slot B tip opened');
 assert.strictEqual(UI.touchTipTarget, slotB, 'touchTipTarget switched to Slot B');
 assert.strictEqual(UI.isTouchTip, true, 'Slot B is pinned');
+
+console.log('--- TEST 9: Inventory Refresh Preserves Pointer Position and Dismisses Moved Items ---');
+UI.hideTip();
+const bagItem = { uid: 'bag-item-1' };
+let currentBagItem = bagItem;
+let tooltipName = 'Bag item';
+const originalBagSlot = new MockElement('div');
+doc.body.appendChild(originalBagSlot);
+UI.tip(originalBagSlot, () => ({ html: `<div>${tooltipName}</div>` }), {
+  key: 'bag:0', identity: () => currentBagItem,
+});
+originalBagSlot.dispatchEvent({ type: 'pointerenter', pointerType: 'mouse', clientX: 420, clientY: 260 });
+const refreshedBagSlot = new MockElement('div');
+refreshedBagSlot.dataset.tipKey = 'bag:0';
+doc.body.children = doc.body.children.filter((child) => child !== originalBagSlot);
+doc.body.appendChild(refreshedBagSlot);
+UI.refresh();
+assert.strictEqual(UI.tipEl.style.left, '438px', 'inventory refresh keeps the tooltip beside the last mouse X coordinate');
+assert.strictEqual(UI.tipEl.style.top, '272px', 'inventory refresh keeps the tooltip beside the last mouse Y coordinate');
+assert.notStrictEqual(UI.tipEl.style.left, '8px', 'refresh never relocates the tooltip to the screen origin');
+tooltipName = 'Updated bag item';
+UI.refresh();
+assert.match(UI.tipEl.innerHTML, /Updated bag item/, 'an item tooltip refreshes its content while the same item remains in the slot');
+currentBagItem = { uid: 'swapped-item-2' };
+UI.refresh();
+assert.strictEqual(UI.tipEl.classList.contains('hidden'), true, 'a tooltip closes when its item is swapped out of the hovered slot');
 
 console.log('ALL DESKTOP TOOLTIP PINNING TESTS PASSED SUCCESSFULLY!');

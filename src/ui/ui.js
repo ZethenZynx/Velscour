@@ -17,6 +17,11 @@ export const UI = {
   logListeners: new Set(),
   tipCompareHtml: '',
   shiftDown: false,
+  pointerX: 0,
+  pointerY: 0,
+  hasPointerPosition: false,
+  tipIdentity: null,
+  tipIdentityFn: null,
   get modal() { return this.modalCount > 0; },
 
   init() {
@@ -67,6 +72,11 @@ export const UI = {
       this.updateCompareTip();
     });
     document.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse' && Number.isFinite(e.clientX) && Number.isFinite(e.clientY)) {
+        this.pointerX = e.clientX;
+        this.pointerY = e.clientY;
+        this.hasPointerPosition = true;
+      }
       if (!this.tipEl.classList.contains('hidden') && e.pointerType === 'mouse' && !this.isTouchTip && !this.isInteractiveTip) {
         this.placeTip(e.clientX, e.clientY);
       }
@@ -151,16 +161,11 @@ export const UI = {
       const safeKey = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(this.tipKey) : this.tipKey.replace(/"/g, '\\"');
       const nextAnchor = document.querySelector(`[data-tip-key="${safeKey}"]`);
       if (nextAnchor) {
-        this.showTip(this.tipRefreshFn(), 0, 0, this.isTouchTip, nextAnchor, { interactive: this.isInteractiveTip, key: this.tipKey, fn: this.tipRefreshFn });
-      } else {
-        this.hideTip();
-      }
-    }
-    if (this.tipEl && !this.tipEl.classList.contains('hidden') && this.tipKey && this.tipRefreshFn) {
-      const safeKey = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(this.tipKey) : this.tipKey.replace(/"/g, '\\"');
-      const nextAnchor = document.querySelector(`[data-tip-key="${safeKey}"]`);
-      if (nextAnchor) {
-        this.showTip(this.tipRefreshFn(), 0, 0, this.isTouchTip, nextAnchor, { interactive: this.isInteractiveTip, key: this.tipKey, fn: this.tipRefreshFn });
+        if (this.tipIdentityFn && this.tipIdentity !== this.tipIdentityFn()) {
+          this.hideTip();
+        } else {
+          this.showTip(this.tipRefreshFn(), undefined, undefined, this.isTouchTip, nextAnchor, { interactive: this.isInteractiveTip, key: this.tipKey, fn: this.tipRefreshFn, identity: this.tipIdentityFn });
+        }
       } else {
         this.hideTip();
       }
@@ -400,6 +405,8 @@ export const UI = {
     this.touchTipTarget = anchorEl;
     this.tipKey = opts.key || null;
     this.tipRefreshFn = opts.fn || null;
+    this.tipIdentityFn = opts.identity || null;
+    this.tipIdentity = this.tipIdentityFn ? this.tipIdentityFn() : null;
     this.tipEl.classList.toggle('touch-open', isTouch);
     this.tipEl.classList.toggle('interactive', interactive);
     this.tipEl.classList.remove('hidden');
@@ -419,7 +426,15 @@ export const UI = {
       });
     }
     if ((interactive || isTouch) && anchorEl) this.placeTipAtAnchor(anchorEl);
-    else this.placeTip(x, y);
+    else if (Number.isFinite(x) && Number.isFinite(y)) {
+      this.pointerX = x;
+      this.pointerY = y;
+      this.hasPointerPosition = true;
+      this.placeTip(x, y);
+    } else if (this.hasPointerPosition) {
+      this.placeTip(this.pointerX, this.pointerY);
+    } else if (anchorEl) this.placeTipAtAnchor(anchorEl);
+    else this.hideTip();
   },
   placeTipAtAnchor(anchorEl) {
     const t = this.tipEl;
@@ -513,6 +528,8 @@ export const UI = {
     this.touchTipTarget = null;
     this.tipKey = null;
     this.tipRefreshFn = null;
+    this.tipIdentity = null;
+    this.tipIdentityFn = null;
   },
   /** Attach hover tooltip to an element (and tap on touch). html may be a function returning string or { html, actions }. */
   tip(elm, html, opts = {}) {
