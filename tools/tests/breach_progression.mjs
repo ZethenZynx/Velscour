@@ -1,5 +1,6 @@
 // The campaign inserts Breach floors before the Boss Rooms at depths 10, 20, …, 500.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { breachInterludeFloor, breachObjectiveCount, breachIslandPlan, breachMapSpan } from '../../src/data/breach.js';
 
 const cases = [
@@ -30,3 +31,12 @@ for (const [floor, expected] of tiers) {
 assert.ok(breachMapSpan(1) < breachMapSpan(21), 'early floors have a smaller placement area');
 assert.equal(breachMapSpan(21), breachMapSpan(50), 'advanced floors retain the maximum map size');
 console.log(`Passed ${tiers.length} objective-count and map-scaling cases.`);
+
+const gameSource = readFileSync(new URL('../../src/game/game.js', import.meta.url), 'utf8');
+const breachBuild = gameSource.slice(gameSource.indexOf('  buildBreach('), gameSource.indexOf('  breachExit(world)'));
+const breachExit = gameSource.slice(gameSource.indexOf('  breachExit(world)'), gameSource.indexOf('  breachDeath(src)'));
+assert.match(breachBuild, /exit\.label = 'Exit'/, 'every Breach tier uses the simple Exit portal label');
+assert.doesNotMatch(breachBuild, /onward or home/i, 'the Breach exit does not advertise unavailable onward travel');
+assert.match(breachExit, /buttons:\s*\[\{ label: 'Return to Town'/, 'the completed Breach floor offers the real return destination');
+assert.doesNotMatch(breachExit, /Descend|Next Floor|Onward/i, 'the Breach completion dialog has no unavailable onward option');
+console.log('Passed Eternal Breach exit label and available-destination checks.');

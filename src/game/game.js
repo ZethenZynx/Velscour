@@ -1927,7 +1927,7 @@ export const game = {
     world.onBossAwake = () => {};
     world.onBossKilled = () => {};
     world.overworldScenario = createBreachRun(world, gen, B, floor, () => {
-      exit.active = true; exit.color = '#c050ff'; exit.label = 'Exit — onward or home';
+      exit.active = true; exit.color = '#c050ff'; exit.label = 'Exit';
       world.portals.push(exit);
       addEffect(new Ring(exit.x, exit.y, 0.2, 3, 1, '#c050ff', 5));
       sfx('gate'); UI.refresh(); this.autosave();
@@ -1942,7 +1942,7 @@ export const game = {
     this.autosave();
   },
 
-  /** The exit on a beaten floor: on to the next floor, or home. */
+  /** A cleared Breach floor exits to town; there is no direct onward portal. */
   breachExit(world) {
     const floor = world.breach.floor, depth = G.char?.depth || breachDepth(floor);
     UI.dialog({
