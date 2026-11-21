@@ -31,7 +31,7 @@ import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
 import { grantMarksWithBonus } from './marks.js';
-import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, TREASURE_IMP_TRAIL_DROP_LIMIT, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailType } from '../data/treasureimps.js';
+import { IMP_BY_ID, IMP_SPRITE_PATH, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_RETRY_DELAY, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailInterval, treasureImpTrailType } from '../data/treasureimps.js';
 import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
 import { makeCovenant } from '../data/relics.js';
 import { grantMarks } from './marks.js';
@@ -40,8 +40,6 @@ const IMP_ESCAPE_SECONDS = 38;
 const IMP_WARNING_SECONDS = 6;
 const IMP_GATHERING_CHANCE = 0.025;
 const IMP_JACKPOT_CHANCE = 0.025;
-const IMP_TRAIL_INTERVAL_MIN = 2.8;
-const IMP_TRAIL_INTERVAL_MAX = 4.8;
 const IMP_IMAGES = new Map();
 const IMP_EFFECT_COLORS = Object.freeze({
   goldfall: ['#ffd040', '#fff0a0'], blood: ['#d02030', '#ff5060'], metal: ['#ffb040', '#e0e8f0'], copper: ['#c87840', '#ffd080'],
@@ -388,11 +386,16 @@ function impDropPosition(world, m, trail = false) {
     }
     if (map?.walkable?.(x, y) && (!map.circleFree || map.circleFree(x, y, 0.22)) && (!map.flowAt || map.flowAt(x, y) >= 0)) return [x, y];
   }
-  return [m.x, m.y];
+  return trail ? null : [m.x, m.y];
 }
 function impDrop(world, m, kind, data = {}, trail = false) {
-  const [x, y] = impDropPosition(world, m, trail);
-  world.addLoot(new GroundItem(x, y, kind, data));
+  const position = impDropPosition(world, m, trail);
+  if (!position) return false;
+  const [x, y] = position;
+  // Trail drops remain collectible for the usual two-minute ground-loot window and can be
+  // evicted by the world's existing loot cap if several rare multi-imp encounters overlap.
+  world.addLoot(new GroundItem(x, y, kind, trail ? { ...data, fades: data.fades ?? 120 } : data));
+  return true;
 }
 function impDropGold(world, m, lvl, base, count, multiplier = 1) {
   for (let i = 0; i < impQuantity(count, multiplier); i++) impDrop(world, m, 'gold', { amount: impGold(world, lvl, base) });
@@ -494,24 +497,22 @@ function grantImpReward(world, m, variant, options = {}) {
 }
 
 function dropImpTrailLoot(world, m, dt) {
-  if (G.paused || !m.impDiscovered || m.disabled() || !m.moving || !(m.status?.fear?.t > 0) || !world.nearestHostile(m.team, m.x, m.y, 10)) return;
-  if (m.impTrailDrops >= TREASURE_IMP_TRAIL_DROP_LIMIT) return;
-  m.impTrailTimer = (m.impTrailTimer ?? rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX)) - dt;
+  if (G.paused || !m.impDiscovered || m.disabled() || !m.moving || !(m.status?.fear?.t > 0)) return;
+  m.impTrailTimer = (m.impTrailTimer ?? treasureImpTrailInterval()) - dt;
   if (m.impTrailTimer > 0) return;
   const type = treasureImpTrailType(m.impVariant), lvl = depthLevel(world.depth);
   if (type === 'gems') {
-    if ((m.impTrailGemDrops || 0) < 3) { impDrop(world, m, 'item', { item: rollGroundGem(lvl + 5) }, true); m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1; }
+    impDrop(world, m, 'item', { item: rollGroundGem(lvl + 5) }, true);
   } else if (type === 'highGems') {
-    if ((m.impTrailGemDrops || 0) < 2) { impDrop(world, m, 'item', { item: rollGroundGem(lvl + 18) }, true); m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1; }
+    impDrop(world, m, 'item', { item: rollGroundGem(lvl + 18) }, true);
   } else {
-    impDrop(world, m, 'gold', { amount: impGold(world, lvl, 2 + lvl * 0.55) }, true);
-    if (type === 'mixed' && (m.impTrailGemDrops || 0) < 2 && chance(0.28)) {
+    // Keep repeatable trail rewards modest; rare/specialized rewards stay in the death payout.
+    impDrop(world, m, 'gold', { amount: impGold(world, lvl, randi(1, 3) + lvl * 0.18) }, true);
+    if (type === 'mixed' && chance(0.18)) {
       impDrop(world, m, 'item', { item: rollGroundGem(lvl + 4) }, true);
-      m.impTrailGemDrops = (m.impTrailGemDrops || 0) + 1;
     }
   }
-  m.impTrailDrops = (m.impTrailDrops || 0) + 1;
-  m.impTrailTimer = rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX);
+  m.impTrailTimer = treasureImpTrailInterval();
 }
 
 function discoverImp(world, m) {
@@ -534,7 +535,7 @@ function createTreasureImp(world, at, variant, options = {}) {
     goblin: true, aura: variant.color, scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [], impEffect: variant.effect,
     impLeft: null, impDiscovered: false, impEscapeWarned: false, impParticleT: 0, dungeonEventImp: !!options.event,
     impMovementPattern: selectImpMovementPattern(), impPatternTimer: rand(0, 0.12), impPatternSign: chance(0.5) ? 1 : -1,
-    impTrailDrops: 0, impTrailGemDrops: 0, impTrailTimer: rand(IMP_TRAIL_INTERVAL_MIN, IMP_TRAIL_INTERVAL_MAX) });
+    impTrailTimer: treasureImpTrailInterval() });
   m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5;
   m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
   // Match the normalized sprite foreground to the actual legacy imp sprite height.

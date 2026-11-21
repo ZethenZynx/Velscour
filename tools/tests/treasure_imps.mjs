@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
-import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_TRAIL_DROP_LIMIT, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailType } from '../../src/data/treasureimps.js';
+import { readFileSync } from 'node:fs';
+import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, TREASURE_IMP_SPAWN_DELAY_MIN, TREASURE_IMP_SPAWN_DELAY_MAX, TREASURE_IMP_TRAIL_INTERVAL_MIN, TREASURE_IMP_TRAIL_INTERVAL_MAX, advanceTreasureImpSpawnTimer, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpPayoutMultiplier, treasureImpSpawnDelay, treasureImpSpriteScale, treasureImpTrailInterval, treasureImpTrailType } from '../../src/data/treasureimps.js';
 import { canEarnInfernalMarks } from '../../src/game/endgame.js';
 import { newCharData, migrate } from '../../src/game/save.js';
 import { itemValue, itemSellValue } from '../../src/data/items.js';
 import { riftWeight } from '../../src/data/rifts.js';
+
+globalThis.localStorage ||= { getItem: () => null, setItem: () => {} };
 
 assert.equal(TREASURE_IMPS.length, 20, 'the registry contains all 20 supplied variants');
 assert.equal(new Set(TREASURE_IMPS.map(({ id }) => id)).size, 20, 'variant IDs are unique');
@@ -13,9 +16,23 @@ for (const imp of TREASURE_IMPS) {
   assert.ok(imp.reward && imp.effect, `${imp.id} has reward and visual-effect registry keys`);
   assert.equal(IMP_BY_ID[imp.id], imp);
   assert.ok(IMP_SPRITE_PATH(imp.id).endsWith(`/${imp.id}.png`));
-  assert.ok(['gold', 'gems', 'highGems', 'mixed'].includes(treasureImpTrailType(imp.id)), `${imp.id} has a supported bounded trail reward`);
+  assert.ok(['gold', 'gems', 'highGems', 'mixed'].includes(treasureImpTrailType(imp.id)), `${imp.id} has a supported trail reward`);
 }
-assert.equal(TREASURE_IMP_TRAIL_DROP_LIMIT, 6, 'trail rewards have a finite per-imp limit');
+assert.equal(TREASURE_IMP_TRAIL_INTERVAL_MIN, 0.25, 'trail drops can be as frequent as four per second');
+assert.equal(TREASURE_IMP_TRAIL_INTERVAL_MAX, 0.5, 'trail drops remain randomized up to twice per second');
+assert.equal(treasureImpTrailInterval(() => 0), TREASURE_IMP_TRAIL_INTERVAL_MIN);
+assert.equal(treasureImpTrailInterval(() => 1), TREASURE_IMP_TRAIL_INTERVAL_MAX);
+assert.ok(treasureImpTrailInterval(() => 0.5) > TREASURE_IMP_TRAIL_INTERVAL_MIN && treasureImpTrailInterval(() => 0.5) < TREASURE_IMP_TRAIL_INTERVAL_MAX);
+for (const imp of TREASURE_IMPS) {
+  const expected = imp.id === 'jewel' ? 'gems' : imp.id === 'mystic' ? 'highGems' : ['jackpot', 'hoarder', 'prismatic'].includes(imp.id) ? 'mixed' : 'gold';
+  assert.equal(treasureImpTrailType(imp.id), expected, `${imp.name} receives its intended recurring trail reward`);
+}
+const impRuntime = readFileSync(new URL('../../src/game/happenings.js', import.meta.url), 'utf8');
+assert.match(impRuntime, /treasureImpTrailInterval\(\)/, 'runtime uses the tested randomized trail interval');
+assert.doesNotMatch(impRuntime, /TREASURE_IMP_TRAIL_DROP_LIMIT|impTrailDrops|impTrailGemDrops/, 'runtime has no per-imp trail reward cap');
+const trailDropFunction = impRuntime.match(/function dropImpTrailLoot\(world, m, dt\) \{[\s\S]*?\n\}/)?.[0] || '';
+assert.ok(trailDropFunction.includes('m.impDiscovered') && trailDropFunction.includes('m.moving') && trailDropFunction.includes('m.status?.fear?.t'), 'drops require an actively fleeing, discovered imp');
+assert.doesNotMatch(trailDropFunction, /nearestHostile/, 'trail rewards continue regardless of player distance until flight ends');
 assert.equal(treasureImpTrailType('treasure'), 'gold');
 assert.equal(treasureImpTrailType('jewel'), 'gems');
 assert.equal(treasureImpTrailType('mystic'), 'highGems');
@@ -98,4 +115,4 @@ const merchantValue = itemValue({ ...item, vendorValueMult: 2.5 });
 assert.ok(merchantValue > itemValue(item) * 2.4, 'merchant equipment has substantially higher vendor value');
 assert.equal(itemSellValue({ ...item, vendorValueMult: 2.5 }), Math.max(1, Math.floor(merchantValue / 4)), 'vendor value and actual sell payout use the same calculation');
 
-console.log('Treasure Imp registry, bounded loot trails, varied death payouts, delayed spawn timing, pause handling, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');
+console.log('Treasure Imp registry, frequent uncapped trail rewards, varied death payouts, delayed spawn timing, pause handling, progression gates, movement patterns, sprite scale, Prismatic rewards, save migration, and merchant value checks passed.');
