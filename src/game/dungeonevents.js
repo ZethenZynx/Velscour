@@ -86,6 +86,32 @@ function positions(world, room, count, spread = 2.2) {
   return out;
 }
 
+/** Roulette portals must sit on clear floor with an actual path from the player. */
+export function portalChoicePositions(world, room, count = 3, spread = 3.1) {
+  const map = world?.map, player = world?.player;
+  if (!map?.walkable || !map?.findPath || !room || !player) return [];
+  const cx = room.mx ?? room.x + room.w / 2, cy = room.my ?? room.y + room.h / 2;
+  const minX = room.x + 0.35, maxX = room.x + room.w - 0.35;
+  const minY = room.y + 0.35, maxY = room.y + room.h - 0.35;
+  const out = [];
+  const safe = (x, y) => x >= minX && x <= maxX && y >= minY && y <= maxY && map.walkable(x, y) &&
+    (!map.circleFree || map.circleFree(x, y, 0.25)) && !!map.findPath(player.x, player.y, x, y, 12000) &&
+    out.every((point) => Math.hypot(point[0] - x, point[1] - y) >= 1.05);
+  const radius = Math.max(0.5, Math.min(spread, room.w / 2 - 0.4, room.h / 2 - 0.4));
+  for (let i = 0; i < count * 80 && out.length < count; i++) {
+    const a = rand(TAU), r = rand(0.55, radius), x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (safe(x, y)) out.push([x, y]);
+  }
+  // A constrained or decorated room can defeat random sampling. Walk its floor grid and
+  // keep the same collision, spacing, and route checks before giving up on extra choices.
+  for (let y = minY + 0.2; y <= maxY && out.length < count; y += 0.55) {
+    for (let x = minX + 0.2; x <= maxX && out.length < count; x += 0.55) {
+      if (safe(x, y)) out.push([x, y]);
+    }
+  }
+  return out;
+}
+
 function reachableEventRoom(world, start, avoid = []) {
   const map = world.map, origin = start || [world.player?.x ?? 0, world.player?.y ?? 0];
   const safe = (x, y, verifyPath = true) => map.walkable(x, y) && Math.hypot(x-origin[0], y-origin[1]) >= 8 &&
@@ -156,11 +182,11 @@ function portalDestination(world, sourceRoom) {
 }
 
 function portalObject(world, run, { x, y, label, color, use, dot = color }) {
-  const portal={x,y,opened:false,reach:1.7,far:45,label,dot,isDungeonEvent:true,
+  const portal={x,y,opened:false,active:true,reach:1.7,far:45,label,dot,color,isDungeonEvent:true,isDungeonEventPortal:true,
     draw(ctx,sx,sy){const pulse=.7+.3*Math.sin(G.time*4);ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.3*pulse;ctx.drawImage(glowSprite(color),sx-38,sy-62,76,76);ctx.globalAlpha=.9;ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(sx,sy-24,16,28,0,0,TAU);ctx.stroke();ctx.beginPath();ctx.ellipse(sx,sy-24,9,20,0,0,TAU);ctx.stroke();ctx.restore();addLight(x,y,3,.65,44,color);},
-    use(){if(this.opened||!run.active||G.world!==world)return;this.opened=true;use(portal);}
+    use(){if(this.opened||!run.active||G.world!==world)return;this.opened=true;this.active=false;const i=world.portals.indexOf(this);if(i>=0)world.portals.splice(i,1);use(portal);}
   };
-  world.chests.push(portal);return portal;
+  world.portals.push(portal);(run.portals ||= []).push(portal);return portal;
 }
 
 function beginPortalTrip(world,run,{label='Return Through the Gate',reward=null,foes=0,arch=null,color=run.def.color}={}) {
@@ -264,9 +290,10 @@ function startRun(world, def, room) {
       p.hp=p.maxHp;p.mana=p.maxMana;if(p.addBuff)p.addBuff({id:'event_sanctuary',name:'Sanctuary Grace',el:'holy',stats:{reduce:8,dmg:8},t:45,max:45,floorOnly:true});run.kind='timer';run.remaining=8;run.reward={gear:1};break;
     case 'roulette': {
       run.kind='choice';run.remaining=35;run.reward=null;run.choices=3;
-      const spots=positions(world,room,3,3.1);
+      const spots=portalChoicePositions(world,room,3,3.1);
+      run.choices=spots.length;
       const choices=spots.map((at,i)=>portalObject(world,run,{x:at[0],y:at[1],label:`Portal ${['I','II','III'][i]}`,color:['#58ddff','#bd70ef','#ffb55b'][i],use:()=>{
-        for(const option of choices)option.opened=true;
+        for(const option of choices){option.opened=true;option.active=false;const index=world.portals.indexOf(option);if(index>=0)world.portals.splice(index,1);}
         run.choices=0;const bad=i===1;
         if(bad){addEventFoes(world,run,{count:4,rank:'champion',hp:1.2});run.kind='kill';run.reward={gold:3};}
         else {const dest=portalDestination(world,room);if(dest)beginPortalTrip(world,run,{reward:{gold:6,gear:1},color:at[0]<cx?'#58ddff':'#ffb55b'});else{run.kind='timer';run.remaining=8;run.reward={gold:6,gear:1};}}
@@ -304,6 +331,8 @@ function startRun(world, def, room) {
 function finish(world, run, success) {
   if(!run.active)return;
   run.active=false;run.paid=true;
+  for(const portal of run.portals || []){portal.opened=true;portal.active=false;const i=world.portals.indexOf(portal);if(i>=0)world.portals.splice(i,1);}
+  run.portals=[];
   if(success&&run.reward)loot(world,run.x,run.y,run.reward);
   addEffect(new Column(run.x,run.y,success?'#ffd66b':'#765c70',0.75,30,320));
   UI.centerMsg(success?'EVENT COMPLETE':'EVENT ENDED',success?'The event area yields its reward':'The disturbance fades',2.2);

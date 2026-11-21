@@ -27,6 +27,12 @@ function creatureAt(sx, sy) {
 function interactableAt(tx, ty, sx, sy) {
   const w = G.world;
   const project = (x, y, z) => camera.tileToScreen(x, y, z);
+  // Dungeon event portals are tall world-space objects. Check their full visible sprite
+  // before NPCs and chests so nearby scenery/interactables cannot steal the click.
+  for (const p of w.portals) {
+    if (!p?.isDungeonEventPortal || p.opened || p.hidden) continue;
+    if (portalSpriteHit(p, sx, sy, camera.zoom, project) || dist(p.x, p.y, tx, ty) < (p.reach || 1.7)) return p;
+  }
   for (const n of w.npcs) {
     if (n.sbox) {
       const [x0, y0, x1, y1] = n.sbox;
@@ -42,6 +48,7 @@ function interactableAt(tx, ty, sx, sy) {
     if (chestSpriteHit(c, sx, sy, camera.zoom, project) || dist(c.x, c.y, tx, ty) < 0.8) return c;
   }
   for (const p of w.portals) {
+    if (p?.isDungeonEventPortal || p?.opened || p?.hidden) continue;
     if (dist(p.x, p.y, tx, ty) < 1.2 || portalSpriteHit(p, sx, sy, camera.zoom, project)) return p;
   }
   return null;
