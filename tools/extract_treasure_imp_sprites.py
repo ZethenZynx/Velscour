@@ -19,6 +19,24 @@ CELL_ROWS = 4
 CANVAS = 80
 MAX_SPRITE = 70
 
+# Detached fragments from the imp in the next row were included by the original
+# sheet masks. These are tightly scoped pixel regions on the normalized 80x80
+# canvases; clearing only their alpha preserves each imp's own lower details.
+LOWER_NEIGHBOR_MASKS = {
+    "jewel": ((37, 74, 39, 76),),
+    "sigil": ((25, 73, 35, 75), (40, 73, 48, 75)),
+    "arcane": ((42, 71, 61, 76), (35, 72, 40, 76), (26, 72, 29, 76)),
+    "set": ((35, 73, 45, 76), (53, 74, 58, 76)),
+    "enchanted": ((30, 73, 41, 76),),
+    "mystic": ((35, 73, 44, 76), (50, 74, 55, 76)),
+}
+
+
+def clear_neighbor_fragments(canvas: Image.Image, name: str) -> None:
+    """Remove only the known, disconnected next-row fragments from this sprite."""
+    for left, top, right, bottom in LOWER_NEIGHBOR_MASKS.get(name, ()):
+        canvas.paste((0, 0, 0, 0), (left, top, right, bottom))
+
 
 def mask_foreground(crop: Image.Image) -> Image.Image:
     rgb = crop.convert("RGB")
@@ -60,6 +78,7 @@ def extract(source: Path, output: Path) -> None:
         x = (CANVAS - sprite.width) // 2
         y = CANVAS - 5 - sprite.height
         canvas.alpha_composite(sprite, (x, y))
+        clear_neighbor_fragments(canvas, name)
         canvas.save(output / f"{name}.png", optimize=True)
 
 
