@@ -15,6 +15,11 @@ import { assign, SLOT_LABELS } from './skills.js';
 import { elem } from '../gfx/vfx.js';
 import { pickTaunt } from '../data/taunts.js';
 import { isPlayerTargetable } from '../game/targeting.js';
+import { enemyImage } from '../core/enemyart.js';
+import { pixelSprite } from '../gfx/pixelart.js';
+import { ELITE_AFFIXES } from '../data/enemies.js';
+import { DUNGEON_AFFIX_BY_ID } from '../data/dungeonaffixes.js';
+import { appendEnemyHistory, loadEnemyHistory, saveEnemyHistory } from './enemyhistory.js';
 
 const TAUNT_KEY = 'velscour_taunts_v1'; // Velscour's level-up deck: the last mood and the lines already shown
 import { Meter } from '../game/dpsmeter.js';
@@ -54,10 +59,31 @@ function opaqueBox(img) {
   return b;
 }
 
+const RESISTANCE_LABELS = { phys: 'Physical', fire: 'Fire', cold: 'Cold', light: 'Lightning', poison: 'Poison', acid: 'Acid', arcane: 'Arcane', holy: 'Holy', shadow: 'Shadow', blood: 'Blood' };
+function enemyThumbnail(monster) {
+  try {
+    const img = monster.spriteImage?.();
+    if (!img?.width || !img?.height) return '';
+    const [sx, sy, sw, sh] = opaqueBox(img), size = 64, pad = 2;
+    const scale = Math.min((size - pad * 2) / sw, (size - pad * 2) / sh);
+    const dw = sw * scale, dh = sh * scale, canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, sx, sy, sw, sh, (size - dw) / 2, size - pad - dh, dw, dh);
+    return canvas.toDataURL('image/png');
+  } catch { return ''; }
+}
+
 export const HUD = {
   slots: [],
   last: {},
   portraitOrbFrames: null,
+  enemyHistory: [],
+  enemyHistoryLoaded: false,
+  enemyHistoryIndex: -1,
+  enemyHistoryReviewing: false,
+  enemyHistoryImages: new Map(),
   init() {
     UI.hud = this;
     CharacterPortrait.init($('#hud'));
@@ -100,6 +126,9 @@ export const HUD = {
     for (let i = 0; i < GREED_MAX; i++) pips.appendChild(el('i'));
     // tap / click the target window to blow it up (about 2.25x, capped to the screen); again to shrink it back
     $('#target-box').addEventListener('click', (e) => { e.stopPropagation(); this.tbBig = !this.tbBig; this.last.tbCls = null; this.updateTarget(); });
+    this.ensureEnemyHistory();
+    $('#tb-previous')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); sfx('ui'); this.navigateEnemyHistory(-1); });
+    $('#tb-next')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); sfx('ui'); this.navigateEnemyHistory(1); });
     const wrap = $('#hud-slots');
     geo.slots.forEach((s, i) => {
       const map = SLOT_MAP[i];
@@ -772,21 +801,88 @@ export const HUD = {
     this.updateTarget();
   },
 
+  ensureEnemyHistory() {
+    if (this.enemyHistoryLoaded) return;
+    this.enemyHistory = loadEnemyHistory();
+    this.enemyHistoryIndex = this.enemyHistory.length - 1;
+    this.enemyHistoryLoaded = true;
+    this.paintEnemyHistoryControls();
+  },
+  paintEnemyHistoryControls() {
+    const history = this.enemyHistory || [], index = clamp(this.enemyHistoryIndex, 0, Math.max(0, history.length - 1));
+    const prev = $('#tb-previous'), next = $('#tb-next'), position = $('#tb-history-position');
+    if (prev) prev.disabled = history.length < 2 || index <= 0;
+    if (next) next.disabled = history.length < 2 || !this.enemyHistoryReviewing || index >= history.length - 1;
+    if (position) position.textContent = history.length ? `${index + 1} of ${history.length}` : '0 of 0';
+  },
+  recordEnemy(target) {
+    this.ensureEnemyHistory();
+    if (!target._enemyHistoryKey) target._enemyHistoryKey = `enemy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    if (this.enemyHistory.some((entry) => entry.key === target._enemyHistoryKey)) return;
+    const dungeonAffixes = (target.dungeonAffixIds || []).filter((id) => DUNGEON_AFFIX_BY_ID[id]);
+    const snapshot = {
+      key: target._enemyHistoryKey,
+      name: target.name || 'Unknown Enemy', arch: target.arch || '', art: target.art || '', swap: target.swap || null,
+      sprite: target.sprite || '', pal: target.pal || null, rank: target.rank || 'normal', level: target.level || 1,
+      hp: target.hp || 0, maxHp: target.maxHp || 0, dmg: target.dmg || 0, speed: target.speed || 0,
+      el: target.el || 'phys', res: Object.fromEntries(Object.entries(target.res || {}).filter(([, value]) => Number.isFinite(Number(value))).map(([key, value]) => [key, Number(value)])),
+      affixes: Array.isArray(target.affixes) ? target.affixes.slice() : [], dungeonAffixes,
+      depth: G.world?.depth || 0, area: G.world?.biome?.name || G.world?.biome?.id || '', dead: !!target.dead,
+      thumbnail: enemyThumbnail(target),
+    };
+    const { added, removedOldest } = appendEnemyHistory(this.enemyHistory, snapshot);
+    if (!added) return;
+    if (removedOldest && this.enemyHistoryReviewing) this.enemyHistoryIndex = Math.max(0, this.enemyHistoryIndex - 1);
+    else if (!this.enemyHistoryReviewing) this.enemyHistoryIndex = this.enemyHistory.length - 1;
+    // At most 100 compact records are stored; if a browser denies storage, live targeting still works.
+    saveEnemyHistory(this.enemyHistory);
+    this.paintEnemyHistoryControls();
+  },
+  navigateEnemyHistory(direction) {
+    this.ensureEnemyHistory();
+    if (!this.enemyHistory.length) return;
+    const from = this.enemyHistoryReviewing ? this.enemyHistoryIndex : this.enemyHistory.length - 1;
+    this.enemyHistoryIndex = clamp(from + direction, 0, this.enemyHistory.length - 1);
+    this.enemyHistoryReviewing = this.enemyHistoryIndex < this.enemyHistory.length - 1;
+    this.last.tbCls = this.last.tbName = this.last.tbHp = this.last.tbSub = this.last.tbStats = this.last.tbAffixes = this.last.tbResists = null;
+    this.tbImg = null; this.tbFor = null;
+    this.paintEnemyHistoryControls();
+    this.updateTarget();
+  },
+  historyImage(record) {
+    if (record.thumbnail) {
+      let img = this.enemyHistoryImages.get(record.key);
+      if (!img) {
+        img = new Image();
+        img.onload = () => { if (this.enemyHistoryReviewing && this.enemyHistory[this.enemyHistoryIndex]?.key === record.key) this.updateTarget(); };
+        img.src = record.thumbnail;
+        this.enemyHistoryImages.set(record.key, img);
+        while (this.enemyHistoryImages.size > 12) this.enemyHistoryImages.delete(this.enemyHistoryImages.keys().next().value);
+      }
+      if (img.complete && img.naturalWidth) return img;
+    }
+    return (record.art && enemyImage(record.art, record.swap)) || (record.sprite && pixelSprite(record.sprite, record.pal, 6)) || null;
+  },
+
   /** The target window: the hovered / attacked / last-hit monster's picture and name; it stays up, greyed, once slain. */
   updateTarget() {
     const p = G.player, w = G.world, box = $('#target-box');
     if (!box) return;
     box.classList.toggle('no-pic', G.settings.showTargetSprite === false);
-    if (G.settings.showTargetBox === false) {
-      box.classList.add('hidden');
-      return;
-    }
     if (this.tbWorld !== w) { this.tbWorld = w; this.tb = null; if (G.lastHit && !w.creatures.includes(G.lastHit)) G.lastHit = null; }
     const live = isPlayerTargetable;
     const at = p.attackTarget && p.attackTarget.target;
     const cur = live(G.hover) ? G.hover : live(at) ? at : live(G.lastHit) ? G.lastHit : null;
-    if (cur) this.tb = cur;
-    const t = this.tb, set = (key, v, fn) => { if (this.last[key] !== v) { this.last[key] = v; fn(v); } };
+    if (cur) this.recordEnemy(cur);
+    if (cur && !this.enemyHistoryReviewing) this.tb = cur;
+    const historical = this.enemyHistoryReviewing ? this.enemyHistory[this.enemyHistoryIndex] : (!cur && !this.tb ? this.enemyHistory.at(-1) : null);
+    const t = historical || this.tb;
+    const set = (key, v, fn) => { if (this.last[key] !== v) { this.last[key] = v; fn(v); } };
+    this.paintEnemyHistoryControls();
+    if (G.settings.showTargetBox === false) {
+      box.classList.add('hidden');
+      return;
+    }
     set('tbOn', !!t, (v) => box.classList.toggle('hidden', !v));
     if (!t) return;
     const dead = !!t.dead || t.hp <= 0;
@@ -795,11 +891,22 @@ export const HUD = {
     set('tbName', t.name || '???', (v) => { $('#tb-name').textContent = v; box.title = v; });
     set('tbHp', dead ? 0 : Math.ceil(clamp(t.hp / t.maxHp, 0, 1) * 100), (v) => { $('#tb-fill').style.width = v + '%'; });
     const rank = { champion: 'Champion', unique: 'Unique', boss: 'Boss' }[t.rank] || '';
-    set('tbSub', dead ? 'Slain' : [t.level ? 'Level ' + t.level : '', rank].filter(Boolean).join(' · '), (v) => { $('#tb-sub').textContent = v; });
-    if (dead || noPic) return; // keep the last living picture or skip if sprite disabled
-    const img = t.spriteImage && t.spriteImage();
-    if (!img || !img.width || (this.tbImg === img && this.tbFor === t)) return;
-    this.tbImg = img; this.tbFor = t;
+    const prefix = historical ? `Recorded · Depth ${t.depth || '—'}` : '';
+    set('tbSub', [dead ? 'Slain' : (t.level ? 'Level ' + t.level : ''), rank, prefix].filter(Boolean).join(' · '), (v) => { $('#tb-sub').textContent = v; });
+    const statsText = [`HP ${fmtInt(Math.max(0, t.hp || 0))} / ${fmtInt(Math.max(0, t.maxHp || 0))}`, `Damage ${fmtInt(Math.max(0, t.dmg || 0))}`, t.el ? `Type ${t.el}` : '', t.speed ? `Speed ${Number(t.speed).toFixed(1)}` : '', t.area || ''].filter(Boolean).join(' · ');
+    set('tbStats', statsText, (v) => { $('#tb-stats').textContent = v; });
+    const eliteNames = (t.affixes || []).map((id) => ELITE_AFFIXES[id]?.name || id);
+    const dungeonNames = (t.dungeonAffixes || []).map((id) => DUNGEON_AFFIX_BY_ID[id]?.name || id);
+    const affixText = [...eliteNames.map((name) => `Elite: ${name}`), ...dungeonNames.map((name) => `Dungeon: ${name}`)].join(' · ') || 'None';
+    set('tbAffixes', `Affixes: ${affixText}`, (v) => { $('#tb-affixes').textContent = v; });
+    const resistText = Object.entries(t.res || {}).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) !== 0)
+      .map(([type, value]) => `${RESISTANCE_LABELS[type] || type}: ${Math.round(Number(value) * 100)}%`).join(' · ') || 'None';
+    set('tbResists', `Resistances: ${resistText}`, (v) => { $('#tb-resists').textContent = v; });
+    if (noPic || (dead && !historical)) return; // preserve the live target's last living art; history keeps its recorded artwork
+    const img = historical ? this.historyImage(historical) : t.spriteImage && t.spriteImage();
+    const imageKey = historical ? historical.key : t;
+    if (!img || !img.width || (this.tbImg === img && this.tbFor === imageKey)) return;
+    this.tbImg = img; this.tbFor = imageKey;
     const cv = $('#tb-pic'), g = cv.getContext('2d'), S = cv.width, pad = Math.round(S * 0.05);
     const [bx, by, bw, bh] = opaqueBox(img);
     const k = Math.min((S - pad * 2) / bw, (S - pad * 2) / bh);
