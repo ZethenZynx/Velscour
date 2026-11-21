@@ -3,6 +3,9 @@ import {
   MOUSE_CURSOR_DEFAULTS,
   MouseCursor,
   cursorColor,
+  cursorLeaveIsWindowBoundary,
+  customCursorCanRender,
+  cursorPointerShouldUseCustom,
   cursorNeedsEffects,
   cursorNeedsPointerOverlay,
   cursorPointerOffset,
@@ -23,6 +26,19 @@ assert.deepEqual(cursorPointerOffset(100), { x: 2, y: 2 }, 'the pointer retains 
 assert.deepEqual(cursorPointerOffset(300), { x: 6, y: 6 }, 'the original hotspot scales proportionally');
 assert.equal(cursorTrailGap(100), 9.5, 'trails begin behind the pointer tip');
 assert.ok(cursorTrailGap(300) > cursorTrailGap(100) * 2, 'the pointer-to-trail gap scales with the cursor');
+assert.ok(cursorTrailGap(100, -1, 0, 3, 25) > cursorTrailGap(100, 1, 0, 3, 25), 'the gap accounts for the arrow artwork when moving toward its body');
+assert.ok(cursorTrailGap(50, -1, 0, 14, 100) > cursorTrailGap(50, -1, 0, 3, 0), 'wide glowing trails leave extra clearance around the pointer');
+assert.equal(customCursorCanRender(null, null), false, 'missing custom cursor elements select the native fallback');
+assert.equal(customCursorCanRender({ isConnected: true }, { isConnected: true }), true, 'connected custom cursor elements may safely hide the native cursor');
+assert.equal(customCursorCanRender({ isConnected: false }, { isConnected: false }), false, 'detached custom cursor elements restore the native cursor');
+assert.equal(cursorPointerShouldUseCustom(true, true, true), true, 'a connected custom pointer is shown while the mouse is inside');
+assert.equal(cursorPointerShouldUseCustom(true, false, true), false, 'the custom pointer is released when the mouse leaves the window');
+assert.equal(cursorPointerShouldUseCustom(true, true, false), false, 'failed custom rendering falls back to the native pointer');
+assert.equal(cursorPointerShouldUseCustom(false, true, true), false, 'native cursor mode never hides the native pointer');
+const fakeWindow = {}, fakeDocument = { documentElement: {} }, child = {};
+assert.equal(cursorLeaveIsWindowBoundary(fakeWindow, fakeWindow, fakeDocument), true, 'a real viewport leave activates the native fallback');
+assert.equal(cursorLeaveIsWindowBoundary(child, fakeWindow, fakeDocument, {}), false, 'leaving a child element cannot hide the pointer');
+assert.equal(cursorLeaveIsWindowBoundary(fakeDocument.documentElement, fakeWindow, fakeDocument), true, 'a document-edge leave is recognized when no destination exists');
 assert.ok(MAX_CURSOR_TRAIL_PARTICLES <= 128, 'trail particle work has a fixed upper bound');
 assert.ok(MAX_CURSOR_TRAIL_POINTS <= 80, 'trail history has a fixed upper bound');
 assert.equal(defaults.trailStyle, 'none', 'trails are disabled by default');

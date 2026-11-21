@@ -73,8 +73,23 @@ export function cursorNeedsEffects(settings) {
   const s = normalizeMouseCursorSettings(settings);
   return s.trailStyle !== 'none' || s.locatorEnabled || s.shakeLocator || s.highlightCircle;
 }
+export function customCursorCanRender(cursorEl, cursorPath) {
+  return !!cursorEl?.isConnected && !!cursorPath?.isConnected;
+}
+export function cursorPointerShouldUseCustom(requested, inside, rendererReady) {
+  return !!requested && !!inside && !!rendererReady;
+}
+export function cursorLeaveIsWindowBoundary(target, win, doc, relatedTarget = null) {
+  return target === win || ((target === doc || target === doc?.documentElement) && relatedTarget == null);
+}
 export function cursorPointerOffset(size = 100) { const scale = normalizeMouseCursorSettings({ size }).size / 100; return { x: 2 * scale, y: 2 * scale }; }
-export function cursorTrailGap(size = 100) { return 4 + normalizeMouseCursorSettings({ size }).size * 0.055; }
+export function cursorTrailGap(size = 100, directionX = 1, directionY = 0, width = 3, glow = 0) {
+  const scale = normalizeMouseCursorSettings({ size }).size / 100;
+  const length = Math.hypot(directionX, directionY) || 1, ux = directionX / length, uy = directionY / length;
+  const behindExtent = Math.max(0, ...[[0,0],[18,7],[10,10],[7,18]].map(([x,y]) => -(x * ux + y * uy))) * scale;
+  const effectRadius = Math.max(1, Number(width) || 1) * 0.5 + Math.min(5, Math.max(0, Number(glow) || 0) / 22) + 2;
+  return Math.max(4 + scale * 5.5, behindExtent + effectRadius);
+}
 const CURSOR_PATHS = {
   default: 'M2 2 L20 9 L12 12 L9 20 Z',
   pointer: 'M2 22 L2 10 Q2 7 5 8 L6 13 L6 3 Q6 0 9 2 L10 12 L11 5 Q12 2 14 5 L14 12 L16 8 Q19 7 19 11 L18 20 L14 26 L7 26 Z',
@@ -134,33 +149,50 @@ export const MouseCursor = {
     this.canvas.id = 'mouse-cursor-effects';
     this.canvas.className = 'mouse-cursor-effects';
     this.canvas.setAttribute('aria-hidden', 'true');
-    this.ctx = this.canvas.getContext('2d', { alpha: true, desynchronized: true });
+    try { this.ctx = this.canvas.getContext('2d', { alpha: true, desynchronized: true }); }
+    catch { this.ctx = null; }
     document.body.append(this.canvas);
     this.cursorEl = document.createElement('div');
     this.cursorEl.className = 'mouse-cursor-pointer';
     this.cursorEl.setAttribute('aria-hidden', 'true');
-    this.cursorSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    this.cursorSvg.setAttribute('viewBox', '0 0 24 24');
-    this.cursorSvg.setAttribute('width', '24'); this.cursorSvg.setAttribute('height', '24');
-    this.cursorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    this.cursorSvg.append(this.cursorPath);
-    this.cursorEl.append(this.cursorSvg);
-    document.body.append(this.cursorEl);
+    try {
+      this.cursorSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      this.cursorSvg.setAttribute('viewBox', '0 0 24 24');
+      this.cursorSvg.setAttribute('width', '24'); this.cursorSvg.setAttribute('height', '24');
+      this.cursorPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      this.cursorSvg.append(this.cursorPath); this.cursorEl.append(this.cursorSvg);
+      document.body.append(this.cursorEl);
+    } catch {
+      this.cursorEl = null; this.cursorSvg = null; this.cursorPath = null;
+    }
     this.highlightEl = document.createElement('div');
     this.highlightEl.className = 'mouse-cursor-highlight'; this.highlightEl.setAttribute('aria-hidden', 'true');
     document.body.append(this.highlightEl);
+    if (typeof MutationObserver !== 'undefined') {
+      this.observer = new MutationObserver(() => {
+        if (this.pointerOverlay && !customCursorCanRender(this.cursorEl, this.cursorPath)) this.setPointerVisible(false);
+      });
+      this.observer.observe(document.body, { childList: true });
+    }
     this.cursorRules = collectCursorRules();
     this.resize();
     window.addEventListener('resize', () => this.resize(), { passive: true });
     window.addEventListener('pointermove', (event) => this.move(event), { passive: true, capture: true });
     window.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') { this.pointer.inside = true; this.move(event); } }, { passive: true, capture: true });
-    window.addEventListener('pointerleave', (event) => { if (event.pointerType === 'mouse') { this.pointer.inside = false; this.cursorEl.style.display = 'none'; this.highlightEl.style.display = 'none'; this.draw(); } }, { passive: true, capture: true });
+    // This listener is capture-phase: descendant pointerleave events also reach it. Only a true viewport leave should hide/fallback the pointer.
+    window.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'mouse' && cursorLeaveIsWindowBoundary(event.target, window, document, event.relatedTarget)) {
+        this.pointer.inside = false; this.setPointerVisible(false); if (this.highlightEl) this.highlightEl.style.display = 'none'; this.draw();
+      }
+    }, { passive: true, capture: true });
     window.addEventListener('keydown', (event) => this.keyDown(event), true);
     window.addEventListener('keyup', (event) => this.keyUp(event), true);
-    window.addEventListener('blur', () => { this.locatorHeld = false; this.shakeUntil = 0; this.stopIfIdle(); });
+    window.addEventListener('blur', () => { this.locatorHeld = false; this.shakeUntil = 0; this.setPointerVisible(false); this.stopIfIdle(); });
+    window.addEventListener('focus', () => this.restorePointer(), { passive: true });
+    window.addEventListener('pageshow', () => this.restorePointer(), { passive: true });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { cancelAnimationFrame(this.frame); this.frame = 0; }
-      else this.refresh();
+      if (document.hidden) { cancelAnimationFrame(this.frame); this.frame = 0; this.setPointerVisible(false); }
+      else { this.restorePointer(); this.refresh(); }
     });
     this.refresh();
   },
@@ -171,7 +203,7 @@ export const MouseCursor = {
   },
 
   resize() {
-    if (!this.canvas) return;
+    if (!this.canvas || !this.ctx) return;
     // Trails are decorative; a modest backing scale avoids full-screen 2x fill work.
     const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
     this.canvas.width = Math.max(1, Math.round(window.innerWidth * dpr));
@@ -183,26 +215,47 @@ export const MouseCursor = {
   },
 
   refresh() {
-    if (!this.canvas) return;
+    if (!this.canvas && !this.cursorEl) return;
     G.settings.mouseCursor = normalizeMouseCursorSettings(G.settings.mouseCursor);
     const s = this.settings();
     this.pointerOverlay = cursorNeedsPointerOverlay(s);
     this.effectsActive = cursorNeedsEffects(s);
     this.active = this.pointerOverlay || this.effectsActive;
-    document.body.classList.toggle('custom-mouse-pointer', this.pointerOverlay);
-    this.cursorEl.style.display = this.pointerOverlay && this.pointer.inside ? 'block' : 'none';
-    this.highlightEl.style.display = s.highlightCircle && this.pointer.inside ? 'block' : 'none';
-    this.canvas.style.mixBlendMode = s.color === 'inverted' ? 'difference' : 'normal';
-    this.canvas.style.display = this.effectsActive ? 'block' : 'none';
     this.updateCursorStyle();
-    this.positionCursor();
+    if (this.highlightEl) this.highlightEl.style.display = s.highlightCircle && this.pointer.inside ? 'block' : 'none';
+    this.setPointerVisible(this.pointerOverlay && this.pointer.inside);
+    if (this.canvas) {
+      this.canvas.style.mixBlendMode = 'normal';
+      this.canvas.style.display = this.effectsActive && this.ctx ? 'block' : 'none';
+    }
     if (s.trailStyle === 'none') this.clearTrail();
-    if (!this.effectsActive) {
+    if (!this.effectsActive || !this.ctx) {
       cancelAnimationFrame(this.frame); this.frame = 0;
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      if (this.ctx && this.canvas) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       return;
     }
     this.draw(); this.ensureAnimation();
+  },
+
+  setPointerVisible(visible) {
+    const canRender = customCursorCanRender(this.cursorEl, this.cursorPath);
+    const useCustom = cursorPointerShouldUseCustom(this.pointerOverlay, visible, canRender);
+    const hidden = document.body.classList.contains('custom-mouse-pointer');
+    if (useCustom) {
+      this.positionCursor();
+      if (this.cursorEl.style.display !== 'block') this.cursorEl.style.display = 'block';
+      if (!hidden) document.body.classList.add('custom-mouse-pointer');
+      return true;
+    }
+    // Reveal the original/native cursor before hiding a custom one, so handoffs never create a blank frame.
+    if (hidden) document.body.classList.remove('custom-mouse-pointer');
+    if (this.cursorEl && this.cursorEl.style.display !== 'none') this.cursorEl.style.display = 'none';
+    return false;
+  },
+
+  restorePointer() {
+    if (this.pointerOverlay && this.pointer.inside) this.setPointerVisible(true);
+    else this.setPointerVisible(false);
   },
 
   move(event) {
@@ -228,11 +281,12 @@ export const MouseCursor = {
     this.pointer.kind = this.lastCursorKind;
     if (cursorTargetChanged) this.updateCursorStyle();
     this.pointer.x = x; this.pointer.y = y; this.pointer.inside = true;
-    if (this.pointerOverlay) this.positionCursor();
+    if (this.pointerOverlay) this.setPointerVisible(true);
     const dx = this.previous ? x - this.previous.x : 0, dy = this.previous ? y - this.previous.y : 0;
     const distance = Math.hypot(dx, dy);
     if (this.effectsActive && s.trailStyle !== 'none' && distance >= 1) {
-      const gap = cursorTrailGap(s.size), ux = dx / distance, uy = dy / distance;
+      const ux = dx / distance, uy = dy / distance;
+      const gap = cursorTrailGap(s.size, ux, uy, s.trailWidth, s.trailGlow);
       const trailPoint = this.acquireHistoryPoint();
       trailPoint.x = x - ux * gap; trailPoint.y = y - uy * gap; trailPoint.time = now;
       this.history.push(trailPoint);
@@ -265,31 +319,39 @@ export const MouseCursor = {
     if (!this.pointer.inside) return;
     const settings = this.settings(), scale = settings.size / 100;
     const hotspot = cursorPointerOffset(settings.size);
-    if (this.pointerOverlay) this.cursorEl.style.transform = `translate3d(${this.pointer.x - hotspot.x}px,${this.pointer.y - hotspot.y}px,0)`;
-    if (settings.highlightCircle) this.highlightEl.style.transform = `translate3d(${this.pointer.x - 17 * scale}px,${this.pointer.y - 17 * scale}px,0) scale(${scale})`;
+    if (this.pointerOverlay && this.cursorEl) this.cursorEl.style.transform = `translate3d(${this.pointer.x - hotspot.x}px,${this.pointer.y - hotspot.y}px,0)`;
+    if (settings.highlightCircle && this.highlightEl) this.highlightEl.style.transform = `translate3d(${this.pointer.x - 17 * scale}px,${this.pointer.y - 17 * scale}px,0) scale(${scale})`;
   },
 
   updateCursorStyle() {
     if (!this.cursorPath) return;
-    const s = this.settings(), kind = this.pointer.kind || 'default';
-    this.cursorPath.setAttribute('d', CURSOR_PATHS[kind] || CURSOR_PATHS.default);
-    this.cursorPath.setAttribute('fill', kind === 'crosshair' || kind === 'text' ? 'none' : resolvedCursorColor(s, performance.now() / 1000));
-    this.cursorPath.setAttribute('stroke', s.outline ? s.outlineColor : (kind === 'crosshair' || kind === 'text' ? resolvedCursorColor(s, performance.now() / 1000) : '#200'));
-    this.cursorPath.setAttribute('stroke-width', s.outline ? String(s.outlineThickness) : (kind === 'crosshair' || kind === 'text' ? '2' : '1.5'));
-    this.cursorPath.setAttribute('stroke-linejoin', 'round');
-    this.cursorPath.setAttribute('transform', kind === 'pointer' ? 'translate(-6 -2)' : '');
-    this.cursorPath.style.animation = s.color === 'rainbow' ? 'cursor-hue-cycle 2.5s linear infinite' : 'none';
-    this.cursorSvg.style.width = `${24 * s.size / 100}px`;
-    this.cursorSvg.style.height = `${24 * s.size / 100}px`;
-    this.cursorEl.style.opacity = String(s.transparency / 100);
-    const glow = (s.glow || s.pulsatingGlow) ? `drop-shadow(0 0 ${Math.max(1, s.glowIntensity / 10)}px ${s.glowColor || cursorColor(s)})` : 'none';
-    this.cursorEl.classList.toggle('pulsating-glow', !!(s.pulsatingGlow && s.glow));
-    this.cursorEl.style.setProperty('--cursor-glow', s.glowColor || cursorColor(s));
-    this.cursorEl.style.filter = s.pulsatingGlow && s.glow ? '' : glow;
-    this.cursorEl.style.mixBlendMode = s.color === 'inverted' ? 'difference' : 'normal';
-    this.highlightEl.style.width = `${34 * s.size / 100}px`; this.highlightEl.style.height = `${34 * s.size / 100}px`;
-    this.highlightEl.style.borderColor = s.outline ? s.outlineColor : cursorColor(s);
-    this.positionCursor();
+    try {
+      const s = this.settings(), kind = this.pointer.kind || 'default';
+      this.cursorPath.setAttribute('d', CURSOR_PATHS[kind] || CURSOR_PATHS.default);
+      this.cursorPath.setAttribute('fill', kind === 'crosshair' || kind === 'text' ? 'none' : resolvedCursorColor(s, performance.now() / 1000));
+      this.cursorPath.setAttribute('stroke', s.outline ? s.outlineColor : (kind === 'crosshair' || kind === 'text' ? resolvedCursorColor(s, performance.now() / 1000) : '#200'));
+      this.cursorPath.setAttribute('stroke-width', s.outline ? String(s.outlineThickness) : (kind === 'crosshair' || kind === 'text' ? '2' : '1.5'));
+      this.cursorPath.setAttribute('stroke-linejoin', 'round');
+      this.cursorPath.setAttribute('transform', kind === 'pointer' ? 'translate(-6 -2)' : '');
+      this.cursorPath.style.animation = s.color === 'rainbow' ? 'cursor-hue-cycle 2.5s linear infinite' : 'none';
+      this.cursorSvg.style.width = `${24 * s.size / 100}px`;
+      this.cursorSvg.style.height = `${24 * s.size / 100}px`;
+      this.cursorEl.style.opacity = String(s.transparency / 100);
+      const glow = (s.glow || s.pulsatingGlow) ? `drop-shadow(0 0 ${Math.max(1, s.glowIntensity / 10)}px ${s.glowColor || cursorColor(s)})` : 'none';
+      this.cursorEl.classList.toggle('pulsating-glow', !!(s.pulsatingGlow && s.glow));
+      this.cursorEl.style.setProperty('--cursor-glow', s.glowColor || cursorColor(s));
+      this.cursorEl.style.filter = s.pulsatingGlow && s.glow ? '' : glow;
+      this.cursorEl.style.mixBlendMode = s.color === 'inverted' ? 'difference' : 'normal';
+      if (this.highlightEl) {
+        this.highlightEl.style.width = `${34 * s.size / 100}px`; this.highlightEl.style.height = `${34 * s.size / 100}px`;
+        this.highlightEl.style.borderColor = s.outline ? s.outlineColor : cursorColor(s);
+      }
+      this.positionCursor();
+    } catch {
+      // Keep the native cursor available if a browser cannot update the decorative SVG cursor.
+      this.pointerOverlay = false;
+      this.setPointerVisible(false);
+    }
   },
 
   acquireHistoryPoint() { return this.historyPool.pop() || {}; },
