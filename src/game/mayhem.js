@@ -7,6 +7,7 @@ import { camera } from '../core/view.js';
 import { addEffect, Ring, Column, Telegraph, burst, sparkle, smoke, floatText, elem, spawn } from '../gfx/vfx.js';
 import { aoe } from './combat.js';
 import { makeMonster } from './monster.js';
+import { pickMonsterArchetype } from './monsterroster.js';
 import { depthLevel } from '../data/depth.js';
 
 // ---------------------------------------------------------------- traits
@@ -168,8 +169,13 @@ export function ambushTick(w, dt) {
 }
 
 export function ambush(w, kind = pick(ENTRY), n = 0) {
+  // Scripted waves can run in special rooms whose generated spawns leave `world.roster`
+  // empty. Fall back to that environment's roster and only pass registered archetypes
+  // to makeMonster, which relies on the archetype entry throughout construction.
+  if (!w?.player || !w.map || !w.biome) return 0;
   const p = w.player, depth = w.depth || 1, lvl = depthLevel(depth);
-  const arch = pick(w.roster);
+  const arch = pickMonsterArchetype(w);
+  if (!arch) return 0;
   n = n || Math.min(7, 2 + Math.floor(rand(0, 3) + depth / 25));
   const trait = chance(0.45) ? pick(['tank', 'gunner', 'phaser', 'burrower']) : null;
   let made = 0;

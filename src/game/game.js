@@ -28,6 +28,7 @@ import { setupWorldObjects, worldObjectsTick, clearWorldObjectBuffs } from './wo
 import { setupDungeonEvent, dungeonEventTick } from './dungeonevents.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
 import { assignPackLeader } from './packleaders.js';
+import { pickMonsterArchetype } from './monsterroster.js';
 import { spectateTick } from './spectate.js';
 import { toggleSmite, getUltimate, executeUltimate } from './smite.js';
 import { hearthTick, useHearth, hearthPortalActive, closeHearthPortals, getActiveHearth, returnFromHearth } from './hearth.js';
@@ -1375,7 +1376,7 @@ export const game = {
           this.opened = true;
           sfx('chest');
           if (this.chestType === 'mimic') {
-            const arch = pick(world.roster || biome.roster || []);
+            const arch = pickMonsterArchetype(world);
             const mimic = arch && makeMonster(world, arch, biome, depthLevel(depth), 'champion', this.x, this.y, 0);
             if (mimic) {
               mimic.name = 'Mimic';

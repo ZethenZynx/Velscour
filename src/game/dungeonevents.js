@@ -7,6 +7,7 @@ import { addEffect, Ring, Column, sparkle, spawn, glowSprite, addLight, floatTex
 import { sfx } from '../core/audio.js';
 import { UI } from '../ui/ui.js';
 import { makeMonster, makeElite } from './monster.js';
+import { validMonsterRoster } from './monsterroster.js';
 import { hit } from './combat.js';
 import { GroundItem, rollGroundItem, rollGroundGem } from './loot.js';
 import { depthLevel } from '../data/depth.js';
@@ -148,7 +149,7 @@ function reachableEventRoom(world, start, avoid = []) {
 }
 
 function addEventFoes(world, run, { count = 4, rank = 'normal', arch = null, team = 'enemy', hp = 1, damage = 1 } = {}) {
-  const lvl = depthLevel(world.depth || 1), roster = world.roster?.length ? world.roster : world.biome?.roster || ['skeleton'];
+  const lvl = depthLevel(world.depth || 1), roster = validMonsterRoster(world);
   const spots = positions(world, run.room, Math.min(7,count), 2.8);
   for (let i = 0; i < Math.min(count,7); i++) {
     const at = spots[i % spots.length], a = arch || pick(roster) || 'skeleton';

@@ -7,6 +7,7 @@ import { addEffect, Ring, Column, burst, sparkle, addLight, glowSprite, spawn, f
 import { hit } from './combat.js';
 import { ambush } from './mayhem.js';
 import { makeMonster } from './monster.js';
+import { pickMonsterArchetype } from './monsterroster.js';
 import { GroundItem, dropChest, rollGroundItem, rollGroundGem } from './loot.js';
 import { GEMS, goldPile, goldScale, itemName, rarityAt } from '../data/items.js';
 import { depthLevel } from '../data/depth.js';
@@ -138,7 +139,7 @@ function ask(world,o,title,body,accept) {
   return UI.confirm(title,body,()=>{ if(G.world!==world||o.opened)return; if(accept()===false)return; used(world,o); },'Accept','Leave');
 }
 function randomEnemy(world,x,y,rank='normal',hp=1) {
-  const arch=pick(world.roster?.length?world.roster:world.biome?.roster||['skeleton']);
+  const arch=pickMonsterArchetype(world);
   if(!arch)return null;
   const [mx,my]=world.map.randomNear(x,y,1.3), m=makeMonster(world,arch,world.biome,level(world),rank,mx,my,0);
   if(m){m.maxHp*=hp;m.hp=m.maxHp;m.awake=true;world.add(m);} return m;
@@ -433,10 +434,21 @@ export function worldObjectsTick(world,dt) {
       const run=o.waveRun;
       run.foes=run.foes.filter(m=>!m.dead);
       if(!run.foes.length&&run.left>0&&(run.wait-=dt)<=0){
-        const before=world.creatures.length;ambush(world,undefined,randi(3,5));
-        run.foes.push(...world.creatures.slice(before).filter(m=>m.team==='enemy'));
-        if(run.foes.length){run.left--;run.wait=6;} else {run.left=0;}
-      }else if(run.left===0&&!run.foes.length){rewardChest(world,o,run.rewardCount);o.waveRun=null;UI.centerMsg(o.name.toUpperCase(),'The reward is yours',2);}
+        const before=world.creatures.length;
+        // Arm the retry delay before spawning so an unexpected error cannot retry every frame.
+        run.wait=6;
+        let spawnFailed=false;
+        try { ambush(world,undefined,randi(3,5)); }
+        catch(error) { spawnFailed=true; console.error('[World event] Ambush wave failed to spawn.',error); }
+        const spawned=world.creatures.slice(before).filter(m=>m.team==='enemy');
+        run.foes.push(...spawned);
+        if(spawnFailed||!spawned.length){run.left=0;run.failed=true;}
+        else run.left--;
+      }else if(run.left===0&&!run.foes.length){
+        if(run.failed)UI.centerMsg(o.name.toUpperCase(),'The summoning failed; no reward was claimed.',2);
+        else {rewardChest(world,o,run.rewardCount);UI.centerMsg(o.name.toUpperCase(),'The reward is yours',2);}
+        o.waveRun=null;
+      }
     }
     if(o.fieldT>0){
       o.fieldT-=dt;o.fieldTick-=dt;
