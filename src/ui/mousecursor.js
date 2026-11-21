@@ -1,4 +1,4 @@
-import { G } from '../state.js';
+import { G, saveSettings } from '../state.js';
 
 export const MOUSE_CURSOR_DEFAULTS = Object.freeze({
   color: 'default', customColor: '#d8b26a', size: 100,
@@ -12,7 +12,7 @@ export const MOUSE_CURSOR_DEFAULTS = Object.freeze({
 });
 
 const COLORS = new Set(['default', 'white', 'black', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'gold', 'rainbow', 'inverted', 'custom']);
-const TRAILS = new Set(['none', 'solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'comet', 'ghost']);
+const TRAILS = new Set(['none', 'solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'ghost']);
 const PALETTE = { default: '#d8b26a', white: '#fff8e8', black: '#17120e', red: '#ff4545', orange: '#ff8a32', yellow: '#ffe34d', green: '#55e36c', cyan: '#4de8e8', blue: '#4c91ff', purple: '#bc70ff', pink: '#ff76c8', gold: '#ffd05a' };
 export const CURSOR_TRAIL_SPELL_MATCHES = Object.freeze({
   solid: 'Beam and Comet Dive layered strokes in src/gfx/vfx.js and src/gfx/lancefx.js',
@@ -27,7 +27,6 @@ export const CURSOR_TRAIL_SPELL_MATCHES = Object.freeze({
   arcane: 'Spinning motes and rune-like rings in src/gfx/classfx.js and src/gfx/lancefx.js',
   orbs: 'Layered glow cores used by spell projectiles and elemental effects in src/gfx/vfx.js',
   rainbow: 'Bard motes and rainbow lightning colors in src/gfx/classfx.js and src/gfx/vfx.js',
-  comet: 'The ember, white-hot core, and smoke tail of Comet Dive in src/gfx/lancefx.js',
   ghost: 'Fading afterimages from ghost-trail skills in src/gfx/lancefx.js',
 });
 const SPELL_TRAIL_PALETTES = Object.freeze({
@@ -41,7 +40,6 @@ const SPELL_TRAIL_PALETTES = Object.freeze({
   arcane: { glow: '#c060ff', core: '#ffe0ff', dark: '#5a10c0' },
   orbs: { glow: '#4aa8ff', core: '#f2fbff', dark: '#1430a0' },
   rainbow: { glow: '#ff70d0', core: '#ffffff', dark: '#4a64ff' },
-  comet: { glow: '#ff7a10', core: '#fff3a0', dark: '#c02000' },
   ghost: { glow: '#8aa8ff', core: '#f0fbff', dark: '#202c90' },
 });
 const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) ? Math.max(min, Math.min(max, Number(value))) : fallback;
@@ -89,7 +87,7 @@ export function cursorUsesOverlay(settings) {
 }
 
 const random = (min, max) => min + Math.random() * (max - min);
-const HISTORY_TRAILS = new Set(['solid', 'dotted', 'comet', 'ghost']);
+const HISTORY_TRAILS = new Set(['solid', 'dotted', 'ghost']);
 const trailFadeDuration = (settings) => settings.trailLength / settings.fadeSpeed;
 export const MAX_CURSOR_TRAIL_POINTS = 80;
 export const MAX_CURSOR_TRAIL_PARTICLES = 128;
@@ -229,7 +227,16 @@ export const MouseCursor = {
 
   settings() {
     if (!G.settings.mouseCursor || typeof G.settings.mouseCursor !== 'object') G.settings.mouseCursor = { ...MOUSE_CURSOR_DEFAULTS };
-    return G.settings.mouseCursor;
+    const stored = G.settings.mouseCursor;
+    // Persist retired cursor styles once so an old Comet preference never
+    // returns on the next load or starts its former effect processing.
+    if (stored.trailStyle === 'comet') {
+      stored.trailStyle = 'none';
+      this.clearTrail();
+      if (this.frame) { if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.frame); this.frame = 0; }
+      saveSettings();
+    }
+    return stored;
   },
 
   resize() {
@@ -246,7 +253,7 @@ export const MouseCursor = {
 
   refresh() {
     if (!this.canvas && !this.cursorEl) return;
-    G.settings.mouseCursor = normalizeMouseCursorSettings(G.settings.mouseCursor);
+    G.settings.mouseCursor = normalizeMouseCursorSettings(this.settings());
     const s = this.settings();
     this.pointerOverlay = cursorNeedsPointerOverlay(s);
     this.effectsActive = cursorNeedsEffects(s);
@@ -426,7 +433,7 @@ export const MouseCursor = {
       : s.matchCursorColor ? resolvedCursorColor(s, now / 1000) : s.customTrailColor || s.trailColor;
       const speed = style === 'lightning' ? random(24, 90) : random(5, 34);
       let vx = 0, vy = 0;
-      if (style === 'fire' || style === 'smoke' || style === 'comet') { vx = -ux * speed * 0.34 + random(-5, 5); vy = -random(12, 35) - uy * speed * 0.12; }
+      if (style === 'fire' || style === 'smoke') { vx = -ux * speed * 0.34 + random(-5, 5); vy = -random(12, 35) - uy * speed * 0.12; }
       else if (style === 'lightning') { vx = -ux * speed * 0.3 + random(-18, 18); vy = -uy * speed * 0.3 + random(-18, 18); }
       else if (style === 'frost') { vx = -ux * speed * 0.65 + random(-5, 5); vy = -uy * speed * 0.65 + random(-5, 5); }
       else if (style === 'arcane' || style === 'orbs') { vx = -ux * speed * 0.2 - uy * speed * 0.48; vy = -uy * speed * 0.2 + ux * speed * 0.48; }
@@ -489,29 +496,19 @@ export const MouseCursor = {
     const style = s.trailStyle, history = this.history;
     if (style === 'none') return;
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if ((style === 'solid' || style === 'comet') && history.length > 1) {
+    if (style === 'solid' && history.length > 1) {
       for (let i = 1; i < history.length; i++) {
         const a = history[i - 1], b = history[i], age = now - b.time;
         const duration = trailFadeDuration(s);
         if (age > duration) continue;
         ctx.globalAlpha = (1 - age / duration) * s.trailOpacity / 100;
-        if (style === 'comet') {
-          const color = this.trailColor(s, now), theme = SPELL_TRAIL_PALETTES.comet;
-          ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-          ctx.strokeStyle = color; ctx.lineWidth = s.trailWidth * 2.5;
-          ctx.shadowColor = theme.glow; ctx.shadowBlur = s.trailGlow > 0 ? Math.min(7, s.trailGlow / 16) : 0;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-          ctx.strokeStyle = theme.core; ctx.lineWidth = Math.max(1, s.trailWidth * 0.55); ctx.shadowBlur = 0;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-        } else {
-          const color = this.trailColor(s, now);
-          ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-          ctx.strokeStyle = color; ctx.lineWidth = s.trailWidth * 2.1;
-          ctx.shadowColor = color; ctx.shadowBlur = s.trailGlow > 0 ? Math.min(6, s.trailGlow / 18) : 0;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-          ctx.strokeStyle = '#fff8e8'; ctx.lineWidth = Math.max(0.8, s.trailWidth * 0.38); ctx.shadowBlur = 0;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-        }
+        const color = this.trailColor(s, now);
+        ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+        ctx.strokeStyle = color; ctx.lineWidth = s.trailWidth * 2.1;
+        ctx.shadowColor = color; ctx.shadowBlur = s.trailGlow > 0 ? Math.min(6, s.trailGlow / 18) : 0;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.strokeStyle = '#fff8e8'; ctx.lineWidth = Math.max(0.8, s.trailWidth * 0.38); ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       }
     } else if (style === 'dotted' && history.length) {
       for (const point of history) {
@@ -536,7 +533,7 @@ export const MouseCursor = {
       ctx.globalAlpha = fade; ctx.fillStyle = particle.color; ctx.strokeStyle = particle.color;
       ctx.shadowColor = particle.glow || particle.color; ctx.shadowBlur = s.trailGlow > 0 ? Math.min(5, s.trailGlow / 22) : 0;
       if (particle.style === 'lightning') this.drawLightningTrail(ctx, particle, r);
-      else if (particle.style === 'fire' || particle.style === 'comet') this.drawFlameTrail(ctx, particle, r);
+      else if (particle.style === 'fire') this.drawFlameTrail(ctx, particle, r);
       else if (particle.style === 'sparkles') this.drawSparkleTrail(ctx, particle, r);
       else if (particle.style === 'stars' || particle.style === 'rainbow') {
         ctx.save(); ctx.translate(particle.x, particle.y); ctx.rotate(particle.phase + particle.age * 1.8);

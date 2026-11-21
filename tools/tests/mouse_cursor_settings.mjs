@@ -60,12 +60,19 @@ assert.equal(cursorColor({ color: 'custom', customColor: '#123456' }), '#123456'
 assert.equal(cursorColor({ color: 'inverted' }), '#ffffff', 'inverted mode uses a high-contrast difference blend source');
 assert.match(cursorColor({ color: 'rainbow' }, 1), /^hsl\(/, 'rainbow color cycles dynamically');
 
-for (const trailStyle of ['none', 'solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'comet', 'ghost']) {
+for (const trailStyle of ['none', 'solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'ghost']) {
   assert.equal(normalizeMouseCursorSettings({ trailStyle }).trailStyle, trailStyle, `${trailStyle} trail style is supported`);
 }
-assert.deepEqual(Object.keys(CURSOR_TRAIL_SPELL_MATCHES).sort(), ['solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'comet', 'ghost'].sort(), 'every non-empty style has a documented spell-effect reference');
+assert.deepEqual(Object.keys(CURSOR_TRAIL_SPELL_MATCHES).sort(), ['solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'ghost'].sort(), 'every non-empty style has a documented spell-effect reference');
 assert.ok(Object.values(CURSOR_TRAIL_SPELL_MATCHES).every((reference) => typeof reference === 'string' && reference.length > 0), 'all spell matches identify an existing visual source');
 assert.equal(normalizeMouseCursorSettings({ trailStyle: 'unknown' }).trailStyle, 'none', 'invalid trail styles safely disable trails');
+assert.equal(normalizeMouseCursorSettings({ trailStyle: 'comet' }).trailStyle, 'none', 'saved Comet preferences migrate to None');
+G.settings.mouseCursor = { ...MOUSE_CURSOR_DEFAULTS, trailStyle: 'comet' };
+MouseCursor.history.push({ x: 1, y: 1, time: 0 });
+MouseCursor.particles.push({ style: 'comet', age: 0, life: 1 });
+assert.equal(MouseCursor.settings().trailStyle, 'none', 'loaded Comet settings are migrated before effects can run');
+assert.equal(MouseCursor.history.length, 0, 'migration clears any retained Comet trail history');
+assert.equal(MouseCursor.particles.length, 0, 'migration clears any retained Comet particles');
 
 const bounded = normalizeMouseCursorSettings({ size: 999, transparency: -1, trailLength: 0, locatorSize: 999, particleDensity: 300 });
 assert.equal(bounded.size, 300, 'size is limited to the requested maximum');
@@ -84,7 +91,7 @@ assert.equal(cursorNeedsEffects({ trailStyle: 'sparkles' }), true, 'trail effect
 assert.equal(cursorUsesOverlay({ locatorEnabled: true }), true, 'enabling the locator activates the effects renderer');
 
 const particleStyles = ['sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow'];
-const trailStyles = ['none', 'solid', 'dotted', ...particleStyles, 'comet', 'ghost'];
+const trailStyles = ['none', 'solid', 'dotted', ...particleStyles, 'ghost'];
 const timing = {};
 for (const trailStyle of trailStyles) {
   G.settings.mouseCursor = normalizeMouseCursorSettings({ trailStyle, particleDensity: 100, particleSize: 20, trailLength: 1500, fadeSpeed: 0.25, trailGlow: 100 });
