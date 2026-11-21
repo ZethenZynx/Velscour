@@ -1,8 +1,8 @@
 // Storage expansions:
-// - Hero's Bag: 10 slots a row, 6 rows to start, up to 6 more bought with gold (5k..160k).
-// - Dedicated Gem Bag expands with progressive gold prices; the town vaults use endgame Marks.
-import { marksFree, deductMarks } from '../game/marks.js';
+// - Hero's Bag and Gem Bag keep their existing progressive gold schedules.
+// - Town vault expansions use separate endgame-only gold curves.
 import { reliquary, saveReliquary } from '../game/reliquary.js';
+import { campaignVictoryRecorded } from '../game/endgame.js';
 
 // --- BAG (HERO'S INVENTORY) ---
 export const BAG_COLS = 10, BAG_ROWS = 6;
@@ -82,7 +82,13 @@ export function fixGemBag(c) {
 
 // --- STASH (TOWN STORAGE CHEST) ---
 export const STASH_COLS = 10, STASH_BASE_ROWS = 30, STASH_MAX_ROWS = 60;
-export const STASH_ROW_MARK_COST = 10;
+export const STASH_ROW_GOLD_BASE = 100000, STASH_ROW_GOLD_GROWTH = 1.20;
+
+export function storageExpansionUnlocked() { return campaignVictoryRecorded(); }
+const goldCanPay = (c, cost) => !!c && Number.isFinite(Number(c.gold)) && Number(c.gold) >= cost;
+// Keep Math.ceil faithful to the stated decimal curves when binary floating point
+// leaves an exact whole-gold result a fraction above its integer.
+const ceilGoldCost = (value) => Math.ceil(value - Number.EPSILON * Math.max(1, Math.abs(value)) * 4);
 
 export function stashRows(c) {
   if (!c || !Array.isArray(c.stash)) return STASH_BASE_ROWS;
@@ -90,18 +96,22 @@ export function stashRows(c) {
 }
 
 export function nextStashRowCost(c) {
-  return stashRows(c) < STASH_MAX_ROWS ? STASH_ROW_MARK_COST : 0;
+  const row = stashRows(c) - STASH_BASE_ROWS;
+  return row >= 0 && row < STASH_MAX_ROWS - STASH_BASE_ROWS
+    ? ceilGoldCost(STASH_ROW_GOLD_BASE * Math.pow(STASH_ROW_GOLD_GROWTH, row)) : 0;
 }
 
 export function canBuyStashRow(c) {
-  return stashRows(c) < STASH_MAX_ROWS && marksFree() >= STASH_ROW_MARK_COST;
+  const cost = nextStashRowCost(c);
+  return storageExpansionUnlocked() && cost > 0 && goldCanPay(c, cost);
 }
 
-export function buyStashRow(c) {
+export function buyStashRow(c, expectedCost = null) {
   if (!c) return false;
+  const cost = nextStashRowCost(c);
+  if (!storageExpansionUnlocked() || !cost || (expectedCost !== null && Number(expectedCost) !== cost) || !goldCanPay(c, cost)) return false;
   if (!Array.isArray(c.stash)) c.stash = Array(STASH_COLS * STASH_BASE_ROWS).fill(null);
-  if (stashRows(c) >= STASH_MAX_ROWS) return false;
-  if (!deductMarks(STASH_ROW_MARK_COST)) return false;
+  c.gold = Number(c.gold) - cost;
   for (let i = 0; i < STASH_COLS; i++) c.stash.push(null);
   return true;
 }
@@ -115,7 +125,7 @@ export function fixStash(c) {
 
 // --- JEWEL BOX (TOWN GEM & RUNES VAULT) ---
 export const JEWEL_BOX_COLS = 10, JEWEL_BOX_BASE_ROWS = 30, JEWEL_BOX_MAX_ROWS = 60;
-export const JEWEL_BOX_ROW_MARK_COST = 5;
+export const JEWEL_BOX_ROW_GOLD_BASE = 150000, JEWEL_BOX_ROW_GOLD_GROWTH = 1.22;
 
 export function jewelBoxRows(c) {
   if (!c || !Array.isArray(c.jewelBox)) return JEWEL_BOX_BASE_ROWS;
@@ -123,18 +133,22 @@ export function jewelBoxRows(c) {
 }
 
 export function nextJewelBoxRowCost(c) {
-  return jewelBoxRows(c) < JEWEL_BOX_MAX_ROWS ? JEWEL_BOX_ROW_MARK_COST : 0;
+  const row = jewelBoxRows(c) - JEWEL_BOX_BASE_ROWS;
+  return row >= 0 && row < JEWEL_BOX_MAX_ROWS - JEWEL_BOX_BASE_ROWS
+    ? ceilGoldCost(JEWEL_BOX_ROW_GOLD_BASE * Math.pow(JEWEL_BOX_ROW_GOLD_GROWTH, row)) : 0;
 }
 
 export function canBuyJewelBoxRow(c) {
-  return jewelBoxRows(c) < JEWEL_BOX_MAX_ROWS && marksFree() >= JEWEL_BOX_ROW_MARK_COST;
+  const cost = nextJewelBoxRowCost(c);
+  return storageExpansionUnlocked() && cost > 0 && goldCanPay(c, cost);
 }
 
-export function buyJewelBoxRow(c) {
+export function buyJewelBoxRow(c, expectedCost = null) {
   if (!c) return false;
+  const cost = nextJewelBoxRowCost(c);
+  if (!storageExpansionUnlocked() || !cost || (expectedCost !== null && Number(expectedCost) !== cost) || !goldCanPay(c, cost)) return false;
   if (!Array.isArray(c.jewelBox)) c.jewelBox = Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null);
-  if (jewelBoxRows(c) >= JEWEL_BOX_MAX_ROWS) return false;
-  if (!deductMarks(JEWEL_BOX_ROW_MARK_COST)) return false;
+  c.gold = Number(c.gold) - cost;
   for (let i = 0; i < JEWEL_BOX_COLS; i++) c.jewelBox.push(null);
   return true;
 }
@@ -148,7 +162,7 @@ export function fixJewelBox(c) {
 
 // --- RELIQUARY (ACCOUNT-WIDE VAULT) ---
 export const RELIQUARY_COLS = 12, RELIQUARY_BASE_ROWS = 8, RELIQUARY_MAX_ROWS = 16;
-export const RELIQUARY_ROW_MARK_COST = 10;
+export const RELIQUARY_ROW_GOLD_BASE = 250000, RELIQUARY_ROW_GOLD_GROWTH = 1.30;
 
 export function reliquaryTabRows(tabIdx) {
   const r = reliquary();
@@ -157,18 +171,22 @@ export function reliquaryTabRows(tabIdx) {
 }
 
 export function nextReliquaryRowCost(tabIdx) {
-  return reliquaryTabRows(tabIdx) < RELIQUARY_MAX_ROWS ? RELIQUARY_ROW_MARK_COST : 0;
+  const row = reliquaryTabRows(tabIdx) - RELIQUARY_BASE_ROWS;
+  return row >= 0 && row < RELIQUARY_MAX_ROWS - RELIQUARY_BASE_ROWS
+    ? ceilGoldCost(RELIQUARY_ROW_GOLD_BASE * Math.pow(RELIQUARY_ROW_GOLD_GROWTH, row)) : 0;
 }
 
-export function canBuyReliquaryRow(tabIdx) {
-  return reliquaryTabRows(tabIdx) < RELIQUARY_MAX_ROWS && marksFree() >= RELIQUARY_ROW_MARK_COST;
+export function canBuyReliquaryRow(tabIdx, c) {
+  const cost = nextReliquaryRowCost(tabIdx);
+  return storageExpansionUnlocked() && cost > 0 && goldCanPay(c, cost);
 }
 
-export function buyReliquaryRow(tabIdx) {
+export function buyReliquaryRow(tabIdx, c, expectedCost = null) {
   const r = reliquary();
   if (!r.tabs[tabIdx]) return false;
-  if (reliquaryTabRows(tabIdx) >= RELIQUARY_MAX_ROWS) return false;
-  if (!deductMarks(RELIQUARY_ROW_MARK_COST)) return false;
+  const cost = nextReliquaryRowCost(tabIdx);
+  if (!storageExpansionUnlocked() || !cost || (expectedCost !== null && Number(expectedCost) !== cost) || !goldCanPay(c, cost)) return false;
+  c.gold = Number(c.gold) - cost;
   for (let i = 0; i < RELIQUARY_COLS; i++) r.tabs[tabIdx].push(null);
   saveReliquary();
   return true;

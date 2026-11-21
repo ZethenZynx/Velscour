@@ -7,7 +7,7 @@ import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
 import { changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { itemName } from '../data/items.js';
-import { stashRows, nextStashRowCost, canBuyStashRow, buyStashRow, STASH_MAX_ROWS } from '../data/bag.js';
+import { stashRows, nextStashRowCost, canBuyStashRow, buyStashRow, storageExpansionUnlocked, STASH_MAX_ROWS } from '../data/bag.js';
 
 export const STASH_SIZE = 300;
 
@@ -176,22 +176,27 @@ export const Stash = {
     }
     if (rows < STASH_MAX_ROWS) {
       const cost = nextStashRowCost(c);
+      const unlocked = storageExpansionUnlocked();
       const can = canBuyStashRow(c);
-      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), `+ Row (${cost} Marks)`);
-      buyRowBtn.title = `Add 1 row (10 slots) to Storage Chest for ${cost} Infernal Marks`;
+      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), unlocked ? `+ Row (<span style="color:#ffd860" aria-hidden="true">◉</span> ${fmtInt(cost)} gold)` : '+ Row (Endgame only)');
+      buyRowBtn.title = unlocked ? `Add 1 row (10 slots) to Storage Chest for ${fmtInt(cost)} gold` : 'Storage expansions unlock after Velscour is defeated.';
       buyRowBtn.onclick = () => {
         sfx('ui');
+        if (!storageExpansionUnlocked()) {
+          UI.log('Storage Chest expansions unlock after Velscour is defeated.', '#ffb85c');
+          return;
+        }
         if (!canBuyStashRow(c)) {
-          UI.log(`You need ${cost} free Infernal Marks to expand the storage chest.`, '#ff8080');
+          UI.log(`You need ${fmtInt(cost)} gold to expand the Storage Chest.`, '#ff8080');
           return;
         }
         UI.dialog({
           title: `Expand Storage Chest (${rows + 1} of ${STASH_MAX_ROWS})`,
-          html: `<p>Add 10 storage slots (row ${rows + 1}) to your Storage Chest for <b style="color:#ffd860">${cost} Infernal Marks</b>?</p>`,
+          html: `<p>Add 10 storage slots (row ${rows + 1}) to your Storage Chest for <b style="color:#ffd860"><span aria-hidden="true">◉</span> ${fmtInt(cost)} gold</b>?</p>`,
           buttons: [
             { label: 'Cancel' },
-            { label: `Buy for ${cost} Marks`, cls: 'red', fn: () => {
-              if (buyStashRow(c)) {
+            { label: `Buy for ${fmtInt(cost)} gold`, cls: 'red', fn: () => {
+              if (buyStashRow(c, cost)) {
                 changed();
                 this.render(body);
               }

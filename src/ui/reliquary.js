@@ -1,7 +1,7 @@
 // The Reliquary panel (town, beside the storage chest): six vault tabs shared by every hero, and the Codex of every
 // Heirloom, Covenant piece, Glyphword and Sigil ever found (game/reliquary.js holds the data).
 import { G } from '../state.js';
-import { el, escapeHtml } from '../core/util.js';
+import { el, escapeHtml, fmtInt } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { UI, draggable, droppable } from './ui.js';
 import { itemCell, itemTooltip, itemGearTip, rarityClass } from './itemui.js';
@@ -11,7 +11,7 @@ import { reliquary, saveReliquary, openTabs, codexProgress, codexEntries, MILEST
 import { RELIC_COLORS, SIGILS, SLOT_NAMES, makeGem, itemName } from '../data/items.js';
 import { COVENANT_BY_ID, makeHeirloom, makeCovenant, GLYPHWORDS } from '../data/relics.js';
 import { itemIconURL } from './icons.js';
-import { reliquaryTabRows, nextReliquaryRowCost, canBuyReliquaryRow, buyReliquaryRow, RELIQUARY_MAX_ROWS } from '../data/bag.js';
+import { reliquaryTabRows, nextReliquaryRowCost, canBuyReliquaryRow, buyReliquaryRow, storageExpansionUnlocked, RELIQUARY_MAX_ROWS } from '../data/bag.js';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 const KIND = { h: ['Heirlooms', RELIC_COLORS.heir], c: ['Covenant pieces', RELIC_COLORS.cov], g: ['Glyphwords', RELIC_COLORS.glyph], s: ['Sigil Stones', '#ffd88a'] };
@@ -180,7 +180,7 @@ export const Reliquary = {
     }
   },
   render(body) {
-    const r = reliquary(), n = openTabs(), prog = codexProgress();
+    const r = reliquary(), n = openTabs(), prog = codexProgress(), c = G.char;
     const prevGridScroll = body.querySelector('.rel-grid')?.scrollTop ?? this.lastScrollTop ?? 0;
     const prevBodyScroll = body.scrollTop;
     body.innerHTML = '';
@@ -229,22 +229,28 @@ export const Reliquary = {
 
     if (rows < RELIQUARY_MAX_ROWS) {
       const cost = nextReliquaryRowCost(this.tab);
-      const can = canBuyReliquaryRow(this.tab);
-      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), `+ Row (${cost} Marks)`);
-      buyRowBtn.title = `Add 1 row (12 slots) to Vault ${ROMAN[this.tab]} for ${cost} Infernal Marks`;
+      const unlocked = storageExpansionUnlocked();
+      const can = canBuyReliquaryRow(this.tab, c);
+      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), unlocked ? `+ Row (<span style="color:#ffd860" aria-hidden="true">◉</span> ${fmtInt(cost)} gold)` : '+ Row (Endgame only)');
+      buyRowBtn.title = unlocked ? `Add 1 row (12 slots) to Vault ${ROMAN[this.tab]} for ${fmtInt(cost)} gold` : 'Reliquary expansions unlock after Velscour is defeated.';
       buyRowBtn.onclick = () => {
         sfx('ui');
-        if (!canBuyReliquaryRow(this.tab)) {
-          UI.log(`You need ${cost} free Infernal Marks to expand this vault tab.`, '#ff8080');
+        if (!storageExpansionUnlocked()) {
+          UI.log('Reliquary expansions unlock after Velscour is defeated.', '#ffb85c');
+          return;
+        }
+        if (!canBuyReliquaryRow(this.tab, c)) {
+          UI.log(`You need ${fmtInt(cost)} gold to expand this Reliquary tab.`, '#ff8080');
           return;
         }
         UI.dialog({
           title: `Expand Vault ${ROMAN[this.tab]} (${rows + 1} of ${RELIQUARY_MAX_ROWS})`,
-          html: `<p>Add 12 vault slots (row ${rows + 1}) to Vault Tab ${ROMAN[this.tab]} for <b style="color:#ffd860">${cost} Infernal Marks</b>?</p>`,
+          html: `<p>Add 12 vault slots (row ${rows + 1}) to Vault Tab ${ROMAN[this.tab]} for <b style="color:#ffd860"><span aria-hidden="true">◉</span> ${fmtInt(cost)} gold</b>?</p>`,
           buttons: [
             { label: 'Cancel' },
-            { label: `Buy for ${cost} Marks`, cls: 'red', fn: () => {
-              if (buyReliquaryRow(this.tab)) {
+            { label: `Buy for ${fmtInt(cost)} gold`, cls: 'red', fn: () => {
+              if (buyReliquaryRow(this.tab, c, cost)) {
+                changed();
                 this.render(body);
               }
             }},

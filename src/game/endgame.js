@@ -10,7 +10,7 @@ const MARKS_RESET_VERSION = 2;
 export const MARK_CATS = INFERNAL_UPGRADES.map((u) => u.id);
 let E = null;
 
-function blank() { return { v: 1, marksResetVersion: MARKS_RESET_VERSION, unlocked: 0, marks: { pts: 0, xp: 0, spentValue: 0, rewardRemainder: 0, legacyFerocity: 0, spent: Object.fromEntries(MARK_CATS.map((id) => [id, 0])) }, bests: {}, keysFound: 0, unboundWins: 0 }; }
+function blank() { return { v: 1, marksResetVersion: MARKS_RESET_VERSION, unlocked: 0, marks: { pts: 0, xp: 0, spentValue: 0, rewardRemainder: 0, legacyFerocity: 0, spent: Object.fromEntries(MARK_CATS.map((id) => [id, 0])) }, storageRefundV1: { heroes: {}, reliquary: false }, bests: {}, keysFound: 0, unboundWins: 0 }; }
 /** A record with every field present and sane (a damaged one keeps what it can). */
 export function fixEndgame(r) {
   const o = blank();
@@ -61,6 +61,11 @@ export function fixEndgame(r) {
   if (r.bests && typeof r.bests === 'object') for (const [cls, b] of Object.entries(r.bests)) if (b && Number(b.tier) > 0) o.bests[cls] = { tier: Math.floor(Number(b.tier)), time: Math.max(0, Number(b.time) || 0), at: Number(b.at) || 0 };
   o.keysFound = Math.max(0, Math.floor(Number(r.keysFound) || 0));
   o.unboundWins = Math.max(0, Math.floor(Number(r.unboundWins) || 0));
+  const refunds = r.storageRefundV1 && typeof r.storageRefundV1 === 'object' ? r.storageRefundV1 : {};
+  o.storageRefundV1 = {
+    heroes: refunds.heroes && typeof refunds.heroes === 'object' && !Array.isArray(refunds.heroes) ? refunds.heroes : {},
+    reliquary: !!refunds.reliquary,
+  };
   return o;
 }
 /** The shared record (loaded once). */
@@ -76,6 +81,22 @@ export function endgame() {
 /** Write the record; quiet is retained for existing call sites. */
 export function saveEndgame(quiet) {
   try { localStorage.setItem(KEY, JSON.stringify(endgame())); } catch (e) { /* storage full or blocked: it lives on for this visit */ }
+}
+/** One-time refund for storage rows bought with Marks. The ledger and wallet are saved together. */
+export function refundStorageMarks({ heroId, heroMarks = 0, reliquaryMarks = 0 } = {}) {
+  const r = endgame(), ledger = r.storageRefundV1;
+  let refund = 0;
+  if (heroId && !ledger.heroes[heroId]) {
+    ledger.heroes[heroId] = true;
+    refund += Math.max(0, Math.floor(Number(heroMarks) || 0));
+  }
+  if (!ledger.reliquary) {
+    ledger.reliquary = true;
+    refund += Math.max(0, Math.floor(Number(reliquaryMarks) || 0));
+  }
+  if (refund > 0) r.marks.pts += refund;
+  saveEndgame();
+  return refund;
 }
 /** Tests: forget the cached copy (the next call reads localStorage again). */
 export function resetEndgameCache() { E = null; }

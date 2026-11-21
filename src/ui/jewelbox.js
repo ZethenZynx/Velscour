@@ -7,7 +7,7 @@ import { itemCell, itemTooltip, rarityClass } from './itemui.js';
 import { changed, renderInventory } from './inventory.js';
 import { addToBag } from '../game/player.js';
 import { itemName, GEM_TIERS } from '../data/items.js';
-import { jewelBoxRows, nextJewelBoxRowCost, canBuyJewelBoxRow, buyJewelBoxRow, JEWEL_BOX_MAX_ROWS } from '../data/bag.js';
+import { jewelBoxRows, nextJewelBoxRowCost, canBuyJewelBoxRow, buyJewelBoxRow, storageExpansionUnlocked, JEWEL_BOX_MAX_ROWS } from '../data/bag.js';
 
 export const JEWEL_BOX_SIZE = 300;
 
@@ -210,22 +210,27 @@ export const JewelBox = {
     }
     if (rows < JEWEL_BOX_MAX_ROWS) {
       const cost = nextJewelBoxRowCost(c);
+      const unlocked = storageExpansionUnlocked();
       const can = canBuyJewelBoxRow(c);
-      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), `+ Row (${cost} Marks)`);
-      buyRowBtn.title = `Add 1 row (10 slots) to Jewel Box for ${cost} Infernal Marks`;
+      const buyRowBtn = el('button', 'btn small' + (can ? '' : ' poor'), unlocked ? `+ Row (<span style="color:#ffd860" aria-hidden="true">◉</span> ${fmtInt(cost)} gold)` : '+ Row (Endgame only)');
+      buyRowBtn.title = unlocked ? `Add 1 row (10 slots) to Jewel Box for ${fmtInt(cost)} gold` : 'Jewel Box expansions unlock after Velscour is defeated.';
       buyRowBtn.onclick = () => {
         sfx('ui');
+        if (!storageExpansionUnlocked()) {
+          UI.log('Jewel Box expansions unlock after Velscour is defeated.', '#ffb85c');
+          return;
+        }
         if (!canBuyJewelBoxRow(c)) {
-          UI.log(`You need ${cost} free Infernal Marks to expand the Jewel Box.`, '#ff8080');
+          UI.log(`You need ${fmtInt(cost)} gold to expand the Jewel Box.`, '#ff8080');
           return;
         }
         UI.dialog({
           title: `Expand Jewel Box (${rows + 1} of ${JEWEL_BOX_MAX_ROWS})`,
-          html: `<p>Add 10 gem slots (row ${rows + 1}) to your Jewel Box for <b style="color:#ffd860">${cost} Infernal Marks</b>?</p>`,
+          html: `<p>Add 10 gem slots (row ${rows + 1}) to your Jewel Box for <b style="color:#ffd860"><span aria-hidden="true">◉</span> ${fmtInt(cost)} gold</b>?</p>`,
           buttons: [
             { label: 'Cancel' },
-            { label: `Buy for ${cost} Marks`, cls: 'red', fn: () => {
-              if (buyJewelBoxRow(c)) {
+            { label: `Buy for ${fmtInt(cost)} gold`, cls: 'red', fn: () => {
+              if (buyJewelBoxRow(c, cost)) {
                 changed();
                 this.render(body);
               }

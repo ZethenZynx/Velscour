@@ -236,12 +236,12 @@ G.game = game;
   resetEndgameCache();
   const migrated = endgame();
   assert.equal(migrated.marks.pts, 0, 'one-time migration removes all previously held Marks account-wide');
-  assert.deepEqual(migrated.marks.spent, { life: 0, crit: 0, mf: 0, rift: 0 }, 'spent Marks and their permanent bonuses are reset');
+  assert.ok(Object.values(migrated.marks.spent).every((rank) => rank === 0), 'spent Marks and their permanent bonuses are reset');
   assert.equal(migrated.marks.xp, 0, 'pre-policy Mark XP cannot carry campaign progress into endgame');
-  assert.deepEqual(markBonuses(), { life: 0, crit: 0, mf: 0, rift: 0, critDmg: 0 }, 'no old permanent Mark bonuses remain active');
+  assert.ok(Object.values(markBonuses()).every((bonus) => bonus === 0), 'no old permanent Mark bonuses remain active');
   assert.equal(migrated.unlocked, 123, 'endgame unlock remains intact');
   assert.equal(migrated.bests.wizard.tier, 8, 'rift records remain intact');
-  assert.equal(JSON.parse(store.get('velscour_endgame_v1')).marksResetVersion, 1, 'Mark reset is persisted exactly once');
+  assert.equal(JSON.parse(store.get('velscour_endgame_v1')).marksResetVersion, 2, 'Mark reset is persisted exactly once');
 
   const c = newCharData('paladin', 'Expander');
   G.char = c;
@@ -299,19 +299,25 @@ G.game = game;
   assert.equal(marksFree(), m0 + 5, 'eligible endgame rewards are saved to the shared record');
   G.world = { kind: 'dungeon', depth: 100 };
 
+  endgame().unlocked = Date.now();
+  c.gold = 1000000;
+  const marksBeforeStorage = marksFree();
   assert.equal(buyStashRow(c), true);
   assert.equal(c.stash.length, 310, 'buyStashRow adds 10 slots');
-  assert.equal(marksFree(), m0 + 5 - 10, 'buyStashRow still costs 10 Marks');
+  assert.equal(c.gold, 900000, 'Storage Chest costs 100,000 gold');
+  assert.equal(marksFree(), marksBeforeStorage, 'Storage Chest no longer spends Infernal Marks');
 
   assert.equal(buyJewelBoxRow(c), true);
   assert.equal(c.jewelBox.length, 310, 'buyJewelBoxRow adds 10 slots');
-  assert.equal(marksFree(), m0 + 5 - 15, 'buyJewelBoxRow still costs 5 Marks');
+  assert.equal(c.gold, 750000, 'Jewel Box costs 150,000 gold');
+  assert.equal(marksFree(), marksBeforeStorage, 'Jewel Box no longer spends Infernal Marks');
 
   const r = reliquary(); // initialize
   const beforeTab = r.tabs[0].length;
-  assert.equal(buyReliquaryRow(0), true);
+  assert.equal(buyReliquaryRow(0, c), true);
   assert.equal(r.tabs[0].length, beforeTab + 12, 'buyReliquaryRow adds 12 slots to reliquary tab');
-  assert.equal(marksFree(), m0 + 5 - 25, 'buyReliquaryRow still costs 10 Marks');
+  assert.equal(c.gold, 500000, 'Reliquary costs 250,000 gold');
+  assert.equal(marksFree(), marksBeforeStorage, 'Reliquary no longer spends Infernal Marks');
   assert.ok(store.has('velscour_reliquary_v1'), 'reliquary saves to lowercase velscour_reliquary_v1');
 
   assert.equal(deductMarks(999), false, 'deductMarks refuses overspending');

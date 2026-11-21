@@ -11,6 +11,8 @@ import { migrateBar, BAR_SIZE } from '../data/bar.js';
 import { TAB_SLOTS } from '../data/tabs.js';
 import { newMacros, migrateMacros } from '../data/macros.js';
 import { migrateCovenantItem } from '../data/relics.js';
+import { reliquary } from './reliquary.js';
+import { refundStorageMarks } from './endgame.js';
 import { stashRaw, listRaw } from './herobackup.js';
 import {
   BAG_COLS, BAG_ROWS, GEM_BAG_COLS, GEM_BAG_BASE_ROWS, JEWEL_BOX_COLS, JEWEL_BOX_BASE_ROWS,
@@ -181,7 +183,7 @@ export function newCharData(classId, name) {
   const C = CLASSES[classId];
   const c = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    version: 1, rebalancedV1: true, name, classId, level: 1, xp: 0,
+    version: 1, rebalancedV1: true, storageMarkRefundV1: true, name, classId, level: 1, xp: 0,
     attrs: { ...C.base }, statPoints: 0, skillPoints: 1, talentPoints: 0,
     skills: {}, talents: {}, granted: {}, skillTutorialSeen: false, skillRespecV1: true, skillRespecV2: true, [SKILL_POINT_LEVEL_RESET]: true, bar: Array(BAR_SIZE).fill(null),
     equip: { weapon: null, offhand: null, head: null, body: null, hands: null, legs: null, feet: null, ring1: null, ring2: null, ring3: null, ring4: null },
@@ -588,5 +590,15 @@ export function migrate(c) {
   for (const it of [...Object.values(c.equip), ...c.bag]) if (it && it.art && (it.slot === 'body' || it.slot === 'head')) { delete it.art; delete it.artCls; }
   // the generated biome natives (bn_) are gone: a nemesis wearing one takes a look from its next level
   if (c.nemesis && typeof c.nemesis.art === 'string' && c.nemesis.art.startsWith('bn_')) { c.nemesis.art = null; c.nemesis.swap = null; }
+  // Refund the legacy Mark price for town-vault rows once per hero and once for
+  // the shared Reliquary. The account-wide ledger and Mark wallet are written together.
+  const expandedRows = (items, cols, base, max) => Math.max(0, Math.min(max, Math.ceil((Array.isArray(items) ? items.length : 0) / cols)) - base);
+  const heroMarks = c.storageMarkRefundV1 ? 0 : expandedRows(c.stash, 10, 30, 60) * 10 + expandedRows(c.jewelBox, 10, 30, 60) * 5;
+  // This account-wide portion runs even for a newly created hero: the Reliquary is
+  // shared, so it must not depend on which character is loaded first after the update.
+  const vault = reliquary();
+  const reliquaryMarks = (vault.tabs || []).reduce((sum, tab) => sum + expandedRows(tab, 12, 8, 16) * 10, 0);
+  refundStorageMarks({ heroId: c.id, heroMarks, reliquaryMarks });
+  c.storageMarkRefundV1 = true;
   return c;
 }
