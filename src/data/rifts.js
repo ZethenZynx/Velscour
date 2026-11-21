@@ -20,7 +20,7 @@ export const riftDmgMul = (tier) => Math.pow(1.06, Math.max(0, (tier | 0) - 1));
 export const riftJump = (k) => (k <= 0.5 ? 3 : k <= 0.8 ? 2 : 1);
 
 /** Monster kill weight toward the quota */
-export const riftWeight = (m) => (!m || m.summon || m.pitSpawn || m.vk ? 0 : m.rank === 'unique' ? 8 : m.rank === 'champion' ? 4 : m.rank === 'boss' || m.isRaid ? 0 : 1);
+export const riftWeight = (m) => (!m || m.goblin || m.summon || m.pitSpawn || m.vk ? 0 : m.rank === 'unique' ? 8 : m.rank === 'champion' ? 4 : m.rank === 'boss' || m.isRaid ? 0 : 1);
 
 /** Pylon Definitions */
 export const PYLONS = [

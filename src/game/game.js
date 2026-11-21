@@ -22,7 +22,7 @@ import { CLASSES } from '../data/classes.js';
 import { generateDungeon, isRaidDepth } from '../world/dungeon.js';
 import { FINAL_DEPTH, MAX_DEPTH, depthLevel, blockStart, isSuperbossDepth, superbossForDepth, getActForDepth, isActFinaleDepth, ACTS } from '../data/depth.js';
 import { addDefiance, clearDefiance, defianceText, tickBlessing } from './defiance.js';
-import { setupHappenings, announceDungeonAffixes, happeningsTick, eventImpsTick, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
+import { setupHappenings, announceDungeonAffixes, happeningsTick, eventImpsTick, spawnGuaranteedImp, townHappening, townTick, recordDepth, markNemesis } from './happenings.js';
 import { setupWorldObjects, worldObjectsTick, clearWorldObjectBuffs } from './worldobjects.js';
 import { setupDungeonEvent, dungeonEventTick } from './dungeonevents.js';
 import { greedOf, greedPacks, greedWorld, greedCleared, greedDeath } from './greed.js';
@@ -1331,6 +1331,7 @@ export const game = {
     if (biome.id === 'sea_of_sand') { c.lastSand = gen.dunes ? 1 + DUNE_VARIANTS.indexOf(gen.variant) : 0; if (gen.dunes) c.seaOfSandRuns[depth] = { seed, dunes: c.lastSand }; }
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: gen.townTiles || null, buildings: gen.buildings || [] });
     world.startPos = gen.start;
+    world.impAreaKey = `${biome.id}:${depth}${mix?.id ? `:${mix.id}` : ''}`;
     // Chest appearance uses the same generated environment context as the level.
     // This metadata is visual-only; chest type and loot rolls remain independent.
     world.chestEnvironmentVariant = gen.variant?.id || '';
@@ -1629,6 +1630,7 @@ export const game = {
       sfx('gate'); UI.refresh(); this.autosave();
     });
     this.setWorld(world, gen.start, old);
+    spawnGuaranteedImp(world);
     announceDungeonAffixes(world);
     if (biome.id === 'castle') { world.ambientFx = gen.variant?.look?.ambient || null; c.lastCastle = gen.variant?.id; }
     if (biome.overworld && !sky && !sea && !biome.cave && !gen.dunes && (!reg || reg.wilds)) {
@@ -1896,7 +1898,7 @@ export const game = {
     keepTileSets(tileset);
     const gen = generateBreach(floor, B, tileset, null, seed);
     const world = new World('dungeon', { map: gen.map, tileset, biome: B, depth, props: gen.props, torches: [], wallHangings: [], looks: gen.looks, townTiles: null, buildings: [] });
-    world.breach = { floor, seed }; world.breachBridges = gen.bridges; world.rooms = [];
+    world.breach = { floor, seed }; world.impAreaKey = `breach:${floor}`; world.breachBridges = gen.bridges; world.rooms = [];
     world.chests = gen.chests.map((ch) => chestAt(world, ch.x, ch.y, ch.rare, depth));
     const [sx, sy] = gen.start;
     let tp = [sx + 1.4, sy - 1.2];
@@ -1927,6 +1929,7 @@ export const game = {
       sfx('gate'); UI.refresh(); this.autosave();
     });
     this.setWorld(world, gen.start, old);
+    spawnGuaranteedImp(world);
     world.night = true;
     HUD.setArea('The Eternal Breach', `Floor ${floor} · as deadly as Depth ${depth}${worldRank(world) ? ` · Heresy ${worldRank(world)}` : ''}`);   // (the floor in the name ran under a phone's boss bar)
     playMusic('wilds', { delay: 3 + Math.random() * 10 }); setAmbience('eternal_breach');
@@ -2012,6 +2015,7 @@ export const game = {
     keepTileSets(tileset);
     const gen = generateDungeon(depth, biome, tileset, seed, { rift: true, raid: true, small: true, density: RIFT_DENSITY });
     const world = new World('dungeon', { map: gen.map, tileset, biome, depth, props: gen.props, torches: gen.torches, wallHangings: gen.wallHangings, looks: gen.looks, townTiles: null, buildings: [] });
+    world.impAreaKey = `rift:${tier}:${biome.id}`;
     world.rooms = gen.rooms || [];
     world.riftHold = true; // rift monsters keep the old Endless Torment life (data/depth.js riftHold)
     world.chests = gen.chests.map((ch) => ({ ...ch, opened: false, reach: 1.3, use() { if (this.opened) return; this.opened = true; sfx('chest'); sfx('gold'); dropChest(world, this, depth); sparkle(this.x, this.y, 20, '#ffd060', 20, 0.5); } }));
@@ -2065,6 +2069,7 @@ export const game = {
     world.onBossAwake = (m) => { UI.centerMsg(m.name, `${m.title}${m.raid && m.raid.mods.length ? ' · ' + m.raid.modText() : ''}`, 3); sfx('boss'); };
     world.onBossKilled = () => {}; // riftWin handles it
     this.setWorld(world, gen.start, old);
+    spawnGuaranteedImp(world);
     world.darkK = Math.max(world.darkK || 0, 0.25);
     HUD.setArea('Abyssal Rift', `Tier ${tier} · ${biome.name} · as deadly as Depth ${depth}`);
     playMusic('wilds', { delay: 2 }); setAmbience(biome.id);

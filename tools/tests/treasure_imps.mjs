@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpEligible, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
+import { TREASURE_IMPS, IMP_BY_ID, IMP_SPRITE_PATH, IMP_MOVEMENT_PATTERNS, IMP_MAX_FOREGROUND_PIXELS, hasTreasureImpArea, selectImpMovementPattern, selectPrismaticRewards, selectTreasureImp, treasureImpAreaKey, treasureImpEligible, treasureImpSpriteScale } from '../../src/data/treasureimps.js';
 import { canEarnInfernalMarks } from '../../src/game/endgame.js';
 import { newCharData, migrate } from '../../src/game/save.js';
 import { itemValue, itemSellValue } from '../../src/data/items.js';
+import { riftWeight } from '../../src/data/rifts.js';
 
 assert.equal(TREASURE_IMPS.length, 20, 'the registry contains all 20 supplied variants');
 assert.equal(new Set(TREASURE_IMPS.map(({ id }) => id)).size, 20, 'variant IDs are unique');
@@ -20,6 +21,15 @@ assert.ok(IMP_MOVEMENT_PATTERNS.find(({ id }) => id === 'erratic').turnMax < IMP
   'the erratic pattern changes direction more often than the steady pattern');
 assert.equal(treasureImpSpriteScale(14, 0.9) * IMP_MAX_FOREGROUND_PIXELS * 0.9, 14,
   'extracted art scale matches the original imp sprite height');
+
+const forestArea = treasureImpAreaKey({ biome: { id: 'dark_forest' }, depth: 24 });
+const castleArea = treasureImpAreaKey({ biome: { id: 'castle' }, depth: 24 });
+assert.notEqual(forestArea, castleArea, 'separate environments at the same depth have separate guarantees');
+assert.equal(treasureImpAreaKey({ biome: { id: 'dark_forest' }, depth: 24 }), forestArea, 'returning to the same environment retains its stable guarantee key');
+assert.notEqual(treasureImpAreaKey({ rift: { tier: 2 }, biome: { id: 'catacombs' } }), treasureImpAreaKey({ rift: { tier: 3 }, biome: { id: 'catacombs' } }), 'each endgame rift tier has its own stable guarantee key');
+assert.equal(hasTreasureImpArea(forestArea, [forestArea]), true);
+assert.equal(hasTreasureImpArea(castleArea, [forestArea]), false);
+assert.equal(riftWeight({ goblin: true, rank: 'unique' }), 0, 'a guaranteed imp does not count toward a Rift Guardian quota');
 
 for (const depth of [1, 25, 100]) {
   assert.equal(treasureImpEligible(IMP_BY_ID.set, { depth, endgameUnlocked: true, canEarnMarks: true }), false, `Set Imp is locked at campaign depth ${depth}`);
@@ -44,12 +54,18 @@ for (const random of [0, 0.34, 0.67, 0.999999]) {
 
 const fresh = newCharData('paladin', 'Imp Test');
 assert.deepEqual(fresh.treasureImpDepths, []);
+assert.deepEqual(fresh.treasureImpGuaranteedAreas, []);
+assert.deepEqual(fresh.treasureImpRandomAreas, []);
 assert.equal(fresh.treasureImpTutorialShown, false);
 const legacy = { ...fresh };
 delete legacy.treasureImpDepths;
+delete legacy.treasureImpGuaranteedAreas;
+delete legacy.treasureImpRandomAreas;
 delete legacy.treasureImpTutorialShown;
 migrate(legacy);
 assert.deepEqual(legacy.treasureImpDepths, [], 'legacy save migration adds encounter tracking without touching other progression');
+assert.deepEqual(legacy.treasureImpGuaranteedAreas, [], 'legacy saves gain one-time guarantee tracking');
+assert.deepEqual(legacy.treasureImpRandomAreas, [], 'legacy saves gain independent random-encounter tracking');
 assert.equal(legacy.treasureImpTutorialShown, false);
 const item = { type: 'weapon', rarity: 0, ilvl: 1, affixes: [], sockets: 0, upg: 0 };
 const merchantValue = itemValue({ ...item, vendorValueMult: 2.5 });

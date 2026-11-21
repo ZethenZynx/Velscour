@@ -35,6 +35,21 @@ export const TREASURE_IMPS = Object.freeze(TREASURE_IMP_DATA.map((imp) => Object
 export const IMP_BY_ID = Object.freeze(Object.fromEntries(TREASURE_IMPS.map((imp) => [imp.id, imp])));
 export const IMP_SPRITE_PATH = (id) => `assets/sprites/treasure-imps/${id}.png`;
 export const IMP_MAX_FOREGROUND_PIXELS = 70;
+
+/** Stable per-environment key: different biomes at the same depth remain independent. */
+export function treasureImpAreaKey(world = {}) {
+  if (world.impAreaKey) return String(world.impAreaKey);
+  const biome = world.biome?.id || 'dungeon';
+  if (world.breach) return `breach:${world.breach.floor}`;
+  if (world.rift) return `rift:${world.rift.tier}:${biome}`;
+  if (world.unboundExploration) return `unbound:${world.unboundExploration.floor}`;
+  return `${biome}:${Math.max(1, Math.floor(Number(world.depth) || 1))}`;
+}
+
+export function hasTreasureImpArea(areaKey, savedAreas) {
+  return typeof areaKey === 'string' && Array.isArray(savedAreas) && savedAreas.includes(areaKey);
+}
+
 export function treasureImpSpriteScale(originalSpriteHeight, creatureScale = 1) {
   const h = Math.max(1, Number(originalSpriteHeight) || 1);
   const s = Math.max(0.01, Number(creatureScale) || 1);
