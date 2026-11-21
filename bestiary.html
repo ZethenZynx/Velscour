@@ -947,6 +947,15 @@
     </div>
   </section>
 
+  <section class="treasure-imp-compendium" aria-labelledby="treasure-imp-title">
+    <div class="treasure-imp-compendium-head">
+      <span class="wiki-eyebrow">Rare encounters · fleeing treasure creatures</span>
+      <h2 id="treasure-imp-title">The Twenty Treasure Imps</h2>
+      <p>Their reward families are listed here; actual drops always follow the character's current progression limits.</p>
+    </div>
+    <div id="treasure-imp-catalogue" class="treasure-imp-grid" aria-live="polite"></div>
+  </section>
+
   <!-- Sticky Controls Toolbar -->
   <div class="toolbar-sticky">
     <div class="toolbar-wrap">
@@ -1142,10 +1151,18 @@
   <script type="module">
     import { mountWikiShell, getQueryParam } from './src/wiki/wiki-shell.js';
     import { BESTIARY, SWAPS } from './src/data/bestiary.js';
+    import { TREASURE_IMPS, IMP_SPRITE_PATH } from './src/data/treasureimps.js';
     import { ARCH, ARCH_MOVES, GORE } from './src/data/enemies.js';
     import { enemyImage, loadArtFor } from './src/core/enemyart.js';
 
     mountWikiShell({ active: 'bestiary' });
+
+    document.getElementById('treasure-imp-catalogue').innerHTML = TREASURE_IMPS.map((imp) => `
+      <article class="treasure-imp-card" style="--imp-color:${imp.color}">
+        <img src="${IMP_SPRITE_PATH(imp.id)}" alt="${imp.name}" loading="lazy" width="80" height="80">
+        <div><h3>${imp.name}</h3><span class="treasure-imp-rarity">${imp.rarity}${imp.endgameOnly ? ' · Endgame' : ''}</span>
+        <p>${imp.summary}</p></div>
+      </article>`).join('');
 
     // Descriptions for combat abilities
     const MOVE_INFO = {
@@ -1272,7 +1289,7 @@
     });
 
     // Populate header stats
-    document.getElementById('stat-total').textContent = CATALOGUE.length.toLocaleString();
+    document.getElementById('stat-total').textContent = (CATALOGUE.length + TREASURE_IMPS.length).toLocaleString();
     const bossesCount = CATALOGUE.filter(m => m.isBoss).length;
     document.getElementById('stat-bosses').textContent = bossesCount.toLocaleString();
 

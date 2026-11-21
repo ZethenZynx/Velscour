@@ -225,13 +225,13 @@ function startRun(world, def, room) {
   switch(def.mode) {
     case 'goblin': {
       const before = world.creatures.length;
-      for(let i=0;i<3;i++) spawnImp(world);
+      for(let i=0;i<3;i++) spawnImp(world, { event: true });
       run.foes = world.creatures.slice(before).filter(m=>m.goblin&&!m.dead);
       trackEventImps(run, run.foes);
       run.kind='kill'; run.reward={gold:5,gear:1}; break;
     }
     case 'gold': loot(world,cx,cy,{gold:10}); run.kind='timer'; run.remaining=20; run.reward={gold:2}; break;
-    case 'caravan': addEventFoes(world,run,{count:3,rank:'normal',hp:1.35}); {const n=world.creatures.length;spawnImp(world);spawnImp(world);const imps=world.creatures.slice(n).filter(m=>m.goblin);trackEventImps(run,imps);run.foes.push(...imps);} run.kind='kill'; run.reward={gold:8,gear:1}; break;
+    case 'caravan': addEventFoes(world,run,{count:3,rank:'normal',hp:1.35}); {const n=world.creatures.length;spawnImp(world, { event: true });spawnImp(world, { event: true });const imps=world.creatures.slice(n).filter(m=>m.goblin);trackEventImps(run,imps);run.foes.push(...imps);} run.kind='kill'; run.reward={gold:8,gear:1}; break;
     case 'buried': addEffect(new Column(cx,cy,'#e7b764',0.5,25,270)); run.cache=addCache(world,[cx,cy]); run.kind='interact'; run.reward=null; break;
     case 'gems': loot(world,cx,cy,{gems:3}); for(let i=0;i<6;i++)spawn({type:'glow',x:cx+rand(-2,2),y:cy+rand(-2,2),z:rand(5,30),vz:20,life:1,size:4,size1:0,color:'#76e7ff',add:true}); run.kind='timer'; run.remaining=12; run.reward={gems:1}; break;
     case 'frenzy': loot(world,cx,cy,{gold:4}); addEventFoes(world,run,{count:5,rank:'champion',hp:1.15}); run.kind='kill'; run.reward={gold:4,gear:1}; break;

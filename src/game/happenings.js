@@ -15,7 +15,7 @@ import { hit, aoe } from './combat.js';
 import { makeMonster, makeElite, monsterBase } from './monster.js';
 import { ambush } from './mayhem.js';
 import { GroundItem, dropChest, rollGroundItem, rollGroundGem, rollOrbKind } from './loot.js';
-import { rollItem, rollGem, potionItem, itemName, itemColor, rarityAt, goldScale } from '../data/items.js';
+import { rollItem, rollGem, potionItem, itemName, itemColor, rarityAt, goldScale, rollSigil } from '../data/items.js';
 import { depthLevel, FINAL_DEPTH } from '../data/depth.js';
 import { addToBag } from './player.js';
 import { UI } from '../ui/ui.js';
@@ -30,6 +30,37 @@ import { DUNGEON_AFFIX_BY_ID, DUNGEON_AFFIX_CONFIG } from '../data/dungeonaffixe
 import { setupWorldObjects } from './worldobjects.js';
 import { setupDungeonEvent } from './dungeonevents.js';
 import { LEGACY_SHRINE_DESCRIPTIONS } from './shrineeffects.js';
+import { IMP_BY_ID, IMP_SPRITE_PATH, selectPrismaticRewards, selectTreasureImp } from '../data/treasureimps.js';
+import { endgameUnlocked, canEarnInfernalMarks } from './endgame.js';
+import { makeCovenant } from '../data/relics.js';
+import { grantMarks } from './marks.js';
+
+const IMP_ESCAPE_SECONDS = 38;
+const IMP_WARNING_SECONDS = 6;
+const IMP_GATHERING_CHANCE = 0.025;
+const IMP_JACKPOT_CHANCE = 0.025;
+const IMP_IMAGES = new Map();
+const IMP_EFFECT_COLORS = Object.freeze({
+  goldfall: ['#ffd040', '#fff0a0'], blood: ['#d02030', '#ff5060'], metal: ['#ffb040', '#e0e8f0'], copper: ['#c87840', '#ffd080'],
+  loot: ['#d0a060', '#80e0c0'], crystal: ['#70e8ff', '#ff50d0', '#80ff90', '#ffd040'], potion: ['#70ff70', '#ff60b0'],
+  leaf: ['#70d040', '#b0ff70'], fortune: ['#40d8c0', '#ffd040'], sigil: ['#40e8ff', '#a0ffff'], mana: ['#4080ff', '#80d8ff'],
+  armor: ['#6878d8', '#c0a0ff'], arcane: ['#b040ff', '#e0a0ff'], lucky: ['#ff60c0', '#ffe080'], holy: ['#fff4c0', '#ffd050'],
+  shadow: ['#302038', '#e03030'], prismatic: ['#ff4050', '#40d8ff', '#a0ff50', '#ffd040', '#c050ff'],
+});
+function treasureImpSprite(id) {
+  if (typeof Image === 'undefined') return null;
+  let image = IMP_IMAGES.get(id);
+  if (!image) { image = new Image(); image.src = IMP_SPRITE_PATH(id); IMP_IMAGES.set(id, image); }
+  return image.complete && image.naturalWidth ? image : null;
+}
+function impParticle(m) {
+  const colors = IMP_EFFECT_COLORS[m.impEffect] || [m.impColor || '#ffd040'];
+  const color = pick(colors);
+  const type = m.impEffect === 'shadow' ? 'smoke' : m.impEffect === 'blood' ? 'blood' : 'glow';
+  spawn({ type, x: m.x + rand(-0.2, 0.2), y: m.y + rand(-0.2, 0.2), z: rand(10, 24),
+    vx: rand(-0.25, 0.25), vy: rand(-0.25, 0.25), vz: rand(7, 22), g: type === 'blood' ? 36 : 0,
+    life: rand(0.35, 0.65), size: rand(1.8, 3.2), size1: type === 'smoke' ? 5 : 0, color, add: type !== 'smoke' });
+}
 
 // ------------------------------------------------------------------------------------------------ shrines
 export const SHRINES = {
@@ -134,7 +165,7 @@ export function setupHappenings(world, start, gen) {
   if (spots.length && chance(0.35)) addRemains(world, spots.pop());
   if (spots.length && chance(0.22 + Math.min(0.15, depth * 0.002))) addCursed(world, spots.pop());
   addEncounters(world, roomSpots(world, start, 4));
-  if (chance(0.3)) H.impT = rand(25, 70);
+  if (chance(0.3) && !impEncounteredAtDepth(world.depth)) H.impT = rand(25, 70);
   if (chance(0.3)) H.challengeAt = randi(12, 30);
   if (nemSpot) spawnNemesis(world, nemSpot, c.nemesis);
   if (torment) return;
@@ -312,57 +343,231 @@ export function spawnNemesis(world, [x, y], N) {
 // ------------------------------------------------------------------------------------------------ treasure imp
 /** A Treasure Imp's coins: `base` on the old line, kept up with prices (goldScale), gold find and the Greed lever. */
 const impGold = (world, lvl, base) => Math.round(base * goldScale(lvl) * rand(0.7, 1.5) * (1 + ((G.player && G.player.st.goldFind) || 0) / 100) * (world.goldMul || 1));
-export function spawnImp(world) {
+const IMP_JACKPOT_REWARDS = new Set(['gold', 'relic', 'merchant', 'hoarder', 'jackpot', 'jewel', 'alchemist', 'sigil', 'set', 'enchanted', 'mystic', 'fortune', 'artisan', 'abyssal']);
+function impEncounteredAtDepth(depth) {
+  return Array.isArray(G.char?.treasureImpDepths) && G.char.treasureImpDepths.includes(Math.floor(Number(depth) || 0));
+}
+function recordImpEncounter(depth) {
+  const c = G.char;
+  if (!c) return;
+  const n = Math.floor(Number(depth) || 0);
+  if (!Array.isArray(c.treasureImpDepths)) c.treasureImpDepths = [];
+  if (!c.treasureImpDepths.includes(n)) { c.treasureImpDepths.push(n); G.game?.autosave?.(); }
+}
+function impContext(world) {
+  return { depth: world.depth || 1, endgameUnlocked: endgameUnlocked(G.char), canEarnMarks: canEarnInfernalMarks(world, G.char) };
+}
+function impQuantity(count, multiplier) { return Math.max(1, Math.ceil(count * multiplier)); }
+function impDrop(world, m, kind, data = {}) {
+  world.addLoot(new GroundItem(m.x + rand(-0.24, 0.24), m.y + rand(-0.24, 0.24), kind, data));
+}
+function impDropGold(world, m, lvl, base, count, multiplier = 1) {
+  for (let i = 0; i < impQuantity(count, multiplier); i++) impDrop(world, m, 'gold', { amount: impGold(world, lvl, base) });
+}
+function impDropGear(world, m, lvl, count, options = {}, multiplier = 1) {
+  for (let i = 0; i < impQuantity(count, multiplier); i++) {
+    const item = rollGroundItem(lvl + (options.levelBonus || 2), { mf: options.mf || 0, bonus: options.bonus || 0 });
+    if (options.vendorValueMult) item.vendorValueMult = options.vendorValueMult;
+    impDrop(world, m, 'item', { item });
+  }
+}
+function impDropGems(world, m, lvl, count, multiplier = 1, levelBonus = 6) {
+  for (let i = 0; i < impQuantity(count, multiplier); i++) impDrop(world, m, 'item', { item: rollGroundGem(lvl + levelBonus) });
+}
+function impBlessing(id, name, color, stats, seconds, extra = {}) {
+  const p = G.player;
+  if (!p || typeof p.addBuff !== 'function') return false;
+  p.addBuff({ id: `treasure_imp_${id}`, name, el: 'holy', stats, t: seconds, max: seconds, ...extra });
+  UI.log(`<b style="color:${color}">${name}</b> — ${seconds} seconds.`, color);
+  return true;
+}
+function grantImpReward(world, m, variant, options = {}) {
+  const lvl = depthLevel(world.depth), qty = options.qty || 1, p = G.player;
+  switch (variant.reward) {
+    case 'gold':
+      impDropGold(world, m, lvl, 25 + lvl * 6, 24, qty);
+      impDropGear(world, m, lvl, randi(3, 5), { mf: 1.3, bonus: 0.4 }, qty);
+      if (chance(0.5)) impDropGems(world, m, lvl, 1, qty);
+      break;
+    case 'blood': impBlessing('blood', 'Blood Rush', variant.color, { dmg: 24, as: 20, crit: 16, speed: 10 }, 22); break;
+    case 'relic': impDropGear(world, m, lvl, 2, { mf: 1.1, bonus: 0.5 }, qty); break;
+    case 'merchant':
+      impDropGear(world, m, lvl, 2, { mf: 0.4, vendorValueMult: 2.5 }, qty);
+      impDropGold(world, m, lvl, 15 + lvl * 2, 5, qty);
+      break;
+    case 'hoarder':
+      impDropGold(world, m, lvl, 12 + lvl * 2.5, 7, qty); impDropGems(world, m, lvl, 1, qty);
+      impDropGear(world, m, lvl, 1, { mf: 0.5 }, qty); break;
+    case 'jackpot':
+      impDropGold(world, m, lvl, 30 + lvl * 7, 24, qty); impDropGems(world, m, lvl, 5, qty, 10);
+      impDropGear(world, m, lvl, 4, { mf: 2.2, bonus: 1.1 }, qty); break;
+    case 'jewel': impDropGems(world, m, lvl, randi(4, 6), qty, 8); break;
+    case 'alchemist':
+      for (let i = 0; i < impQuantity(randi(2, 3), qty); i++) impDrop(world, m, 'potion', { item: potionItem(pick(['hp', 'mp', 'rejuv', 'fury'])) });
+      impBlessing('alchemist', 'Alchemical Renewal', variant.color, { regen: 18 }, 18); break;
+    case 'vitality':
+      for (let i = 0; i < impQuantity(randi(7, 10), qty); i++) impDrop(world, m, 'orb_hp');
+      impBlessing('vitality', 'Verdant Vitality', variant.color, { regen: 38, life: 8 }, 24); break;
+    case 'prosperity':
+      impDropGold(world, m, lvl, 18 + lvl * 3, 8, qty);
+      impBlessing('prosperity', 'Prosperity', variant.color, { gf: 55, mf: 35 }, 30); break;
+    case 'sigil':
+      for (let i = 0; i < impQuantity(randi(1, 2), qty); i++) impDrop(world, m, 'item', { item: rollSigil(world.depth, 0) });
+      break;
+    case 'arcane':
+      for (let i = 0; i < impQuantity(8, qty); i++) impDrop(world, m, 'orb_mp');
+      impBlessing('arcane', 'Arcane Reserve', variant.color, { manaRegenPct: 75 }, 24); break;
+    case 'set': {
+      for (let i = 0; i < impQuantity(1, qty); i++) {
+        const item = makeCovenant(Math.min(100, Math.max(1, G.char?.level || lvl)), { depth: world.depth });
+        if (item) impDrop(world, m, 'item', { item });
+      }
+      break;
+    }
+    case 'enchanted': impDropGear(world, m, lvl, 2, { mf: 1.65, bonus: 1.1 }, qty); break;
+    case 'mystic': impDropGems(world, m, lvl, randi(2, 3), qty, 18); break;
+    case 'fortune': impDropGear(world, m, lvl, 2, { mf: 2.4, bonus: 1.2 }, qty); break;
+    case 'celestial': {
+      const shrine = pick(Object.entries(SHRINES));
+      const [key, S] = shrine;
+      if (S.heal && p) { p.hp = p.maxHp; p.mana = p.maxMana; }
+      impBlessing(`celestial_${key}`, `Celestial: ${S.name}`, variant.color, S.buff, S.t, { storm: S.storm });
+      if (chance(0.16)) {
+        const [key2, S2] = pick(Object.entries(SHRINES).filter(([other]) => other !== key));
+        impBlessing(`celestial_${key2}`, `Celestial: ${S2.name}`, variant.color, S2.buff, S2.t, { storm: S2.storm });
+      }
+      break;
+    }
+    case 'artisan':
+      for (let i = 0; i < impQuantity(3, qty); i++) impDrop(world, m, 'item', { item: rollSigil(world.depth, 0) });
+      impDropGems(world, m, lvl, 1, qty);
+      break;
+    case 'abyssal':
+      if (canEarnInfernalMarks(world, G.char)) grantMarks(impQuantity(1, qty), 'from an Abyssal Imp', world);
+      break;
+    case 'prismatic': {
+      const categories = selectPrismaticRewards(impContext(world));
+      const descriptions = categories.map((item) => item.name).join(', ');
+      for (const category of categories) grantImpReward(world, m, category, { qty: 1 });
+      if (categories.length) UI.log(`<b style="color:${variant.color}">Prismatic cache:</b> ${descriptions}.`, variant.color);
+      break;
+    }
+  }
+}
+
+function discoverImp(world, m) {
+  if (m.impDiscovered) return;
+  m.impDiscovered = true;
+  m.impLeft = IMP_ESCAPE_SECONDS;
+  floatText(m.x, m.y, 70, m.name, m.impColor, 15, { life: 2 });
+  UI.log(`<b style="color:${m.impColor}">${m.name}</b> spotted! Catch it before it escapes.`, m.impColor);
+  const c = G.char;
+  if (c && !c.treasureImpTutorialShown) {
+    c.treasureImpTutorialShown = true;
+    UI.centerMsg('TREASURE IMPS', 'Each color carries a different reward. They flee when found; attacks and crowd control can buy you time.', 4);
+    G.game?.autosave?.();
+  }
+}
+
+function createTreasureImp(world, at, variant, options = {}) {
+  const lvl = depthLevel(world.depth), m = makeMonster(world, 'imp', world.biome, lvl + 1, 'normal', at[0], at[1], 0, null);
+  Object.assign(m, { name: variant.name, impVariant: variant.id, impColor: variant.color, nameColor: variant.color,
+    goblin: true, aura: variant.color, scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [], impEffect: variant.effect,
+    impLeft: null, impDiscovered: false, impEscapeWarned: false, impParticleT: 0, dungeonEventImp: !!options.event });
+  m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5;
+  m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
+  m.artFrame = () => {
+    const img = treasureImpSprite(variant.id);
+    return img ? { img, frame: 0, cw: img.naturalWidth, ch: img.naturalHeight, ax: img.naturalWidth / 2, ay: img.naturalHeight - 6, k: 0.34 } : null;
+  };
+  const base = m.onDamaged.bind(m);
+  m.onDamaged = (src, amount) => {
+    base(src, amount);
+    if ((src?.isPlayer || src?.team === 'player') && !m.dungeonEventImp) discoverImp(world, m);
+    if (variant.id === 'treasure' && !m.dungeonEventImp && chance(0.45)) impDrop(world, m, 'gold', { amount: impGold(world, lvl, 10 + lvl * 3) });
+  };
+  m.onDeath = () => {
+    if (m.impRewardsClaimed) return;
+    m.impRewardsClaimed = true;
+    sfx('gold'); sfx('chest'); camera.shake(5);
+    explosionFx(m.x, m.y, 1.6, variant.reward === 'abyssal' ? 'shadow' : variant.reward === 'blood' ? 'blood' : 'holy', 'eruption');
+    for (let i = 0; i < 18; i++) sparkle(m.x + rand(-0.5, 0.5), m.y + rand(-0.5, 0.5), 24, variant.color, 1, 0.3);
+    if (!m.dungeonEventImp) {
+      const jackpot = IMP_JACKPOT_REWARDS.has(variant.reward) && chance(IMP_JACKPOT_CHANCE);
+      if (jackpot) UI.log(`<b style="color:#ffd040">Jackpot!</b> ${variant.name}'s reward is increased.`, '#ffd040');
+      grantImpReward(world, m, variant, { qty: jackpot ? 1.5 : 1 });
+    }
+    UI.centerMsg(`${variant.name.toUpperCase()} SLAIN`, `${variant.name} releases its reward`, 2);
+  };
+  world.add(m);
+  const H = world.happen;
+  (H.imps ||= []).push(m); H.imp = m; H.impLeft = m.impLeft || 0;
+  addEffect(new Ring(m.x, m.y, 0.2, 2, 0.5, variant.color, 4));
+  sfx('gold', 0.8);
+  return m;
+}
+
+export function spawnImp(world, options = {}) {
+  if (!world?.player || !world.map) return null;
+  const event = !!options.event;
+    if (!event && impEncounteredAtDepth(world.depth)) return null;
   const p = world.player, map = world.map;
   let at = null;
   for (let i = 0; i < 30 && !at; i++) {
     const a = rand(TAU), r = rand(6, 9), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
     if (map.circleFree(x, y, 0.35) && map.flowAt(x, y) >= 0 && (i > 20 || map.los(p.x, p.y, x, y))) at = [x, y];
   }
-  if (!at) return;
-  const lvl = depthLevel(world.depth);
-  const m = makeMonster(world, 'imp', world.biome, lvl + 1, 'normal', at[0], at[1], 0, null);
-  Object.assign(m, { name: 'Treasure Imp', goblin: true, aura: '#ffd040', scale: 0.9, dmg: 0, xp: m.xp * 8, awake: true, rank: 'unique', affixes: [] });
-  m.maxHp *= 15; m.hp = m.maxHp; m.speed = 3.5; // tougher to mow down; its fear run is near the hero's pace.
-  m.moves = null; m.summoner = false; m.proj = null; m.aoeCaster = false;
-  const base = m.onDamaged.bind(m);
-  m.onDamaged = (src, d) => {
-    base(src, d);
-    if (!m.dungeonEventImp && chance(0.45)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, lvl, 10 + lvl * 3) }));
-  };
-  m.onDeath = () => {
-    sfx('gold'); sfx('chest'); camera.shake(5);
-    explosionFx(m.x, m.y, 1.6, 'holy', 'eruption');
-    if (!m.dungeonEventImp) {
-      for (let i = 0; i < 24; i++) world.addLoot(new GroundItem(m.x + rand(-0.6, 0.6), m.y + rand(-0.6, 0.6), 'gold', { amount: impGold(world, lvl, 25 + lvl * 6) }));
-      for (let i = 0; i < randi(3, 5); i++) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundItem(lvl + 2, { mf: G.player.st.magicFind, bonus: 1.3 }) }));
-      if (chance(0.5)) world.addLoot(new GroundItem(m.x, m.y, 'item', { item: rollGroundGem(lvl + 6) }));
+  if (!at) return null;
+  const context = impContext(world), variant = selectTreasureImp(context);
+  const primary = createTreasureImp(world, at, variant, { event });
+  if (!event) {
+    recordImpEncounter(world.depth);
+    if (chance(IMP_GATHERING_CHANCE)) {
+      const pool = Object.values(IMP_BY_ID).filter((candidate) => candidate.id !== variant.id && candidate.id !== 'prismatic' &&
+        // keep gatherings small and never make them bypass progression restrictions
+        ['common', 'uncommon', 'rare'].includes(candidate.rarity) &&
+        (candidate.endgameOnly ? context.endgameUnlocked && Number(world.depth) >= (candidate.minDepth || 1) : true) &&
+        (candidate.id !== 'abyssal' || context.canEarnMarks));
+      for (let i = 0, count = randi(1, 2); i < count && pool.length; i++) {
+        const other = pool.splice(randi(0, pool.length - 1), 1)[0];
+        let second = null;
+        for (let n = 0; n < 16 && !second; n++) {
+          const [x, y] = map.randomNear(at[0], at[1], 1.6);
+          if (map.circleFree(x, y, 0.35) && map.flowAt(x, y) >= 0) second = [x, y];
+        }
+        if (second) createTreasureImp(world, second, other);
+      }
+      UI.log('<b style="color:#e9bdff">Imp Gathering!</b> A small band of different imps scatters through the area.', '#e9bdff');
     }
-    UI.centerMsg('TREASURE IMP SLAIN', 'It burst in a shower of gold', 2);
-  };
-  world.add(m);
-  const H = world.happen;
-  m.impLeft = 32;
-  (H.imps ||= []).push(m);
-  H.imp = m; H.impLeft = 32;
-  addEffect(new Ring(m.x, m.y, 0.2, 2, 0.5, '#ffd040', 4));
-  floatText(m.x, m.y, 70, 'Treasure Imp!', '#ffd040', 16, { life: 2 });
-  UI.log('<b style="color:#ffd040">A Treasure Imp</b> scurries past, dripping gold. Catch it before it escapes!', '#ffd040');
-  sfx('gold', 0.8);
+  }
+  return primary;
 }
 
 function impTick(world, dt) {
-  const H = world.happen, imps = H.imps ||= (H.imp ? [H.imp] : []);
+  const H = world.happen, imps = H.imps ||= (H.imp ? [H.imp] : []), p = world.player;
   for (const m of imps.slice()) {
     if (m.dead) continue;
-    m.status.fear = { t: 1 }; // every imp in a multi-imp event flees from the hero
-    if (chance(dt * 8)) sparkle(m.x, m.y, 20, '#ffd040', 1, 0.3);
-    if (!m.dungeonEventImp && chance(dt * 1.2)) world.addLoot(new GroundItem(m.x, m.y, 'gold', { amount: impGold(world, depthLevel(world.depth), 5 + depthLevel(world.depth) * 1.5) }));
-    if ((m.impLeft -= dt) <= 0) {
-      addEffect(new Ring(m.x, m.y, 2, 0.1, 0.5, '#ffd040', 4)); addEffect(new Column(m.x, m.y, '#ffd040', 0.5, 20, 240));
-      floatText(m.x, m.y, 70, 'Escaped!', '#ffd040', 14, { life: 1.6 });
-      UI.log('The Treasure Imp escaped through a rift, cackling.', '#c0a060');
-      m.dungeonEventImpEscaped = true; m.dead = true; sfx('portal', 0.5);
+    const d = p ? dist(p.x, p.y, m.x, m.y) : Infinity;
+    if (!m.impDiscovered && d <= 10 && world.map.los(p.x, p.y, m.x, m.y)) discoverImp(world, m);
+    m.status.fear = { t: 1 };
+    m.impParticleT = (m.impParticleT || 0) - dt;
+    if (m.impParticleT <= 0) { m.impParticleT = rand(0.14, 0.24); impParticle(m); }
+    if (!m.dungeonEventImp && m.impVariant === 'treasure' && m.impDiscovered && chance(dt * 1.2)) {
+      const lvl = depthLevel(world.depth); impDrop(world, m, 'gold', { amount: impGold(world, lvl, 5 + lvl * 1.5) });
+    }
+    if (m.impDiscovered) {
+      if (!m.disabled()) m.impLeft -= dt;
+      if (m.impLeft <= IMP_WARNING_SECONDS && !m.impEscapeWarned) {
+        m.impEscapeWarned = true;
+        floatText(m.x, m.y, 70, 'Rift opening!', m.impColor, 13, { life: 1.4 });
+        UI.log(`<b style="color:${m.impColor}">${m.name}</b> is about to escape!`, m.impColor);
+      }
+      if (m.impLeft <= 0) {
+        addEffect(new Ring(m.x, m.y, 2, 0.1, 0.5, m.impColor, 4)); addEffect(new Column(m.x, m.y, m.impColor, 0.5, 20, 240));
+        floatText(m.x, m.y, 70, 'Escaped!', m.impColor, 14, { life: 1.6 });
+        UI.log(`<b style="color:${m.impColor}">${m.name}</b> escaped through a rift.`, '#c0a060');
+        m.dungeonEventImpEscaped = true; m.dead = true; sfx('portal', 0.5);
+      }
     }
   }
   H.imps = imps.filter(m => !m.dead);

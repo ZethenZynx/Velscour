@@ -194,7 +194,7 @@ export function newCharData(classId, name) {
     jewelBox: Array(JEWEL_BOX_COLS * JEWEL_BOX_BASE_ROWS).fill(null), // dedicated town vault for gems & runes
     tabs: Array(TAB_SLOTS).fill(null), tabAt: 0, // the Bard's Tabs: locked Music Sheets he plays (data/tabs.js)
     gold: 150, potions: { hp: 6, mp: 4, rejuv: 1, fury: 1 },
-    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], affixStreak: 0, affixBiome: null, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, wandererBounties: {}, npcEncounterDepths: {}, breach: { best: 0, cleared: {} },
+    depth: 1, deepest: 0, nextBiome: 'catacombs', biomeBag: [], cleared: {}, dungeonAffixes: [], nextAffixes: [], affixStreak: 0, affixBiome: null, overworldMisses: 0, overworldLastVisit: null, seaOfSandRuns: {}, darkForestRuns: {}, wandererBounties: {}, npcEncounterDepths: {}, treasureImpDepths: [], treasureImpTutorialShown: false, breach: { best: 0, cleared: {} },
     heresy: { on: [] }, rifts: { open: 1, best: 0, cleared: {}, bestTime: {}, runs: 0, fails: 0, deaths: 0 }, keys: 0, unbound: { wins: 0, best: 0 }, unboundExploration: { depth: 1, deepest: 1, cleared: {} }, // the Endgame (docs/ENDGAME.md)
     kills: 0, deaths: 0, created: Date.now(), lastPlayed: Date.now(), tips: {}, critterTutorialSeen: false, critterArrowEncounters: 0, wdmg: 1,
   };
@@ -352,6 +352,10 @@ export function migrate(c) {
   c.cleared = c.cleared || {};
   c.wandererBounties = c.wandererBounties && typeof c.wandererBounties === 'object' && !Array.isArray(c.wandererBounties) ? c.wandererBounties : {};
   c.npcEncounterDepths = c.npcEncounterDepths && typeof c.npcEncounterDepths === 'object' && !Array.isArray(c.npcEncounterDepths) ? c.npcEncounterDepths : {};
+  c.treasureImpDepths = Array.isArray(c.treasureImpDepths)
+    ? [...new Set(c.treasureImpDepths.map(Number).filter((depth) => Number.isInteger(depth) && depth > 0))]
+    : [];
+  c.treasureImpTutorialShown = !!c.treasureImpTutorialShown;
   c.seaOfSandRuns = c.seaOfSandRuns || {};
   c.darkForestRuns = c.darkForestRuns || {};
   c.breach = Object.assign({ best: 0, cleared: {} }, c.breach); // THE ETERNAL BREACH: best floor beaten, clears per floor

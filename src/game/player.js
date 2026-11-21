@@ -117,7 +117,7 @@ export class Player extends Creature {
     }
     // buffs
     let buffDmg = 0, buffAs = 0, buffArmor = 0, buffRes = 0, buffRegen = 0, buffSpeed = 0, buffCrit = 0, buffThorns = 0, buffLeech = 0, buffBlock = 0, buffLife = 0, buffCdr = 0, buffProj = 0;
-    let buffReduce = 0, buffDamageTaken = 0, buffMf = 0, buffGf = 0, buffXp = 0, buffCritDmg = 0, buffArea = 0, buffEcho = 0;
+    let buffReduce = 0, buffDamageTaken = 0, buffMf = 0, buffGf = 0, buffXp = 0, buffCritDmg = 0, buffArea = 0, buffEcho = 0, buffManaRegenPct = 0;
     const buffElemental = {}, buffAddedDamage = {};
     for (const b of this.buffs) {
       const s = b.stats;
@@ -126,6 +126,7 @@ export class Player extends Creature {
       buffLife += s.life || 0; buffCdr += s.cdr || 0; buffProj += s.proj || 0;
       buffReduce += s.reduce || 0; buffDamageTaken += s.damageTakenPct || 0; buffMf += s.mf || 0; buffGf += s.gf || 0; buffXp += s.xp || 0;
       buffCritDmg += s.critDmg || 0; buffArea += s.areaPct || 0; buffEcho += s.echoChance || 0;
+      buffManaRegenPct += s.manaRegenPct || 0;
       for (const [el, value] of Object.entries(s.elemental || {})) buffElemental[el] = (buffElemental[el] || 0) + value;
       for (const [el, value] of Object.entries(s.addedDamage || {})) buffAddedDamage[el] = (buffAddedDamage[el] || 0) + value;
     }
@@ -209,7 +210,7 @@ export class Player extends Creature {
     st.naturalLifeRegen = 1.2 + c.level * 0.35 + vit * 0.08;
     st.bonusLifeRegen = (add.lifeRegen || 0) + this.maxHp * st.regenPct / 100;
     st.lifeRegen = heresyAllows('regen', c) ? ((inTown ? st.naturalLifeRegen : 0) + st.bonusLifeRegen) : 0; // Hunger of the Abyss: none
-    st.manaRegen = (1.0 + c.level * 0.04 + int * 0.04 + (add.manaRegen || 0)) * (1 + (add.manaRegenPct || 0) / 100);
+    st.manaRegen = (1.0 + c.level * 0.04 + int * 0.04 + (add.manaRegen || 0)) * (1 + ((add.manaRegenPct || 0) + buffManaRegenPct) / 100);
     st.talents = tb.mods;
     st.talentSkillMults = tb.skillMults;
     st.talentMorphs = tb.morphs;

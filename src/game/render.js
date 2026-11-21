@@ -1575,10 +1575,10 @@ function drawOverheadNames(ctx, world) {
   const d = G.dpr;
   const nameFont = `700 ${Math.round(11 * d)}px Cinzel, Georgia, serif`;
   for (const c of world.creatures) {
-    if (c.dead || !c.sbox) continue;
+    if (c.dead || !c.sbox || (c.goblin && !c.impDiscovered)) continue;
     if (c.rank === 'champion' || c.rank === 'unique' || c.depthQuestNameplate) {
       const x = (c.sbox[0] + c.sbox[2]) / 2, y = c.barTop != null ? camera.toScreen(0, c.barTop)[1] - 3 : c.sbox[1] - 8; // above its life bar
-      drawLabel(ctx, c.name, x * d, y * d, nameFont, c.depthQuestNameplate ? '#ffe080' : c.rank === 'unique' ? '#ffc040' : '#80b0ff', 3 * d);
+      drawLabel(ctx, c.name, x * d, y * d, nameFont, c.nameColor || (c.depthQuestNameplate ? '#ffe080' : c.rank === 'unique' ? '#ffc040' : '#80b0ff'), 3 * d);
     }
   }
   // townsfolk names: only the one nearest the hero (a crowd of labels hides the crowd)
@@ -1826,7 +1826,7 @@ export function drawMinimap(world, dt, canvas, big = false) {
   for (const m of world.creatures) {
     if (m.dead || m === p || m.clutter) continue;
     const d = Math.hypot(m.x - p.x, m.y - p.y);
-    if (m.team === 'enemy' && d < 14) dot(m.x, m.y, m.depthBountyMark ? '#ffe080' : m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.depthBountyMark ? (big ? 5 : 3) : m.rank === 'boss' ? 4 : 2);
+    if (m.team === 'enemy' && d < 14 && (!m.goblin || m.impDiscovered)) dot(m.x, m.y, m.goblin ? m.impColor : m.depthBountyMark ? '#ffe080' : m.rank === 'boss' ? '#ff8000' : m.rank !== 'normal' ? '#ffb040' : '#ff3030', m.depthBountyMark ? (big ? 5 : 3) : m.rank === 'boss' ? 4 : 2);
     else if (m.team === 'player') dot(m.x, m.y, '#40ff60', 1.8);
   }
   if (world.cave && world.cave.mapMarks) for (const [x, y, col, r, label] of world.cave.mapMarks()) {

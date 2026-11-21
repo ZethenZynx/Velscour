@@ -781,7 +781,7 @@ export function itemValue(item) {
   if (item.type === 'banner_kit') return BANNER_KIT_PRICE;
   if (item.type === 'gem') return GEMS[item.gem].sigil ? Math.round(goldPile(depthLevelOf(item.tier * 24 + 12)) * 8) : Math.round((GEMS[item.gem].special ? 400 : 60) * Math.pow(2.6, item.tier));
   const base = 12 * Math.pow(1.06, goldLvl(item.ilvl)) * RARITY[item.rarity].value * (item.relic ? { heir: 2.5, cov: 2 }[item.relic] : RELIC_HOOK.glyph && RELIC_HOOK.glyph(item) ? 60 : 1);
-  return Math.round(base * (1 + item.affixes.length * 0.15) * (1 + item.sockets * 0.2) * (1 + (item.upg || 0) * 0.3));
+  return Math.round(base * (1 + item.affixes.length * 0.15) * (1 + item.sockets * 0.2) * (1 + (item.upg || 0) * 0.3) * Math.max(1, Number(item.vendorValueMult) || 1));
 }
 
 /** Vendor payout for selling one item (or one unit of a stack). */

@@ -74,6 +74,7 @@ export async function ensureOmniIndex() {
       affixMod,
       skyStoriesMod,
       dungeonEventMod,
+      treasureImpMod,
     ] = await Promise.all([
       import('../data/classes.js'),
       import('../data/skills.js'),
@@ -90,6 +91,7 @@ export async function ensureOmniIndex() {
       import('../data/dungeonaffixes.js'),
       import('../data/skystories.js'),
       import('../game/dungeonevents.js'),
+      import('../data/treasureimps.js'),
     ]);
 
     const entries = [];
@@ -327,6 +329,15 @@ export async function ensureOmniIndex() {
         sub: `${(m.arch || 'fiend').toUpperCase()} · ${(m.el || 'phys').toUpperCase()}`,
         keywords: `${m.name} ${m.id} ${m.arch || ''} ${m.el || ''}`.toLowerCase(),
         href: `bestiary.html?id=${encodeURIComponent(m.id)}`,
+      });
+    }
+
+    for (const imp of treasureImpMod.TREASURE_IMPS) {
+      entries.push({
+        cat: 'Bestiary', badge: `Treasure Imp · ${imp.rarity}`, title: imp.name,
+        sub: imp.summary,
+        keywords: `${imp.name} ${imp.id} treasure imp ${imp.rarity} ${imp.reward} ${imp.summary}`.toLowerCase(),
+        href: `bestiary.html?q=${encodeURIComponent(imp.name)}#treasure-imp-title`,
       });
     }
 

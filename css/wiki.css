@@ -928,3 +928,8 @@ a:hover {
   }
 }
 
+.treasure-imp-compendium{max-width:1440px;margin:26px auto 32px;padding:22px clamp(14px,3vw,36px);border-block:1px solid rgba(216,184,90,.26);background:linear-gradient(110deg,rgba(28,20,16,.88),rgba(12,10,13,.88))}
+.treasure-imp-compendium-head{margin:0 0 16px}.treasure-imp-compendium-head h2{margin:4px 0;color:#ead7b1;font:700 clamp(20px,2.4vw,28px) Cinzel,Georgia,serif}.treasure-imp-compendium-head p{margin:0;color:#b8ab9a}
+.treasure-imp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:9px}
+.treasure-imp-card{display:grid;grid-template-columns:68px 1fr;align-items:center;gap:10px;min-height:82px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--imp-color) 42%,#423424);border-radius:6px;background:rgba(8,7,8,.72)}
+.treasure-imp-card img{width:64px;height:64px;object-fit:contain;image-rendering:pixelated}.treasure-imp-card h3{margin:0;color:var(--imp-color);font:700 14px Cinzel,Georgia,serif}.treasure-imp-rarity{display:block;margin-top:3px;color:#d1b778;font:11px "Alegreya Sans",sans-serif;text-transform:capitalize}.treasure-imp-card p{margin:3px 0 0;color:#c4b9a8;font:12px/1.35 "Alegreya Sans",sans-serif}
