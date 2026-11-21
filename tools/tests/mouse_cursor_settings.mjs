@@ -13,6 +13,7 @@ import {
   cursorUsesOverlay,
   MAX_CURSOR_TRAIL_PARTICLES,
   MAX_CURSOR_TRAIL_POINTS,
+  CURSOR_TRAIL_SPELL_MATCHES,
   normalizeMouseCursorSettings,
 } from '../../src/ui/mousecursor.js';
 import { G } from '../../src/state.js';
@@ -28,6 +29,7 @@ assert.equal(cursorTrailGap(100), 9.5, 'trails begin behind the pointer tip');
 assert.ok(cursorTrailGap(300) > cursorTrailGap(100) * 2, 'the pointer-to-trail gap scales with the cursor');
 assert.ok(cursorTrailGap(100, -1, 0, 3, 25) > cursorTrailGap(100, 1, 0, 3, 25), 'the gap accounts for the arrow artwork when moving toward its body');
 assert.ok(cursorTrailGap(50, -1, 0, 14, 100) > cursorTrailGap(50, -1, 0, 3, 0), 'wide glowing trails leave extra clearance around the pointer');
+assert.ok(cursorTrailGap(100, 1, 0, 3, 25, 20) > cursorTrailGap(100, 1, 0, 3, 25, 5), 'large trail particles preserve a visible pointer gap');
 assert.equal(customCursorCanRender(null, null), false, 'missing custom cursor elements select the native fallback');
 assert.equal(customCursorCanRender({ isConnected: true }, { isConnected: true }), true, 'connected custom cursor elements may safely hide the native cursor');
 assert.equal(customCursorCanRender({ isConnected: false }, { isConnected: false }), false, 'detached custom cursor elements restore the native cursor');
@@ -61,6 +63,8 @@ assert.match(cursorColor({ color: 'rainbow' }, 1), /^hsl\(/, 'rainbow color cycl
 for (const trailStyle of ['none', 'solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'comet', 'ghost']) {
   assert.equal(normalizeMouseCursorSettings({ trailStyle }).trailStyle, trailStyle, `${trailStyle} trail style is supported`);
 }
+assert.deepEqual(Object.keys(CURSOR_TRAIL_SPELL_MATCHES).sort(), ['solid', 'dotted', 'sparkles', 'stars', 'particles', 'fire', 'lightning', 'frost', 'smoke', 'arcane', 'orbs', 'rainbow', 'comet', 'ghost'].sort(), 'every non-empty style has a documented spell-effect reference');
+assert.ok(Object.values(CURSOR_TRAIL_SPELL_MATCHES).every((reference) => typeof reference === 'string' && reference.length > 0), 'all spell matches identify an existing visual source');
 assert.equal(normalizeMouseCursorSettings({ trailStyle: 'unknown' }).trailStyle, 'none', 'invalid trail styles safely disable trails');
 
 const bounded = normalizeMouseCursorSettings({ size: 999, transparency: -1, trailLength: 0, locatorSize: 999, particleDensity: 300 });
@@ -94,6 +98,15 @@ for (const trailStyle of trailStyles) {
   const recycled = MouseCursor.particlePool[MouseCursor.particlePool.length - 1];
   MouseCursor.emitTrail(1, 2, 80, 40001);
   if (particleStyles.includes(trailStyle)) assert.ok(MouseCursor.particles.includes(recycled), `${trailStyle} reuses a recycled particle`);
+}
+const noop = () => {};
+const drawContext = Object.fromEntries(['save', 'restore', 'clearRect', 'beginPath', 'moveTo', 'lineTo', 'closePath', 'fill', 'stroke', 'arc', 'ellipse', 'translate', 'rotate', 'scale', 'quadraticCurveTo'].map((method) => [method, noop]));
+for (const trailStyle of trailStyles) {
+  G.settings.mouseCursor = normalizeMouseCursorSettings({ trailStyle, particleDensity: 100, particleSize: 8, trailLength: 1500 });
+  MouseCursor.clearTrail();
+  MouseCursor.history.push({ x: 30, y: 30, time: 1000 }, { x: 38, y: 34, time: 1050 });
+  MouseCursor.emitTrail(38, 34, 80, 1050, 1, 0);
+  MouseCursor.drawTrail(drawContext, G.settings.mouseCursor, 1100);
 }
 G.settings.mouseCursor = { ...MOUSE_CURSOR_DEFAULTS };
 MouseCursor.clearTrail();
